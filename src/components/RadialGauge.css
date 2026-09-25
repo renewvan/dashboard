@@ -1,0 +1,39 @@
+.radial-gauge {
+  text-align: center;
+}
+
+.radial-gauge__ring {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radial-gauge__hole {
+  background: var(--bg);
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radial-gauge__value {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.radial-gauge__label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.radial-gauge__sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
