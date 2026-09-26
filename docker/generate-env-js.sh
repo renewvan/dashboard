@@ -2,7 +2,7 @@
 # Generates /usr/share/nginx/html/env.js from this container's environment
 # at startup. The SPA in dist/ was built once in CI -- Vite's VITE_* env
 # vars are inlined then, not at container runtime -- so this is what lets
-# the same published image point at a different van bus per deployment.
+# the same published image point at a different renewvan bus per deployment.
 # Runs automatically: the official nginx image executes every executable
 # *.sh under /docker-entrypoint.d/ before starting nginx.
 set -eu

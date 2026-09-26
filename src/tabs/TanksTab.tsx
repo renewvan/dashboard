@@ -1,5 +1,5 @@
 import { RadialGauge } from '../components/RadialGauge'
-import type { Tank } from '../types'
+import { isCompleteTank, type Tank } from '../types'
 
 export interface TanksTabProps {
   tanks: Record<string, Tank>
@@ -23,9 +23,13 @@ const STATUS_LABELS: Record<Tank['status'], string> = {
 const TANK_ORDER = ['fresh', 'grey']
 
 export function TanksTab({ tanks }: TanksTabProps) {
-  const ids = Object.keys(tanks).sort(
-    (a, b) => TANK_ORDER.indexOf(a) - TANK_ORDER.indexOf(b) || a.localeCompare(b),
-  )
+  // MQTT builds a tank up one property per retained message; skip any id
+  // whose record hasn't fully arrived yet (see `isCompleteTank`).
+  const ids = Object.keys(tanks)
+    .filter((id) => isCompleteTank(tanks[id]))
+    .sort(
+      (a, b) => TANK_ORDER.indexOf(a) - TANK_ORDER.indexOf(b) || a.localeCompare(b),
+    )
 
   if (ids.length === 0) {
     return <p className="empty-state">No tank data yet.</p>

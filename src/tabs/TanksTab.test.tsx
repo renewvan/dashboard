@@ -32,4 +32,19 @@ describe('TanksTab', () => {
     render(<TanksTab tanks={{}} />)
     expect(screen.getByText(/No tank data/)).toBeInTheDocument()
   })
+
+  it('skips a still-partial tank record instead of rendering garbage', () => {
+    // MQTT builds an entity up one property per retained message; a
+    // `health`-topic collision or a mid-flight connection can leave an id
+    // with only some fields set.
+    render(
+      <TanksTab
+        tanks={{
+          ...tanks,
+          health: { status: 'ok' } as unknown as Tank,
+        }}
+      />,
+    )
+    expect(screen.getAllByTestId('radial-gauge')).toHaveLength(2)
+  })
 })

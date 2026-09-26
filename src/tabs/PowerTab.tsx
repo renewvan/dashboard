@@ -1,12 +1,17 @@
 import { RadialGauge } from '../components/RadialGauge'
-import type { Battery } from '../types'
+import { isCompleteBattery, type Battery } from '../types'
 
 export interface PowerTabProps {
   batteries: Record<string, Battery>
 }
 
 export function PowerTab({ batteries }: PowerTabProps) {
-  const ids = Object.keys(batteries).sort()
+  // MQTT builds a battery up one property per retained message; skip any
+  // id whose record hasn't fully arrived yet instead of crashing on the
+  // still-missing fields (see `isCompleteBattery`).
+  const ids = Object.keys(batteries)
+    .filter((id) => isCompleteBattery(batteries[id]))
+    .sort()
 
   if (ids.length === 0) {
     return <p className="empty-state">No battery data yet.</p>

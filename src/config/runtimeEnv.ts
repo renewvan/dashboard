@@ -2,7 +2,7 @@
 // `import.meta.env.VITE_*` is inlined at `npm run build` time (a step
 // already completed when this image was published), so it can't vary
 // per deployment -- the same published image must work against whatever
-// van bus a given Pi/host is pointed at. `docker/generate-env-js.sh`
+// renewvan bus a given Pi/host is pointed at. `docker/generate-env-js.sh`
 // (run as an nginx `docker-entrypoint.d` script, see Dockerfile) writes
 // `window.__ENV__` from the *container's* environment at startup; this
 // module prefers that when present and falls back to the build-time

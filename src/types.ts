@@ -12,6 +12,23 @@ export interface Tank {
   status: TankStatus
 }
 
+/**
+ * MQTT builds each entity up one property per retained message; between
+ * the first message for an id and the last, the accumulated record is a
+ * `Partial<Tank>`, not a `Tank` — even though the store's type says
+ * otherwise (see `RenewvanBusState`). Consumers must check this before
+ * treating a record as render-ready, or risk a crash on the still-partial
+ * fields (e.g. `undefined.toFixed`).
+ */
+export function isCompleteTank(tank: Partial<Tank>): tank is Tank {
+  return (
+    tank.fluid_type !== undefined &&
+    tank.capacity_l !== undefined &&
+    tank.level_pct !== undefined &&
+    tank.status !== undefined
+  )
+}
+
 export type ChargeState =
   | 'off'
   | 'low_power'
@@ -41,18 +58,30 @@ export interface Battery {
   charge_state: ChargeState
 }
 
+/** Same partial-accumulation caveat as {@link isCompleteTank}. */
+export function isCompleteBattery(battery: Partial<Battery>): battery is Battery {
+  return (
+    battery.soc_pct !== undefined &&
+    battery.voltage_v !== undefined &&
+    battery.current_a !== undefined &&
+    battery.power_w !== undefined &&
+    battery.temperature_c !== undefined &&
+    battery.charge_state !== undefined
+  )
+}
+
 export interface Relay {
   state: boolean
 }
 
-/** Live state of the van bus, keyed by entity id within each domain. */
-export interface VanBusState {
+/** Live state of the renewvan bus, keyed by entity id within each domain. */
+export interface RenewvanBusState {
   tanks: Record<string, Tank>
   batteries: Record<string, Battery>
   relays: Record<string, Relay>
 }
 
-export const emptyVanBusState: VanBusState = {
+export const emptyRenewvanBusState: RenewvanBusState = {
   tanks: {},
   batteries: {},
   relays: {},

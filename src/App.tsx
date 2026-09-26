@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { ConnectionBanner } from './components/ConnectionBanner'
 import { Tabs } from './components/Tabs'
-import { useVanBus } from './hooks/useVanBus'
+import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { PowerTab } from './tabs/PowerTab'
 import { SwitchesTab } from './tabs/SwitchesTab'
 import { TanksTab } from './tabs/TanksTab'
 
 function App() {
-  const { state, status } = useVanBus()
+  const { state, status } = useRenewvanBus()
   const [activeTab, setActiveTab] = useState('tanks')
 
   return (

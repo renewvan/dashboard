@@ -41,4 +41,21 @@ describe('PowerTab', () => {
     render(<PowerTab batteries={{}} />)
     expect(screen.getByText(/No battery data/)).toBeInTheDocument()
   })
+
+  it('skips a still-partial battery record instead of crashing', () => {
+    // MQTT builds an entity up one property per retained message; a
+    // `health`-topic collision or a mid-flight connection can leave an id
+    // with only some fields set. Rendering must not throw on the missing
+    // ones (e.g. `undefined.toFixed`).
+    render(
+      <PowerTab
+        batteries={{
+          ...batteries,
+          health: { soc_pct: 0 } as unknown as Battery,
+        }}
+      />,
+    )
+    expect(screen.getByText('78%')).toBeInTheDocument()
+    expect(screen.queryByText(/Battery \(health\)/)).not.toBeInTheDocument()
+  })
 })

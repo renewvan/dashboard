@@ -1,4 +1,4 @@
-import type { ConnectionStatus } from '../hooks/useVanBus'
+import type { ConnectionStatus } from '../hooks/useRenewvanBus'
 import './ConnectionBanner.css'
 
 export interface ConnectionBannerProps {
@@ -6,8 +6,8 @@ export interface ConnectionBannerProps {
 }
 
 const COPY: Record<ConnectionStatus, string> = {
-  connected: 'van bus connected',
-  connecting: 'connecting to van bus…',
+  connected: 'renewvan bus connected',
+  connecting: 'connecting to renewvan bus…',
   disconnected: 'disconnected — showing last-known state',
 }
 

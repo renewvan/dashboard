@@ -1,17 +1,17 @@
 # dashboard
 
-Read-only React dashboard for the renewvan hub's van bus — one responsive
+Read-only React dashboard for the renewvan hub's renewvan bus — one responsive
 app serving both the 7" in-van kiosk touchscreen (800×480 landscape) and a
 laptop browser. Per
 `hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md`, built
 from the layout decided in `hub`'s throwaway `prototype/dashboard-06`
 branch (variant C: domain tabs + radial gauges).
 
-Connects **directly** to the van bus broker over MQTT-over-WebSocket
+Connects **directly** to the renewvan bus broker over MQTT-over-WebSocket
 (Mosquitto's WS listener) from the browser — no polling backend, not
 offline-first. A dropped connection renders a clear "disconnected"
 banner, distinguishable from legitimate last-known-state values (every
-van-bus topic is retained, so a fresh connection shows real state
+renewvan-bus topic is retained, so a fresh connection shows real state
 immediately, not a blank screen).
 
 ## Layout
@@ -26,15 +26,15 @@ Three domain tabs, same tabbed interaction at every supported width:
 
 ## Architecture
 
-- `src/hooks/useVanBus.ts` — the adapter: owns the MQTT client, subscribes
-  `van/#`, accumulates retained messages into a `VanBusState`, exposes
+- `src/hooks/useRenewvanBus.ts` — the adapter: owns the MQTT client, subscribes
+  `renewvan/#`, accumulates retained messages into a `RenewvanBusState`, exposes
   connection status. Not unit-tested (thin wrapper around `mqtt.js`), per
   the v0 spec's Testing Decisions.
 - `src/components/*` — presentational components (`RadialGauge`,
   `RelayRow`, `Tabs`, `ConnectionBanner`), each unit-tested against fixed
   props matching the v0.1 schema shapes (`hub/schema/*.schema.json`).
 - `src/tabs/*` — per-domain composition of the presentational components
-  over `VanBusState`, also unit-tested against fixture entity maps.
+  over `RenewvanBusState`, also unit-tested against fixture entity maps.
 - `src/config/relayLabels.ts` — dashboard-side `id → label` map for the
   Switches tab (label is presentation-only, not a wire field).
 
@@ -92,10 +92,10 @@ Automated tests cover the presentational layer only. Before relying on
 this in the van, verify against real hardware/broker:
 
 - Load on an actual 7" touchscreen (or an 800×480 simulator) and a laptop
-  browser against the real van bus; confirm both wired tanks (`fresh`,
+  browser against the real renewvan bus; confirm both wired tanks (`fresh`,
   `grey`), the house battery, and all 8 relay channels render live data
   once `tank`/`battery`/`relay` upstream components are publishing.
   (Ticket 06 item 5 — not verifiable from this environment: no physical
-  kiosk display or reachable van-bus broker here.)
+  kiosk display or reachable renewvan-bus broker here.)
 - Kill the broker connection and confirm the connection-lost banner
   appears instead of stale-looking numbers.
