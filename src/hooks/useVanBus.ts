@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import mqtt, { type MqttClient } from 'mqtt'
 import { emptyVanBusState, type VanBusState } from '../types'
+import { getEnv } from '../config/runtimeEnv'
 
 // Client-side MQTT-over-WebSocket connection to the van bus broker
 // (Mosquitto's WS listener), per
-// hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md — no
+// hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md -- no
 // polling backend, not offline-first. This is the thin adapter half of the
 // ticket's seam: it owns the live connection and is intentionally not
 // unit-tested (see ticket + hub spec Testing Decisions); the presentational
@@ -53,7 +54,8 @@ function applyMessage(prev: VanBusState, topic: string, payload: string): VanBus
  * accumulated retained state plus connection status. Env-configured via
  * `VITE_MQTT_WS_URL` (required), `VITE_MQTT_USERNAME`/`VITE_MQTT_PASSWORD`
  * (read-scoped credentials, optional while the broker allows anonymous
- * access).
+ * access) -- resolved at runtime first, build-time as fallback; see
+ * `../config/runtimeEnv`.
  */
 export function useVanBus(): VanBus {
   const [state, setState] = useState<VanBusState>(emptyVanBusState)
@@ -61,15 +63,15 @@ export function useVanBus(): VanBus {
   const clientRef = useRef<MqttClient | null>(null)
 
   useEffect(() => {
-    const url = import.meta.env.VITE_MQTT_WS_URL as string | undefined
+    const url = getEnv('VITE_MQTT_WS_URL')
     if (!url) {
       setStatus('disconnected')
       return
     }
 
     const client = mqtt.connect(url, {
-      username: import.meta.env.VITE_MQTT_USERNAME as string | undefined,
-      password: import.meta.env.VITE_MQTT_PASSWORD as string | undefined,
+      username: getEnv('VITE_MQTT_USERNAME'),
+      password: getEnv('VITE_MQTT_PASSWORD'),
       reconnectPeriod: 2000,
     })
     clientRef.current = client
