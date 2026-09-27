@@ -12,13 +12,17 @@ import { getEnv } from '../config/runtimeEnv'
 // components it feeds are tested separately against fixed props.
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
+export type DisplayPower = 'on' | 'off' | null
 
 export interface RenewvanBus {
   state: RenewvanBusState
   status: ConnectionStatus
+  displayPower: DisplayPower
+  publish: (topic: string, payload: string) => void
 }
 
 const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery)\/([^/]+)\/([^/]+)$/
+const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
 
 function applyMessage(prev: RenewvanBusState, topic: string, payload: string): RenewvanBusState {
   const match = TOPIC_PATTERN.exec(topic)
@@ -60,7 +64,12 @@ function applyMessage(prev: RenewvanBusState, topic: string, payload: string): R
 export function useRenewvanBus(): RenewvanBus {
   const [state, setState] = useState<RenewvanBusState>(emptyRenewvanBusState)
   const [status, setStatus] = useState<ConnectionStatus>('connecting')
+  const [displayPower, setDisplayPower] = useState<DisplayPower>(null)
   const clientRef = useRef<MqttClient | null>(null)
+
+  const publish = (topic: string, payload: string) => {
+    clientRef.current?.publish(topic, payload, { qos: 1, retain: false })
+  }
 
   useEffect(() => {
     const url = getEnv('VITE_MQTT_WS_URL')
@@ -85,7 +94,12 @@ export function useRenewvanBus(): RenewvanBus {
     client.on('offline', () => setStatus('disconnected'))
     client.on('error', () => setStatus('disconnected'))
     client.on('message', (topic, message) => {
-      setState((prev) => applyMessage(prev, topic, message.toString()))
+      const payload = message.toString()
+      if (topic === TOPIC_DISPLAY_POWER) {
+        if (payload === 'on' || payload === 'off') setDisplayPower(payload)
+        return
+      }
+      setState((prev) => applyMessage(prev, topic, payload))
     })
 
     return () => {
@@ -94,5 +108,5 @@ export function useRenewvanBus(): RenewvanBus {
     }
   }, [])
 
-  return { state, status }
+  return { state, status, displayPower, publish }
 }
