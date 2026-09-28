@@ -4,21 +4,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Dark theme carried over from the winning prototype/dashboard-06 variant C
-   mockup — kept as the real app's baseline styling, not restyled from
-   scratch. */
+/* Kiosk theme vars: light values here are the `:root` default (no `.dark`
+ * class); dark values (the kiosk's original always-on look, ticket 05) are
+ * overridden inside `.dark` below. Toggled via `useTheme`
+ * (`src/hooks/useTheme.ts`), applied by `App.tsx` adding/removing `.dark`
+ * on the root element. */
 :root {
-  --bg: #0d1826;
-  --panel: #0f1a2a;
-  --panel-2: color-mix(in srgb, #0f1a2a 88%, white);
-  --text: #f6f8fb;
-  --kiosk-muted: #9aa1ad;
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --panel-2: color-mix(in srgb, #ffffff 92%, black);
+  --text: #0f1a2a;
+  --kiosk-muted: #64748b;
   --kiosk-accent: #439eff;
   --ok: #4caf7d;
   --warn: #e0a72c;
   --bad: #e05c5c;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color-scheme: dark;
+  color-scheme: light;
   --destructive-foreground: var(--color-red-700);
   --info: var(--color-blue-500);
   --info-foreground: var(--color-blue-700);
@@ -217,6 +219,13 @@ body {
 }
 
 .dark {
+  --bg: #0d1826;
+  --panel: #0f1a2a;
+  --panel-2: color-mix(in srgb, #0f1a2a 88%, white);
+  --text: #f6f8fb;
+  --kiosk-muted: #9aa1ad;
+  --kiosk-accent: #439eff;
+  color-scheme: dark;
   --destructive-foreground: var(--color-red-400);
   --info: var(--color-blue-500);
   --info-foreground: var(--color-blue-400);
@@ -275,34 +284,25 @@ body {
   }
 }
 
-/* Sidebar nav "bubble" selection indicator: reuses Coss `TabsList`'s
- * built-in sliding indicator span (positioned/sized automatically from
- * `--active-tab-*` vars) but reshapes it into a pill that reaches the
- * sidebar's right edge, with two concave-corner notches cut from the
- * sidebar's own background so it reads as the content bleeding into the
- * rail, per the reference layout. `#root`/`body` sets `--bg`/`--panel`;
- * referenced directly since Tailwind's `--card`/`--background` tokens
- * aren't guaranteed to still equal them at every call site. */
+/* Sidebar nav selection indicator: reuses Coss `TabsList`'s built-in
+ * sliding indicator span (positioned/sized automatically from
+ * `--active-tab-*` vars, already matching each `TabsTab`'s size-11 circle)
+ * as a solid accent-colored badge behind the active icon. */
 .sidebar-nav [data-slot='tab-indicator'] {
-  width: calc(var(--active-tab-width) + 6px);
-  border-radius: 9999px 0 0 9999px;
-  background: var(--panel-2);
+  border-radius: 9999px;
+  background: var(--kiosk-accent);
   box-shadow: none;
 }
-.sidebar-nav [data-slot='tab-indicator']::before,
-.sidebar-nav [data-slot='tab-indicator']::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  width: 16px;
-  height: 16px;
-}
-.sidebar-nav [data-slot='tab-indicator']::before {
-  top: -16px;
-  background: radial-gradient(circle at 0% 100%, var(--panel-2) 16px, var(--panel) 16px);
-}
-.sidebar-nav [data-slot='tab-indicator']::after {
-  bottom: -16px;
-  background: radial-gradient(circle at 0% 0%, var(--panel-2) 16px, var(--panel) 16px);
+
+/* Sidebar rail background: a vertical blend of primary Van Blue toward
+ * dark, not the flat near-black `--panel` — plain Ink read as too dark.
+ * `color-mix` off `--kiosk-accent` so it stays tied to the brand color
+ * instead of a hand-picked hex. */
+.sidebar-rail {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--kiosk-accent) 30%, #071322) 0%,
+    color-mix(in srgb, var(--kiosk-accent) 10%, #040c17) 100%
+  );
 }
 

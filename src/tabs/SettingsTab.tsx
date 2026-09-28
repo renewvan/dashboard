@@ -1,12 +1,15 @@
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import type { DisplayPower, TailscaleStatus } from '../hooks/useRenewvanBus'
+import type { Theme } from '../hooks/useTheme'
 
 export interface SettingsTabProps {
   displayPower: DisplayPower
   onSleep: () => void
   onWake: () => void
   tailscale: TailscaleStatus | null
+  theme: Theme
+  onThemeChange: (theme: Theme) => void
 }
 
 function tailscaleStatusText(tailscale: TailscaleStatus | null): string {
@@ -17,14 +20,30 @@ function tailscaleStatusText(tailscale: TailscaleStatus | null): string {
 }
 
 /**
- * Settings panel — display sleep/wake toggle and Tailscale status. Kept to
- * title + action per row, compact rows and small text: a 7" kiosk display
- * has no room for tall cards or descriptive copy under every control.
+ * Settings panel — display sleep/wake toggle, light theme toggle, and
+ * Tailscale status. Kept to title + action per row, compact rows and small
+ * text: a 7" kiosk display has no room for tall cards or descriptive copy
+ * under every control.
+ *
+ * Each toggle row is a `<label>` for its `Switch` (native `for`/hidden-input
+ * association, not a manual `onClick`, so a click on the switch itself
+ * isn't double-counted): the whole row is the hit target, not just the
+ * switch thumb, per `docs/design-principles.md`'s touch-target guidance.
  */
-export function SettingsTab({ displayPower, onSleep, onWake, tailscale }: SettingsTabProps) {
+export function SettingsTab({
+  displayPower,
+  onSleep,
+  onWake,
+  tailscale,
+  theme,
+  onThemeChange,
+}: SettingsTabProps) {
   return (
     <div className="rounded-lg border border-border bg-card">
-      <div className="flex items-center justify-between px-3.5 py-2.5">
+      <label
+        htmlFor="display-power-toggle"
+        className="flex cursor-pointer items-center justify-between px-3.5 py-2.5 has-disabled:cursor-not-allowed"
+      >
         <span className="text-sm">Display</span>
         <Switch
           id="display-power-toggle"
@@ -33,7 +52,20 @@ export function SettingsTab({ displayPower, onSleep, onWake, tailscale }: Settin
           disabled={displayPower === null}
           onCheckedChange={(checked) => (checked ? onWake() : onSleep())}
         />
-      </div>
+      </label>
+      <Separator />
+      <label
+        htmlFor="light-theme-toggle"
+        className="flex cursor-pointer items-center justify-between px-3.5 py-2.5"
+      >
+        <span className="text-sm">Light theme</span>
+        <Switch
+          id="light-theme-toggle"
+          data-testid="light-theme-toggle"
+          checked={theme === 'light'}
+          onCheckedChange={(checked) => onThemeChange(checked ? 'light' : 'dark')}
+        />
+      </label>
       <Separator />
       <div className="flex items-center justify-between px-3.5 py-2.5">
         <span className="text-sm">Tailscale</span>

@@ -1,62 +1,100 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { SettingsTab } from './SettingsTab'
+import { SettingsTab, type SettingsTabProps } from './SettingsTab'
 
 const connectedTailscale = { enabled: true, connected: true, ip: '100.64.0.1', hostname: 'renewvan', peers: 1 }
 
+const baseProps: SettingsTabProps = {
+  displayPower: 'on',
+  onSleep: vi.fn(),
+  onWake: vi.fn(),
+  tailscale: null,
+  theme: 'dark',
+  onThemeChange: vi.fn(),
+}
+
 describe('SettingsTab', () => {
   it('renders the Display title and its toggle', () => {
-    render(<SettingsTab displayPower="on" onSleep={() => {}} onWake={() => {}} tailscale={null} />)
+    render(<SettingsTab {...baseProps} />)
     expect(screen.getByText('Display')).toBeInTheDocument()
     expect(screen.getByTestId('display-power-toggle')).toBeInTheDocument()
   })
 
   it('shows the toggle checked when the display is on', () => {
-    render(<SettingsTab displayPower="on" onSleep={() => {}} onWake={() => {}} tailscale={null} />)
+    render(<SettingsTab {...baseProps} displayPower="on" />)
     expect(screen.getByTestId('display-power-toggle')).toHaveAttribute('aria-checked', 'true')
   })
 
   it('shows the toggle unchecked when the display is off', () => {
-    render(<SettingsTab displayPower="off" onSleep={() => {}} onWake={() => {}} tailscale={null} />)
+    render(<SettingsTab {...baseProps} displayPower="off" />)
     expect(screen.getByTestId('display-power-toggle')).toHaveAttribute('aria-checked', 'false')
   })
 
   it('disables the toggle until the retained display-power topic arrives', () => {
-    render(<SettingsTab displayPower={null} onSleep={() => {}} onWake={() => {}} tailscale={null} />)
+    render(<SettingsTab {...baseProps} displayPower={null} />)
     expect(screen.getByTestId('display-power-toggle')).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('calls onSleep when switched off', async () => {
     const onSleep = vi.fn()
-    render(<SettingsTab displayPower="on" onSleep={onSleep} onWake={() => {}} tailscale={null} />)
+    render(<SettingsTab {...baseProps} displayPower="on" onSleep={onSleep} />)
     await userEvent.click(screen.getByTestId('display-power-toggle'))
     expect(onSleep).toHaveBeenCalledTimes(1)
   })
 
   it('calls onWake when switched on', async () => {
     const onWake = vi.fn()
-    render(<SettingsTab displayPower="off" onSleep={() => {}} onWake={onWake} tailscale={null} />)
+    render(<SettingsTab {...baseProps} displayPower="off" onWake={onWake} />)
     await userEvent.click(screen.getByTestId('display-power-toggle'))
     expect(onWake).toHaveBeenCalledTimes(1)
   })
 
+  it('toggles when the row label is clicked, not just the switch (fat-fingers/gloves target)', async () => {
+    const onWake = vi.fn()
+    render(<SettingsTab {...baseProps} displayPower="off" onWake={onWake} />)
+    await userEvent.click(screen.getByText('Display'))
+    expect(onWake).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the light theme toggle unchecked in dark theme', () => {
+    render(<SettingsTab {...baseProps} theme="dark" />)
+    expect(screen.getByTestId('light-theme-toggle')).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('shows the light theme toggle checked in light theme', () => {
+    render(<SettingsTab {...baseProps} theme="light" />)
+    expect(screen.getByTestId('light-theme-toggle')).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('calls onThemeChange with light when switched on', async () => {
+    const onThemeChange = vi.fn()
+    render(<SettingsTab {...baseProps} theme="dark" onThemeChange={onThemeChange} />)
+    await userEvent.click(screen.getByTestId('light-theme-toggle'))
+    expect(onThemeChange).toHaveBeenCalledWith('light')
+  })
+
+  it('calls onThemeChange with dark when switched off', async () => {
+    const onThemeChange = vi.fn()
+    render(<SettingsTab {...baseProps} theme="light" onThemeChange={onThemeChange} />)
+    await userEvent.click(screen.getByTestId('light-theme-toggle'))
+    expect(onThemeChange).toHaveBeenCalledWith('dark')
+  })
+
   it('shows loading state when tailscale is null', () => {
-    render(<SettingsTab displayPower="on" onSleep={() => {}} onWake={() => {}} tailscale={null} />)
+    render(<SettingsTab {...baseProps} tailscale={null} />)
     expect(screen.getByTestId('tailscale-status')).toHaveTextContent('Loading')
   })
 
   it('shows Tailscale IP when connected', () => {
-    render(<SettingsTab displayPower="on" onSleep={() => {}} onWake={() => {}} tailscale={connectedTailscale} />)
+    render(<SettingsTab {...baseProps} tailscale={connectedTailscale} />)
     expect(screen.getByTestId('tailscale-status')).toHaveTextContent('100.64.0.1')
   })
 
   it('shows not authenticated when enabled but not connected', () => {
     render(
       <SettingsTab
-        displayPower="on"
-        onSleep={() => {}}
-        onWake={() => {}}
+        {...baseProps}
         tailscale={{ ...connectedTailscale, connected: false, ip: null, hostname: null }}
       />,
     )

@@ -1,9 +1,6 @@
 import type { ReactNode } from 'react'
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import lockupWhite from '../../assets/logo/renewvan-lockup-white.svg'
 import symbolWhite from '../../assets/logo/renewvan-symbol-white.svg'
 import { TabsList, TabsTab } from '@/components/ui/tabs'
-import { cn } from '@/lib/utils'
 
 export interface NavItem {
   id: string
@@ -13,57 +10,43 @@ export interface NavItem {
 
 export interface SidebarProps {
   items: NavItem[]
-  collapsed: boolean
-  onToggleCollapsed: () => void
 }
 
 /**
  * Left nav rail: brand mark, a vertical Coss `Tabs` list (selection state
- * lives on the `Tabs.Root` this renders inside of, in `App.tsx`), and a
- * collapse toggle. Collapsed shows icons only; expanded shows icon + label.
- * The selected item's pill (`.sidebar-nav [data-slot="tab-indicator"]` in
- * `index.css`) bleeds a rounded, concave-cornered "bubble" out to the
- * content edge, per the reference layout.
+ * lives on the `Tabs.Root` this renders inside of, in `App.tsx`). Fixed
+ * narrow width, icons only, no expand/collapse — the earlier
+ * icon+label/collapsible version measured too wide for a 7" kiosk; this is
+ * the simpler fallback design. The selected item gets a solid circular
+ * badge (`.sidebar-nav [data-slot="tab-indicator"]` in `index.css`,
+ * reusing Coss Tabs' built-in sliding indicator) sized to match the
+ * 44×44px touch target per `docs/design-principles.md`.
+ *
+ * Stays dark regardless of the light/dark theme toggle (`App.tsx`'s
+ * `theme` state only wraps the main content area in `.dark`) — same as
+ * the reference's rail, which never lightens with the content. Scoping
+ * `.dark` here re-anchors every kiosk/Coss CSS var for this subtree only,
+ * independent of the ancestor's theme class (plain CSS custom-property
+ * cascade, not Tailwind's `dark:` variant). Keeps the white logo mark
+ * legible without a second light-theme variant.
  */
-export function Sidebar({ items, collapsed, onToggleCollapsed }: SidebarProps) {
+export function Sidebar({ items }: SidebarProps) {
   return (
-    <aside
-      className={cn(
-        'flex h-full shrink-0 flex-col justify-between bg-card transition-[width] duration-200',
-        collapsed ? 'w-16' : 'w-56',
-      )}
-    >
-      <div className="flex min-h-0 flex-col gap-4">
-        <div className="flex h-14 shrink-0 items-center px-4">
-          <img
-            src={collapsed ? symbolWhite : lockupWhite}
-            alt="renewvan"
-            className={collapsed ? 'h-7 w-7' : 'h-6 w-auto'}
-          />
-        </div>
-        <TabsList className="sidebar-nav w-full flex-col items-stretch justify-start gap-1 rounded-none bg-transparent p-0 pl-2">
-          {items.map((item) => (
-            <TabsTab
-              key={item.id}
-              value={item.id}
-              data-testid={`nav-${item.id}`}
-              className="justify-start gap-3 px-3.5 py-3"
-            >
-              <span className="shrink-0">{item.icon}</span>
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </TabsTab>
-          ))}
-        </TabsList>
-      </div>
-      <button
-        type="button"
-        onClick={onToggleCollapsed}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        data-testid="sidebar-toggle"
-        className="m-2 flex shrink-0 items-center justify-center rounded-lg p-2.5 text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-      >
-        {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-      </button>
+    <aside className="sidebar-rail dark flex h-full w-18 shrink-0 flex-col items-center gap-6 py-4">
+      <img src={symbolWhite} alt="renewvan" className="h-7 w-7" />
+      <TabsList className="sidebar-nav flex-col items-center justify-start gap-2 rounded-none bg-transparent p-0">
+        {items.map((item) => (
+          <TabsTab
+            key={item.id}
+            value={item.id}
+            data-testid={`nav-${item.id}`}
+            aria-label={item.label}
+            className="size-11 justify-center rounded-full p-0"
+          >
+            {item.icon}
+          </TabsTab>
+        ))}
+      </TabsList>
     </aside>
   )
 }
