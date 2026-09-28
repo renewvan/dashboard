@@ -1,5 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import type { DisplayPower, TailscaleStatus } from '../hooks/useRenewvanBus'
 
@@ -10,61 +9,43 @@ export interface SettingsTabProps {
   tailscale: TailscaleStatus | null
 }
 
+function tailscaleStatusText(tailscale: TailscaleStatus | null): string {
+  if (tailscale === null) return 'Loading…'
+  if (tailscale.connected) return tailscale.ip ?? 'Connected'
+  if (tailscale.enabled) return 'Not authenticated'
+  return 'Not installed'
+}
+
 /**
- * Settings panel — display sleep/wake toggle and system status (Tailscale
- * VPN). Built on Coss's Card and Switch primitives.
+ * Settings panel — display sleep/wake toggle and Tailscale status. Kept to
+ * title + action per row, compact rows and small text: a 7" kiosk display
+ * has no room for tall cards or descriptive copy under every control.
  */
 export function SettingsTab({ displayPower, onSleep, onWake, tailscale }: SettingsTabProps) {
   return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Display</CardTitle>
-          <CardDescription>Control the kiosk touchscreen.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="display-power-toggle">Display awake</Label>
-              <span className="text-muted-foreground text-sm">
-                Turn off to put the touchscreen to sleep.
-              </span>
-            </div>
-            <Switch
-              id="display-power-toggle"
-              data-testid="display-power-toggle"
-              checked={displayPower !== 'off'}
-              disabled={displayPower === null}
-              onCheckedChange={(checked) => (checked ? onWake() : onSleep())}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Network</CardTitle>
-          <CardDescription>Tailscale VPN connection status.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2.5" data-testid="tailscale-status">
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                tailscale?.connected ? 'bg-success' : 'bg-muted-foreground'
-              }`}
-            />
-            <span className="text-foreground text-base">
-              {tailscale === null
-                ? 'Tailscale — loading…'
-                : tailscale.connected
-                  ? `Tailscale — ${tailscale.ip}`
-                  : tailscale.enabled
-                    ? 'Tailscale — not authenticated'
-                    : 'Tailscale — not installed'}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="rounded-lg border border-border bg-card">
+      <div className="flex items-center justify-between px-3.5 py-2.5">
+        <span className="text-sm">Display</span>
+        <Switch
+          id="display-power-toggle"
+          data-testid="display-power-toggle"
+          checked={displayPower !== 'off'}
+          disabled={displayPower === null}
+          onCheckedChange={(checked) => (checked ? onWake() : onSleep())}
+        />
+      </div>
+      <Separator />
+      <div className="flex items-center justify-between px-3.5 py-2.5">
+        <span className="text-sm">Tailscale</span>
+        <div className="flex items-center gap-2" data-testid="tailscale-status">
+          <span
+            className={`h-2 w-2 shrink-0 rounded-full ${
+              tailscale?.connected ? 'bg-success' : 'bg-muted-foreground'
+            }`}
+          />
+          <span className="text-muted-foreground text-xs">{tailscaleStatusText(tailscale)}</span>
+        </div>
+      </div>
     </div>
   )
 }

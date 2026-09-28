@@ -6,8 +6,9 @@ import { SettingsTab } from './SettingsTab'
 const connectedTailscale = { enabled: true, connected: true, ip: '100.64.0.1', hostname: 'renewvan', peers: 1 }
 
 describe('SettingsTab', () => {
-  it('renders the display power toggle', () => {
+  it('renders the Display title and its toggle', () => {
     render(<SettingsTab displayPower="on" onSleep={() => {}} onWake={() => {}} tailscale={null} />)
+    expect(screen.getByText('Display')).toBeInTheDocument()
     expect(screen.getByTestId('display-power-toggle')).toBeInTheDocument()
   })
 
@@ -42,7 +43,7 @@ describe('SettingsTab', () => {
 
   it('shows loading state when tailscale is null', () => {
     render(<SettingsTab displayPower="on" onSleep={() => {}} onWake={() => {}} tailscale={null} />)
-    expect(screen.getByTestId('tailscale-status')).toHaveTextContent('loading')
+    expect(screen.getByTestId('tailscale-status')).toHaveTextContent('Loading')
   })
 
   it('shows Tailscale IP when connected', () => {
@@ -59,6 +60,6 @@ describe('SettingsTab', () => {
         tailscale={{ ...connectedTailscale, connected: false, ip: null, hostname: null }}
       />,
     )
-    expect(screen.getByTestId('tailscale-status')).toHaveTextContent('not authenticated')
+    expect(screen.getByTestId('tailscale-status')).toHaveTextContent('Not authenticated')
   })
 })
