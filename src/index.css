@@ -297,12 +297,15 @@ body {
 /* Sidebar rail background: a vertical blend of primary Van Blue toward
  * dark, not the flat near-black `--panel` — plain Ink read as too dark.
  * `color-mix` off `--kiosk-accent` so it stays tied to the brand color
- * instead of a hand-picked hex. */
+ * instead of a hand-picked hex. 50% alpha + `backdrop-blur-md`
+ * (`Sidebar.tsx`) so the theme wallpaper (`App.tsx`) shows through as
+ * frosted glass, same treatment as `Card`/`Alert`/`SettingsTab`/
+ * `RelayRow`. */
 .sidebar-rail {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--kiosk-accent) 30%, #071322) 0%,
-    color-mix(in srgb, var(--kiosk-accent) 10%, #040c17) 100%
+    color-mix(in srgb, color-mix(in srgb, var(--kiosk-accent) 30%, #071322) 50%, transparent) 0%,
+    color-mix(in srgb, color-mix(in srgb, var(--kiosk-accent) 10%, #040c17) 50%, transparent) 100%
   );
 }
 

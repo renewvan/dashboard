@@ -57,28 +57,28 @@ describe('SettingsTab', () => {
     expect(onWake).toHaveBeenCalledTimes(1)
   })
 
-  it('shows the light theme toggle unchecked in dark theme', () => {
+  it('shows the dark theme toggle checked in dark theme', () => {
     render(<SettingsTab {...baseProps} theme="dark" />)
-    expect(screen.getByTestId('light-theme-toggle')).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByTestId('dark-theme-toggle')).toHaveAttribute('aria-checked', 'true')
   })
 
-  it('shows the light theme toggle checked in light theme', () => {
+  it('shows the dark theme toggle unchecked in light theme', () => {
     render(<SettingsTab {...baseProps} theme="light" />)
-    expect(screen.getByTestId('light-theme-toggle')).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByTestId('dark-theme-toggle')).toHaveAttribute('aria-checked', 'false')
   })
 
-  it('calls onThemeChange with light when switched on', async () => {
-    const onThemeChange = vi.fn()
-    render(<SettingsTab {...baseProps} theme="dark" onThemeChange={onThemeChange} />)
-    await userEvent.click(screen.getByTestId('light-theme-toggle'))
-    expect(onThemeChange).toHaveBeenCalledWith('light')
-  })
-
-  it('calls onThemeChange with dark when switched off', async () => {
+  it('calls onThemeChange with dark when switched on', async () => {
     const onThemeChange = vi.fn()
     render(<SettingsTab {...baseProps} theme="light" onThemeChange={onThemeChange} />)
-    await userEvent.click(screen.getByTestId('light-theme-toggle'))
+    await userEvent.click(screen.getByTestId('dark-theme-toggle'))
     expect(onThemeChange).toHaveBeenCalledWith('dark')
+  })
+
+  it('calls onThemeChange with light when switched off', async () => {
+    const onThemeChange = vi.fn()
+    render(<SettingsTab {...baseProps} theme="dark" onThemeChange={onThemeChange} />)
+    await userEvent.click(screen.getByTestId('dark-theme-toggle'))
+    expect(onThemeChange).toHaveBeenCalledWith('light')
   })
 
   it('shows loading state when tailscale is null', () => {

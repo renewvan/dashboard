@@ -20,10 +20,14 @@ function tailscaleStatusText(tailscale: TailscaleStatus | null): string {
 }
 
 /**
- * Settings panel — display sleep/wake toggle, light theme toggle, and
+ * Settings panel — display sleep/wake toggle, dark theme toggle, and
  * Tailscale status. Kept to title + action per row, compact rows and small
  * text: a 7" kiosk display has no room for tall cards or descriptive copy
  * under every control.
+ *
+ * The dark-theme toggle is checked = dark (not checked = light) so its ON
+ * state matches `useTheme`'s actual default — a freshly-booted kiosk
+ * shows "Dark theme: on", not an inverted-feeling "Light theme: off".
  *
  * Each toggle row is a `<label>` for its `Switch` (native `for`/hidden-input
  * association, not a manual `onClick`, so a click on the switch itself
@@ -39,7 +43,7 @@ export function SettingsTab({
   onThemeChange,
 }: SettingsTabProps) {
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className="rounded-lg border border-border bg-card/50 backdrop-blur-md">
       <label
         htmlFor="display-power-toggle"
         className="flex cursor-pointer items-center justify-between px-3.5 py-2.5 has-disabled:cursor-not-allowed"
@@ -55,15 +59,15 @@ export function SettingsTab({
       </label>
       <Separator />
       <label
-        htmlFor="light-theme-toggle"
+        htmlFor="dark-theme-toggle"
         className="flex cursor-pointer items-center justify-between px-3.5 py-2.5"
       >
-        <span className="text-sm">Light theme</span>
+        <span className="text-sm">Dark theme</span>
         <Switch
-          id="light-theme-toggle"
-          data-testid="light-theme-toggle"
-          checked={theme === 'light'}
-          onCheckedChange={(checked) => onThemeChange(checked ? 'light' : 'dark')}
+          id="dark-theme-toggle"
+          data-testid="dark-theme-toggle"
+          checked={theme === 'dark'}
+          onCheckedChange={(checked) => onThemeChange(checked ? 'dark' : 'light')}
         />
       </label>
       <Separator />
