@@ -42,7 +42,7 @@ function App() {
           up so the blur radius never reveals a sharp/transparent edge. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 scale-110 bg-cover bg-center blur-2xl"
+        className="pointer-events-none absolute inset-0 -z-10 scale-105 bg-cover bg-center blur-xs"
         style={{ backgroundImage: `url(${theme === 'dark' ? wallpaperDark : wallpaperLight})` }}
       />
       <SleepOverlay displayPower={displayPower} onWake={handleWake} />
