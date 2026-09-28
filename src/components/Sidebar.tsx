@@ -27,7 +27,15 @@ export interface SidebarProps {
  * treatment (`bg-card/40 backdrop-blur-md border-white/10`) rather than a
  * fixed dark tint, so the rail visually belongs to whichever theme is
  * active instead of always reading as a separate dark strip. The pill is
- * vertically centered in the rail's full height. Every button gets its
+ * vertically centered in the rail's full height. Inactive icons keep the
+ * base Coss Tabs muted-gray color (ancestor `text-muted-foreground` on
+ * `TabsList`) — only the active/selected icon is forced white
+ * (`data-active:text-white!`) regardless of theme, since it sits on the
+ * solid accent-colored badge and needs guaranteed contrast there; gray
+ * was already fine for inactive icons against the pill's own tint.
+ * `!important` is needed to beat `data-active:text-foreground`, an
+ * attribute selector with the same specificity trick already hit by
+ * `size-11!`/`justify-center!` on this element. Every button gets its
  * own faint circular background (`bg-foreground/10`, adaptive per theme)
  * so unselected items still read as distinct buttons, not bare floating
  * glyphs; the selected item additionally gets a solid accent-colored
@@ -51,7 +59,7 @@ export function Sidebar({ items }: SidebarProps) {
             value={item.id}
             data-testid={`nav-${item.id}`}
             aria-label={item.label}
-            className="size-11! shrink-0 grow-0 justify-center! rounded-full bg-foreground/10 p-0 hover:bg-foreground/16"
+            className="size-11! shrink-0 grow-0 justify-center! rounded-full bg-foreground/10 p-0 hover:bg-foreground/16 data-active:text-white!"
           >
             {item.icon}
           </TabsTab>
