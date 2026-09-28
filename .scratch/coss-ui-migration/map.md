@@ -21,6 +21,14 @@ The dashboard's hand-rolled component library (plain React + per-component CSS, 
 - [Bespoke pieces stay bespoke](issues/02-bespoke-stays.md): `RadialGauge` (and the kiosk dark theme's CSS-var mechanics) stay hand-rolled — no interactive behavior for Base UI to add value to.
 - [Coss infra installed](issues/04-infra-install-coss-tooling.md): Tailwind v4 + Base UI + 54 Coss primitives landed in `src/components/ui/`, registry confirmed pointed at `coss.com`. Fixed two upstream CLI bugs (broken `geist` font import, `:root` var clobbering) along the way. Build clean, all 33 existing tests still pass.
 - [Kiosk theme mapped to Coss + rebranded](issues/05-kiosk-dark-theme-mapping.md): Variant B (Coss follows kiosk) won over A/B/C prototypes, rebranded to Van Blue/Ink/Night/Paper. Resolved the `--accent`/`--muted` name collision permanently via a `--kiosk-*` rename across all 8 legacy consumer sites, not a workaround. Full 3-variant prototype captured on `prototype/kiosk-theme-mapping` (throwaway, pushed, not merged).
+- [SleepOverlay stays bespoke](issues/06-sleepoverlay-coss-mapping.md): Base UI `Dialog`/`Popover` semantics (focus trap, Escape-to-close, backdrop-dismiss) don't fit a kiosk overlay that wakes on any touch with no keyboard/focus model — same reasoning as `RadialGauge`. Styling moved to Tailwind utilities.
+- [Tabs migrated](issues/07-migrate-tabs.md): onto Coss `Tabs` (Base UI), controlled `value`/`onValueChange`.
+- [RelayRow migrated](issues/08-migrate-relayrow.md): onto Coss `Switch`, rendered read-only (no relay command topic).
+- [ConnectionBanner migrated](issues/09-migrate-connectionbanner.md): onto Coss `Alert`, variant per connection status (success/warning/error).
+- [SettingsTab migrated](issues/10-migrate-settingstab.md): onto Coss `Card` + `Button` (no form inputs needed — sleep is a one-shot action).
+- [PowerTab migrated](issues/11-migrate-powertab.md): onto Coss `Card` + `Badge`; `RadialGauge` untouched.
+- [TanksTab migrated](issues/12-migrate-tankstab.md): grid wrapper onto Tailwind; `RadialGauge` untouched.
+- [SwitchesTab migrated](issues/13-migrate-switchestab.md): list wrapper onto Tailwind; composes migrated `RelayRow`.
 
 ## Not yet specified
 
