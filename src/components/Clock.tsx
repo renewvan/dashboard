@@ -40,7 +40,7 @@ export function Clock() {
     <time
       dateTime={now.toISOString()}
       data-testid="clock"
-      className="text-lg font-bold text-white! tabular-nums"
+      className="text-sm text-white! tabular-nums"
     >
       {formatTime(now)}
     </time>
