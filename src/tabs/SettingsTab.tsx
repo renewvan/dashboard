@@ -34,10 +34,14 @@ function tailscaleStatusText(tailscale: TailscaleStatus | null): string {
  * isn't double-counted): the whole row is the hit target, not just the
  * switch thumb, per `docs/design-principles.md`'s touch-target guidance.
  *
- * Row dividers use `bg-foreground/15` instead of the Separator primitive's
+ * Row dividers use `bg-foreground/30` instead of the Separator primitive's
  * default `bg-border` — `--border` is tuned for a solid, opaque card
- * background and reads as invisible against this container's translucent
- * `bg-card/20` glass surface over a busy wallpaper.
+ * background. Even a lighter `bg-foreground/15` wasn't reliable here: this
+ * container's translucent `bg-card/20` glass surface sits over a busy,
+ * unevenly-bright wallpaper, and a subtle divider could still blend into
+ * whichever wallpaper brightness happened to be directly behind that row
+ * — the same backdrop-blur-over-variable-background issue diagnosed for
+ * the sidebar pill. `/30` stays visible regardless of what's behind it.
  */
 export function SettingsTab({
   displayPower,
@@ -62,7 +66,7 @@ export function SettingsTab({
           onCheckedChange={(checked) => (checked ? onWake() : onSleep())}
         />
       </label>
-      <Separator className="bg-foreground/15" />
+      <Separator className="bg-foreground/30" />
       <label
         htmlFor="dark-theme-toggle"
         className="flex cursor-pointer items-center justify-between px-3.5 py-2.5"
@@ -75,7 +79,7 @@ export function SettingsTab({
           onCheckedChange={(checked) => onThemeChange(checked ? 'dark' : 'light')}
         />
       </label>
-      <Separator className="bg-foreground/15" />
+      <Separator className="bg-foreground/30" />
       <div className="flex items-center justify-between px-3.5 py-2.5">
         <span className="text-sm">Tailscale</span>
         <div className="flex items-center gap-2" data-testid="tailscale-status">

@@ -4,6 +4,7 @@ import wallpaperDark from '../assets/dark-unsplash.jpg'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import lockupInk from '../assets/logo/renewvan-lockup.svg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
+import { Clock } from './components/Clock'
 import { ConnectionStatusButton } from './components/ConnectionStatusButton'
 import { Sidebar, type NavItem } from './components/Sidebar'
 import { SleepOverlay } from './components/SleepOverlay'
@@ -57,7 +58,10 @@ function App() {
           alt="renewvan"
           className="h-8 w-auto"
         />
-        <ConnectionStatusButton status={status} />
+        <div className="flex items-center gap-3">
+          <Clock />
+          <ConnectionStatusButton status={status} />
+        </div>
       </header>
       <div className="flex flex-1 gap-4 overflow-hidden">
         <Sidebar items={NAV_ITEMS} />
