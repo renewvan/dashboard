@@ -8,12 +8,12 @@
    mockup — kept as the real app's baseline styling, not restyled from
    scratch. */
 :root {
-  --bg: #0f1115;
-  --panel: #1a1d24;
-  --panel-2: #23272f;
-  --text: #e8eaed;
-  --muted: #9aa1ad;
-  --accent: #4ea1ff;
+  --bg: #0d1826;
+  --panel: #0f1a2a;
+  --panel-2: color-mix(in srgb, #0f1a2a 88%, white);
+  --text: #f6f8fb;
+  --kiosk-muted: #9aa1ad;
+  --kiosk-accent: #439eff;
   --ok: #4caf7d;
   --warn: #e0a72c;
   --bad: #e05c5c;
@@ -92,7 +92,7 @@ body {
 }
 
 .power-card__readout {
-  color: var(--muted);
+  color: var(--kiosk-muted);
   font-size: 13px;
   margin-top: 4px;
 }
@@ -112,7 +112,7 @@ body {
 }
 
 .empty-state {
-  color: var(--muted);
+  color: var(--kiosk-muted);
   text-align: center;
 }
 
@@ -255,28 +255,28 @@ body {
   --destructive-foreground: var(--color-red-400);
   --info: var(--color-blue-500);
   --info-foreground: var(--color-blue-400);
-  --success: var(--color-emerald-500);
+  --success: var(--ok);
   --success-foreground: var(--color-emerald-400);
-  --warning: var(--color-amber-500);
+  --warning: var(--warn);
   --warning-foreground: var(--color-amber-400);
   --accent: --alpha(var(--color-white) / 4%);
   --accent-foreground: var(--color-neutral-100);
-  --background: color-mix(in srgb, var(--color-neutral-950) 95%, var(--color-white));
-  --border: --alpha(var(--color-white) / 6%);
-  --card: color-mix(in srgb, var(--background) 98%, var(--color-white));
-  --card-foreground: var(--color-neutral-100);
-  --destructive: color-mix(in srgb, var(--color-red-500) 90%, var(--color-white));
-  --foreground: var(--color-neutral-100);
-  --input: --alpha(var(--color-white) / 8%);
+  --background: var(--bg);
+  --border: var(--panel-2);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --destructive: var(--bad);
+  --foreground: var(--text);
+  --input: var(--panel-2);
   --muted: --alpha(var(--color-white) / 4%);
-  --muted-foreground: color-mix(in srgb, var(--color-neutral-500) 90%, var(--color-white));
-  --popover: color-mix(in srgb, var(--background) 98%, var(--color-white));
-  --popover-foreground: var(--color-neutral-100);
-  --primary: var(--color-neutral-100);
-  --primary-foreground: var(--color-neutral-800);
-  --ring: var(--color-neutral-500);
-  --secondary: --alpha(var(--color-white) / 4%);
-  --secondary-foreground: var(--color-neutral-100);
+  --muted-foreground: var(--kiosk-muted);
+  --popover: var(--panel-2);
+  --popover-foreground: var(--text);
+  --primary: var(--kiosk-accent);
+  --primary-foreground: var(--bg);
+  --ring: var(--kiosk-accent);
+  --secondary: var(--panel-2);
+  --secondary-foreground: var(--text);
   --chart-1: var(--color-blue-700);
   --chart-2: var(--color-emerald-500);
   --chart-3: var(--color-amber-500);
@@ -309,3 +309,4 @@ body {
     @apply font-sans font-mono;
   }
 }
+

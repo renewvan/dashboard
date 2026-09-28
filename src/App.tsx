@@ -16,7 +16,7 @@ function App() {
   const handleWake = () => publish('renewvan/kiosk/display/power/set', 'on')
 
   return (
-    <>
+    <div className="dark">
       <SleepOverlay displayPower={displayPower} onWake={handleWake} />
       <div className="page">
         <ConnectionBanner status={status} />
@@ -31,7 +31,7 @@ function App() {
           ]}
         />
       </div>
-    </>
+    </div>
   )
 }
 

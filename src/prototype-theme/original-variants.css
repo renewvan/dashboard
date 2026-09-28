@@ -1,0 +1,52 @@
+/* PROTOTYPE — throwaway, ticket 05 (kiosk dark-theme mapping).
+   Not imported anywhere; kept only as a primary-source record of the three
+   variants that were compared before Variant B (kiosk-mapped, then rebranded
+   to Van Blue/Ink/Night/Paper) won. See map.md Decisions-so-far.
+
+   Variant A — Coss default dark: just the CLI-generated `.dark` block, no
+   reconciliation with the kiosk's own --bg/--panel/--text/--accent/--muted.
+   Result: visible seam between Coss's own near-black and the kiosk panel.
+
+   Variant B — Coss follows kiosk (WINNER, then rebranded):
+*/
+.theme-proto-b {
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--panel-2);
+  --popover-foreground: var(--text);
+  --border: var(--panel-2);
+  --input: var(--panel-2);
+  --muted-foreground: #9aa1ad; /* literal, not var(--muted) — Coss's own .dark
+    also defines --muted/--accent under the same names, so referencing the
+    kiosk vars by their old names here silently resolved to Coss's values
+    instead of the kiosk's. Found via computed-style inspection; real fix
+    landed as the --kiosk-muted/--kiosk-accent rename in the real CSS. */
+  --primary: #4ea1ff; /* same reasoning — literal, not var(--accent) */
+  --primary-foreground: var(--bg);
+  --ring: #4ea1ff;
+  --destructive: var(--bad);
+  --warning: var(--warn);
+  --success: var(--ok);
+  --secondary: var(--panel-2);
+  --secondary-foreground: var(--text);
+}
+
+/* Variant C — kiosk follows Coss (rejected): aliases kiosk's own var names to
+   Coss's tokens. Broke every not-yet-migrated legacy component (e.g. Tabs.css
+   hardcodes `background: var(--accent)` for the active tab) because Coss's
+   `.dark` treats "primary" as neutral gray/white, not the kiosk's blue —
+   acceptable only once every legacy CSS file is migrated in the same pass,
+   which contradicts the ticket-by-ticket incremental migration plan. */
+.theme-proto-c {
+  --bg: var(--background);
+  --panel: var(--card);
+  --panel-2: var(--popover);
+  --text: var(--foreground);
+  --muted: var(--muted-foreground);
+  --accent: var(--primary);
+  --ok: var(--success);
+  --warn: var(--warning);
+  --bad: var(--destructive);
+}
