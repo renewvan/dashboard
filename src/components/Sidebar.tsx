@@ -32,21 +32,23 @@ export interface SidebarProps {
  */
 export function Sidebar({ items }: SidebarProps) {
   return (
-    <aside className="sidebar-rail dark flex h-full w-18 shrink-0 flex-col items-center gap-6 py-4">
-      <img src={symbolWhite} alt="renewvan" className="h-7 w-7" />
-      <TabsList className="sidebar-nav flex-col items-center justify-start gap-2 rounded-none bg-transparent p-0">
-        {items.map((item) => (
-          <TabsTab
-            key={item.id}
-            value={item.id}
-            data-testid={`nav-${item.id}`}
-            aria-label={item.label}
-            className="size-11 justify-center rounded-full p-0"
-          >
-            {item.icon}
-          </TabsTab>
-        ))}
-      </TabsList>
+    <aside className="sidebar-rail dark flex h-full w-18 shrink-0 flex-col items-center py-4">
+      <img src={symbolWhite} alt="renewvan" className="h-7 w-7 shrink-0" />
+      <div className="flex flex-1 items-center justify-center">
+        <TabsList className="sidebar-nav flex-col items-center justify-start gap-5 rounded-none bg-transparent p-0">
+          {items.map((item) => (
+            <TabsTab
+              key={item.id}
+              value={item.id}
+              data-testid={`nav-${item.id}`}
+              aria-label={item.label}
+              className="size-11 justify-center rounded-full p-0"
+            >
+              {item.icon}
+            </TabsTab>
+          ))}
+        </TabsList>
+      </div>
     </aside>
   )
 }
