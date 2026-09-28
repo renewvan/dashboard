@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import symbolInk from '../../assets/logo/renewvan-symbol-ink.svg'
+import symbolBlue from '../../assets/logo/renewvan-symbol.svg'
 import symbolWhite from '../../assets/logo/renewvan-symbol-white.svg'
 import { TabsList, TabsTab } from '@/components/ui/tabs'
 import type { Theme } from '@/hooks/useTheme'
@@ -26,11 +26,14 @@ export interface SidebarProps {
  * content pane's own treatment (`bg-card/40 backdrop-blur-md
  * border-white/10`, see `App.tsx`) rather than a fixed dark tint, so the
  * rail visually belongs to whichever theme is active instead of always
- * reading as a separate dark strip. The brand mark swaps between a white
- * and an ink (dark) SVG for the same reason — `symbolWhite` reads clearly
- * on the dark-theme pill, `symbolInk` on the light-theme one. Icons sit
- * vertically centered in the rail's free height. Every button gets its
- * own faint circular background (`bg-foreground/10`, adaptive per theme)
+ * reading as a separate dark strip. The brand mark swaps between the
+ * blue-accented and white SVG variants for the same reason —
+ * `symbolBlue` reads clearly on the dark-theme pill, `symbolWhite` on
+ * the light-theme one (per explicit design request: white logo on
+ * light, blue logo on dark — not white on light, which would vanish).
+ * Icons sit vertically centered in the rail's free height. Every button
+ * gets its own faint circular background (`bg-foreground/10`, adaptive
+ * per theme)
  * so unselected items still read as distinct buttons, not bare floating
  * glyphs; the selected item additionally gets a solid accent-colored
  * circular badge (`.sidebar-nav [data-slot="tab-indicator"]` in
@@ -47,7 +50,7 @@ export function Sidebar({ items, theme }: SidebarProps) {
   return (
     <aside className="flex h-full w-18 shrink-0 flex-col items-center py-4">
       <img
-        src={theme === 'dark' ? symbolWhite : symbolInk}
+        src={theme === 'dark' ? symbolBlue : symbolWhite}
         alt="renewvan"
         className="h-7 w-7 shrink-0"
       />
