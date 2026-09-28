@@ -17,10 +17,15 @@ export interface SidebarProps {
  * lives on the `Tabs.Root` this renders inside of, in `App.tsx`). Fixed
  * narrow width, icons only, no expand/collapse — the earlier
  * icon+label/collapsible version measured too wide for a 7" kiosk; this is
- * the simpler fallback design. The selected item gets a solid circular
+ * the simpler fallback design. Nav icons sit in a bordered capsule
+ * (`rounded-full border` on the `TabsList`) floating vertically centered
+ * in the rail's free height. The selected item gets a solid circular
  * badge (`.sidebar-nav [data-slot="tab-indicator"]` in `index.css`,
- * reusing Coss Tabs' built-in sliding indicator) sized to match the
- * 44×44px touch target per `docs/design-principles.md`.
+ * reusing Coss Tabs' built-in sliding indicator) matching each
+ * `TabsTab`'s forced 44×44px size — `size-11!` (important) is required
+ * because Base UI's own `data-[orientation=vertical]:w-full` class has
+ * higher CSS specificity (class+attribute selector) than a bare
+ * `size-11`, otherwise collapsing the tab to its icon's intrinsic size.
  *
  * Stays dark regardless of the light/dark theme toggle (`App.tsx`'s
  * `theme` state only wraps the main content area in `.dark`) — same as
@@ -35,14 +40,14 @@ export function Sidebar({ items }: SidebarProps) {
     <aside className="sidebar-rail dark flex h-full w-18 shrink-0 flex-col items-center py-4">
       <img src={symbolWhite} alt="renewvan" className="h-7 w-7 shrink-0" />
       <div className="flex flex-1 items-center justify-center">
-        <TabsList className="sidebar-nav flex-col items-center justify-start gap-5 rounded-none bg-transparent p-0">
+        <TabsList className="sidebar-nav flex-col items-center justify-start gap-5 rounded-full border border-white/10 bg-white/5 p-2">
           {items.map((item) => (
             <TabsTab
               key={item.id}
               value={item.id}
               data-testid={`nav-${item.id}`}
               aria-label={item.label}
-              className="size-11 justify-center rounded-full p-0"
+              className="size-11! shrink-0 grow-0 justify-center rounded-full p-0"
             >
               {item.icon}
             </TabsTab>
