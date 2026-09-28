@@ -9,7 +9,7 @@ import { SwitchesTab } from './tabs/SwitchesTab'
 import { TanksTab } from './tabs/TanksTab'
 
 function App() {
-  const { state, status, displayPower, publish } = useRenewvanBus()
+  const { state, status, displayPower, tailscale, publish } = useRenewvanBus()
   const [activeTab, setActiveTab] = useState('tanks')
 
   const handleSleep = () => publish('renewvan/kiosk/display/power/set', 'off')
@@ -27,7 +27,7 @@ function App() {
             { id: 'tanks', label: 'Tanks', content: <TanksTab tanks={state.tanks} /> },
             { id: 'power', label: 'Power', content: <PowerTab batteries={state.batteries} /> },
             { id: 'switches', label: 'Switches', content: <SwitchesTab relays={state.relays} /> },
-            { id: 'settings', label: 'Settings', content: <SettingsTab onSleep={handleSleep} /> },
+            { id: 'settings', label: 'Settings', content: <SettingsTab onSleep={handleSleep} tailscale={tailscale} /> },
           ]}
         />
       </div>

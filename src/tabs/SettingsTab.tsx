@@ -1,16 +1,15 @@
+import type { TailscaleStatus } from '../hooks/useRenewvanBus'
 import './SettingsTab.css'
 
 export interface SettingsTabProps {
   onSleep: () => void
+  tailscale: TailscaleStatus | null
 }
 
 /**
- * Settings panel — currently contains only the display sleep button.
- * Publishes "off" to renewvan/kiosk/display/power/set via onSleep();
- * the kiosk node on the Pi executes vcgencmd display_power 0 and
- * publishes the retained state change back to the bus.
+ * Settings panel — display sleep control and system status (Tailscale VPN).
  */
-export function SettingsTab({ onSleep }: SettingsTabProps) {
+export function SettingsTab({ onSleep, tailscale }: SettingsTabProps) {
   return (
     <div className="settings-tab">
       <div className="settings-tab__section">
@@ -23,6 +22,22 @@ export function SettingsTab({ onSleep }: SettingsTabProps) {
         >
           🌙 Sleep display
         </button>
+      </div>
+
+      <div className="settings-tab__section">
+        <p className="settings-tab__label">Network</p>
+        <div className="settings-tab__status-row" data-testid="tailscale-status">
+          <span className={`settings-tab__dot settings-tab__dot--${tailscale?.connected ? 'on' : 'off'}`} />
+          <span className="settings-tab__status-text">
+            {tailscale === null
+              ? 'Tailscale — loading…'
+              : tailscale.connected
+                ? `Tailscale — ${tailscale.ip}`
+                : tailscale.enabled
+                  ? 'Tailscale — not authenticated'
+                  : 'Tailscale — not installed'}
+          </span>
+        </div>
       </div>
     </div>
   )

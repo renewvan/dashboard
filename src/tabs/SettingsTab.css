@@ -37,3 +37,24 @@
 .settings-tab__sleep-btn:active {
   opacity: 0.75;
 }
+.settings-tab__status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+}
+
+.settings-tab__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.settings-tab__dot--on  { background: #4caf50; }
+.settings-tab__dot--off { background: var(--muted); }
+
+.settings-tab__status-text {
+  font-size: 15px;
+  color: var(--text);
+}
