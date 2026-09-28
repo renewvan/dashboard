@@ -48,7 +48,7 @@ function App() {
       <SleepOverlay displayPower={displayPower} onWake={handleWake} />
       <Sidebar items={NAV_ITEMS} />
       <div className="flex flex-1 flex-col overflow-hidden p-4">
-        <div className="flex flex-1 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-xl">
+        <div className="flex flex-1 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md">
           <ConnectionBanner status={status} />
           <TabsPanel value="tanks">
             <TanksTab tanks={state.tanks} />
