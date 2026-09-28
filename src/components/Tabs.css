@@ -13,14 +13,14 @@
   padding: 10px;
   border-radius: 8px;
   font-size: 14px;
-  color: var(--muted);
+  color: var(--kiosk-muted);
   background: transparent;
   border: none;
   cursor: pointer;
 }
 
 .tabs__tab--active {
-  background: var(--accent);
+  background: var(--kiosk-accent);
   color: #000;
   font-weight: 600;
 }

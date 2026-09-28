@@ -50,7 +50,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
             pct={tank.level_pct}
             label={FLUID_LABELS[tank.fluid_type]}
             sub={sub}
-            color={tank.status === 'ok' ? 'var(--accent)' : 'var(--bad)'}
+            color={tank.status === 'ok' ? 'var(--kiosk-accent)' : 'var(--bad)'}
           />
         )
       })}

@@ -28,12 +28,12 @@
 }
 
 .radial-gauge__label {
-  color: var(--muted);
+  color: var(--kiosk-muted);
   font-size: 13px;
 }
 
 .radial-gauge__sub {
-  color: var(--muted);
+  color: var(--kiosk-muted);
   font-size: 12px;
   margin-top: 2px;
 }
