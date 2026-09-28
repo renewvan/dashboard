@@ -43,7 +43,7 @@ export function SettingsTab({
   onThemeChange,
 }: SettingsTabProps) {
   return (
-    <div className="rounded-lg border border-border bg-card/50 backdrop-blur-md">
+    <div className="rounded-lg border border-border bg-card/20 backdrop-blur-md">
       <label
         htmlFor="display-power-toggle"
         className="flex cursor-pointer items-center justify-between px-3.5 py-2.5 has-disabled:cursor-not-allowed"
