@@ -6,8 +6,8 @@ export interface ConnectionBannerProps {
 }
 
 const COPY: Record<ConnectionStatus, string> = {
-  connected: 'renewvan bus connected',
-  connecting: 'connecting to renewvan bus…',
+  connected: 'renewvan hub connected',
+  connecting: 'connecting to renewvan hub…',
   disconnected: 'disconnected — showing last-known state',
 }
 
