@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import './Tabs.css'
+import { Tabs as TabsRoot, TabsList, TabsPanel, TabsTab } from '@/components/ui/tabs'
 
 export interface Tab {
   id: string
@@ -14,32 +14,31 @@ export interface TabsProps {
 }
 
 /**
- * Domain tab bar (Tanks / Power / Switches) + the active tab's panel, per
- * the winning `prototype/dashboard-06` variant C layout. Same tabbed
- * interaction at every supported width (kiosk/laptop/phone).
+ * Domain tab bar (Tanks / Power / Switches / Settings) + the active tab's
+ * panel, built on Coss's Base UI-backed Tabs primitive
+ * (`src/components/ui/tabs.tsx`).
  */
 export function Tabs({ tabs, activeId, onSelect }: TabsProps) {
   const active = tabs.find((tab) => tab.id === activeId) ?? tabs[0]
 
   return (
-    <div className="tabs">
-      <div className="tabs__bar" role="tablist">
+    <TabsRoot
+      value={active.id}
+      onValueChange={(value) => onSelect(value as string)}
+      className="mb-4"
+    >
+      <TabsList className="w-full">
         {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={tab.id === active.id}
-            className={`tabs__tab${tab.id === active.id ? ' tabs__tab--active' : ''}`}
-            onClick={() => onSelect(tab.id)}
-          >
+          <TabsTab key={tab.id} value={tab.id}>
             {tab.label}
-          </button>
+          </TabsTab>
         ))}
-      </div>
-      <div className="tabs__panel" role="tabpanel" data-testid="tab-panel">
-        {active.content}
-      </div>
-    </div>
+      </TabsList>
+      {tabs.map((tab) => (
+        <TabsPanel key={tab.id} value={tab.id}>
+          {tab.content}
+        </TabsPanel>
+      ))}
+    </TabsRoot>
   )
 }

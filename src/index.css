@@ -81,41 +81,6 @@ body {
   margin: 0 auto;
 }
 
-.tab-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-}
-
-.power-card {
-  text-align: center;
-}
-
-.power-card__readout {
-  color: var(--kiosk-muted);
-  font-size: 13px;
-  margin-top: 4px;
-}
-
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  margin-top: 8px;
-}
-
-.badge--ok {
-  background: rgba(76, 175, 125, 0.15);
-  color: var(--ok);
-}
-
-.empty-state {
-  color: var(--kiosk-muted);
-  text-align: center;
-}
-
 @theme inline {
   --animate-skeleton: skeleton 2s -1s infinite linear;
   --animate-caret-blink: 1s ease-out infinite caret-blink;

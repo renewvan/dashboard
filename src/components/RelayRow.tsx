@@ -1,4 +1,4 @@
-import './RelayRow.css'
+import { Switch } from '@/components/ui/switch'
 
 export interface RelayRowProps {
   label: string
@@ -6,19 +6,20 @@ export interface RelayRowProps {
 }
 
 /**
- * A single read-only relay row: label + on/off indicator. No tap-to-toggle
- * — `relay` has no command topic in v0
- * (hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md).
+ * A single read-only relay row: label + on/off indicator, built on Coss's
+ * Switch primitive (`src/components/ui/switch.tsx`). No tap-to-toggle —
+ * `relay` has no command topic in v0
+ * (hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md) — so
+ * the switch is rendered read-only, reflecting live state only.
  */
 export function RelayRow({ label, state }: RelayRowProps) {
   return (
-    <div className="relay-row" data-testid="relay-row">
+    <div
+      className="flex items-center justify-between rounded-lg bg-card p-3.5"
+      data-testid="relay-row"
+    >
       <span>{label}</span>
-      <span
-        className={`relay-row__indicator${state ? ' relay-row__indicator--on' : ''}`}
-        role="status"
-        aria-label={state ? 'on' : 'off'}
-      />
+      <Switch checked={state} readOnly aria-label={label} tabIndex={-1} />
     </div>
   )
 }

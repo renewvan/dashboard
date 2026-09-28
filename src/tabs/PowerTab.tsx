@@ -1,3 +1,5 @@
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { RadialGauge } from '../components/RadialGauge'
 import { isCompleteBattery, type Battery } from '../types'
 
@@ -14,24 +16,26 @@ export function PowerTab({ batteries }: PowerTabProps) {
     .sort()
 
   if (ids.length === 0) {
-    return <p className="empty-state">No battery data yet.</p>
+    return <p className="text-center text-muted-foreground">No battery data yet.</p>
   }
 
   return (
-    <div className="tab-grid">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
       {ids.map((id) => {
         const battery = batteries[id]
         const sign = battery.current_a > 0 ? '+' : ''
         return (
-          <div key={id} className="power-card">
-            <RadialGauge pct={battery.soc_pct} label={`Battery (${id})`} color="var(--ok)" />
-            <div className="power-card__readout">
-              {battery.voltage_v.toFixed(1)} V · {sign}
-              {battery.current_a.toFixed(1)} A · {battery.power_w.toFixed(0)} W ·{' '}
-              {battery.temperature_c.toFixed(0)}°C
-            </div>
-            <span className="badge badge--ok">{battery.charge_state}</span>
-          </div>
+          <Card key={id}>
+            <CardContent className="flex flex-col items-center gap-2 text-center">
+              <RadialGauge pct={battery.soc_pct} label={`Battery (${id})`} color="var(--ok)" />
+              <div className="text-muted-foreground text-xs">
+                {battery.voltage_v.toFixed(1)} V · {sign}
+                {battery.current_a.toFixed(1)} A · {battery.power_w.toFixed(0)} W ·{' '}
+                {battery.temperature_c.toFixed(0)}°C
+              </div>
+              <Badge variant="success">{battery.charge_state}</Badge>
+            </CardContent>
+          </Card>
         )
       })}
     </div>

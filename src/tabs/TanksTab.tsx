@@ -32,11 +32,11 @@ export function TanksTab({ tanks }: TanksTabProps) {
     )
 
   if (ids.length === 0) {
-    return <p className="empty-state">No tank data yet.</p>
+    return <p className="text-center text-muted-foreground">No tank data yet.</p>
   }
 
   return (
-    <div className="tab-grid">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
       {ids.map((id) => {
         const tank = tanks[id]
         const litersRemaining = Math.round((tank.capacity_l * tank.level_pct) / 100)
