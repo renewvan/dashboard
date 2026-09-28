@@ -1,17 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import type { TailscaleStatus } from '../hooks/useRenewvanBus'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import type { DisplayPower, TailscaleStatus } from '../hooks/useRenewvanBus'
 
 export interface SettingsTabProps {
+  displayPower: DisplayPower
   onSleep: () => void
+  onWake: () => void
   tailscale: TailscaleStatus | null
 }
 
 /**
- * Settings panel — display sleep control and system status (Tailscale
- * VPN). Built on Coss's Card and Button primitives.
+ * Settings panel — display sleep/wake toggle and system status (Tailscale
+ * VPN). Built on Coss's Card and Switch primitives.
  */
-export function SettingsTab({ onSleep, tailscale }: SettingsTabProps) {
+export function SettingsTab({ displayPower, onSleep, onWake, tailscale }: SettingsTabProps) {
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -21,15 +24,16 @@ export function SettingsTab({ onSleep, tailscale }: SettingsTabProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Button
-            variant="secondary"
-            size="lg"
-            className="w-full justify-start"
-            data-testid="sleep-button"
-            onClick={onSleep}
-          >
-            🌙 Sleep display
-          </Button>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="display-power-toggle">🌙 Display awake</Label>
+            <Switch
+              id="display-power-toggle"
+              data-testid="display-power-toggle"
+              checked={displayPower !== 'off'}
+              disabled={displayPower === null}
+              onCheckedChange={(checked) => (checked ? onWake() : onSleep())}
+            />
+          </div>
         </CardContent>
       </Card>
 

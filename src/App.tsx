@@ -27,7 +27,7 @@ function App() {
             { id: 'tanks', label: 'Tanks', content: <TanksTab tanks={state.tanks} /> },
             { id: 'power', label: 'Power', content: <PowerTab batteries={state.batteries} /> },
             { id: 'switches', label: 'Switches', content: <SwitchesTab relays={state.relays} /> },
-            { id: 'settings', label: 'Settings', content: <SettingsTab onSleep={handleSleep} tailscale={tailscale} /> },
+            { id: 'settings', label: 'Settings', content: <SettingsTab displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} tailscale={tailscale} /> },
           ]}
         />
       </div>
