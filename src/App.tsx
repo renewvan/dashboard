@@ -2,6 +2,8 @@ import { Droplet, Settings as SettingsIcon, ToggleLeft, Zap } from 'lucide-react
 import { useState } from 'react'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
 import wallpaperLight from '../assets/light-unsplash.jpg'
+import lockupInk from '../assets/logo/renewvan-lockup.svg'
+import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
 import { ConnectionBanner } from './components/ConnectionBanner'
 import { Sidebar, type NavItem } from './components/Sidebar'
 import { SleepOverlay } from './components/SleepOverlay'
@@ -34,7 +36,10 @@ function App() {
       value={activeTab}
       onValueChange={(value) => setActiveTab(value as string)}
       orientation="vertical"
-      className={cn('relative h-svh gap-0 overflow-hidden text-foreground', theme === 'dark' && 'dark')}
+      className={cn(
+        'relative flex h-svh flex-col! gap-4 overflow-hidden p-4 text-foreground',
+        theme === 'dark' && 'dark',
+      )}
     >
       {/* Pre-blurred wallpaper layer, not just backdrop-blur on the glass
           surfaces above it — so the strip of wallpaper visible *around*
@@ -46,8 +51,15 @@ function App() {
         style={{ backgroundImage: `url(${theme === 'dark' ? wallpaperDark : wallpaperLight})` }}
       />
       <SleepOverlay displayPower={displayPower} onWake={handleWake} />
-      <Sidebar items={NAV_ITEMS} theme={theme} />
-      <div className="flex flex-1 flex-col overflow-hidden p-4">
+      <header className="flex shrink-0 items-center rounded-2xl border border-white/10 bg-card/40 px-4 py-3 backdrop-blur-md">
+        <img
+          src={theme === 'dark' ? lockupWhite : lockupInk}
+          alt="renewvan"
+          className="h-8 w-auto"
+        />
+      </header>
+      <div className="flex flex-1 gap-4 overflow-hidden">
+        <Sidebar items={NAV_ITEMS} />
         <div className="flex flex-1 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md">
           <ConnectionBanner status={status} />
           <TabsPanel value="tanks">
