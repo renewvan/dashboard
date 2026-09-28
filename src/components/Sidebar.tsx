@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
+import symbolInk from '../../assets/logo/renewvan-symbol-ink.svg'
 import symbolWhite from '../../assets/logo/renewvan-symbol-white.svg'
 import { TabsList, TabsTab } from '@/components/ui/tabs'
+import type { Theme } from '@/hooks/useTheme'
 
 export interface NavItem {
   id: string
@@ -10,6 +12,7 @@ export interface NavItem {
 
 export interface SidebarProps {
   items: NavItem[]
+  theme: Theme
 }
 
 /**
@@ -19,39 +22,44 @@ export interface SidebarProps {
  * icon+label/collapsible version measured too wide for a 7" kiosk; this is
  * the simpler fallback design. The rail itself has no background — just
  * the theme wallpaper showing through (`App.tsx`) — only the pill
- * (`TabsList`, bordered capsule) carries its own near-opaque dark tint
- * (`bg-black/85`, plain alpha-blend, no `backdrop-filter`) so bright
- * wallpaper spots (e.g. the night photo's streetlight glow) can't bleed
- * through and distort the buttons' apparent shape. Icons sit vertically
- * centered in the rail's free height. Every button gets its own faint
- * circular background (`bg-white/10`) so unselected items still read as
- * distinct buttons, not bare floating glyphs; the selected item
- * additionally gets a solid accent-colored circular badge
- * (`.sidebar-nav [data-slot="tab-indicator"]` in `index.css`, reusing
- * Coss Tabs' built-in sliding indicator) matching each `TabsTab`'s forced
- * 44×44px size. Both `size-11!` and `justify-center!` (important) are
- * required because Base UI applies its own
- * `data-[orientation=vertical]:w-full` and
+ * (`TabsList`, bordered capsule) carries a surface, matching the main
+ * content pane's own treatment (`bg-card/40 backdrop-blur-md
+ * border-white/10`, see `App.tsx`) rather than a fixed dark tint, so the
+ * rail visually belongs to whichever theme is active instead of always
+ * reading as a separate dark strip. The brand mark swaps between a white
+ * and an ink (dark) SVG for the same reason — `symbolWhite` reads clearly
+ * on the dark-theme pill, `symbolInk` on the light-theme one. Icons sit
+ * vertically centered in the rail's free height. Every button gets its
+ * own faint circular background (`bg-foreground/10`, adaptive per theme)
+ * so unselected items still read as distinct buttons, not bare floating
+ * glyphs; the selected item additionally gets a solid accent-colored
+ * circular badge (`.sidebar-nav [data-slot="tab-indicator"]` in
+ * `index.css`, reusing Coss Tabs' built-in sliding indicator) matching
+ * each `TabsTab`'s forced 44×44px size. Both `size-11!` and
+ * `justify-center!` (important) are required because Base UI applies its
+ * own `data-[orientation=vertical]:w-full` and
  * `data-[orientation=vertical]:justify-start` utilities, which win over
- * bare `size-11`/`justify-center` (attribute-selector specificity beats
- * a plain class) — without `!`, the tab collapses to its icon's
- * intrinsic size and left-aligns the icon inside it instead of centering
- * it. This was the real cause of a "button not centered" report
- * previously misdiagnosed as backdrop-blur bleed-through.
+ * bare `size-11`/`justify-center` (attribute-selector specificity beats a
+ * plain class) — without `!`, the tab collapses to its icon's intrinsic
+ * size and left-aligns the icon inside it instead of centering it.
  */
-export function Sidebar({ items }: SidebarProps) {
+export function Sidebar({ items, theme }: SidebarProps) {
   return (
     <aside className="flex h-full w-18 shrink-0 flex-col items-center py-4">
-      <img src={symbolWhite} alt="renewvan" className="h-7 w-7 shrink-0" />
+      <img
+        src={theme === 'dark' ? symbolWhite : symbolInk}
+        alt="renewvan"
+        className="h-7 w-7 shrink-0"
+      />
       <div className="flex flex-1 items-center justify-center">
-        <TabsList className="sidebar-nav dark flex-col items-center justify-start gap-5 rounded-full border border-white/10 bg-black/85 p-2">
+        <TabsList className="sidebar-nav flex-col items-center justify-start gap-5 rounded-full border border-white/10 bg-card/40 p-2 backdrop-blur-md">
           {items.map((item) => (
             <TabsTab
               key={item.id}
               value={item.id}
               data-testid={`nav-${item.id}`}
               aria-label={item.label}
-              className="size-11! shrink-0 grow-0 justify-center! rounded-full bg-white/10 p-0 hover:bg-white/16"
+              className="size-11! shrink-0 grow-0 justify-center! rounded-full bg-foreground/10 p-0 hover:bg-foreground/16"
             >
               {item.icon}
             </TabsTab>

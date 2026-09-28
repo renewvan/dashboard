@@ -11,7 +11,7 @@ const items: NavItem[] = [
 function renderSidebar() {
   return render(
     <TabsRoot value="tanks" onValueChange={() => {}} orientation="vertical">
-      <Sidebar items={items} />
+      <Sidebar items={items} theme="dark" />
     </TabsRoot>,
   )
 }

@@ -46,7 +46,7 @@ function App() {
         style={{ backgroundImage: `url(${theme === 'dark' ? wallpaperDark : wallpaperLight})` }}
       />
       <SleepOverlay displayPower={displayPower} onWake={handleWake} />
-      <Sidebar items={NAV_ITEMS} />
+      <Sidebar items={NAV_ITEMS} theme={theme} />
       <div className="flex flex-1 flex-col overflow-hidden p-4">
         <div className="flex flex-1 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md">
           <ConnectionBanner status={status} />
