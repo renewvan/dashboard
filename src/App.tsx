@@ -2,7 +2,6 @@ import { Droplet, Settings as SettingsIcon, ToggleLeft, Van, Zap } from 'lucide-
 import { useState } from 'react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
-import lockupInk from '../assets/logo/renewvan-lockup.svg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
 import { Clock } from './components/Clock'
 import { DisplayPowerButton } from './components/DisplayPowerButton'
@@ -75,7 +74,7 @@ function App() {
       <SleepOverlay displayPower={displayPower} onWake={handleWake} />
       <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 bg-card/40 px-3 py-1.5 backdrop-blur-md">
         <img
-          src={theme === 'dark' ? lockupWhite : lockupInk}
+          src={lockupWhite}
           alt="renewvan"
           className="h-6 w-auto justify-self-start"
         />

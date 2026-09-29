@@ -26,14 +26,20 @@ export interface EmptyStateProps {
  * keep their own borders, so all three become visible as three
  * overlapping bordered squares instead of one clean badge. `default`
  * renders just the one div, styled here as a single bordered square
- * with a transparent fill. Icon rendered at `size-7` (28px, bigger than
- * lucide's 24px default) per explicit request.
+ * with a transparent fill.
+ *
+ * Icon and border both use `text-muted-foreground`/`border-border` — a
+ * single theme-adaptive gray for both, not a hardcoded `border-white`
+ * (which read fine in dark theme but was invisible against a light
+ * card in light theme) paired with whatever color the icon happened to
+ * inherit. One consistent gray regardless of theme, per explicit
+ * request.
  */
 export function EmptyState({ icon, title, description }: EmptyStateProps) {
   return (
     <Empty>
       <EmptyHeader>
-        <EmptyMedia className="flex size-12 items-center justify-center rounded-md border border-border border-white bg-transparent [&_svg]:size-5">
+        <EmptyMedia className="flex size-12 items-center justify-center rounded-md border border-border bg-transparent text-muted-foreground [&_svg]:size-5">
           {icon}
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
