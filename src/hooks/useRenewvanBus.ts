@@ -7,9 +7,11 @@ import { getEnv } from '../config/runtimeEnv'
 // (Mosquitto's WS listener), per
 // hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md -- no
 // polling backend, not offline-first. This is the thin adapter half of the
-// ticket's seam: it owns the live connection and is intentionally not
-// unit-tested (see ticket + hub spec Testing Decisions); the presentational
-// components it feeds are tested separately against fixed props.
+// ticket's seam: it owns the live connection (connection lifecycle itself
+// stays untested); the payload-handling contract — what each topic does
+// to the exposed state — is tested in useRenewvanBus.test.tsx against a
+// mocked client. The presentational components it feeds are tested
+// separately against fixed props.
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 export type DisplayPower = 'on' | 'off' | null
@@ -27,12 +29,24 @@ export interface RenewvanBus {
   status: ConnectionStatus
   displayPower: DisplayPower
   tailscale: TailscaleStatus | null
+  uplink: UplinkStatus | null
   publish: (topic: string, payload: string) => void
+}
+
+export type UplinkPath = 'lan' | 'wifi' | 'none'
+
+export interface UplinkStatus {
+  path: UplinkPath
+  online: boolean
+  ssid: string | null
+  interface: string | null
+  ip: string | null
 }
 
 const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery)\/([^/]+)\/([^/]+)$/
 const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
 const TOPIC_TAILSCALE = 'renewvan/tailscale/status'
+const TOPIC_UPLINK = 'renewvan/uplink/status'
 
 /**
  * Every `renewvan/<domain>/<id>/<property>` payload is the JSON-encoded
@@ -95,6 +109,7 @@ export function useRenewvanBus(): RenewvanBus {
   const [status, setStatus] = useState<ConnectionStatus>('connecting')
   const [displayPower, setDisplayPower] = useState<DisplayPower>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
+  const [uplink, setUplink] = useState<UplinkStatus | null>(null)
   const clientRef = useRef<MqttClient | null>(null)
 
   const publish = (topic: string, payload: string) => {
@@ -137,6 +152,14 @@ export function useRenewvanBus(): RenewvanBus {
         }
         return
       }
+      if (topic === TOPIC_UPLINK) {
+        try {
+          setUplink(JSON.parse(payload) as UplinkStatus)
+        } catch {
+          // malformed payload — ignore
+        }
+        return
+      }
       setState((prev) => applyMessage(prev, topic, payload))
     })
 
@@ -146,5 +169,5 @@ export function useRenewvanBus(): RenewvanBus {
     }
   }, [])
 
-  return { state, status, displayPower, tailscale, publish }
+  return { state, status, displayPower, tailscale, uplink, publish }
 }
