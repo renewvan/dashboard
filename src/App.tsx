@@ -1,4 +1,4 @@
-import { Droplet, Moon, Settings as SettingsIcon, Sun, ToggleLeft, Zap } from 'lucide-react'
+import { Droplet, Moon, Settings as SettingsIcon, Sun, ToggleLeft, Van, Zap } from 'lucide-react'
 import { useState } from 'react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
@@ -14,12 +14,14 @@ import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
 import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { useTheme, type Theme } from './hooks/useTheme'
 import { cn } from './lib/utils'
+import { HomeTab } from './tabs/HomeTab'
 import { PowerTab } from './tabs/PowerTab'
 import { SettingsTab } from './tabs/SettingsTab'
 import { SwitchesTab } from './tabs/SwitchesTab'
 import { TanksTab } from './tabs/TanksTab'
 
 const NAV_ITEMS: NavItem[] = [
+  { id: 'home', label: 'Home', icon: <Van /> },
   { id: 'tanks', label: 'Tanks', icon: <Droplet /> },
   { id: 'power', label: 'Power', icon: <Zap /> },
   { id: 'switches', label: 'Switches', icon: <ToggleLeft /> },
@@ -39,7 +41,7 @@ const WALLPAPER: Record<Theme, string | undefined> = {
 
 function App() {
   const { state, status, displayPower, tailscale, publish } = useRenewvanBus()
-  const [activeTab, setActiveTab] = useState('tanks')
+  const [activeTab, setActiveTab] = useState('home')
   const [theme, setTheme] = useTheme()
   const wallpaper = WALLPAPER[theme]
 
@@ -52,7 +54,7 @@ function App() {
       onValueChange={(value) => setActiveTab(value as string)}
       orientation="vertical"
       className={cn(
-        'relative flex h-svh flex-col! gap-4 overflow-hidden p-4 text-foreground',
+        'relative flex h-svh flex-col! gap-3 overflow-hidden p-4 text-foreground',
         theme === 'dark' && 'dark',
       )}
     >
@@ -77,7 +79,7 @@ function App() {
           className="h-6 w-auto justify-self-start"
         />
         <Clock />
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex items-center justify-end gap-3">
           <IconSwitch
             id="header-dark-theme-toggle"
             icon={theme === 'dark' ? <Moon /> : <Sun />}
@@ -90,9 +92,12 @@ function App() {
           <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>
       </header>
-      <div className="flex flex-1 gap-4 overflow-hidden">
+      <div className="flex flex-1 gap-3 overflow-hidden">
         <Sidebar items={NAV_ITEMS} />
         <div className="flex flex-1 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md">
+          <TabsPanel value="home">
+            <HomeTab tanks={state.tanks} batteries={state.batteries} />
+          </TabsPanel>
           <TabsPanel value="tanks">
             <TanksTab tanks={state.tanks} />
           </TabsPanel>

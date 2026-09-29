@@ -26,10 +26,15 @@ export interface SidebarProps {
  * carries a surface, matching the main content pane's and header's own
  * treatment (`bg-card/40 backdrop-blur-md border-white/10`) rather than a
  * fixed dark tint, so the rail visually belongs to whichever theme is
- * active instead of always reading as a separate dark strip. The pill is
- * vertically centered in the rail's full height. Inactive icons keep the
- * base Coss Tabs muted-gray color (ancestor `text-muted-foreground` on
- * `TabsList`) — only the active/selected icon is forced white
+ * active instead of always reading as a separate dark strip. `items-start`
+ * (not `items-center`) on the rail: the pill is narrower than the rail's
+ * fixed 72px width, and centering it left a 5px gap between the pill's
+ * left edge and the header's left edge above it — `items-start` makes
+ * both flush at the same x position instead.
+ *
+ * Icons sit vertically centered in the rail's full height. Inactive icons
+ * keep the base Coss Tabs muted-gray color (ancestor `text-muted-foreground`
+ * on `TabsList`) — only the active/selected icon is forced white
  * (`data-active:text-white!`) regardless of theme, since it sits on the
  * solid accent-colored badge and needs guaranteed contrast there; gray
  * was already fine for inactive icons against the pill's own tint.
@@ -51,7 +56,7 @@ export interface SidebarProps {
  */
 export function Sidebar({ items }: SidebarProps) {
   return (
-    <aside className="flex h-full w-18 shrink-0 flex-col items-center justify-center">
+    <aside className="flex h-full w-18 shrink-0 flex-col items-start justify-center">
       <TabsList className="sidebar-nav flex-col items-center justify-start gap-5 rounded-full border border-white/10 bg-card/40 p-2 backdrop-blur-md">
         {items.map((item) => (
           <TabsTab
