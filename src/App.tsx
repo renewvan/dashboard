@@ -1,5 +1,4 @@
-import { Droplet, Settings as SettingsIcon, ToggleLeft, Van, Zap } from 'lucide-react'
-import { useState } from 'react'
+import { Droplet, Wrench, ToggleLeft, Van, Zap } from 'lucide-react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
@@ -15,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAlertToasts } from './hooks/useAlertToasts'
 import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { useTheme, type Theme } from './hooks/useTheme'
+import { useUrlTab } from './hooks/useUrlTab'
 import { cn } from './lib/utils'
 import { HomeTab } from './tabs/HomeTab'
 import { PowerTab } from './tabs/PowerTab'
@@ -27,7 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
   { id: 'switches', label: 'Switches', icon: <ToggleLeft className="size-5" /> },
-  { id: 'settings', label: 'Settings', icon: <SettingsIcon className="size-5" /> },
+  { id: 'settings', label: 'Settings', icon: <Wrench className="size-5" /> },
 ]
 
 // Per-theme wallpaper photo. No entry (or a falsy value) means that
@@ -44,7 +44,10 @@ const WALLPAPER: Record<Theme, string | undefined> = {
 function App() {
   const { state, status, displayPower, tailscale, publish } = useRenewvanBus()
   useAlertToasts({ tanks: state.tanks, status, tailscale })
-  const [activeTab, setActiveTab] = useState('home')
+  const [activeTab, setActiveTab] = useUrlTab(
+    NAV_ITEMS.map((item) => item.id),
+    'home',
+  )
   const [theme, setTheme] = useTheme()
   const wallpaper = WALLPAPER[theme]
 
@@ -93,7 +96,7 @@ function App() {
         <Sidebar items={NAV_ITEMS} />
         <div className="flex flex-1 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-sm">
           <TabsPanel value="home">
-            <HomeTab tanks={state.tanks} batteries={state.batteries} />
+            <HomeTab />
           </TabsPanel>
           <TabsPanel value="tanks">
             <TanksTab tanks={state.tanks} />
