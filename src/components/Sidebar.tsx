@@ -27,10 +27,17 @@ export interface SidebarProps {
  * treatment (`bg-card/40 backdrop-blur-md border-white/10`) rather than a
  * fixed dark tint, so the rail visually belongs to whichever theme is
  * active instead of always reading as a separate dark strip. `items-start`
- * (not `items-center`) on the rail: the pill is narrower than the rail's
- * fixed 72px width, and centering it left a 5px gap between the pill's
- * left edge and the header's left edge above it — `items-start` makes
- * both flush at the same x position instead.
+ * (not `items-center`) plus `w-fit` (not a fixed `w-18`) on the rail:
+ * the pill is narrower than 72px once you account for its own padding,
+ * so a fixed-width rail left ~10px of dead space to the pill's right
+ * that the header (which fills its whole grid column, no narrower inner
+ * element) doesn't have — the sidebar-to-content gap visually read
+ * bigger than the header-to-content gap even though the flex `gap-3`
+ * between them was identical the whole time. `w-fit` makes the rail's
+ * column always hug the pill's actual rendered width, so both edges
+ * (aside's right edge and the pill's right edge) are the same edge,
+ * structurally — not a hardcoded width that can drift out of sync with
+ * the pill again later.
  *
  * Icons sit vertically centered in the rail's full height. `item.icon`
  * MUST carry an explicit `size-*` class (see `App.tsx`'s `NAV_ITEMS`) —
@@ -66,7 +73,7 @@ export interface SidebarProps {
  */
 export function Sidebar({ items }: SidebarProps) {
   return (
-    <aside className="flex h-full w-18 shrink-0 flex-col items-start justify-center">
+    <aside className="flex h-full w-fit shrink-0 flex-col items-start justify-center">
       <TabsList className="sidebar-nav flex-col items-center justify-start gap-5 rounded-full border border-white/10 bg-card/40 p-2 backdrop-blur-md">
         {items.map((item) => (
           <TabsTab
