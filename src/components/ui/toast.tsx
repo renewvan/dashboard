@@ -7,8 +7,10 @@ import {
   InfoIcon,
   LoaderCircleIcon,
   TriangleAlertIcon,
+  X,
 } from "lucide-react";
 import type React from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -59,6 +61,20 @@ function upsertReplayClassName(toast: {
   return isEven ? "animate-toast-success-even" : "animate-toast-success-odd";
 }
 
+// The app applies its `.dark`/`.light` theme class to the `Tabs.Root`
+// element (`data-slot="tabs"` in App.tsx), not `<html>`/`<body>`. Portals
+// default to `document.body`, which sits *outside* that themed subtree, so
+// a portaled toast never sees the theme's CSS variables and renders with
+// the `:root` (light) defaults regardless of the active theme. Portal into
+// the themed root instead of body so colors track the live theme.
+function useThemedPortalContainer(): HTMLElement | null {
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setContainer(document.querySelector<HTMLElement>('[data-slot="tabs"]'));
+  }, []);
+  return container;
+}
+
 function Toasts({
   position,
   portalProps,
@@ -68,9 +84,14 @@ function Toasts({
 }): React.ReactElement {
   const { toasts } = Toast.useToastManager();
   const swipeDirection = getSwipeDirection(position);
+  const themedContainer = useThemedPortalContainer();
 
   return (
-    <Toast.Portal data-slot="toast-portal" {...portalProps}>
+    <Toast.Portal
+      container={themedContainer}
+      data-slot="toast-portal"
+      {...portalProps}
+    >
       <Toast.Viewport
         className={cn(
           "fixed z-60 mx-auto flex w-[calc(100%-var(--toast-inset)*2)] max-w-90 [--toast-inset:--spacing(4)] sm:[--toast-inset:--spacing(8)]",
@@ -96,6 +117,18 @@ function Toasts({
               key={toast.id}
               className={cn(
                 "absolute z-[calc(9999-var(--toast-index))] h-(--toast-calc-height) w-full select-none rounded-lg border bg-[color-mix(in_srgb,var(--popover),var(--color-black)_calc(1%*max(0,var(--toast-index,0))))] not-dark:bg-clip-padding text-popover-foreground shadow-lg/5 [transition:transform_.5s_cubic-bezier(.22,1,.36,1),opacity_.5s,height_.15s,background-color_.5s] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-expanded:bg-popover dark:bg-[color-mix(in_srgb,var(--popover),var(--color-black)_calc(6%*max(0,var(--toast-index,0))))] dark:data-expanded:bg-popover dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
+                // Severity tint: solid color-mix into the theme's own
+                // `--popover` token (always opaque, tracks light/dark
+                // automatically) rather than a translucent alpha overlay,
+                // which bled through whatever sits behind the toast.
+                "data-[type=error]:bg-[color-mix(in_srgb,var(--destructive)_18%,var(--popover))] data-[type=error]:border-destructive",
+                "data-[type=info]:bg-[color-mix(in_srgb,var(--info)_18%,var(--popover))] data-[type=info]:border-info",
+                "data-[type=warning]:bg-[color-mix(in_srgb,var(--warning)_18%,var(--popover))] data-[type=warning]:border-warning",
+                "data-[type=success]:bg-[color-mix(in_srgb,var(--success)_18%,var(--popover))] data-[type=success]:border-success",
+                "dark:data-[type=error]:bg-[color-mix(in_srgb,var(--destructive)_18%,var(--popover))]",
+                "dark:data-[type=info]:bg-[color-mix(in_srgb,var(--info)_18%,var(--popover))]",
+                "dark:data-[type=warning]:bg-[color-mix(in_srgb,var(--warning)_18%,var(--popover))]",
+                "dark:data-[type=success]:bg-[color-mix(in_srgb,var(--success)_18%,var(--popover))]",
                 // Base positioning using data-position
                 "data-[position*=right]:right-0 data-[position*=right]:left-auto",
                 "data-[position*=left]:right-auto data-[position*=left]:left-0",
@@ -164,13 +197,21 @@ function Toasts({
                     />
                   </div>
                 </div>
-                {toast.actionProps && (
+                {toast.actionProps ? (
                   <Toast.Action
                     className={buttonVariants({ size: "xs" })}
                     data-slot="toast-action"
                   >
                     {toast.actionProps.children}
                   </Toast.Action>
+                ) : (
+                  <Toast.Close
+                    aria-label="Dismiss"
+                    className="shrink-0 self-start rounded p-0.5 text-muted-foreground opacity-70 hover:opacity-100"
+                    data-slot="toast-close"
+                  >
+                    <X className="size-4" />
+                  </Toast.Close>
                 )}
               </Toast.Content>
             </Toast.Root>
@@ -187,9 +228,14 @@ function AnchoredToasts({
   portalProps?: React.ComponentProps<typeof Toast.Portal>;
 }): React.ReactElement {
   const { toasts } = Toast.useToastManager();
+  const themedContainer = useThemedPortalContainer();
 
   return (
-    <Toast.Portal data-slot="toast-portal-anchored" {...portalProps}>
+    <Toast.Portal
+      container={themedContainer}
+      data-slot="toast-portal-anchored"
+      {...portalProps}
+    >
       <Toast.Viewport
         className="outline-none"
         data-slot="toast-viewport-anchored"
@@ -293,12 +339,21 @@ export interface ToastProviderProps extends Toast.Provider.Props {
 
 export function ToastProvider({
   children,
-  position = "bottom-right",
+  // Chosen for the alert system (wayfinder ticket 03): a driver glancing
+  // at the kiosk should catch a new alert without it covering the primary
+  // content in the center of the screen.
+  position = "top-right",
+  // Base UI's own default is 3; older toasts past that are marked
+  // `data-limited` (hidden) rather than removed. Q4 decided alerts stack
+  // rather than summarize — pick a real ceiling instead of that unrelated
+  // default. The exact number is still a fog item (how many concurrent
+  // van alerts is realistic); 6 is a reasonable starting ceiling.
+  limit = 6,
   portalProps,
   ...props
 }: ToastProviderProps): React.ReactElement {
   return (
-    <Toast.Provider toastManager={toastManager} {...props}>
+    <Toast.Provider limit={limit} toastManager={toastManager} {...props}>
       {children}
       <Toasts portalProps={portalProps} position={position} />
     </Toast.Provider>

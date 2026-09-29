@@ -12,6 +12,7 @@ import { SleepOverlay } from './components/SleepOverlay'
 import { ThemeToggleButton } from './components/ThemeToggleButton'
 import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
 import { Separator } from "@/components/ui/separator";
+import { useAlertToasts } from './hooks/useAlertToasts'
 import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { useTheme, type Theme } from './hooks/useTheme'
 import { cn } from './lib/utils'
@@ -42,6 +43,7 @@ const WALLPAPER: Record<Theme, string | undefined> = {
 
 function App() {
   const { state, status, displayPower, tailscale, publish } = useRenewvanBus()
+  useAlertToasts({ tanks: state.tanks, status, tailscale })
   const [activeTab, setActiveTab] = useState('home')
   const [theme, setTheme] = useTheme()
   const wallpaper = WALLPAPER[theme]
