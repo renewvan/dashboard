@@ -38,8 +38,10 @@ export function IconStatusButton({ icon, label, popoverContent, onOpenSettings, 
       <PopoverContent className="flex w-56 flex-col gap-2 p-3 text-sm">
         {popoverContent}
         {onOpenSettings && (
+          // Full-width 44px row per docs/design-principles.md — this is a
+          // real touch target on the same gloved-finger flow as the trigger.
           <PopoverClose
-            className="-m-1 rounded px-1 py-1 text-left text-muted-foreground active:bg-foreground/10"
+            className="-mx-3 -mb-3 mt-1 flex min-h-11 items-center justify-center rounded-b-[inherit] border-t border-border text-muted-foreground active:bg-foreground/10"
             onClick={onOpenSettings}
           >
             Open settings
