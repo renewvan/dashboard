@@ -1,24 +1,10 @@
 import { Droplet } from 'lucide-react'
 import { EmptyState } from '../components/EmptyState'
-import { RadialGauge } from '../components/RadialGauge'
+import { TankSiloCard } from '../components/tank-cards/TankSiloCard'
 import { isCompleteTank, type Tank } from '../types'
 
 export interface TanksTabProps {
   tanks: Record<string, Tank>
-}
-
-const FLUID_LABELS: Record<Tank['fluid_type'], string> = {
-  fresh_water: 'Fresh water',
-  grey_water: 'Grey water',
-  black_water: 'Black water',
-  fuel: 'Fuel',
-  lpg: 'LPG',
-}
-
-const STATUS_LABELS: Record<Tank['status'], string> = {
-  ok: 'OK',
-  open_circuit: 'Sensor fault: open circuit',
-  short_circuit: 'Sensor fault: short circuit',
 }
 
 /** Order matters for a stable render: fresh, then grey, then anything else. */
@@ -44,24 +30,13 @@ export function TanksTab({ tanks }: TanksTabProps) {
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
-      {ids.map((id) => {
-        const tank = tanks[id]
-        const litersRemaining = Math.round((tank.capacity_l * tank.level_pct) / 100)
-        const sub =
-          tank.status === 'ok'
-            ? `${id} · ${litersRemaining}/${tank.capacity_l} L`
-            : `${id} · ${STATUS_LABELS[tank.status]}`
-        return (
-          <RadialGauge
-            key={id}
-            pct={tank.level_pct}
-            label={FLUID_LABELS[tank.fluid_type]}
-            sub={sub}
-            color={tank.status === 'ok' ? 'var(--kiosk-accent)' : 'var(--bad)'}
-          />
-        )
-      })}
+    <div
+      className="grid h-full gap-3"
+      style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}
+    >
+      {ids.map((id) => (
+        <TankSiloCard key={id} id={id} tank={tanks[id]} />
+      ))}
     </div>
   )
 }

@@ -1,0 +1,51 @@
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { TankSiloCard } from './TankSiloCard'
+
+describe('TankSiloCard', () => {
+  it('renders fluid label, id, badge, percentage, and liters for an ok tank', () => {
+    render(
+      <TankSiloCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 62, status: 'ok' }} />,
+    )
+    expect(screen.getByText('Fresh water')).toBeInTheDocument()
+    expect(screen.getByText('fresh')).toBeInTheDocument()
+    expect(screen.getByText('Normal')).toBeInTheDocument()
+    expect(screen.getByText('62%')).toBeInTheDocument()
+    expect(screen.getByText((_, node) => node?.textContent === '62/100 L.')).toBeInTheDocument()
+    expect(screen.getByText('Last inspection: 14-07-2024')).toBeInTheDocument()
+  })
+
+  it('shows a Fault badge and the fault reason for a faulted tank', () => {
+    render(
+      <TankSiloCard
+        id="grey"
+        tank={{ fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'open_circuit' }}
+      />,
+    )
+    expect(screen.getByText('Fault')).toBeInTheDocument()
+    expect(screen.getByText('Sensor fault: open circuit')).toBeInTheDocument()
+  })
+
+  it('clamps an out-of-range level_pct into the displayed value', () => {
+    render(
+      <TankSiloCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 140, status: 'ok' }} />,
+    )
+    expect(screen.getAllByText('100%').length).toBeGreaterThan(0)
+  })
+
+  it('clamps a negative level_pct to zero', () => {
+    render(
+      <TankSiloCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: -5, status: 'ok' }} />,
+    )
+    expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
+  })
+
+  it('renders the full 100/75/50/25/0% tick-marked scale', () => {
+    render(
+      <TankSiloCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 50, status: 'ok' }} />,
+    )
+    for (const mark of ['100%', '75%', '25%', '0%']) {
+      expect(screen.getByText(mark)).toBeInTheDocument()
+    }
+  })
+})

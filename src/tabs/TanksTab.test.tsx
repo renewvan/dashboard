@@ -10,13 +10,28 @@ const tanks: Record<string, Tank> = {
 }
 
 describe('TanksTab', () => {
-  it('renders a gauge per tank, fresh before grey regardless of input order', () => {
+  it('renders a card per tank, fresh before grey regardless of input order', () => {
     render(<TanksTab tanks={tanks} />)
-    const labels = screen.getAllByTestId('radial-gauge').map((el) => el.textContent)
-    expect(labels[0]).toContain('Fresh water')
-    expect(labels[1]).toContain('Grey water')
+    const cards = screen.getAllByTestId('tank-silo-card').map((el) => el.textContent)
+    expect(cards[0]).toContain('Fresh water')
+    expect(cards[0]).toContain('fresh')
+    expect(cards[1]).toContain('Grey water')
+    expect(cards[1]).toContain('grey')
     expect(screen.getByText('62%')).toBeInTheDocument()
-    expect(screen.getByText(/62\/100 L/)).toBeInTheDocument()
+    expect(screen.getByText((_, node) => node?.textContent === '62/100 L.')).toBeInTheDocument()
+  })
+
+  it('shows a green "Normal" badge for an ok tank and a red "Fault" badge for a faulted one', () => {
+    render(
+      <TanksTab
+        tanks={{
+          fresh: { fluid_type: 'fresh_water', capacity_l: 100, level_pct: 50, status: 'ok' },
+          grey: { fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'open_circuit' },
+        }}
+      />,
+    )
+    expect(screen.getByText('Normal')).toBeInTheDocument()
+    expect(screen.getByText('Fault')).toBeInTheDocument()
   })
 
   it('surfaces a sensor-fault status instead of liters remaining', () => {
@@ -26,6 +41,15 @@ describe('TanksTab', () => {
       />,
     )
     expect(screen.getByText(/Sensor fault: open circuit/)).toBeInTheDocument()
+  })
+
+  it('surfaces a short_circuit fault status too', () => {
+    render(
+      <TanksTab
+        tanks={{ grey: { fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'short_circuit' } }}
+      />,
+    )
+    expect(screen.getByText(/Sensor fault: short circuit/)).toBeInTheDocument()
   })
 
   it('shows an empty state with no tank data', () => {
@@ -45,6 +69,23 @@ describe('TanksTab', () => {
         }}
       />,
     )
-    expect(screen.getAllByTestId('radial-gauge')).toHaveLength(2)
+    expect(screen.getAllByTestId('tank-silo-card')).toHaveLength(2)
+  })
+
+  it('renders a single tank without a grid gap (grid not hardcoded to 2)', () => {
+    render(<TanksTab tanks={{ fresh: tanks.fresh }} />)
+    expect(screen.getAllByTestId('tank-silo-card')).toHaveLength(1)
+  })
+
+  it('renders three tanks in one grid (grid not hardcoded to 2)', () => {
+    render(
+      <TanksTab
+        tanks={{
+          ...tanks,
+          black: { fluid_type: 'black_water', capacity_l: 60, level_pct: 10, status: 'ok' },
+        }}
+      />,
+    )
+    expect(screen.getAllByTestId('tank-silo-card')).toHaveLength(3)
   })
 })
