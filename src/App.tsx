@@ -11,6 +11,7 @@ import { Sidebar, type NavItem } from './components/Sidebar'
 import { SleepOverlay } from './components/SleepOverlay'
 import { ThemeToggleButton } from './components/ThemeToggleButton'
 import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
+import { Separator } from "@/components/ui/separator";
 import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { useTheme, type Theme } from './hooks/useTheme'
 import { cn } from './lib/utils'
@@ -21,11 +22,11 @@ import { SwitchesTab } from './tabs/SwitchesTab'
 import { TanksTab } from './tabs/TanksTab'
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Home', icon: <Van className="size-6" /> },
-  { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-6" /> },
-  { id: 'power', label: 'Power', icon: <Zap className="size-6" /> },
-  { id: 'switches', label: 'Switches', icon: <ToggleLeft className="size-6" /> },
-  { id: 'settings', label: 'Settings', icon: <SettingsIcon className="size-6" /> },
+  { id: 'home', label: 'Home', icon: <Van className="size-5" /> },
+  { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
+  { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
+  { id: 'switches', label: 'Switches', icon: <ToggleLeft className="size-5" /> },
+  { id: 'settings', label: 'Settings', icon: <SettingsIcon className="size-5" /> },
 ]
 
 // Per-theme wallpaper photo. No entry (or a falsy value) means that
@@ -81,6 +82,7 @@ function App() {
         <Clock />
         <div className="flex items-center justify-end gap-3">
           <RouterStatusIcon status={status} />
+          <Separator orientation="vertical" className="mx-0"/>
           <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
           <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>

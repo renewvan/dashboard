@@ -30,7 +30,7 @@ export function ThemeToggleButton({ theme, onThemeChange }: ThemeToggleButtonPro
       onClick={() => onThemeChange(nextTheme)}
       className="flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-white hover:bg-foreground/16"
     >
-      <Icon className="size-6" />
+      <Icon className="size-5" />
     </button>
   )
 }
