@@ -4,12 +4,17 @@
 
 export type FluidType = 'fresh_water' | 'grey_water' | 'black_water' | 'fuel' | 'lpg'
 export type TankStatus = 'ok' | 'open_circuit' | 'short_circuit'
+/** Hub-computed alarm state, per hub/schema/tank.schema.json; direction
+ * (low/high) is implicit in per-tank hub config, not exposed here. Optional
+ * on the wire — tanks without alarm config configured never publish it. */
+export type TankAlarmState = 'ok' | 'alarm'
 
 export interface Tank {
   fluid_type: FluidType
   capacity_l: number
   level_pct: number
   status: TankStatus
+  alarm_state?: TankAlarmState
 }
 
 /**
