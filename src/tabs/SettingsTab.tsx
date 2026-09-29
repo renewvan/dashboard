@@ -1,14 +1,8 @@
 import type { TailscaleStatus } from '../hooks/useRenewvanBus'
+import { tailscaleStatusText } from '../lib/tailscale'
 
 export interface SettingsTabProps {
   tailscale: TailscaleStatus | null
-}
-
-function tailscaleStatusText(tailscale: TailscaleStatus | null): string {
-  if (tailscale === null) return 'Loading…'
-  if (tailscale.connected) return tailscale.ip ?? 'Connected'
-  if (tailscale.enabled) return 'Not authenticated'
-  return 'Not installed'
 }
 
 /**
