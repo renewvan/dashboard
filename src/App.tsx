@@ -21,11 +21,11 @@ import { SwitchesTab } from './tabs/SwitchesTab'
 import { TanksTab } from './tabs/TanksTab'
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Home', icon: <Van /> },
-  { id: 'tanks', label: 'Tanks', icon: <Droplet /> },
-  { id: 'power', label: 'Power', icon: <Zap /> },
-  { id: 'switches', label: 'Switches', icon: <ToggleLeft /> },
-  { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
+  { id: 'home', label: 'Home', icon: <Van className="size-6" /> },
+  { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-6" /> },
+  { id: 'power', label: 'Power', icon: <Zap className="size-6" /> },
+  { id: 'switches', label: 'Switches', icon: <ToggleLeft className="size-6" /> },
+  { id: 'settings', label: 'Settings', icon: <SettingsIcon className="size-6" /> },
 ]
 
 // Per-theme wallpaper photo. No entry (or a falsy value) means that

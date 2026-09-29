@@ -32,9 +32,19 @@ export interface SidebarProps {
  * left edge and the header's left edge above it — `items-start` makes
  * both flush at the same x position instead.
  *
- * Icons sit vertically centered in the rail's full height. Inactive icons
- * keep the base Coss Tabs muted-gray color (ancestor `text-muted-foreground`
- * on `TabsList`) — only the active/selected icon is forced white
+ * Icons sit vertically centered in the rail's full height. `item.icon`
+ * MUST carry an explicit `size-*` class (see `App.tsx`'s `NAV_ITEMS`) —
+ * Coss's shared `segmentedControlItemLayoutClassName` (used by
+ * `TabsTab`, from `@/lib/segmented-control`) applies
+ * `[&_svg:not([class*='size-'])]:size-4.5 sm:size-4` to any *unsized*
+ * child svg, silently shrinking a bare `<Droplet />`-style icon to 16px
+ * at the `sm` breakpoint — this was the actual cause of a "sidebar
+ * icons look smaller than the header" report, not a font-size/padding
+ * difference. Giving the icon its own `size-*` class (matching the
+ * header controls' `size-6`, 24px) excludes it from that rule.
+ * Inactive icons keep the base Coss Tabs muted-gray color (ancestor
+ * `text-muted-foreground` on `TabsList`) — only the active/selected icon
+ * is forced white
  * (`data-active:text-white!`) regardless of theme, since it sits on the
  * solid accent-colored badge and needs guaranteed contrast there; gray
  * was already fine for inactive icons against the pill's own tint.
