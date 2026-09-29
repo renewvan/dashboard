@@ -1,6 +1,7 @@
 import { Droplet, Moon, Settings as SettingsIcon, Sun, ToggleLeft, Zap } from 'lucide-react'
 import { useState } from 'react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
+import wallpaperDark from '../assets/dark-unsplash.jpg'
 import lockupInk from '../assets/logo/renewvan-lockup.svg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
 import { Clock } from './components/Clock'
@@ -33,7 +34,7 @@ const NAV_ITEMS: NavItem[] = [
 // changes.
 const WALLPAPER: Record<Theme, string | undefined> = {
   light: wallpaperLight,
-  dark: undefined,
+  dark: wallpaperDark,
 }
 
 function App() {
@@ -77,7 +78,6 @@ function App() {
         />
         <Clock />
         <div className="flex items-center justify-end gap-1">
-          <RouterStatusIcon status={status} />
           <IconSwitch
             id="header-dark-theme-toggle"
             icon={theme === 'dark' ? <Moon /> : <Sun />}
@@ -86,6 +86,7 @@ function App() {
             onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
             testId="dark-theme-toggle"
           />
+          <RouterStatusIcon status={status} />
           <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>
       </header>
