@@ -34,20 +34,39 @@ const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery)\/([^/]+)\/([^/]+)$/
 const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
 const TOPIC_TAILSCALE = 'renewvan/tailscale/status'
 
+/**
+ * Every `renewvan/<domain>/<id>/<property>` payload is the JSON-encoded
+ * value for that property's declared schema type (see
+ * `tank.schema.json`/`battery.schema.json`) — a bare number for
+ * `number` properties, a *quoted* string for `string` properties (e.g.
+ * the wire payload for `status` is literally `"ok"`, not `ok`). Skipping
+ * `JSON.parse` here previously left string properties (`fluid_type`,
+ * `status`, `charge_state`) holding their quote characters, so
+ * `status === 'ok'` silently failed for every tank/battery regardless of
+ * its real state.
+ */
+function parseValue(payload: string): unknown {
+  try {
+    return JSON.parse(payload)
+  } catch {
+    return undefined
+  }
+}
+
 function applyMessage(prev: RenewvanBusState, topic: string, payload: string): RenewvanBusState {
   const match = TOPIC_PATTERN.exec(topic)
   if (!match) return prev
   const [, domain, id, property] = match
+  const value = parseValue(payload)
+  if (value === undefined) return prev
 
   if (domain === 'tank') {
-    const value = property === 'fluid_type' || property === 'status' ? payload : Number(payload)
     return {
       ...prev,
       tanks: { ...prev.tanks, [id]: { ...prev.tanks[id], [property]: value } as RenewvanBusState['tanks'][string] },
     }
   }
   if (domain === 'battery') {
-    const value = property === 'charge_state' ? payload : Number(payload)
     return {
       ...prev,
       batteries: {
@@ -56,10 +75,10 @@ function applyMessage(prev: RenewvanBusState, topic: string, payload: string): R
       },
     }
   }
-  // relay: only `state`, published as normalized "true"/"false" strings.
+  // relay: only `state`, a JSON boolean.
   return {
     ...prev,
-    relays: { ...prev.relays, [id]: { state: payload === 'true' } },
+    relays: { ...prev.relays, [id]: { state: Boolean(value) } },
   }
 }
 
