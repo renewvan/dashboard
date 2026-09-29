@@ -1,3 +1,5 @@
+import { Droplet } from 'lucide-react'
+import { EmptyState } from '../components/EmptyState'
 import { RadialGauge } from '../components/RadialGauge'
 import { isCompleteTank, type Tank } from '../types'
 
@@ -32,7 +34,13 @@ export function TanksTab({ tanks }: TanksTabProps) {
     )
 
   if (ids.length === 0) {
-    return <p className="text-center text-muted-foreground">No tank data yet.</p>
+    return (
+      <EmptyState
+        icon={<Droplet />}
+        title="No tank data yet."
+        description="Waiting for readings from the renewvan hub."
+      />
+    )
   }
 
   return (

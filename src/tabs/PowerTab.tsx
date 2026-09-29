@@ -1,5 +1,7 @@
+import { Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { EmptyState } from '../components/EmptyState'
 import { RadialGauge } from '../components/RadialGauge'
 import { isCompleteBattery, type Battery } from '../types'
 
@@ -16,7 +18,13 @@ export function PowerTab({ batteries }: PowerTabProps) {
     .sort()
 
   if (ids.length === 0) {
-    return <p className="text-center text-muted-foreground">No battery data yet.</p>
+    return (
+      <EmptyState
+        icon={<Zap />}
+        title="No battery data yet."
+        description="Waiting for readings from the renewvan hub."
+      />
+    )
   }
 
   return (
