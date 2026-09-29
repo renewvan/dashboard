@@ -14,7 +14,8 @@ function tailscaleStatusText(tailscale: TailscaleStatus | null): string {
 /**
  * Settings panel — now just Tailscale status. The display sleep/wake
  * toggle and dark-theme toggle used to live here as rows, but moved into
- * the header (`IconSwitch` instances in `App.tsx`) for one-tap access
+ * the header (`ThemeToggleButton`/`DisplayPowerButton` in `App.tsx`) for
+ * one-tap access
  * from any tab instead of a trip to Settings, per explicit design
  * request. Kept as its own tab (rather than folding Tailscale into the
  * header too) since connectivity status isn't something a driver needs

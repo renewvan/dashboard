@@ -33,7 +33,7 @@ export function EmptyState({ icon, title, description }: EmptyStateProps) {
   return (
     <Empty>
       <EmptyHeader>
-        <EmptyMedia className="flex size-12 items-center justify-center rounded-md border border-border bg-transparent [&_svg]:size-7">
+        <EmptyMedia className="flex size-12 items-center justify-center rounded-md border border-border border-white bg-transparent [&_svg]:size-6">
           {icon}
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>

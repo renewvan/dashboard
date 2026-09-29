@@ -1,4 +1,4 @@
-import { Droplet, Moon, Settings as SettingsIcon, Sun, ToggleLeft, Van, Zap } from 'lucide-react'
+import { Droplet, Settings as SettingsIcon, ToggleLeft, Van, Zap } from 'lucide-react'
 import { useState } from 'react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
@@ -6,10 +6,10 @@ import lockupInk from '../assets/logo/renewvan-lockup.svg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
 import { Clock } from './components/Clock'
 import { DisplayPowerButton } from './components/DisplayPowerButton'
-import { IconSwitch } from './components/IconSwitch'
 import { RouterStatusIcon } from './components/RouterStatusIcon'
 import { Sidebar, type NavItem } from './components/Sidebar'
 import { SleepOverlay } from './components/SleepOverlay'
+import { ThemeToggleButton } from './components/ThemeToggleButton'
 import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
 import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { useTheme, type Theme } from './hooks/useTheme'
@@ -80,15 +80,8 @@ function App() {
         />
         <Clock />
         <div className="flex items-center justify-end gap-3">
-          <IconSwitch
-            id="header-dark-theme-toggle"
-            icon={theme === 'dark' ? <Moon /> : <Sun />}
-            ariaLabel="Dark theme"
-            checked={theme === 'dark'}
-            onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-            testId="dark-theme-toggle"
-          />
           <RouterStatusIcon status={status} />
+          <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
           <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>
       </header>
