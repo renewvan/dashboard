@@ -1,16 +1,17 @@
-import { Droplet, Moon, Power, Settings as SettingsIcon, Sun, ToggleLeft, Zap } from 'lucide-react'
+import { Droplet, Moon, Settings as SettingsIcon, Sun, ToggleLeft, Zap } from 'lucide-react'
 import { useState } from 'react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import lockupInk from '../assets/logo/renewvan-lockup.svg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
 import { Clock } from './components/Clock'
+import { DisplayPowerButton } from './components/DisplayPowerButton'
 import { IconSwitch } from './components/IconSwitch'
 import { RouterStatusIcon } from './components/RouterStatusIcon'
 import { Sidebar, type NavItem } from './components/Sidebar'
 import { SleepOverlay } from './components/SleepOverlay'
 import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
 import { useRenewvanBus } from './hooks/useRenewvanBus'
-import { useTheme } from './hooks/useTheme'
+import { useTheme, type Theme } from './hooks/useTheme'
 import { cn } from './lib/utils'
 import { PowerTab } from './tabs/PowerTab'
 import { SettingsTab } from './tabs/SettingsTab'
@@ -24,10 +25,22 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
 ]
 
+// Per-theme wallpaper photo. No entry (or a falsy value) means that
+// theme has no photo configured — the background falls back to a solid
+// ink color (see the background div below) instead of leaving a blank
+// image request. Dark theme has no photo configured right now; if one
+// is added later, it starts rendering automatically, no other code
+// changes.
+const WALLPAPER: Record<Theme, string | undefined> = {
+  light: wallpaperLight,
+  dark: undefined,
+}
+
 function App() {
   const { state, status, displayPower, tailscale, publish } = useRenewvanBus()
   const [activeTab, setActiveTab] = useState('tanks')
   const [theme, setTheme] = useTheme()
+  const wallpaper = WALLPAPER[theme]
 
   const handleSleep = () => publish('renewvan/kiosk/display/power/set', 'off')
   const handleWake = () => publish('renewvan/kiosk/display/power/set', 'on')
@@ -42,27 +55,29 @@ function App() {
         theme === 'dark' && 'dark',
       )}
     >
-      {/* Dark theme: a solid ink background (var(--panel), #0f1a2a — the
-          same navy as the brand's "ink" logo mark), not a photo. Light
-          theme keeps the pre-blurred wallpaper photo behind the glass
-          surfaces; scaled up so the blur radius never reveals a sharp/
-          transparent edge. */}
+      {/* bg-[var(--panel)] (the ink navy, #0f1a2a, in dark theme) is the
+          fallback: it only shows through when WALLPAPER[theme] has no
+          photo. When it does, the photo covers it entirely — scaled up
+          and pre-blurred so the blur radius never reveals a sharp/
+          transparent edge against the glass surfaces on top of it. */}
       <div
         aria-hidden
         className={cn(
           'pointer-events-none absolute inset-0 -z-10 bg-[var(--panel)]',
-          theme === 'light' && 'scale-105 bg-cover bg-center blur-xs',
+          wallpaper && 'scale-105 bg-cover bg-center blur-xs',
         )}
-        style={theme === 'light' ? { backgroundImage: `url(${wallpaperLight})` } : undefined}
+        style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : undefined}
       />
       <SleepOverlay displayPower={displayPower} onWake={handleWake} />
-      <header className="flex shrink-0 items-center justify-between rounded-2xl border border-white/10 bg-card/40 px-3 py-1.5 backdrop-blur-md">
+      <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 bg-card/40 px-3 py-1.5 backdrop-blur-md">
         <img
           src={theme === 'dark' ? lockupWhite : lockupInk}
           alt="renewvan"
-          className="h-6 w-auto"
+          className="h-6 w-auto justify-self-start"
         />
-        <div className="flex items-center gap-1">
+        <Clock />
+        <div className="flex items-center justify-end gap-1">
+          <RouterStatusIcon status={status} />
           <IconSwitch
             id="header-dark-theme-toggle"
             icon={theme === 'dark' ? <Moon /> : <Sun />}
@@ -71,17 +86,7 @@ function App() {
             onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
             testId="dark-theme-toggle"
           />
-          <IconSwitch
-            id="header-display-power-toggle"
-            icon={<Power />}
-            ariaLabel="Display"
-            checked={displayPower !== 'off'}
-            disabled={displayPower === null}
-            onCheckedChange={(checked) => (checked ? handleWake() : handleSleep())}
-            testId="display-power-toggle"
-          />
-          <Clock />
-          <RouterStatusIcon status={status} />
+          <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>
       </header>
       <div className="flex flex-1 gap-4 overflow-hidden">
