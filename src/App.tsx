@@ -1,11 +1,11 @@
-import { Droplet, Settings as SettingsIcon, ToggleLeft, Zap } from 'lucide-react'
+import { Droplet, Moon, Power, Settings as SettingsIcon, Sun, ToggleLeft, Zap } from 'lucide-react'
 import { useState } from 'react'
-import wallpaperDark from '../assets/dark-unsplash.jpg'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import lockupInk from '../assets/logo/renewvan-lockup.svg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
 import { Clock } from './components/Clock'
-import { ConnectionStatusButton } from './components/ConnectionStatusButton'
+import { IconSwitch } from './components/IconSwitch'
+import { RouterStatusIcon } from './components/RouterStatusIcon'
 import { Sidebar, type NavItem } from './components/Sidebar'
 import { SleepOverlay } from './components/SleepOverlay'
 import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
@@ -42,25 +42,46 @@ function App() {
         theme === 'dark' && 'dark',
       )}
     >
-      {/* Pre-blurred wallpaper layer, not just backdrop-blur on the glass
-          surfaces above it — so the strip of wallpaper visible *around*
-          those surfaces (not just seen through them) is soft too. Scaled
-          up so the blur radius never reveals a sharp/transparent edge. */}
+      {/* Dark theme: a solid ink background (var(--panel), #0f1a2a — the
+          same navy as the brand's "ink" logo mark), not a photo. Light
+          theme keeps the pre-blurred wallpaper photo behind the glass
+          surfaces; scaled up so the blur radius never reveals a sharp/
+          transparent edge. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 scale-105 bg-cover bg-center blur-xs"
-        style={{ backgroundImage: `url(${theme === 'dark' ? wallpaperDark : wallpaperLight})` }}
+        className={cn(
+          'pointer-events-none absolute inset-0 -z-10 bg-[var(--panel)]',
+          theme === 'light' && 'scale-105 bg-cover bg-center blur-xs',
+        )}
+        style={theme === 'light' ? { backgroundImage: `url(${wallpaperLight})` } : undefined}
       />
       <SleepOverlay displayPower={displayPower} onWake={handleWake} />
-      <header className="flex shrink-0 items-center justify-between rounded-2xl border border-white/10 bg-card/40 px-4 py-3 backdrop-blur-md">
+      <header className="flex shrink-0 items-center justify-between rounded-2xl border border-white/10 bg-card/40 px-3 py-1.5 backdrop-blur-md">
         <img
           src={theme === 'dark' ? lockupWhite : lockupInk}
           alt="renewvan"
-          className="h-8 w-auto"
+          className="h-6 w-auto"
         />
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <IconSwitch
+            id="header-dark-theme-toggle"
+            icon={theme === 'dark' ? <Moon /> : <Sun />}
+            ariaLabel="Dark theme"
+            checked={theme === 'dark'}
+            onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+            testId="dark-theme-toggle"
+          />
+          <IconSwitch
+            id="header-display-power-toggle"
+            icon={<Power />}
+            ariaLabel="Display"
+            checked={displayPower !== 'off'}
+            disabled={displayPower === null}
+            onCheckedChange={(checked) => (checked ? handleWake() : handleSleep())}
+            testId="display-power-toggle"
+          />
           <Clock />
-          <ConnectionStatusButton status={status} />
+          <RouterStatusIcon status={status} />
         </div>
       </header>
       <div className="flex flex-1 gap-4 overflow-hidden">
@@ -76,14 +97,7 @@ function App() {
             <SwitchesTab relays={state.relays} />
           </TabsPanel>
           <TabsPanel value="settings">
-            <SettingsTab
-              displayPower={displayPower}
-              onSleep={handleSleep}
-              onWake={handleWake}
-              tailscale={tailscale}
-              theme={theme}
-              onThemeChange={setTheme}
-            />
+            <SettingsTab tailscale={tailscale} />
           </TabsPanel>
         </div>
       </div>
