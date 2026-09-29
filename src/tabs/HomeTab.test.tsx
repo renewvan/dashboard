@@ -31,9 +31,17 @@ describe('HomeTab', () => {
     expect(screen.getByText(/Battery \(house\)/)).toBeInTheDocument()
   })
 
-  it('shows both sections\' empty states when no data has arrived yet', () => {
+  it('shows a single combined empty state when neither has data yet, not two stacked', () => {
     render(<HomeTab tanks={{}} batteries={{}} />)
-    expect(screen.getByText(/no tank data yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/no data yet/i)).toBeInTheDocument()
+    expect(screen.queryByText('Tanks')).not.toBeInTheDocument()
+    expect(screen.queryByText('Power')).not.toBeInTheDocument()
+  })
+
+  it('still shows each section normally, including its own empty state, once one has data', () => {
+    render(<HomeTab tanks={{ fresh: completeTank }} batteries={{}} />)
+    expect(screen.getByText('Tanks')).toBeInTheDocument()
+    expect(screen.getByText('Power')).toBeInTheDocument()
     expect(screen.getByText(/no battery data yet/i)).toBeInTheDocument()
   })
 })
