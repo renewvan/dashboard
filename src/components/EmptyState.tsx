@@ -25,24 +25,20 @@ export interface EmptyStateProps {
  * transparent (per an earlier explicit request) those layers still
  * keep their own borders, so all three become visible as three
  * overlapping bordered squares instead of one clean badge. `default`
- * renders just the one div, styled here as a single bordered square
- * with a transparent fill.
- *
- * Icon and border both use `text-muted-foreground`/`border-border` — a
- * single theme-adaptive gray for both, not a hardcoded `border-white`
- * (which read fine in dark theme but was invisible against a light
- * card in light theme) paired with whatever color the icon happened to
- * inherit. One consistent gray regardless of theme, per explicit
- * request.
+ * renders just the one div. Border removed entirely (`border-0`) —
+ * the earlier bordered-square treatment still looked inconsistent
+ * across themes, so the badge is now just the icon itself, sized up
+ * (`size-8`) and colored `text-muted-foreground` to read as a single
+ * flat gray glyph with no surrounding box.
  */
 export function EmptyState({ icon, title, description }: EmptyStateProps) {
   return (
     <Empty>
       <EmptyHeader>
-        <EmptyMedia className="flex size-12 items-center justify-center rounded-md border border-border bg-transparent text-muted-foreground [&_svg]:size-5">
+        <EmptyMedia className="mb-2 flex size-12 items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground [&_svg]:size-8">
           {icon}
         </EmptyMedia>
-        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyTitle className="text-muted-foreground">{title}</EmptyTitle>
         {description && <EmptyDescription>{description}</EmptyDescription>}
       </EmptyHeader>
     </Empty>

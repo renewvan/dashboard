@@ -35,7 +35,7 @@ export function DisplayPowerButton({ displayPower, onSleep, onWake }: DisplayPow
       data-testid="display-power-button"
       disabled={displayPower === null}
       onClick={() => (isOn ? onSleep() : onWake())}
-      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-white hover:bg-foreground/16 disabled:cursor-not-allowed disabled:opacity-64"
+      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground/10 hover:bg-foreground/16 disabled:cursor-not-allowed disabled:opacity-64"
     >
       <Icon className="size-5" />
     </button>
