@@ -53,7 +53,7 @@ export function RouterStatusIcon({ status }: RouterStatusIconProps) {
       title={COPY[status]}
       data-testid="router-status-icon"
       data-status={status}
-      className={`flex size-5 shrink-0 items-center justify-center [&_svg]:h-full [&_svg]:w-full ${COLOR_CLASS[status]}`}
+      className={`flex size-6 shrink-0 items-center justify-center [&_svg]:h-full [&_svg]:w-full ${COLOR_CLASS[status]}`}
       // trusted, build-time-bundled local SVG source, not user input
       dangerouslySetInnerHTML={{ __html: MARKUP[status] }}
     />

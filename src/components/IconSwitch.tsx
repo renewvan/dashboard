@@ -28,7 +28,12 @@ export interface IconSwitchProps {
  * rule on the height axis even though the visual switch track is much
  * smaller — the icon + switch + horizontal padding comfortably clears
  * 44px of width too, so the control doesn't need to look visually bulky
- * to still have a full touch target.
+ * to still have a full touch target. Icon is forced to `size-6` (24px,
+ * matching `[&_svg]:size-6`) to match lucide-react's own default render
+ * size — the same size `Sidebar.tsx`'s `TabsTab` icons render at, since
+ * nothing there overrides it — so icons read the same size everywhere
+ * in the app, not smaller just because this one sits in a tighter
+ * header control.
  */
 export function IconSwitch({
   id,
@@ -44,7 +49,7 @@ export function IconSwitch({
       htmlFor={id}
       className="flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-1.5 text-white has-disabled:cursor-not-allowed has-disabled:opacity-64"
     >
-      <span aria-hidden className="flex size-4 shrink-0 items-center justify-center [&_svg]:size-4">
+      <span aria-hidden className="flex size-6 shrink-0 items-center justify-center [&_svg]:size-6">
         {icon}
       </span>
       <Switch
