@@ -15,19 +15,21 @@ export interface TankCardProps {
 const SCALE_MARKS = [100, 75, 50, 25, 0]
 const GRIDLINES = [25, 50, 75]
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /** Formats an ISO-8601 `last_full_at`/`last_empty_at` timestamp (local UTC
- * offset, per hub/schema/tank.schema.json) into the footer's original
- * "Friday 14 Jul 2026" style. A fixed weekday/day/month/year shape, not
- * `toLocaleDateString` — its locale defaults add punctuation/reorder the
- * fields (e.g. en-US gives "Tuesday, Jul 14, 2026"), which would silently
- * change the footer's look depending on the browser's locale; this kiosk
- * always renders the same shape regardless. */
+ * offset, per hub/schema/tank.schema.json) into the footer's
+ * "14 Jul 2026 09:41" style — date plus 24h time, no weekday name. A
+ * fixed day/month/year/hour/minute shape, not `toLocaleDateString` —
+ * its locale defaults add punctuation/reorder the fields (e.g. en-US
+ * gives "Jul 14, 2026, 9:41 AM"), which would silently change the
+ * footer's look depending on the browser's locale; this kiosk always
+ * renders the same shape regardless. */
 function formatLatchDate(iso: string): string {
   const date = new Date(iso)
-  return `${WEEKDAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()} ${hh}:${mm}`
 }
 
 /** One telemetry row of the card's info column: accent icon + muted

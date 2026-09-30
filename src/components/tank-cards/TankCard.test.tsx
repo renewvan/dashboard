@@ -26,7 +26,7 @@ describe('TankCard', () => {
     expect(screen.getByText('62%')).toBeInTheDocument()
     expect(screen.getByText(/62\/100/)).toBeInTheDocument()
     expect(screen.getByText('Last refilled:')).toBeInTheDocument()
-    expect(screen.getByText('Tuesday 14 Jul 2026')).toBeInTheDocument()
+    expect(screen.getByText('14 Jul 2026 14:00')).toBeInTheDocument()
   })
 
   it('shows "Last emptied" from last_empty_at for a non-fresh-water tank', () => {
@@ -48,7 +48,7 @@ describe('TankCard', () => {
       />,
     )
     expect(screen.getByText('Last emptied:')).toBeInTheDocument()
-    expect(screen.getByText('Monday 3 Aug 2026')).toBeInTheDocument()
+    expect(screen.getByText('3 Aug 2026 14:00')).toBeInTheDocument()
   })
 
   it('shows a placeholder dash when the tank has never latched full/empty', () => {
