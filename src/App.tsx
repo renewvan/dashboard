@@ -86,10 +86,10 @@ function App() {
           className="h-6 w-auto justify-self-start"
         />
         <Clock />
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-1.5">
           <UplinkStatusButton uplink={uplink} tailscale={tailscale} onOpenSettings={() => setActiveTab('settings')} />
           <RouterStatusIcon status={status} />
-          <Separator orientation="vertical" className="mx-0"/>
+          <Separator orientation="vertical" className="mx-1.5"/>
           <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
           <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>

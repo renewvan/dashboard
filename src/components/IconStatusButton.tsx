@@ -30,7 +30,7 @@ export function IconStatusButton({ icon, label, popoverContent, onOpenSettings, 
         type={type}
         aria-label={label}
         title={label}
-        className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex size-11 shrink-0 items-center justify-center rounded-full border active:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         {...rest}
       >
         {icon}
