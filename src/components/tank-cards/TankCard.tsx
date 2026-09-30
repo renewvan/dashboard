@@ -6,7 +6,7 @@ import { FLUID_LABELS, STATUS_LABELS } from '../../lib/tank-labels'
 import type { Tank } from '../../types'
 import { ConfigureButton } from './ConfigureButton'
 
-export interface TankSiloCardProps {
+export interface TankCardProps {
   id: string
   tank: Tank
 }
@@ -37,13 +37,13 @@ function InfoField({ icon, label, value }: { icon: ReactNode; label: string; val
  * ticket `01-prototype-tank-card`. Pure presentational component —
  * props in, markup out, per `RadialGauge`'s pattern.
  */
-export function TankSiloCard({ tank }: TankSiloCardProps) {
+export function TankCard({ tank }: TankCardProps) {
   const ok = tank.status === 'ok'
   const pct = Math.min(100, Math.max(0, tank.level_pct))
   const liters = Math.round((tank.capacity_l * tank.level_pct) / 100)
 
   return (
-    <Card data-testid="tank-silo-card" className="h-full">
+    <Card data-testid="tank-card" className="h-full">
       <CardHeader className="flex flex-row items-center justify-between gap-2 px-5 py-3">
         <div className="min-w-0">
           <div className="truncate font-semibold text-sm">{FLUID_LABELS[tank.fluid_type]}</div>

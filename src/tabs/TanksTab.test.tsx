@@ -12,7 +12,7 @@ const tanks: Record<string, Tank> = {
 describe('TanksTab', () => {
   it('renders a card per tank, fresh before grey regardless of input order', () => {
     render(<TanksTab tanks={tanks} />)
-    const cards = screen.getAllByTestId('tank-silo-card').map((el) => el.textContent)
+    const cards = screen.getAllByTestId('tank-card').map((el) => el.textContent)
     expect(cards[0]).toContain('Fresh water')
     expect(cards[1]).toContain('Grey water')
     expect(screen.getByText('62%')).toBeInTheDocument()
@@ -67,12 +67,12 @@ describe('TanksTab', () => {
         }}
       />,
     )
-    expect(screen.getAllByTestId('tank-silo-card')).toHaveLength(2)
+    expect(screen.getAllByTestId('tank-card')).toHaveLength(2)
   })
 
   it('renders a single tank without a grid gap (grid not hardcoded to 2)', () => {
     render(<TanksTab tanks={{ fresh: tanks.fresh }} />)
-    expect(screen.getAllByTestId('tank-silo-card')).toHaveLength(1)
+    expect(screen.getAllByTestId('tank-card')).toHaveLength(1)
   })
 
   it('renders three tanks in one grid (grid not hardcoded to 2)', () => {
@@ -84,6 +84,6 @@ describe('TanksTab', () => {
         }}
       />,
     )
-    expect(screen.getAllByTestId('tank-silo-card')).toHaveLength(3)
+    expect(screen.getAllByTestId('tank-card')).toHaveLength(3)
   })
 })

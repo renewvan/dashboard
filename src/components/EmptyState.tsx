@@ -34,12 +34,12 @@ export interface EmptyStateProps {
 export function EmptyState({ icon, title, description }: EmptyStateProps) {
   return (
     <Empty>
-      <EmptyHeader>
-        <EmptyMedia className="mb-2 flex size-12 items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground [&_svg]:size-8">
+      <EmptyHeader className="text-white/70">
+        <EmptyMedia className="mb-2 flex size-12 items-center justify-center rounded-md border-0 bg-transparent [&_svg]:size-8">
           {icon}
         </EmptyMedia>
-        <EmptyTitle className="text-muted-foreground">{title}</EmptyTitle>
-        {description && <EmptyDescription>{description}</EmptyDescription>}
+        <EmptyTitle>{title}</EmptyTitle>
+        {description && <EmptyDescription className="text-white/50">{description}</EmptyDescription>}
       </EmptyHeader>
     </Empty>
   )

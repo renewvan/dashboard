@@ -1,6 +1,6 @@
 import { Droplet } from 'lucide-react'
 import { EmptyState } from '../components/EmptyState'
-import { TankSiloCard } from '../components/tank-cards/TankSiloCard'
+import { TankCard } from '../components/tank-cards/TankCard'
 import { isCompleteTank, type Tank } from '../types'
 
 export interface TanksTabProps {
@@ -35,7 +35,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
       style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}
     >
       {ids.map((id) => (
-        <TankSiloCard key={id} id={id} tank={tanks[id]} />
+        <TankCard key={id} id={id} tank={tanks[id]} />
       ))}
     </div>
   )
