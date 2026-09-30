@@ -3,10 +3,25 @@ import { describe, expect, it } from 'vitest'
 import type { Tank } from '../types'
 import { TanksTab } from './TanksTab'
 
+// Local fixture helper: fills in schema v0.4's newly-required fields
+// (level_pct_smoothed mirrors level_pct so pre-existing percentage
+// assertions keep matching what TankCard actually displays) with inert
+// zero flow/volume defaults, since these tests aren't exercising those.
+function tank(overrides: Pick<Tank, 'fluid_type' | 'capacity_l' | 'level_pct' | 'status'> & Partial<Tank>): Tank {
+  return {
+    level_pct_smoothed: overrides.level_pct,
+    fill_rate_lpm: 0,
+    drain_rate_lpm: 0,
+    volume_since_full_l: 0,
+    volume_since_empty_l: 0,
+    ...overrides,
+  }
+}
+
 // Fixture shapes match schema/tank.schema.json + schema/examples/tank.valid.json.
 const tanks: Record<string, Tank> = {
-  grey: { fluid_type: 'grey_water', capacity_l: 80, level_pct: 41, status: 'ok' },
-  fresh: { fluid_type: 'fresh_water', capacity_l: 100, level_pct: 62, status: 'ok' },
+  grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41, status: 'ok' }),
+  fresh: tank({ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 62, status: 'ok' }),
 }
 
 describe('TanksTab', () => {
@@ -23,8 +38,8 @@ describe('TanksTab', () => {
     render(
       <TanksTab
         tanks={{
-          fresh: { fluid_type: 'fresh_water', capacity_l: 100, level_pct: 50, status: 'ok' },
-          grey: { fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'open_circuit' },
+          fresh: tank({ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 50, status: 'ok' }),
+          grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'open_circuit' }),
         }}
       />,
     )
@@ -35,7 +50,7 @@ describe('TanksTab', () => {
   it('surfaces a sensor-fault status instead of liters remaining', () => {
     render(
       <TanksTab
-        tanks={{ fresh: { fluid_type: 'fresh_water', capacity_l: 100, level_pct: 0, status: 'open_circuit' } }}
+        tanks={{ fresh: tank({ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 0, status: 'open_circuit' }) }}
       />,
     )
     expect(screen.getByText(/Sensor fault: open circuit/)).toBeInTheDocument()
@@ -44,7 +59,7 @@ describe('TanksTab', () => {
   it('surfaces a short_circuit fault status too', () => {
     render(
       <TanksTab
-        tanks={{ grey: { fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'short_circuit' } }}
+        tanks={{ grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'short_circuit' }) }}
       />,
     )
     expect(screen.getByText(/Sensor fault: short circuit/)).toBeInTheDocument()
@@ -80,7 +95,7 @@ describe('TanksTab', () => {
       <TanksTab
         tanks={{
           ...tanks,
-          black: { fluid_type: 'black_water', capacity_l: 60, level_pct: 10, status: 'ok' },
+          black: tank({ fluid_type: 'black_water', capacity_l: 60, level_pct: 10, status: 'ok' }),
         }}
       />,
     )
