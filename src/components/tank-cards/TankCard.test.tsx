@@ -2,6 +2,16 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { TankCard } from './TankCard'
 
+// Mirrors TankCard's own MONTHS/HH:MM shape, computed from the same Date
+// the component renders from — so the assertion holds regardless of the
+// CI runner's local timezone (only the component's chosen shape is under
+// test, not a specific UTC-offset-dependent clock reading).
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function expectedLatchDate(iso: string): RegExp {
+  const date = new Date(iso)
+  return new RegExp(`^${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()} \\d{2}:\\d{2}$`)
+}
+
 describe('TankCard', () => {
   it('renders fluid label, badge, percentage, and liters for an ok tank', () => {
     render(
@@ -26,7 +36,7 @@ describe('TankCard', () => {
     expect(screen.getByText('62%')).toBeInTheDocument()
     expect(screen.getByText(/62\/100/)).toBeInTheDocument()
     expect(screen.getByText('Last refilled:')).toBeInTheDocument()
-    expect(screen.getByText('14 Jul 2026 14:00')).toBeInTheDocument()
+    expect(screen.getByText(expectedLatchDate('2026-07-14T12:00:00+00:00'))).toBeInTheDocument()
   })
 
   it('shows "Last emptied" from last_empty_at for a non-fresh-water tank', () => {
@@ -48,7 +58,7 @@ describe('TankCard', () => {
       />,
     )
     expect(screen.getByText('Last emptied:')).toBeInTheDocument()
-    expect(screen.getByText('3 Aug 2026 14:00')).toBeInTheDocument()
+    expect(screen.getByText(expectedLatchDate('2026-08-03T12:00:00+00:00'))).toBeInTheDocument()
   })
 
   it('shows a placeholder dash when the tank has never latched full/empty', () => {
