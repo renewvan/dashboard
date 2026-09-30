@@ -1,6 +1,7 @@
 import routerOffSvg from '../../assets/router-off.svg?raw'
 import routerSvg from '../../assets/router.svg?raw'
 import type { ConnectionStatus } from '../hooks/useRenewvanBus'
+import { IconStatusButton } from './IconStatusButton'
 
 export interface RouterStatusIconProps {
   status: ConnectionStatus
@@ -25,13 +26,12 @@ const COLOR_CLASS: Record<ConnectionStatus, string> = {
 }
 
 /**
- * Connection status as a plain icon, not a button — per explicit design
- * request, this replaced `ConnectionStatusButton`: nothing happens on
- * tap, so it shouldn't look tappable. `role="img"` + `aria-label` carry
- * the same accessible status text the button's `aria-label`/`title` used
- * to, distinguishing a live connection from stale last-known-state
- * values (per
- * hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md).
+ * Bus-link status (`CONTEXT.md`) as a status button: tap opens a detail
+ * popover carrying the same three-state copy as the accessible name.
+ * Supersedes the earlier "not tappable, `role=img`" design — it now
+ * builds on the shared `IconStatusButton` like the uplink button, and
+ * since it's interactive the 44×44px touch-target rule in
+ * `docs/design-principles.md` applies (the trigger provides it).
  *
  * Renders `assets/router.svg`/`router-off.svg` inline (Vite's `?raw`
  * import, no SVGR plugin in this project) rather than as an `<img src>`,
@@ -41,21 +41,21 @@ const COLOR_CLASS: Record<ConnectionStatus, string> = {
  * `connecting` reuses `router.svg` (no distinct "connecting" asset
  * exists) with `animate-pulse` so it doesn't read identically to
  * `connected`.
- *
- * Decorative-only, so it's exempt from the 44×44px touch-target rule in
- * docs/design-principles.md (that rule covers interactive surfaces).
  */
 export function RouterStatusIcon({ status }: RouterStatusIconProps) {
   return (
-    <span
-      role="img"
-      aria-label={COPY[status]}
-      title={COPY[status]}
+    <IconStatusButton
+      label={COPY[status]}
       data-testid="router-status-icon"
       data-status={status}
-      className={`flex size-4 shrink-0 items-center justify-center [&_svg]:h-full [&_svg]:w-full ${COLOR_CLASS[status]}`}
-      // trusted, build-time-bundled local SVG source, not user input
-      dangerouslySetInnerHTML={{ __html: MARKUP[status] }}
+      icon={
+        <span
+          className={`flex size-4 shrink-0 items-center justify-center [&_svg]:h-full [&_svg]:w-full ${COLOR_CLASS[status]}`}
+          // trusted, build-time-bundled local SVG source, not user input
+          dangerouslySetInnerHTML={{ __html: MARKUP[status] }}
+        />
+      }
+      popoverContent={COPY[status]}
     />
   )
 }
