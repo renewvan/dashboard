@@ -17,12 +17,24 @@ const SEVERITY_TEXT_CLASS: Record<AlertHistoryEntry['type'], string> = {
 
 // Mirrors `ui/toast.tsx`'s own `data-[type=…]:border-*` severity tint on
 // the toast root — same "which alert is this" signal at a glance, applied
-// to the row's own border here instead of a background tint (the row
-// already uses a neutral `bg-card/20`, matching every other tab's card
-// surface; only the toast goes further and tints its background too).
+// to the row's own border here too.
 const SEVERITY_BORDER_CLASS: Record<AlertHistoryEntry['type'], string> = {
   error: 'border-destructive',
   warning: 'border-warning',
+}
+
+// A colored background wash per alert type, replacing the earlier plain
+// `bg-card/20` — same low-opacity "tint" convention `ui/badge.tsx`'s
+// `success`/`warning`/`info` variants already use (`bg-*/8`,
+// `dark:bg-*/16`). Needed specifically for light theme: the row sits
+// directly over the wallpaper photo (`App.tsx`), and a plain translucent
+// neutral card left theme-aware `text-muted-foreground` body text
+// low-contrast against a bright photo showing through. A severity-tinted
+// background gives that same text a consistent, opaque-enough backdrop
+// in both themes, not just dark.
+const SEVERITY_BG_CLASS: Record<AlertHistoryEntry['type'], string> = {
+  error: 'bg-destructive/10 dark:bg-destructive/15',
+  warning: 'bg-warning/10 dark:bg-warning/15',
 }
 
 function formatTimestamp(ms: number): string {
@@ -51,13 +63,14 @@ function formatTimestamp(ms: number): string {
  * `ui/badge.tsx` — rather than a solid `destructive`/`default` fill:
  * - `Resolved` (green, `variant="success"`): `resolvedAt`, set by
  *   `useAlertToasts.ts` once the backend condition that raised the alert
- *   clears — state, not a driver action. Takes priority over the
- *   acknowledge badge once true; a resolved alert has nothing left to
+ *   clears. Takes priority — a resolved alert has nothing left to
  *   acknowledge.
- * - `Acknowledge` / `Acknowledged` (blue, `variant="info"`) otherwise: an
- *   explicit driver action, independent of resolution. The badge itself
- *   is the tap target — no wrapping `<button>` — via `role="button"`
- *   directly on the `Badge` span, per explicit request.
+ * - `Acknowledged` (blue, `variant="info"`) otherwise, once set:
+ *   `acknowledgedAt` means the driver dismissed the toast early (its own
+ *   `×`) while the alert was still open — `useAlertToasts.ts` sets it
+ *   from the toast's `onClose` callback, not a click anywhere in this
+ *   tab. Purely a display badge here, not an in-tab action: there's
+ *   nothing to tap — acknowledging already happened at the toast.
  *
  * Title/description/timestamp are forced to white-tinted opacity steps
  * (`text-white/90` etc, matching `EmptyState`'s own convention) rather
@@ -67,7 +80,7 @@ function formatTimestamp(ms: number): string {
  * that theme-aware dark-gray body text lost too much contrast through it.
  */
 export function AlertsTab() {
-  const { entries, remove, acknowledge } = useAlertHistory()
+  const { entries, remove } = useAlertHistory()
 
   if (entries.length === 0) {
     return (
@@ -88,38 +101,29 @@ export function AlertsTab() {
             data-testid="alert-row"
             data-resolved={resolved}
             data-acknowledged={acknowledged}
-            className={`flex items-start justify-between gap-3 rounded-lg border bg-card/20 px-3.5 py-2.5 backdrop-blur-md ${SEVERITY_BORDER_CLASS[entry.type]}`}
+            className={`flex items-start justify-between gap-3 rounded-lg border px-3.5 py-2.5 backdrop-blur-md ${SEVERITY_BORDER_CLASS[entry.type]} ${SEVERITY_BG_CLASS[entry.type]}`}
           >
             <div className="flex items-start gap-2">
               <Icon className={`mt-0.5 size-4 shrink-0 ${iconClass}`} />
               
               <div className="flex flex-col gap-1">
                 <span className="font-medium text-white/90">{entry.title}</span>
-                 {resolved ? (
-                  <Badge variant="success" size="sm" className="w-fit">
-                    Resolved
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="info"
-                    size="sm"
-                    className="w-fit cursor-pointer"
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={acknowledged}
-                    onClick={() => !acknowledged && acknowledge(entry.id)}
-                    onKeyDown={(event) => {
-                      if (!acknowledged && (event.key === 'Enter' || event.key === ' ')) acknowledge(entry.id)
-                    }}
-                  >
-                    {acknowledged ? 'Acknowledged' : 'Acknowledge'}
-                  </Badge>
-                )}
-                <p className="line-clamp-2 text-sm text-white/70">{entry.description}</p>
+                <p className="line-clamp-2 text-sm text-muted-foreground/90">{entry.description}</p>
                
               </div>
             </div>
+            
             <div className="flex shrink-0 flex-col items-end gap-1.5">
+              <div className="flex items-start gap-3">
+                {resolved ? (
+                  <Badge variant="success" size="sm" className="w-fit">
+                    Resolved
+                  </Badge>
+                ) : acknowledged ? (
+                  <Badge variant="info" size="sm" className="w-fit">
+                    Acknowledged
+                  </Badge>
+                ) : null}
               <button
                 type="button"
                 aria-label="Remove alert"
@@ -128,7 +132,8 @@ export function AlertsTab() {
               >
                 <X className="size-4" />
               </button>
-              <span className="text-xs text-white/50 tabular-nums" data-testid="alert-row-timestamp">
+              </div>
+              <span className="text-xs text-muted-foreground/90 tabular-nums font-semibold" data-testid="alert-row-timestamp">
                 {formatTimestamp(entry.createdAt)}
               </span>
             </div>

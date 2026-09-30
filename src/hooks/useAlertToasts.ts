@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { appendAlertHistoryEntry, resolveAlertHistoryEntry } from '../lib/alertHistory'
+import { acknowledgeAlertHistoryEntry, appendAlertHistoryEntry, resolveAlertHistoryEntry } from '../lib/alertHistory'
 import { toastManager } from '../components/ui/toast'
 import { isCompleteTank, type RenewvanBusState, type Tank } from '../types'
 import type { ConnectionStatus, TailscaleStatus } from './useRenewvanBus'
@@ -33,9 +33,15 @@ const FLUID_LABELS: Record<Tank['fluid_type'], string> = {
 // note), so every toast uses `timeout: 0` regardless of severity; the
 // toast itself only ever closes by this hook (once the backend state
 // clears) or by the user dismissing it early via the toast's own close
-// control — either way, the matching history entry is left in place
-// (just marked resolved on the former), not removed: removal is only
-// ever an explicit action in the Alerts tab itself (`AlertsTab.tsx`).
+// control. "Acknowledged" (`lib/alertHistory.ts`'s `acknowledgedAt`)
+// means specifically the latter: the driver dismissed the toast while
+// the alert was still open, before the backend condition cleared on its
+// own. Distinguishing the two closes both go through `toastManager`'s
+// single `onClose` callback, so a `programmaticCloses` ref records which
+// toast ids *this hook* is closing (the resolved path) right before
+// calling `close()`; `onClose` checks that set and only acknowledges
+// when the id isn't in it — i.e. the close wasn't this hook's own doing,
+// so it must have been the user.
 
 interface AlertContent {
   type: 'error' | 'warning'
@@ -56,6 +62,7 @@ interface AlertToastArgs {
 
 export function useAlertToasts({ tanks, status, tailscale }: AlertToastArgs): void {
   const activeToasts = useRef(new Map<string, ActiveAlert>())
+  const programmaticCloses = useRef(new Set<string>())
 
   useEffect(() => {
     const active = activeToasts.current
@@ -98,6 +105,7 @@ export function useAlertToasts({ tanks, status, tailscale }: AlertToastArgs): vo
     queueMicrotask(() => {
       for (const [key, alert] of active) {
         if (!desired.has(key)) {
+          programmaticCloses.current.add(alert.toastId)
           toastManager.close(alert.toastId)
           resolveAlertHistoryEntry(alert.historyId)
           active.delete(key)
@@ -105,8 +113,19 @@ export function useAlertToasts({ tanks, status, tailscale }: AlertToastArgs): vo
       }
       for (const [key, content] of desired) {
         if (!active.has(key)) {
-          const toastId = toastManager.add({ ...content, timeout: 0 })
           const historyId = appendAlertHistoryEntry({ key, ...content })
+          const toastId = toastManager.add({
+            ...content,
+            timeout: 0,
+            onClose: () => {
+              // Fires for every close, including this hook's own
+              // `toastManager.close()` call above (the resolved path) —
+              // only acknowledge when *this* toast id wasn't the one we
+              // just marked as a programmatic close.
+              if (programmaticCloses.current.delete(toastId)) return
+              acknowledgeAlertHistoryEntry(historyId)
+            },
+          })
           active.set(key, { toastId, historyId })
         }
       }

@@ -24,7 +24,7 @@ export interface AlertHistoryEntry {
   createdAt: number
   /** Set once the backend condition that raised this alert clears (state-driven, same trigger as the toast's own removal) — `undefined` means still active. */
   resolvedAt?: number
-  /** Set when a driver explicitly acknowledges the row in the Alerts tab — separate from `resolvedAt`: an alert can be acknowledged while still active, or resolved without ever being acknowledged. */
+  /** Set when the driver dismisses the toast early (its own `×`) while the alert is still open — `useAlertToasts.ts`'s `onClose` callback, not a click anywhere in the Alerts tab. Separate from `resolvedAt`: an alert can be acknowledged while still active, or resolved without ever being acknowledged. */
   acknowledgedAt?: number
 }
 
@@ -84,7 +84,7 @@ export function resolveAlertHistoryEntry(id: string): void {
   write(next)
 }
 
-/** Marks an entry acknowledged (explicit driver action in the Alerts tab) — independent of `resolveAlertHistoryEntry`. */
+/** Marks an entry acknowledged — called from `useAlertToasts.ts`'s toast `onClose` when the driver dismisses it early, not from any UI in the Alerts tab. Independent of `resolveAlertHistoryEntry`. */
 export function acknowledgeAlertHistoryEntry(id: string): void {
   const entries = read()
   const index = entries.findIndex((entry) => entry.id === id)
