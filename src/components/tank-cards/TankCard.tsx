@@ -15,6 +15,21 @@ export interface TankCardProps {
 const SCALE_MARKS = [100, 75, 50, 25, 0]
 const GRIDLINES = [25, 50, 75]
 
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Formats an ISO-8601 `last_full_at`/`last_empty_at` timestamp (local UTC
+ * offset, per hub/schema/tank.schema.json) into the footer's original
+ * "Friday 14 Jul 2026" style. A fixed weekday/day/month/year shape, not
+ * `toLocaleDateString` — its locale defaults add punctuation/reorder the
+ * fields (e.g. en-US gives "Tuesday, Jul 14, 2026"), which would silently
+ * change the footer's look depending on the browser's locale; this kiosk
+ * always renders the same shape regardless. */
+function formatLatchDate(iso: string): string {
+  const date = new Date(iso)
+  return `${WEEKDAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`
+}
+
 /** One telemetry row of the card's info column: accent icon + muted
  *  label, bold value beneath — the reference mockup's section shape. */
 function InfoField({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
@@ -41,13 +56,25 @@ function InfoField({ icon, label, value }: { icon: ReactNode; label: string; val
  * Liquid color carries alarm severity (see lib/tank-alarm.ts): blue in
  * the normal band, amber between alarm threshold and restore, red at/
  * past the threshold, while faulted, or while the bus reports a
- * committed `alarm_state: alarm`.
+ * committed `alarm_state: alarm`. Banding stays keyed on the raw
+ * `tank.level_pct` (per hub/schema/tank.schema.json: alarms/thresholds
+ * never key off `level_pct_smoothed`) even though the fill height/%/
+ * liters shown to the driver use the smoothed value — the two can
+ * legitimately disagree by a percent or two on a stepped sender without
+ * the alarm band flickering off the smoothing.
  */
 export function TankCard({ id, tank }: TankCardProps) {
   const ok = tank.status === 'ok'
-  const pct = Math.min(100, Math.max(0, tank.level_pct))
-  const liters = Math.round((tank.capacity_l * tank.level_pct) / 100)
-  const liquidColor = tankLiquidColor(id, tank, pct)
+  const pct = Math.min(100, Math.max(0, tank.level_pct_smoothed))
+  const alarmPct = Math.min(100, Math.max(0, tank.level_pct))
+  const liters = Math.round((tank.capacity_l * tank.level_pct_smoothed) / 100)
+  const liquidColor = tankLiquidColor(id, tank, alarmPct)
+  // Fresh water reads as "refilled" (last_full_at); every other fluid
+  // type reads as "emptied" (last_empty_at) — mirrors the footer label's
+  // pre-existing fresh-water-only special case, now paired with the
+  // matching latch timestamp instead of a hardcoded stub date.
+  const isRefill = tank.fluid_type === 'fresh_water'
+  const latchDate = isRefill ? tank.last_full_at : tank.last_empty_at
 
   return (
     <Card data-testid="tank-card" className="h-full">
@@ -107,13 +134,16 @@ export function TankCard({ id, tank }: TankCardProps) {
             {/* Telemetry info column per the reference mockup: blue icon +
                 label, bold value below; Flow Rates carries fill and
                 drain side by side (drain label dimmed per the mockup).
-                Values are display stubs — the wire carries only
-                level_pct/capacity_l today; swap for real fields when the
-                hub publishes them. */}
+                "Fill Rate"/"Drain Rate" show volume_since_full_l/
+                volume_since_empty_l (net liters moved since the last
+                full/empty latch) per hub/schema/tank.schema.json v0.4 —
+                despite the label, these are cumulative volumes, not the
+                schema's separate fill_rate_lpm/drain_rate_lpm instantaneous
+                LPM fields (explicit choice, not a units mismatch). */}
             <div className="flex shrink-0 flex-col justify-between gap-2 py-10" data-testid="tank-info-column">
               <InfoField icon={<Thermometer className="size-4" />} label="Temperature" value="23°C" />
-              <InfoField icon={<WavesArrowUp className="size-4" />} label="Fill Rate" value="1200 LPM" />
-              <InfoField icon={<WavesArrowDown className="size-4" />} label="Drain Rate" value="900 LPM" />
+              <InfoField icon={<WavesArrowUp className="size-4" />} label="Fill Rate" value={`${Math.round(tank.volume_since_full_l)} L`} />
+              <InfoField icon={<WavesArrowDown className="size-4" />} label="Drain Rate" value={`${Math.round(tank.volume_since_empty_l)} L`} />
             </div>
           </div>
         </div>
@@ -121,8 +151,8 @@ export function TankCard({ id, tank }: TankCardProps) {
       <div className="flex shrink-0 items-center justify-between gap-2 border-t px-5 py-2">
         <div className="flex min-w-0 items-center gap-1  text-xs ">
           <ClipboardClock className="size-3.5 shrink-0" />
-          <span className="truncate font-semibold">{`Last ${tank.fluid_type === "fresh_water" ? "refilled" : "emptied"}:`}</span>
-          <span className="truncate font-normal">{`Friday 14 Jul 2026`}</span>
+          <span className="truncate font-semibold">{`Last ${isRefill ? 'refilled' : 'emptied'}:`}</span>
+          <span className="truncate font-normal">{latchDate ? formatLatchDate(latchDate) : '—'}</span>
         </div>
         <ConfigureButton size="icon-xl" iconOnly round />
       </div>

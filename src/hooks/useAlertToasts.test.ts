@@ -5,7 +5,17 @@ import type { Tank } from '../types'
 import type { ConnectionStatus } from './useRenewvanBus'
 import { useAlertToasts } from './useAlertToasts'
 
-const okTank: Tank = { fluid_type: 'fresh_water', capacity_l: 100, level_pct: 50, status: 'ok' }
+const okTank: Tank = {
+  fluid_type: 'fresh_water',
+  capacity_l: 100,
+  level_pct: 50,
+  level_pct_smoothed: 50,
+  status: 'ok',
+  fill_rate_lpm: 0,
+  drain_rate_lpm: 0,
+  volume_since_full_l: 0,
+  volume_since_empty_l: 0,
+}
 const alarmTank: Tank = { ...okTank, alarm_state: 'alarm' }
 
 // The hook defers add()/close() to a microtask (see useAlertToasts.ts —
