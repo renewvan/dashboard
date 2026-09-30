@@ -1,17 +1,21 @@
 // v0.1 device-model entity shapes, per hub/schema/*.schema.json. Tank
-// mirrors hub schema v0.4 (level_pct_smoothed, fill_rate_lpm,
+// mirrors hub schema v0.5 (level_pct_smoothed, fill_rate_lpm,
 // drain_rate_lpm, volume_since_full_l, volume_since_empty_l added as
 // unconditional live fields; last_full_date/last_empty_date renamed to
-// last_full_at/last_empty_at with full ISO-8601 timestamps).
+// last_full_at/last_empty_at with full ISO-8601 timestamps; alarm_direction/
+// alarm_threshold_pct/alarm_restore_pct added as retained identity fields,
+// per docs/adr/0004 in hub -- see lib/tank-alarm.ts for how these replace
+// the former hardcoded TANK_ALARM_CONFIGS mirror).
 // Each entity is keyed by `id` (the topic's path segment, never a payload
 // field) — see hub/CONTEXT.md's Entity/topic-convention terms.
 
 export type FluidType = 'fresh_water' | 'grey_water' | 'black_water' | 'fuel' | 'lpg'
 export type TankStatus = 'ok' | 'open_circuit' | 'short_circuit'
-/** Hub-computed alarm state, per hub/schema/tank.schema.json; direction
- * (low/high) is implicit in per-tank hub config, not exposed here. Optional
- * on the wire — tanks without alarm config configured never publish it. */
+/** Hub-computed alarm state, per hub/schema/tank.schema.json. Optional on
+ * the wire — tanks without alarm config configured never publish it. */
 export type TankAlarmState = 'ok' | 'alarm'
+/** Which side of the threshold triggers alarm; see alarm_threshold_pct. */
+export type TankAlarmDirection = 'low' | 'high'
 
 export interface Tank {
   fluid_type: FluidType
@@ -31,6 +35,16 @@ export interface Tank {
   /** Net liters moved since the last committed empty latch — TankCard's "Drain Rate" field. */
   volume_since_empty_l: number
   alarm_state?: TankAlarmState
+  /** Which side of alarm_threshold_pct triggers alarm. Retained/static,
+   * published once at startup. Present under the same condition as
+   * alarm_state (a tank with alarm configured). */
+  alarm_direction?: TankAlarmDirection
+  /** level_pct value that trips alarm_state to 'alarm' (inclusive). Retained/static. */
+  alarm_threshold_pct?: number
+  /** level_pct value that clears alarm_state back to 'ok' (inclusive); the
+   * open band between alarm_threshold_pct and alarm_restore_pct is the
+   * caution zone (see lib/tank-alarm.ts). Retained/static. */
+  alarm_restore_pct?: number
   /** Most recent auto-detected sustained full crossing, ISO-8601 with local UTC offset. Optional — only present once the tank has latched full at least once. TankCard's footer date for fresh_water ("Last refilled"). */
   last_full_at?: string
   /** Most recent auto-detected sustained empty crossing, ISO-8601 with local UTC offset. Optional — only present once the tank has latched empty at least once. TankCard's footer date for grey/black_water/fuel/lpg ("Last emptied"). */

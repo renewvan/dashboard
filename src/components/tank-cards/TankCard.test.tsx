@@ -219,6 +219,9 @@ describe('TankCard liquid color', () => {
           drain_rate_lpm: 0,
           volume_since_full_l: 0,
           volume_since_empty_l: 0,
+          alarm_direction: 'low',
+          alarm_threshold_pct: 27,
+          alarm_restore_pct: 48,
         }}
       />,
     )
@@ -232,13 +235,16 @@ describe('TankCard liquid color', () => {
         tank={{
           fluid_type: 'fresh_water',
           capacity_l: 100,
-          level_pct: 18,
-          level_pct_smoothed: 18,
+          level_pct: 27,
+          level_pct_smoothed: 27,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
           volume_since_full_l: 0,
           volume_since_empty_l: 0,
+          alarm_direction: 'low',
+          alarm_threshold_pct: 27,
+          alarm_restore_pct: 48,
         }}
       />,
     )
@@ -252,13 +258,16 @@ describe('TankCard liquid color', () => {
         tank={{
           fluid_type: 'fresh_water',
           capacity_l: 100,
-          level_pct: 22,
-          level_pct_smoothed: 22,
+          level_pct: 35,
+          level_pct_smoothed: 35,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
           volume_since_full_l: 0,
           volume_since_empty_l: 0,
+          alarm_direction: 'low',
+          alarm_threshold_pct: 27,
+          alarm_restore_pct: 48,
         }}
       />,
     )

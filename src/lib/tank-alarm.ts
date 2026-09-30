@@ -1,18 +1,9 @@
-import type { Tank } from '../types'
+import type { Tank, TankAlarmDirection } from '../types'
 
-// Dashboard-side mirror of node-tank's per-tank alarm config
-// (config.default.ini `[tank.<id>]` alarm_* keys). The wire publishes only
-// the committed `alarm_state` (ok/alarm, already hysteresis- and
-// delay-debounced by the node) — the threshold/restore band between the
-// two is not on the wire, so the card colors it from this table. Keep in
-// sync with the node's config when a tank's alarm values change.
-//
-// Mirrors relayLabels.ts's pattern: `id`-keyed presentation config for a
-// field the wire doesn't carry. Tanks without an entry (or with alarm
 export interface TankAlarmConfig {
   /** `low`: alarm when level drains below the threshold (fresh/fuel).
    *  `high`: alarm when level rises above the threshold (grey/black). */
-  direction: 'low' | 'high'
+  direction: TankAlarmDirection
   /** Level % that trips the alarm (red at/past it). */
   threshold: number
   /** Level % that clears the alarm (blue at/past it); the band between
@@ -20,12 +11,27 @@ export interface TankAlarmConfig {
   restore: number
 }
 
-export const TANK_ALARM_CONFIGS: Record<string, TankAlarmConfig> = {
-  fresh: { direction: 'low', threshold: 27, restore: 48 },
-  grey: { direction: 'high', threshold: 90, restore: 80 },
-}
-
 export type TankAlarmZone = 'danger' | 'caution' | 'normal'
+
+/** Reads a tank's alarm config off the live wire fields (hub schema v0.5:
+ *  alarm_direction/alarm_threshold_pct/alarm_restore_pct, retained/static,
+ *  published once at startup alongside fluid_type/capacity_l -- see
+ *  docs/adr/0004 in hub). Returns undefined if the tank has no alarm
+ *  configured (all three fields absent), matching node-tank's own gating. */
+export function tankAlarmConfig(tank: Tank): TankAlarmConfig | undefined {
+  if (
+    tank.alarm_direction === undefined ||
+    tank.alarm_threshold_pct === undefined ||
+    tank.alarm_restore_pct === undefined
+  ) {
+    return undefined
+  }
+  return {
+    direction: tank.alarm_direction,
+    threshold: tank.alarm_threshold_pct,
+    restore: tank.alarm_restore_pct,
+  }
+}
 
 /**
  * Level-band severity for a tank's liquid fill. Boundary comparisons match
@@ -45,8 +51,8 @@ export function tankAlarmZone(levelPct: number, config: TankAlarmConfig): TankAl
 /** Liquid-fill color for a tank card: red while faulted or the bus has a
  *  committed alarm (covers the node's delay holding `alarm` past restore),
  *  else the level band's zone color. */
-export function tankLiquidColor(id: string, tank: Tank, clampedPct: number): string {
-  const config = TANK_ALARM_CONFIGS[id]
+export function tankLiquidColor(tank: Tank, clampedPct: number): string {
+  const config = tankAlarmConfig(tank)
   const zone = config ? tankAlarmZone(clampedPct, config) : 'normal'
   if (tank.status !== 'ok' || tank.alarm_state === 'alarm' || zone === 'danger') {
     return 'var(--bad)'

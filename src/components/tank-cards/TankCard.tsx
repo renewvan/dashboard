@@ -68,7 +68,7 @@ export function TankCard({ id, tank }: TankCardProps) {
   const pct = Math.min(100, Math.max(0, tank.level_pct_smoothed))
   const alarmPct = Math.min(100, Math.max(0, tank.level_pct))
   const liters = Math.round((tank.capacity_l * tank.level_pct_smoothed) / 100)
-  const liquidColor = tankLiquidColor(id, tank, alarmPct)
+  const liquidColor = tankLiquidColor(tank, alarmPct)
   // Fresh water reads as "refilled" (last_full_at); every other fluid
   // type reads as "emptied" (last_empty_at) — mirrors the footer label's
   // pre-existing fresh-water-only special case, now paired with the
