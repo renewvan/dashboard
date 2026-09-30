@@ -11,7 +11,8 @@ describe('TankSiloCard', () => {
     expect(screen.getByText('Normal')).toBeInTheDocument()
     expect(screen.getByText('62%')).toBeInTheDocument()
     expect(screen.getByText(/62\/100/)).toBeInTheDocument()
-    expect(screen.getByText('Last inspection: 14-07-2024')).toBeInTheDocument()
+    expect(screen.getByText('Last refilled:')).toBeInTheDocument()
+    expect(screen.getByText('Friday 14 Jul 2026')).toBeInTheDocument()
   })
 
   it('shows a Fault badge and the fault reason for a faulted tank', () => {
@@ -53,12 +54,11 @@ describe('TankSiloCard', () => {
       <TankSiloCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 62, status: 'ok' }} />,
     )
     const column = screen.getByTestId('tank-info-column')
-    for (const label of ['Temperature', 'Pressure', 'Flow Rates', 'Fill Rate:', 'Drain Rate']) {
+    for (const label of ['Temperature', 'Fill Rate', 'Drain Rate']) {
       expect(column).toHaveTextContent(label)
     }
-    expect(column).toHaveTextContent('68°F')
-    expect(column).toHaveTextContent('45 PSI')
-    expect(column).toHaveTextContent('1200 GPM')
-    expect(column).toHaveTextContent('980 GPM')
+    expect(column).toHaveTextContent('23°C')
+    expect(column).toHaveTextContent('1200 LPM')
+    expect(column).toHaveTextContent('900 LPM')
   })
 })

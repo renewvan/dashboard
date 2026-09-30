@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ClipboardClock, Gauge, Thermometer, WavesArrowUp,WavesArrowDown } from 'lucide-react'
+import { ClipboardClock, Thermometer, WavesArrowUp, WavesArrowDown } from 'lucide-react'
 import { Badge } from '../ui/badge'
 import { Card, CardContent, CardHeader } from '../ui/card'
 import { FLUID_LABELS, STATUS_LABELS } from '../../lib/tank-labels'
