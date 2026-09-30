@@ -1,4 +1,4 @@
-import { Droplet, Wrench, ToggleLeft, Van, Zap, Heater} from 'lucide-react'
+import { Droplet, Wrench, ToggleLeft, Van, Zap, Heater } from 'lucide-react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
@@ -6,6 +6,7 @@ import lockupDark from '../assets/logo/renewvan-lockup.svg'
 import { EmptyState } from './components/EmptyState'
 import { Clock } from './components/Clock'
 import { DisplayPowerButton } from './components/DisplayPowerButton'
+import { AlertsButton } from './components/AlertsButton'
 import { RouterStatusIcon } from './components/RouterStatusIcon'
 import { UplinkStatusButton } from './components/UplinkStatusButton'
 import { Sidebar, type NavItem } from './components/Sidebar'
@@ -14,10 +15,12 @@ import { ThemeToggleButton } from './components/ThemeToggleButton'
 import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
 import { Separator } from "@/components/ui/separator";
 import { useAlertToasts } from './hooks/useAlertToasts'
+import { useUnseenAlertCount } from './hooks/useUnseenAlertCount'
 import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { useTheme, type Theme } from './hooks/useTheme'
 import { useUrlTab } from './hooks/useUrlTab'
 import { cn } from './lib/utils'
+import { AlertsTab } from './tabs/AlertsTab'
 import { HomeTab } from './tabs/HomeTab'
 import { PowerTab } from './tabs/PowerTab'
 import { SettingsTab } from './tabs/SettingsTab'
@@ -33,6 +36,11 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: <Wrench className="size-5" /> },
 ]
 
+// Reachable via the header's `AlertsButton` + `?tab=alerts` deep link
+// only — deliberately excluded from `NAV_ITEMS`/`Sidebar` per explicit
+// request, so `useUrlTab` needs its own superset of valid ids.
+const TAB_IDS = [...NAV_ITEMS.map((item) => item.id), 'alerts']
+
 // Per-theme wallpaper photo. No entry (or a falsy value) means that
 // theme has no photo configured — the background falls back to a solid
 // ink color (see the background div below) instead of leaving a blank
@@ -47,10 +55,8 @@ const WALLPAPER: Record<Theme, string | undefined> = {
 function App() {
   const { state, status, displayPower, tailscale, uplink, publish } = useRenewvanBus()
   useAlertToasts({ tanks: state.tanks, status, tailscale })
-  const [activeTab, setActiveTab] = useUrlTab(
-    NAV_ITEMS.map((item) => item.id),
-    'home',
-  )
+  const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'home')
+  const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const wallpaper = WALLPAPER[theme]
 
@@ -92,6 +98,7 @@ function App() {
           <UplinkStatusButton uplink={uplink} tailscale={tailscale} onOpenSettings={() => setActiveTab('settings')} />
           <RouterStatusIcon status={status} />
           <Separator orientation="vertical" className="mx-1.5"/>
+          <AlertsButton onClick={() => setActiveTab('alerts')} count={unseenAlertCount} active={activeTab === 'alerts'} />
           <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
           <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>
@@ -120,6 +127,9 @@ function App() {
           </TabsPanel>
           <TabsPanel value="settings">
             <SettingsTab tailscale={tailscale} />
+          </TabsPanel>
+          <TabsPanel value="alerts">
+            <AlertsTab />
           </TabsPanel>
         </div>
       </div>
