@@ -65,7 +65,7 @@ function InfoField({ icon, label, value }: { icon: ReactNode; label: string; val
  * legitimately disagree by a percent or two on a stepped sender without
  * the alarm band flickering off the smoothing.
  */
-export function TankCard({ id, tank }: TankCardProps) {
+export function TankCard({ tank }: TankCardProps) {
   const ok = tank.status === 'ok'
   const pct = Math.min(100, Math.max(0, tank.level_pct_smoothed))
   const alarmPct = Math.min(100, Math.max(0, tank.level_pct))
