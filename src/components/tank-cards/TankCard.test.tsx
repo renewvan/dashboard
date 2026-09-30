@@ -82,7 +82,7 @@ describe('TankCard', () => {
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
-  it('displays level_pct_smoothed, not the raw level_pct, for the shown percentage and liters', () => {
+  it('displays the raw level_pct, not level_pct_smoothed, for the shown percentage and liters', () => {
     render(
       <TankCard
         id="fresh"
@@ -99,9 +99,9 @@ describe('TankCard', () => {
         }}
       />,
     )
-    expect(screen.getByText('62%')).toBeInTheDocument()
-    expect(screen.getByText(/62\/100/)).toBeInTheDocument()
-    expect(screen.queryByText('58%')).not.toBeInTheDocument()
+    expect(screen.getByText('58%')).toBeInTheDocument()
+    expect(screen.getByText(/58\/100/)).toBeInTheDocument()
+    expect(screen.queryByText('62%')).not.toBeInTheDocument()
   })
 
   it('shows a Fault badge and the fault reason for a faulted tank', () => {
@@ -125,15 +125,15 @@ describe('TankCard', () => {
     expect(screen.getByText('Sensor fault: open circuit')).toBeInTheDocument()
   })
 
-  it('clamps an out-of-range level_pct_smoothed into the displayed value', () => {
+  it('clamps an out-of-range level_pct into the displayed value', () => {
     render(
       <TankCard
         id="fresh"
         tank={{
           fluid_type: 'fresh_water',
           capacity_l: 100,
-          level_pct: 100,
-          level_pct_smoothed: 140,
+          level_pct: 140,
+          level_pct_smoothed: 100,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -145,15 +145,15 @@ describe('TankCard', () => {
     expect(screen.getAllByText('100%').length).toBeGreaterThan(0)
   })
 
-  it('clamps a negative level_pct_smoothed to zero', () => {
+  it('clamps a negative level_pct to zero', () => {
     render(
       <TankCard
         id="fresh"
         tank={{
           fluid_type: 'fresh_water',
           capacity_l: 100,
-          level_pct: 0,
-          level_pct_smoothed: -5,
+          level_pct: -5,
+          level_pct_smoothed: 0,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,

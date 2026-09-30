@@ -46,7 +46,7 @@ export function AlertsButton({ onClick, count, active }: AlertsButtonProps) {
         <Badge
           variant="destructive"
           size="sm"
-          className="absolute top-0.5 right-0.5"
+          className="absolute top-0.5 right-0.5 rounded-full"
           data-testid="alerts-button-badge"
         >
           {count > 9 ? '9+' : count}

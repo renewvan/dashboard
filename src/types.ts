@@ -23,9 +23,10 @@ export interface Tank {
   /** Raw sender reading. Alarms/thresholds and `tank-alarm.ts`'s liquid-color
    * banding key off this, never `level_pct_smoothed` — per schema. */
   level_pct: number
-  /** Rate-extrapolated display value for stepped/reed-switch senders —
-   * what the card actually shows as "the level" (fill height, %, liters).
-   * Display-only; never used for alarm/threshold logic. */
+  /** Rate-extrapolated display value for stepped/reed-switch senders,
+   * published for consumers that want smoothing. TankCard shows the raw
+   * `level_pct` instead (the driver-facing number is the sender's actual
+   * reading); never used for alarm/threshold logic either way. */
   level_pct_smoothed: number
   status: TankStatus
   fill_rate_lpm: number

@@ -58,19 +58,17 @@ function InfoField({ icon, label, value }: { icon: ReactNode; label: string; val
  * Liquid color carries alarm severity (see lib/tank-alarm.ts): blue in
  * the normal band, amber between alarm threshold and restore, red at/
  * past the threshold, while faulted, or while the bus reports a
- * committed `alarm_state: alarm`. Banding stays keyed on the raw
- * `tank.level_pct` (per hub/schema/tank.schema.json: alarms/thresholds
- * never key off `level_pct_smoothed`) even though the fill height/%/
- * liters shown to the driver use the smoothed value — the two can
- * legitimately disagree by a percent or two on a stepped sender without
- * the alarm band flickering off the smoothing.
+ * committed `alarm_state: alarm`. Fill height/%/liters and the alarm
+ * band both key off the raw `tank.level_pct` — the driver-facing number
+ * is the sender's actual reading, not the rate-extrapolated
+ * `level_pct_smoothed` display value some stepped/reed-switch senders
+ * also publish.
  */
 export function TankCard({ tank }: TankCardProps) {
   const ok = tank.status === 'ok'
-  const pct = Math.min(100, Math.max(0, tank.level_pct_smoothed))
-  const alarmPct = Math.min(100, Math.max(0, tank.level_pct))
-  const liters = Math.round((tank.capacity_l * tank.level_pct_smoothed) / 100)
-  const liquidColor = tankLiquidColor(tank, alarmPct)
+  const pct = Math.min(100, Math.max(0, tank.level_pct))
+  const liters = Math.round((tank.capacity_l * tank.level_pct) / 100)
+  const liquidColor = tankLiquidColor(tank, pct)
   // Fresh water reads as "refilled" (last_full_at); every other fluid
   // type reads as "emptied" (last_empty_at) — mirrors the footer label's
   // pre-existing fresh-water-only special case, now paired with the
