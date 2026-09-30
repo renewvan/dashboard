@@ -9,7 +9,6 @@ const okTank: Tank = {
   fluid_type: 'fresh_water',
   capacity_l: 100,
   level_pct: 50,
-  level_pct_smoothed: 50,
   status: 'ok',
   fill_rate_lpm: 0,
   drain_rate_lpm: 0,

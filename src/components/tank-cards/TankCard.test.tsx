@@ -21,7 +21,6 @@ describe('TankCard', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: 62,
-          level_pct_smoothed: 62,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -47,7 +46,6 @@ describe('TankCard', () => {
           fluid_type: 'grey_water',
           capacity_l: 80,
           level_pct: 41,
-          level_pct_smoothed: 41,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -69,7 +67,6 @@ describe('TankCard', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: 62,
-          level_pct_smoothed: 62,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -82,28 +79,6 @@ describe('TankCard', () => {
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
-  it('displays the raw level_pct, not level_pct_smoothed, for the shown percentage and liters', () => {
-    render(
-      <TankCard
-        id="fresh"
-        tank={{
-          fluid_type: 'fresh_water',
-          capacity_l: 100,
-          level_pct: 58,
-          level_pct_smoothed: 62,
-          status: 'ok',
-          fill_rate_lpm: 0,
-          drain_rate_lpm: 0,
-          volume_since_full_l: 0,
-          volume_since_empty_l: 0,
-        }}
-      />,
-    )
-    expect(screen.getByText('58%')).toBeInTheDocument()
-    expect(screen.getByText(/58\/100/)).toBeInTheDocument()
-    expect(screen.queryByText('62%')).not.toBeInTheDocument()
-  })
-
   it('shows a Fault badge and the fault reason for a faulted tank', () => {
     render(
       <TankCard
@@ -112,7 +87,6 @@ describe('TankCard', () => {
           fluid_type: 'grey_water',
           capacity_l: 80,
           level_pct: 0,
-          level_pct_smoothed: 0,
           status: 'open_circuit',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -133,7 +107,6 @@ describe('TankCard', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: 140,
-          level_pct_smoothed: 100,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -153,7 +126,6 @@ describe('TankCard', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: -5,
-          level_pct_smoothed: 0,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -173,7 +145,6 @@ describe('TankCard', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: 50,
-          level_pct_smoothed: 50,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -195,7 +166,6 @@ describe('TankCard', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: 62,
-          level_pct_smoothed: 62,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -223,7 +193,6 @@ describe('TankCard liquid color', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: 62,
-          level_pct_smoothed: 62,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -246,7 +215,6 @@ describe('TankCard liquid color', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: 27,
-          level_pct_smoothed: 27,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -269,7 +237,6 @@ describe('TankCard liquid color', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: 35,
-          level_pct_smoothed: 35,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -292,7 +259,6 @@ describe('TankCard liquid color', () => {
           fluid_type: 'fresh_water',
           capacity_l: 100,
           level_pct: 62,
-          level_pct_smoothed: 62,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -313,7 +279,6 @@ describe('TankCard liquid color', () => {
           fluid_type: 'grey_water',
           capacity_l: 80,
           level_pct: 95,
-          level_pct_smoothed: 95,
           status: 'short_circuit',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,
@@ -333,7 +298,6 @@ describe('TankCard liquid color', () => {
           fluid_type: 'fuel',
           capacity_l: 60,
           level_pct: 8,
-          level_pct_smoothed: 8,
           status: 'ok',
           fill_rate_lpm: 0,
           drain_rate_lpm: 0,

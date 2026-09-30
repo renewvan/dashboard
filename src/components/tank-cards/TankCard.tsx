@@ -59,10 +59,9 @@ function InfoField({ icon, label, value }: { icon: ReactNode; label: string; val
  * the normal band, amber between alarm threshold and restore, red at/
  * past the threshold, while faulted, or while the bus reports a
  * committed `alarm_state: alarm`. Fill height/%/liters and the alarm
- * band both key off the raw `tank.level_pct` — the driver-facing number
- * is the sender's actual reading, not the rate-extrapolated
- * `level_pct_smoothed` display value some stepped/reed-switch senders
- * also publish.
+ * band both key off `tank.level_pct` — the sender's actual reading
+ * (per docs/adr/0005 in hub, node-tank no longer publishes a smoothed
+ * display value).
  */
 export function TankCard({ tank }: TankCardProps) {
   const ok = tank.status === 'ok'

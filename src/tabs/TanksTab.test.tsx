@@ -3,13 +3,10 @@ import { describe, expect, it } from 'vitest'
 import type { Tank } from '../types'
 import { TanksTab } from './TanksTab'
 
-// Local fixture helper: fills in schema v0.4's newly-required fields
-// (level_pct_smoothed mirrors level_pct so pre-existing percentage
-// assertions keep matching what TankCard actually displays) with inert
-// zero flow/volume defaults, since these tests aren't exercising those.
+// Local fixture helper: fills in schema-required fields with inert
+// zero/empty defaults so each test only spells out what it exercises.
 function tank(overrides: Pick<Tank, 'fluid_type' | 'capacity_l' | 'level_pct' | 'status'> & Partial<Tank>): Tank {
   return {
-    level_pct_smoothed: overrides.level_pct,
     fill_rate_lpm: 0,
     drain_rate_lpm: 0,
     volume_since_full_l: 0,

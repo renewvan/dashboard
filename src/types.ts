@@ -1,11 +1,12 @@
 // v0.1 device-model entity shapes, per hub/schema/*.schema.json. Tank
-// mirrors hub schema v0.5 (level_pct_smoothed, fill_rate_lpm,
-// drain_rate_lpm, volume_since_full_l, volume_since_empty_l added as
-// unconditional live fields; last_full_date/last_empty_date renamed to
-// last_full_at/last_empty_at with full ISO-8601 timestamps; alarm_direction/
+// mirrors hub schema v0.6 (fill_rate_lpm, drain_rate_lpm,
+// volume_since_full_l, volume_since_empty_l added as unconditional live
+// fields; last_full_date/last_empty_date renamed to last_full_at/
+// last_empty_at with full ISO-8601 timestamps; alarm_direction/
 // alarm_threshold_pct/alarm_restore_pct added as retained identity fields,
 // per docs/adr/0004 in hub -- see lib/tank-alarm.ts for how these replace
-// the former hardcoded TANK_ALARM_CONFIGS mirror).
+// the former hardcoded TANK_ALARM_CONFIGS mirror; level_pct_smoothed
+// removed per docs/adr/0005 in hub -- TankCard shows raw level_pct).
 // Each entity is keyed by `id` (the topic's path segment, never a payload
 // field) — see hub/CONTEXT.md's Entity/topic-convention terms.
 
@@ -20,14 +21,10 @@ export type TankAlarmDirection = 'low' | 'high'
 export interface Tank {
   fluid_type: FluidType
   capacity_l: number
-  /** Raw sender reading. Alarms/thresholds and `tank-alarm.ts`'s liquid-color
-   * banding key off this, never `level_pct_smoothed` — per schema. */
+  /** Raw sender reading. Alarms/thresholds, `tank-alarm.ts`'s liquid-color
+   * banding, and TankCard's displayed fill height/%/liters all key off
+   * this — the driver-facing number is the sender's actual reading. */
   level_pct: number
-  /** Rate-extrapolated display value for stepped/reed-switch senders,
-   * published for consumers that want smoothing. TankCard shows the raw
-   * `level_pct` instead (the driver-facing number is the sender's actual
-   * reading); never used for alarm/threshold logic either way. */
-  level_pct_smoothed: number
   status: TankStatus
   fill_rate_lpm: number
   drain_rate_lpm: number
@@ -65,7 +62,6 @@ export function isCompleteTank(tank: Partial<Tank>): tank is Tank {
     tank.fluid_type !== undefined &&
     tank.capacity_l !== undefined &&
     tank.level_pct !== undefined &&
-    tank.level_pct_smoothed !== undefined &&
     tank.status !== undefined &&
     tank.fill_rate_lpm !== undefined &&
     tank.drain_rate_lpm !== undefined &&
