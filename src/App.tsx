@@ -1,8 +1,9 @@
-import { Droplet, Wrench, ToggleLeft, Van, Zap } from 'lucide-react'
+import { Droplet, Wrench, ToggleLeft, Van, Zap, Heater} from 'lucide-react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
 import lockupDark from '../assets/logo/renewvan-lockup.svg'
+import { EmptyState } from './components/EmptyState'
 import { Clock } from './components/Clock'
 import { DisplayPowerButton } from './components/DisplayPowerButton'
 import { RouterStatusIcon } from './components/RouterStatusIcon'
@@ -25,9 +26,10 @@ import { TanksTab } from './tabs/TanksTab'
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: <Van className="size-5" /> },
-  { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
+  { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
   { id: 'switches', label: 'Switches', icon: <ToggleLeft className="size-5" /> },
+  { id: 'heater', label: 'Heater', icon: <Heater className="size-5" /> },
   { id: 'settings', label: 'Settings', icon: <Wrench className="size-5" /> },
 ]
 
@@ -83,7 +85,7 @@ function App() {
         <img
           src={theme === 'dark' ? lockupWhite : lockupDark}
           alt="renewvan"
-          className="h-6 w-auto justify-self-start"
+          className="h-7 w-auto justify-self-start"
         />
         <Clock />
         <div className="flex items-center justify-end gap-1.5">
@@ -96,7 +98,7 @@ function App() {
       </header>
       <div className="flex flex-1 gap-3 overflow-hidden">
         <Sidebar items={NAV_ITEMS} />
-        <div className="flex flex-1 flex-col overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-sm">
+        <div className="flex flex-1 flex-col overflow-y-auto">
           <TabsPanel value="home">
             <HomeTab />
           </TabsPanel>
@@ -108,6 +110,13 @@ function App() {
           </TabsPanel>
           <TabsPanel value="switches">
             <SwitchesTab relays={state.relays} />
+          </TabsPanel>
+          <TabsPanel value="heater">
+            <EmptyState
+              icon={<Heater />}
+              title="No heater data yet."
+              description="Waiting for readings from the renewvan hub."
+            />
           </TabsPanel>
           <TabsPanel value="settings">
             <SettingsTab tailscale={tailscale} />

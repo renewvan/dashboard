@@ -39,8 +39,12 @@ export interface SidebarProps {
  * structurally — not a hardcoded width that can drift out of sync with
  * the pill again later.
  *
- * Icons sit vertically centered in the rail's full height. `item.icon`
- * MUST carry an explicit `size-*` class (see `App.tsx`'s `NAV_ITEMS`) —
+ * Icons sit vertically centered because the pill itself is `h-full`
+ * (matching the content pane's column height) with `justify-center` on
+ * its flex axis, rather than `justify-start` — `justify-start` would
+ * leave dead space below the icons once the pill fills the full rail
+ * height instead of hugging its content. `item.icon` MUST carry an
+ * explicit `size-*` class (see `App.tsx`'s `NAV_ITEMS`) —
  * Coss's shared `segmentedControlItemLayoutClassName` (used by
  * `TabsTab`, from `@/lib/segmented-control`) applies
  * `[&_svg:not([class*='size-'])]:size-4.5 sm:size-4` to any *unsized*
@@ -74,7 +78,7 @@ export interface SidebarProps {
 export function Sidebar({ items }: SidebarProps) {
   return (
     <aside className="flex h-full w-fit shrink-0 flex-col items-start justify-center">
-      <TabsList className="sidebar-nav flex-col items-center justify-start gap-5 rounded-full border border-white/10 bg-card/40 p-2 backdrop-blur-md">
+      <TabsList className="sidebar-nav h-full flex-col items-center justify-center gap-4 rounded-full border border-white/10 bg-card/40 p-2 backdrop-blur-md">
         {items.map((item) => (
           <TabsTab
             key={item.id}

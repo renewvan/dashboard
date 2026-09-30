@@ -1,4 +1,4 @@
-import { Bolt } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { Button, type ButtonProps } from '../ui/button'
 import { cn } from '../../lib/utils'
 import { Tooltip, TooltipPopup, TooltipTrigger } from '../ui/tooltip'
@@ -30,7 +30,7 @@ export function ConfigureButton({ size = 'default', iconOnly = false, round = fa
             disabled
             className={cn('pointer-events-auto', round && 'rounded-full')}
           >
-            <Bolt className="size-4" />
+            <Settings className="size-4" />
             {!iconOnly && 'Configure'}
           </Button>
         }
