@@ -23,20 +23,6 @@ const SEVERITY_BORDER_CLASS: Record<AlertHistoryEntry['type'], string> = {
   warning: 'border-warning',
 }
 
-// A colored background wash per alert type, replacing the earlier plain
-// `bg-card/20` — same low-opacity "tint" convention `ui/badge.tsx`'s
-// `success`/`warning`/`info` variants already use (`bg-*/8`,
-// `dark:bg-*/16`). Needed specifically for light theme: the row sits
-// directly over the wallpaper photo (`App.tsx`), and a plain translucent
-// neutral card left theme-aware `text-muted-foreground` body text
-// low-contrast against a bright photo showing through. A severity-tinted
-// background gives that same text a consistent, opaque-enough backdrop
-// in both themes, not just dark.
-const SEVERITY_BG_CLASS: Record<AlertHistoryEntry['type'], string> = {
-  error: 'bg-destructive/10 dark:bg-destructive/15',
-  warning: 'bg-warning/10 dark:bg-warning/15',
-}
-
 function formatTimestamp(ms: number): string {
   const date = new Date(ms)
   const datePart = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
@@ -72,12 +58,13 @@ function formatTimestamp(ms: number): string {
  *   tab. Purely a display badge here, not an in-tab action: there's
  *   nothing to tap — acknowledging already happened at the toast.
  *
- * Title/description/timestamp are forced to white-tinted opacity steps
- * (`text-white/90` etc, matching `EmptyState`'s own convention) rather
- * than theme-aware `text-foreground`/`text-muted-foreground`: this card
- * is a translucent `bg-card/20` glass surface sitting directly over the
- * wallpaper photo (`App.tsx`), and light theme's photo is bright enough
- * that theme-aware dark-gray body text lost too much contrast through it.
+ * Wrapped in the same full-panel glass container every other tab uses
+ * (`rounded-2xl border border-white/10 bg-card/40 backdrop-blur-md`,
+ * matching `App.tsx`'s header and `de21ed0`'s original "main glass
+ * container" treatment) rather than each row floating bare on the
+ * wallpaper — that's what makes theme-aware `text-muted-foreground` body
+ * text legible in light theme too: it's read against this panel's own
+ * `bg-card/40`, not the raw photo behind it.
  */
 export function AlertsTab() {
   const { entries, remove } = useAlertHistory()
@@ -89,57 +76,58 @@ export function AlertsTab() {
   }
 
   return (
-    <div className="flex flex-col gap-2" data-testid="alerts-list">
-      {entries.map((entry) => {
-        const Icon = SEVERITY_ICONS[entry.type]
-        const iconClass = SEVERITY_TEXT_CLASS[entry.type]
-        const resolved = entry.resolvedAt !== undefined
-        const acknowledged = entry.acknowledgedAt !== undefined
-        return (
-          <div
-            key={entry.id}
-            data-testid="alert-row"
-            data-resolved={resolved}
-            data-acknowledged={acknowledged}
-            className={`flex items-start justify-between gap-3 rounded-lg border px-3.5 py-2.5 backdrop-blur-md ${SEVERITY_BORDER_CLASS[entry.type]} ${SEVERITY_BG_CLASS[entry.type]}`}
-          >
-            <div className="flex items-start gap-2">
-              <Icon className={`mt-0.5 size-4 shrink-0 ${iconClass}`} />
+    <div className="flex flex-1 flex-col h-full overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md">
+      <div className="flex flex-col gap-2" data-testid="alerts-list">
+        {entries.map((entry) => {
+          const Icon = SEVERITY_ICONS[entry.type]
+          const iconClass = SEVERITY_TEXT_CLASS[entry.type]
+          const resolved = entry.resolvedAt !== undefined
+          const acknowledged = entry.acknowledgedAt !== undefined
+          return (
+            <div
+              key={entry.id}
+              data-testid="alert-row"
+              data-resolved={resolved}
+              data-acknowledged={acknowledged}
+              className={`flex items-start justify-between gap-3 rounded-lg border px-3.5 py-2.5 backdrop-blur-md ${SEVERITY_BORDER_CLASS[entry.type]}`}
+            >
+              <div className="flex items-start gap-2">
+                <Icon className={`mt-0.5 size-4 shrink-0 ${iconClass}`} />
+                
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">{entry.title}</span>
+                  <p className="line-clamp-2 text-sm text-muted-foreground/90">{entry.description}</p>
+                </div>
+              </div>
               
-              <div className="flex flex-col gap-1">
-                <span className="font-medium text-white/90">{entry.title}</span>
-                <p className="line-clamp-2 text-sm text-muted-foreground/90">{entry.description}</p>
-               
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <div className="flex items-start gap-3">
+                  {resolved ? (
+                    <Badge variant="success" size="sm" className="w-fit">
+                      Resolved
+                    </Badge>
+                  ) : acknowledged ? (
+                    <Badge variant="info" size="sm" className="w-fit">
+                      Acknowledged
+                    </Badge>
+                  ) : null}
+                <button
+                  type="button"
+                  aria-label="Remove alert"
+                  onClick={() => remove(entry.id)}
+                  className="rounded p-0.5 text-destructive opacity-70 hover:opacity-100"
+                >
+                  <X className="size-4" />
+                </button>
+                </div>
+                <span className="text-xs text-muted-foreground/90 tabular-nums font-semibold" data-testid="alert-row-timestamp">
+                  {formatTimestamp(entry.createdAt)}
+                </span>
               </div>
             </div>
-            
-            <div className="flex shrink-0 flex-col items-end gap-1.5">
-              <div className="flex items-start gap-3">
-                {resolved ? (
-                  <Badge variant="success" size="sm" className="w-fit">
-                    Resolved
-                  </Badge>
-                ) : acknowledged ? (
-                  <Badge variant="info" size="sm" className="w-fit">
-                    Acknowledged
-                  </Badge>
-                ) : null}
-              <button
-                type="button"
-                aria-label="Remove alert"
-                onClick={() => remove(entry.id)}
-                className="rounded p-0.5 text-white/70 opacity-70 hover:opacity-100"
-              >
-                <X className="size-4" />
-              </button>
-              </div>
-              <span className="text-xs text-muted-foreground/90 tabular-nums font-semibold" data-testid="alert-row-timestamp">
-                {formatTimestamp(entry.createdAt)}
-              </span>
-            </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
