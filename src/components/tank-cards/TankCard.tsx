@@ -3,6 +3,7 @@ import { ClipboardClock, Thermometer, WavesArrowUp, WavesArrowDown } from 'lucid
 import { Badge } from '../ui/badge'
 import { Card, CardContent, CardHeader } from '../ui/card'
 import { FLUID_LABELS, STATUS_LABELS } from '../../lib/tank-labels'
+import { tankLiquidColor } from '../../lib/tank-alarm'
 import type { Tank } from '../../types'
 import { ConfigureButton } from './ConfigureButton'
 
@@ -36,11 +37,17 @@ function InfoField({ icon, label, value }: { icon: ReactNode; label: string; val
  * whatever vertical space that leaves. Winning layout from wayfinder
  * ticket `01-prototype-tank-card`. Pure presentational component —
  * props in, markup out, per `RadialGauge`'s pattern.
+ *
+ * Liquid color carries alarm severity (see lib/tank-alarm.ts): blue in
+ * the normal band, amber between alarm threshold and restore, red at/
+ * past the threshold, while faulted, or while the bus reports a
+ * committed `alarm_state: alarm`.
  */
-export function TankCard({ tank }: TankCardProps) {
+export function TankCard({ id, tank }: TankCardProps) {
   const ok = tank.status === 'ok'
   const pct = Math.min(100, Math.max(0, tank.level_pct))
   const liters = Math.round((tank.capacity_l * tank.level_pct) / 100)
+  const liquidColor = tankLiquidColor(id, tank, pct)
 
   return (
     <Card data-testid="tank-card" className="h-full">
@@ -68,10 +75,11 @@ export function TankCard({ tank }: TankCardProps) {
                       style={{ bottom: `${mark}%` }}
                     />
                   ))}
-                  <div
-                    className="absolute inset-x-0 bottom-0 flex items-start justify-center rounded-t-sm pt-1 text-[12px] text-white font-semibold transition-[height]"
-                    style={{ height: `${pct}%`, background: ok ? 'var(--kiosk-accent)' : 'var(--bad)' }}
-                  >
+              <div
+                data-testid="tank-liquid"
+                className="absolute inset-x-0 bottom-0 flex items-start justify-center rounded-t-sm pt-1 text-[12px] text-white font-semibold transition-[height]"
+                style={{ height: `${pct}%`, background: liquidColor }}
+              >
                     {pct >= 16 && `${pct.toFixed(0)}%`}
                   </div>
                   {pct < 16 && (

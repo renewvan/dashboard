@@ -62,3 +62,53 @@ describe('TankCard', () => {
     expect(column).toHaveTextContent('900 LPM')
   })
 })
+
+describe('TankCard liquid color', () => {
+  it('fills blue in the normal band', () => {
+    render(
+      <TankCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 62, status: 'ok' }} />,
+    )
+    expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--kiosk-accent)' })
+  })
+
+  it('fills red at/past the alarm threshold', () => {
+    render(
+      <TankCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 18, status: 'ok' }} />,
+    )
+    expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--bad)' })
+  })
+
+  it('fills amber in the threshold→restore band', () => {
+    render(
+      <TankCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 22, status: 'ok' }} />,
+    )
+    expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--warn)' })
+  })
+
+  it('fills red while the bus reports a committed alarm, even past restore', () => {
+    render(
+      <TankCard
+        id="fresh"
+        tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 62, status: 'ok', alarm_state: 'alarm' }}
+      />,
+    )
+    expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--bad)' })
+  })
+
+  it('fills red for a sensor fault regardless of level', () => {
+    render(
+      <TankCard
+        id="grey"
+        tank={{ fluid_type: 'grey_water', capacity_l: 80, level_pct: 95, status: 'short_circuit' }}
+      />,
+    )
+    expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--bad)' })
+  })
+
+  it('fills blue for a tank with no alarm config and no alarm on the wire', () => {
+    render(
+      <TankCard id="fuel" tank={{ fluid_type: 'fuel', capacity_l: 60, level_pct: 8, status: 'ok' }} />,
+    )
+    expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--kiosk-accent)' })
+  })
+})
