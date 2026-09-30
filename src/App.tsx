@@ -98,7 +98,7 @@ function App() {
           <UplinkStatusButton uplink={uplink} tailscale={tailscale} onOpenSettings={() => setActiveTab('settings')} />
           <RouterStatusIcon status={status} />
           <Separator orientation="vertical" className="mx-1.5"/>
-          <AlertsButton onClick={() => setActiveTab('alerts')} count={unseenAlertCount} />
+          <AlertsButton onClick={() => setActiveTab('alerts')} count={unseenAlertCount} active={activeTab === 'alerts'} />
           <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
           <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>

@@ -24,6 +24,8 @@ export interface AlertHistoryEntry {
   createdAt: number
   /** Set once the backend condition that raised this alert clears (state-driven, same trigger as the toast's own removal) — `undefined` means still active. */
   resolvedAt?: number
+  /** Set when a driver explicitly acknowledges the row in the Alerts tab — separate from `resolvedAt`: an alert can be acknowledged while still active, or resolved without ever being acknowledged. */
+  acknowledgedAt?: number
 }
 
 const STORAGE_KEY = 'renewvan.alertHistory.v1'
@@ -79,6 +81,16 @@ export function resolveAlertHistoryEntry(id: string): void {
   if (index === -1 || entries[index].resolvedAt !== undefined) return
   const next = [...entries]
   next[index] = { ...next[index], resolvedAt: Date.now() }
+  write(next)
+}
+
+/** Marks an entry acknowledged (explicit driver action in the Alerts tab) — independent of `resolveAlertHistoryEntry`. */
+export function acknowledgeAlertHistoryEntry(id: string): void {
+  const entries = read()
+  const index = entries.findIndex((entry) => entry.id === id)
+  if (index === -1 || entries[index].acknowledgedAt !== undefined) return
+  const next = [...entries]
+  next[index] = { ...next[index], acknowledgedAt: Date.now() }
   write(next)
 }
 
