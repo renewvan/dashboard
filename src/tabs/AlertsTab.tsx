@@ -93,13 +93,11 @@ export function AlertsTab() {
             >
               <div className="flex items-start gap-2">
                 <Icon className={`mt-0.5 size-4 shrink-0 ${iconClass}`} />
-                
                 <div className="flex flex-col gap-1">
                   <span className="font-medium">{entry.title}</span>
                   <p className="line-clamp-2 text-sm text-muted-foreground/90">{entry.description}</p>
                 </div>
               </div>
-              
               <div className="flex shrink-0 flex-col items-end gap-1.5">
                 <div className="flex items-start gap-3">
                   {resolved ? (
@@ -111,14 +109,14 @@ export function AlertsTab() {
                       Acknowledged
                     </Badge>
                   ) : null}
-                <button
-                  type="button"
-                  aria-label="Remove alert"
-                  onClick={() => remove(entry.id)}
-                  className="rounded p-0.5 text-destructive opacity-70 hover:opacity-100"
-                >
-                  <X className="size-4" />
-                </button>
+                  <button
+                    type="button"
+                    aria-label="Remove alert"
+                    onClick={() => remove(entry.id)}
+                    className="rounded p-0.5 text-destructive opacity-70 hover:opacity-100"
+                  >
+                    <X className="size-4" />
+                  </button>
                 </div>
                 <span className="text-xs text-muted-foreground/90 tabular-nums font-semibold" data-testid="alert-row-timestamp">
                   {formatTimestamp(entry.createdAt)}

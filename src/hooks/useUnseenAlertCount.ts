@@ -4,10 +4,12 @@ import { ToastPrimitive } from '../components/ui/toast'
 /**
  * Header badge count for `AlertsButton` — deliberately *not* derived from
  * `toasts.length` (the live, currently-active toast count): dismissing a
- * toast (its own `×`, or `AlertsTab`'s row dismiss) would then instantly
- * shrink the badge, which reads as "the alert went away" even though the
- * driver never actually looked at it. Per explicit request, the badge
- * should only clear once the driver visits the Alerts tab.
+ * toast early via its own `×` would then instantly shrink the badge,
+ * which reads as "the alert went away" even though the driver never
+ * actually looked at it. (`AlertsTab`'s own row `×` is unrelated to this
+ * count — it removes a `localStorage` history entry, not a live toast.)
+ * Per explicit request, the badge should only clear once the driver
+ * visits the Alerts tab.
  *
  * Tracks every toast id ever seen (via a ref, so re-renders don't reset
  * it) and increments the unseen count by one each time a *new* id shows
