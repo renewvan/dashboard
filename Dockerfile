@@ -1,10 +1,11 @@
 FROM node:22-slim AS build
 
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install -g pnpm@11.17.0
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
