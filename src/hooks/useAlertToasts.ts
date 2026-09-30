@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { appendAlertHistoryEntry, resolveAlertHistoryEntry } from '../lib/alertHistory'
 import { toastManager } from '../components/ui/toast'
 import { isCompleteTank, type RenewvanBusState, type Tank } from '../types'
 import type { ConnectionStatus, TailscaleStatus } from './useRenewvanBus'
@@ -13,7 +14,8 @@ const FLUID_LABELS: Record<Tank['fluid_type'], string> = {
   lpg: 'LPG',
 }
 
-// Turns backend-published alert state into toast add/remove, per wayfinder
+// Turns backend-published alert state into toast add/remove plus a
+// persistent history entry (`lib/alertHistory.ts`), per wayfinder
 // tickets 04 (backend-published state, not client-derived thresholds), 05
 // (tank alarm_state -> critical, state-driven dismiss) and 06 (MQTT/
 // Tailscale disconnect -> warning, state-driven dismiss). See
@@ -22,14 +24,29 @@ const FLUID_LABELS: Record<Tank['fluid_type'], string> = {
 // `toastManager` has no "toast per entity, upsert on change" primitive —
 // `add()` always mints a new id. This hook is that missing mechanism: a
 // ref keyed by a stable alert key (`tank:<id>`, `mqtt-connection`,
-// `tailscale-connection`) tracks the live toast id for each currently-
-// active alert, diffed against the previous bus state on every render.
+// `tailscale-connection`) tracks the live toast id *and* the
+// corresponding history entry id for each currently-active alert,
+// diffed against the previous bus state on every render.
 //
 // All alerts here are state-driven (kiosk requirement: must not silently
 // disappear while the real condition persists — see map.md's kiosk-context
-// note), so every toast uses `timeout: 0` regardless of severity; removal
-// only ever happens by this hook closing it once the backend state clears,
-// or by the user dismissing it early via the toast's own close control.
+// note), so every toast uses `timeout: 0` regardless of severity; the
+// toast itself only ever closes by this hook (once the backend state
+// clears) or by the user dismissing it early via the toast's own close
+// control — either way, the matching history entry is left in place
+// (just marked resolved on the former), not removed: removal is only
+// ever an explicit action in the Alerts tab itself (`AlertsTab.tsx`).
+
+interface AlertContent {
+  type: 'error' | 'warning'
+  title: string
+  description: string
+}
+
+interface ActiveAlert {
+  toastId: string
+  historyId: string
+}
 
 interface AlertToastArgs {
   tanks: RenewvanBusState['tanks']
@@ -38,44 +55,35 @@ interface AlertToastArgs {
 }
 
 export function useAlertToasts({ tanks, status, tailscale }: AlertToastArgs): void {
-  const activeToasts = useRef(new Map<string, string>())
+  const activeToasts = useRef(new Map<string, ActiveAlert>())
 
   useEffect(() => {
     const active = activeToasts.current
-    const desired = new Map<string, () => string>()
+    const desired = new Map<string, AlertContent>()
 
     for (const [id, tank] of Object.entries(tanks)) {
       if (!isCompleteTank(tank) || tank.alarm_state !== 'alarm') continue
-      desired.set(`tank:${id}`, () =>
-        toastManager.add({
-          type: 'error',
-          title: `${FLUID_LABELS[tank.fluid_type]} tank alarm`,
-          description: 'Level requires attention.',
-          timeout: 0,
-        }),
-      )
+      desired.set(`tank:${id}`, {
+        type: 'error',
+        title: `${FLUID_LABELS[tank.fluid_type]} tank alarm`,
+        description: 'Level requires attention.',
+      })
     }
 
     if (status === 'disconnected') {
-      desired.set('mqtt-connection', () =>
-        toastManager.add({
-          type: 'warning',
-          title: 'Hub connection lost',
-          description: 'Live data may be out of date.',
-          timeout: 0,
-        }),
-      )
+      desired.set('mqtt-connection', {
+        type: 'warning',
+        title: 'Hub connection lost',
+        description: 'Live data may be out of date.',
+      })
     }
 
     if (tailscale !== null && !tailscale.connected) {
-      desired.set('tailscale-connection', () =>
-        toastManager.add({
-          type: 'warning',
-          title: 'Tailscale disconnected',
-          description: 'Remote access is unavailable.',
-          timeout: 0,
-        }),
-      )
+      desired.set('tailscale-connection', {
+        type: 'warning',
+        title: 'Tailscale disconnected',
+        description: 'Remote access is unavailable.',
+      })
     }
 
     // Deferred to a microtask: `ToastProvider` registers its subscription
@@ -88,15 +96,18 @@ export function useAlertToasts({ tanks, status, tailscale }: AlertToastArgs): vo
     // microtask queued from here always runs after the whole tree
     // (including the Provider's subscribe effect) has flushed.
     queueMicrotask(() => {
-      for (const [key, id] of active) {
+      for (const [key, alert] of active) {
         if (!desired.has(key)) {
-          toastManager.close(id)
+          toastManager.close(alert.toastId)
+          resolveAlertHistoryEntry(alert.historyId)
           active.delete(key)
         }
       }
-      for (const [key, add] of desired) {
+      for (const [key, content] of desired) {
         if (!active.has(key)) {
-          active.set(key, add())
+          const toastId = toastManager.add({ ...content, timeout: 0 })
+          const historyId = appendAlertHistoryEntry({ key, ...content })
+          active.set(key, { toastId, historyId })
         }
       }
     })
