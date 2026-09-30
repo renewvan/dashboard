@@ -6,7 +6,7 @@ import lockupDark from '../assets/logo/renewvan-lockup.svg'
 import { EmptyState } from './components/EmptyState'
 import { Clock } from './components/Clock'
 import { DisplayPowerButton } from './components/DisplayPowerButton'
-import { AlertInfoIcon } from './components/AlertInfoIcon'
+import { AlertsButton } from './components/AlertsButton'
 import { RouterStatusIcon } from './components/RouterStatusIcon'
 import { UplinkStatusButton } from './components/UplinkStatusButton'
 import { Sidebar, type NavItem } from './components/Sidebar'
@@ -15,6 +15,7 @@ import { ThemeToggleButton } from './components/ThemeToggleButton'
 import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
 import { Separator } from "@/components/ui/separator";
 import { useAlertToasts } from './hooks/useAlertToasts'
+import { useUnseenAlertCount } from './hooks/useUnseenAlertCount'
 import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { useTheme, type Theme } from './hooks/useTheme'
 import { useUrlTab } from './hooks/useUrlTab'
@@ -35,7 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: <Wrench className="size-5" /> },
 ]
 
-// Reachable via the header's `AlertInfoIcon` + `?tab=alerts` deep link
+// Reachable via the header's `AlertsButton` + `?tab=alerts` deep link
 // only — deliberately excluded from `NAV_ITEMS`/`Sidebar` per explicit
 // request, so `useUrlTab` needs its own superset of valid ids.
 const TAB_IDS = [...NAV_ITEMS.map((item) => item.id), 'alerts']
@@ -55,6 +56,7 @@ function App() {
   const { state, status, displayPower, tailscale, uplink, publish } = useRenewvanBus()
   useAlertToasts({ tanks: state.tanks, status, tailscale })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'home')
+  const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const wallpaper = WALLPAPER[theme]
 
@@ -93,10 +95,10 @@ function App() {
         />
         <Clock />
         <div className="flex items-center justify-end gap-1.5">
-          <AlertInfoIcon onClick={() => setActiveTab('alerts')} />
           <UplinkStatusButton uplink={uplink} tailscale={tailscale} onOpenSettings={() => setActiveTab('settings')} />
           <RouterStatusIcon status={status} />
           <Separator orientation="vertical" className="mx-1.5"/>
+          <AlertsButton onClick={() => setActiveTab('alerts')} count={unseenAlertCount} />
           <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
           <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>

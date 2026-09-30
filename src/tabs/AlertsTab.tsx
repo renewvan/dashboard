@@ -23,7 +23,7 @@ const SEVERITY_TEXT_CLASS: Record<string, string> = {
 /**
  * Lists the live toast stack (`toastManager`, `src/components/ui/toast.tsx`)
  * as a persistent, scrollable list rather than only the ephemeral top-right
- * toasts — reached via the header's `AlertInfoIcon`. Not wired into
+ * toasts — reached via the header's `AlertsButton`. Not wired into
  * `Sidebar`'s `NAV_ITEMS` (per explicit request); only reachable via the
  * header button or a direct `?tab=alerts` URL (`useUrlTab` in `App.tsx`).
  *

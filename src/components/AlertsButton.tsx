@@ -1,10 +1,11 @@
 import { Bell } from 'lucide-react'
 import { Badge } from './ui/badge'
-import { ToastPrimitive } from './ui/toast'
 
-export interface AlertInfoIconProps {
+export interface AlertsButtonProps {
   /** Navigates to the "Alerts" tab (`App.tsx`) — not a popover like `IconStatusButton`, per explicit request. */
   onClick: () => void
+  /** Unseen-alert badge count (`useUnseenAlertCount`) — owned by `App.tsx`, not derived here, so dismissing a toast never shrinks it; only visiting the Alerts tab does. */
+  count: number
 }
 
 /**
@@ -14,34 +15,29 @@ export interface AlertInfoIconProps {
  * `ThemeToggleButton`/`DisplayPowerButton` (opaque `bg-foreground/10`
  * circle), not `IconStatusButton`'s transparent trigger.
  *
- * The badge count comes straight from `toastManager`'s live toast list
- * (`useAlertToasts` is what actually adds/removes those toasts as the
- * backend-published alert state changes, per
- * `.scratch/alert-system/map.md`) rather than a separate alert store —
- * the toast stack *is* the current set of active alerts, so the header
- * badge and the Alerts tab's list (`AlertsTab.tsx`) both read it
- * directly instead of duplicating that state.
+ * The icon is tinted `text-destructive` (the codebase's "alert" red,
+ * per `UplinkStatusButton`'s offline state / `TankCard`'s fault badge)
+ * only while `count > 0` — no unseen alerts means no visual alarm, so
+ * it falls back to the plain `text-foreground` the other header icon
+ * buttons use.
  */
-export function AlertInfoIcon({ onClick }: AlertInfoIconProps) {
-  const { toasts } = ToastPrimitive.useToastManager()
-  const count = toasts.length
-
+export function AlertsButton({ onClick, count }: AlertsButtonProps) {
   return (
     <button
       type="button"
       aria-label={count > 0 ? `Alerts, ${count} active` : 'Alerts'}
       title="Alerts"
-      data-testid="alert-info-icon"
+      data-testid="alerts-button"
       onClick={onClick}
       className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground/10 hover:bg-foreground/16"
     >
-      <Bell className="size-5" />
+      <Bell className={`size-5 ${count > 0 ? 'text-destructive' : 'text-foreground'}`} />
       {count > 0 && (
         <Badge
           variant="destructive"
           size="sm"
           className="absolute top-0.5 right-0.5"
-          data-testid="alert-info-icon-badge"
+          data-testid="alerts-button-badge"
         >
           {count > 9 ? '9+' : count}
         </Badge>
