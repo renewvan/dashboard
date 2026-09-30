@@ -13,15 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: pnpm/setup@v3
         with:
-          node-version: "22"
-          cache: npm
+          version: 11
+          runtime: node@22
+          cache: true
 
       - name: Run tests
-        run: |
-          npm ci
-          npx vitest run
+        run: pnpm exec vitest run
 
       - name: Log in to registry
         uses: docker/login-action@v3
