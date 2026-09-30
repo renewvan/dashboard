@@ -21,7 +21,7 @@ export interface TankAlarmConfig {
 }
 
 export const TANK_ALARM_CONFIGS: Record<string, TankAlarmConfig> = {
-  fresh: { direction: 'low', threshold: 20, restore: 25 },
+  fresh: { direction: 'low', threshold: 27, restore: 48 },
   grey: { direction: 'high', threshold: 90, restore: 80 },
 }
 
