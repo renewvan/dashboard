@@ -14,11 +14,9 @@ describe('TanksTab', () => {
     render(<TanksTab tanks={tanks} />)
     const cards = screen.getAllByTestId('tank-silo-card').map((el) => el.textContent)
     expect(cards[0]).toContain('Fresh water')
-    expect(cards[0]).toContain('fresh')
     expect(cards[1]).toContain('Grey water')
-    expect(cards[1]).toContain('grey')
     expect(screen.getByText('62%')).toBeInTheDocument()
-    expect(screen.getByText((_, node) => node?.textContent === '62/100 L.')).toBeInTheDocument()
+    expect(screen.getByText(/62\/100/)).toBeInTheDocument()
   })
 
   it('shows a green "Normal" badge for an ok tank and a red "Fault" badge for a faulted one', () => {

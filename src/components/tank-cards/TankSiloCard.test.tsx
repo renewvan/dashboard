@@ -3,15 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { TankSiloCard } from './TankSiloCard'
 
 describe('TankSiloCard', () => {
-  it('renders fluid label, id, badge, percentage, and liters for an ok tank', () => {
+  it('renders fluid label, badge, percentage, and liters for an ok tank', () => {
     render(
       <TankSiloCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 62, status: 'ok' }} />,
     )
     expect(screen.getByText('Fresh water')).toBeInTheDocument()
-    expect(screen.getByText('fresh')).toBeInTheDocument()
     expect(screen.getByText('Normal')).toBeInTheDocument()
     expect(screen.getByText('62%')).toBeInTheDocument()
-    expect(screen.getByText((_, node) => node?.textContent === '62/100 L.')).toBeInTheDocument()
+    expect(screen.getByText(/62\/100/)).toBeInTheDocument()
     expect(screen.getByText('Last inspection: 14-07-2024')).toBeInTheDocument()
   })
 
@@ -47,5 +46,19 @@ describe('TankSiloCard', () => {
     for (const mark of ['100%', '75%', '25%', '0%']) {
       expect(screen.getByText(mark)).toBeInTheDocument()
     }
+  })
+
+  it('renders the telemetry info column with fill and drain rates', () => {
+    render(
+      <TankSiloCard id="fresh" tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 62, status: 'ok' }} />,
+    )
+    const column = screen.getByTestId('tank-info-column')
+    for (const label of ['Temperature', 'Pressure', 'Flow Rates', 'Fill Rate:', 'Drain Rate']) {
+      expect(column).toHaveTextContent(label)
+    }
+    expect(column).toHaveTextContent('68°F')
+    expect(column).toHaveTextContent('45 PSI')
+    expect(column).toHaveTextContent('1200 GPM')
+    expect(column).toHaveTextContent('980 GPM')
   })
 })
