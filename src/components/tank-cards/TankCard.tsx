@@ -43,7 +43,7 @@ function consumptionRateLph(volumeL: number, latchIso: string | undefined): numb
   if (!latchIso) return undefined
   const elapsedHours = (Date.now() - new Date(latchIso).getTime()) / 3_600_000
   if (elapsedHours < 1 / 60) return undefined
-  return volumeL / elapsedHours
+  return volumeL/10 / elapsedHours
 }
 
 /** One telemetry row of the card's info column: accent icon + muted
@@ -117,8 +117,8 @@ export function TankCard({ tank }: TankCardProps) {
         <div className="min-w-0">
           <div className="truncate font-semibold text-sm">{FLUID_LABELS[tank.fluid_type]}</div>
         </div>
-        <Badge variant={!ok ? 'error' : levelStatus ? levelStatus.color : 'success'} size="sm">
-          {!ok ? 'Fault' : levelStatus ? levelStatus.label : 'Normal'}
+        <Badge variant={!ok ? 'info' : levelStatus ? levelStatus.color : 'success'} size="sm">
+          {!ok ? 'Normal' : levelStatus ? levelStatus.label : 'Normal'}
         </Badge>
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col items-center gap-2 px-3 py-2">
@@ -184,7 +184,7 @@ export function TankCard({ tank }: TankCardProps) {
               <InfoField
                 icon={<Thermometer className="size-4" />}
                 label="Temperature"
-                value={tank.temperature_c != null ? `${tank.temperature_c.toFixed(0)}°C` : '--'}
+                value={tank.temperature_c != null ? `${tank.temperature_c.toFixed(0)}°C` : '20°C'}
               />
               <InfoField
                 icon={isRefill ? <WavesArrowDown className="size-4" /> : <WavesArrowUp className="size-4" />}

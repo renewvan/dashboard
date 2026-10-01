@@ -15,6 +15,7 @@ import { getEnv } from '../config/runtimeEnv'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 export type DisplayPower = 'on' | 'off' | null
+export type AutoSleepTimeoutMinutes = 1 | 5 | 15 | 30
 
 export interface TailscaleStatus {
   enabled: boolean
@@ -28,6 +29,10 @@ export interface RenewvanBus {
   state: RenewvanBusState
   status: ConnectionStatus
   displayPower: DisplayPower
+  remoteSleepAllowed: boolean | null
+  brightness: number | null
+  autoSleepEnabled: boolean | null
+  autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
   tailscale: TailscaleStatus | null
   uplink: UplinkStatus | null
   publish: (topic: string, payload: string) => void
@@ -45,8 +50,13 @@ export interface UplinkStatus {
 
 const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery)\/([^/]+)\/([^/]+)$/
 const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
+const TOPIC_REMOTE_SLEEP_ALLOWED = 'renewvan/kiosk/display/remote-sleep-allowed'
+const TOPIC_BRIGHTNESS = 'renewvan/kiosk/display/brightness'
+const TOPIC_AUTO_SLEEP_ENABLED = 'renewvan/kiosk/display/auto-sleep-enabled'
+const TOPIC_AUTO_SLEEP_TIMEOUT = 'renewvan/kiosk/display/auto-sleep-timeout-minutes'
 const TOPIC_TAILSCALE = 'renewvan/tailscale/status'
 const TOPIC_UPLINK = 'renewvan/uplink/status'
+const AUTO_SLEEP_TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 
 /**
  * Every `renewvan/<domain>/<id>/<property>` payload is the JSON-encoded
@@ -108,6 +118,10 @@ export function useRenewvanBus(): RenewvanBus {
   const [state, setState] = useState<RenewvanBusState>(emptyRenewvanBusState)
   const [status, setStatus] = useState<ConnectionStatus>('connecting')
   const [displayPower, setDisplayPower] = useState<DisplayPower>(null)
+  const [remoteSleepAllowed, setRemoteSleepAllowed] = useState<boolean | null>(null)
+  const [brightness, setBrightness] = useState<number | null>(null)
+  const [autoSleepEnabled, setAutoSleepEnabled] = useState<boolean | null>(null)
+  const [autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes] = useState<AutoSleepTimeoutMinutes | null>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
   const [uplink, setUplink] = useState<UplinkStatus | null>(null)
   const clientRef = useRef<MqttClient | null>(null)
@@ -144,6 +158,26 @@ export function useRenewvanBus(): RenewvanBus {
         if (payload === 'on' || payload === 'off') setDisplayPower(payload)
         return
       }
+      if (topic === TOPIC_REMOTE_SLEEP_ALLOWED) {
+        if (payload === 'true' || payload === 'false') setRemoteSleepAllowed(payload === 'true')
+        return
+      }
+      if (topic === TOPIC_BRIGHTNESS) {
+        const value = Number(payload)
+        if (Number.isInteger(value) && value >= 0 && value <= 100) setBrightness(value)
+        return
+      }
+      if (topic === TOPIC_AUTO_SLEEP_ENABLED) {
+        if (payload === 'true' || payload === 'false') setAutoSleepEnabled(payload === 'true')
+        return
+      }
+      if (topic === TOPIC_AUTO_SLEEP_TIMEOUT) {
+        const value = Number(payload)
+        if (AUTO_SLEEP_TIMEOUT_CHOICES.includes(value as AutoSleepTimeoutMinutes)) {
+          setAutoSleepTimeoutMinutes(value as AutoSleepTimeoutMinutes)
+        }
+        return
+      }
       if (topic === TOPIC_TAILSCALE) {
         try {
           setTailscale(JSON.parse(payload) as TailscaleStatus)
@@ -169,5 +203,16 @@ export function useRenewvanBus(): RenewvanBus {
     }
   }, [])
 
-  return { state, status, displayPower, tailscale, uplink, publish }
+  return {
+    state,
+    status,
+    displayPower,
+    remoteSleepAllowed,
+    brightness,
+    autoSleepEnabled,
+    autoSleepTimeoutMinutes,
+    tailscale,
+    uplink,
+    publish,
+  }
 }

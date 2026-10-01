@@ -52,7 +52,7 @@ const WALLPAPER: Record<Theme, string | undefined> = {
 }
 
 function App() {
-  const { state, status, displayPower, tailscale, publish } = useRenewvanBus()
+  const { state, status, displayPower, remoteSleepAllowed, brightness, autoSleepEnabled, autoSleepTimeoutMinutes, tailscale, publish } = useRenewvanBus()
   useAlertToasts({ tanks: state.tanks, status, tailscale })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'home')
   const unseenAlertCount = useUnseenAlertCount(activeTab)
@@ -124,7 +124,17 @@ function App() {
             />
           </TabsPanel>
           <TabsPanel value="settings">
-            <SettingsTab tailscale={tailscale} />
+            <SettingsTab
+              tailscale={tailscale}
+              remoteSleepAllowed={remoteSleepAllowed}
+              brightness={brightness}
+              autoSleepEnabled={autoSleepEnabled}
+              autoSleepTimeoutMinutes={autoSleepTimeoutMinutes}
+              onRemoteSleepAllowedChange={(v) => publish('renewvan/kiosk/display/remote-sleep-allowed/set', JSON.stringify(v))}
+              onBrightnessChange={(v) => publish('renewvan/kiosk/display/brightness/set', JSON.stringify(v))}
+              onAutoSleepEnabledChange={(v) => publish('renewvan/kiosk/display/auto-sleep-enabled/set', JSON.stringify(v))}
+              onAutoSleepTimeoutMinutesChange={(v) => publish('renewvan/kiosk/display/auto-sleep-timeout-minutes/set', JSON.stringify(v))}
+            />
           </TabsPanel>
           <TabsPanel value="alerts">
             <AlertsTab />

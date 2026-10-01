@@ -70,3 +70,53 @@ describe('useRenewvanBus uplink field', () => {
     expect(result.current.uplink).toEqual(uplinkPayload)
   })
 })
+
+describe('useRenewvanBus display settings', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  it('starts all four display settings null until a message arrives', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(result.current.status).toBe('connected'))
+    expect(result.current.remoteSleepAllowed).toBeNull()
+    expect(result.current.brightness).toBeNull()
+    expect(result.current.autoSleepEnabled).toBeNull()
+    expect(result.current.autoSleepTimeoutMinutes).toBeNull()
+  })
+
+  it('parses remote-sleep-allowed and auto-sleep-enabled as booleans', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(messageHandlers.length).toBeGreaterThan(0))
+    messageHandlers[0]('renewvan/kiosk/display/remote-sleep-allowed', { toString: () => 'false' })
+    messageHandlers[0]('renewvan/kiosk/display/auto-sleep-enabled', { toString: () => 'true' })
+    await waitFor(() => expect(result.current.remoteSleepAllowed).toBe(false))
+    expect(result.current.autoSleepEnabled).toBe(true)
+  })
+
+  it('parses brightness as an integer within 0-100', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(messageHandlers.length).toBeGreaterThan(0))
+    messageHandlers[0]('renewvan/kiosk/display/brightness', { toString: () => '70' })
+    await waitFor(() => expect(result.current.brightness).toBe(70))
+  })
+
+  it('ignores an out-of-range brightness payload', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(messageHandlers.length).toBeGreaterThan(0))
+    messageHandlers[0]('renewvan/kiosk/display/brightness', { toString: () => '150' })
+    expect(result.current.brightness).toBeNull()
+  })
+
+  it('parses auto-sleep-timeout-minutes only when it is one of the preset choices', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(messageHandlers.length).toBeGreaterThan(0))
+    messageHandlers[0]('renewvan/kiosk/display/auto-sleep-timeout-minutes', { toString: () => '15' })
+    await waitFor(() => expect(result.current.autoSleepTimeoutMinutes).toBe(15))
+
+    messageHandlers[0]('renewvan/kiosk/display/auto-sleep-timeout-minutes', { toString: () => '7' })
+    expect(result.current.autoSleepTimeoutMinutes).toBe(15) // unchanged — 7 isn't a preset
+  })
+})
