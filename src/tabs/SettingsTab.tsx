@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { AutoSleepTimeoutMinutes, TailscaleStatus } from '../hooks/useRenewvanBus'
 import { tailscaleStatusText } from '../lib/tailscale'
@@ -31,6 +31,28 @@ export interface SettingsTabProps {
   onBrightnessChange: (value: number) => void
   onAutoSleepEnabledChange: (value: boolean) => void
   onAutoSleepTimeoutMinutesChange: (value: AutoSleepTimeoutMinutes) => void
+  /**
+   * DOM node sheets portal into, supplied by `App.tsx` from a ref on a
+   * direct child of the theme-toggling root -- NOT a descendant of any
+   * `backdrop-blur`/`filter`/`transform` ancestor, since those create a
+   * CSS containing block that would clip the sheet's `fixed inset-0`
+   * viewport to that ancestor's box instead of the real viewport.
+   * `null` until that ref mounts; sheets fall back to `document.body`
+   * (base-ui default) for that first render.
+   */
+  portalContainer: HTMLDivElement | null
+  /**
+   * Whether Settings is the sidebar's current tab. Base UI's `Tabs.Panel`
+   * keeps every panel mounted (so inactive tabs don't lose scroll
+   * position/state) -- without this, this component's own drill-down
+   * `view` state would survive switching to another sidebar tab and back,
+   * so tapping the Settings wrench again could silently reopen wherever
+   * you last drilled into (e.g. still on Display, or even a `navStyle:
+   * 'sheet'` dialog) instead of the top-level list. Reset `view` to
+   * `'list'` the moment this goes `false` (not when it next becomes
+   * `true`) so the panel is already fresh before its next appearance.
+   */
+  active: boolean
 }
 
 const TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
@@ -218,22 +240,15 @@ const CARD_WRAPPER = 'flex flex-1 flex-col h-full overflow-y-auto rounded-2xl bo
  * props from `useRenewvanBus`, publishing to the matching `/set` topics.
  */
 export function SettingsTab(props: SettingsTabProps) {
-  const { tailscale } = props
+  const { tailscale, portalContainer, active } = props
   const [navStyle, setNavStyle] = useSettingsNavStyle()
   const [view, setView] = useState<'list' | 'display' | 'network' | 'navigation'>('list')
-  // Base UI's Dialog/Sheet portals to document.body by default, which sits
-  // OUTSIDE the themed div App.tsx toggles the 'dark' class on (that class
-  // lives on an inner wrapper, not <html>) -- so a sheet would render light
-  // regardless of theme. Portaling into this ref (itself inside the themed
-  // tree) fixes it without touching the shared ui/sheet.tsx primitive.
-  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!active) setView('list')
+  }, [active])
 
   const sheetBg = 'border-white/10 bg-card/40 text-foreground backdrop-blur-md'
-
-  const changeNavStyle = (style: SettingsNavStyle) => {
-    setNavStyle(style)
-    setView('list')
-  }
 
   const FRAME_CLASS = 'bg-transparent p-0 gap-0'
   const PANEL_CLASS = 'overflow-hidden border-white/10 bg-card/20 p-0 backdrop-blur-md'
@@ -286,46 +301,48 @@ export function SettingsTab(props: SettingsTabProps) {
     </Frame>
   )
 
-  // TODO refine these option
-  // if (navStyle === 'sheet') {
-  //   return (
-  //     <div className={CARD_WRAPPER}>
-  //       <div ref={setPortalContainer} />
-  //       <NavStyleSwitcher value={navStyle} onChange={changeNavStyle} />
-  //       {groupList}
+  if (navStyle === 'sheet') {
+    return (
+      <div className={CARD_WRAPPER}>
+        <h1 className="mb-2 px-1 font-medium text-base">Settings</h1>
+        {groupList}
 
-  //       <Sheet open={view === 'display'} onOpenChange={(open) => setView(open ? 'display' : 'list')}>
-  //         <SheetPopup side="right" className={sheetBg} portalProps={{ container: portalContainer ?? undefined }}>
-  //           <SheetHeader>
-  //             <SheetTitle>Display</SheetTitle>
-  //           </SheetHeader>
-  //           <SheetPanel className="p-4">
-  //             <div className={ITEM_CARD}>{displayFields}</div>
-  //           </SheetPanel>
-  //         </SheetPopup>
-  //       </Sheet>
+        <Sheet open={view === 'display'} onOpenChange={(open) => setView(open ? 'display' : 'list')}>
+          <SheetPopup side="right" className={sheetBg} portalProps={{ container: portalContainer ?? undefined }}>
+            <SheetHeader>
+              <SheetTitle>Display</SheetTitle>
+            </SheetHeader>
+            <SheetPanel className="p-4">{displayFields}</SheetPanel>
+          </SheetPopup>
+        </Sheet>
 
-  //       <Sheet open={view === 'network'} onOpenChange={(open) => setView(open ? 'network' : 'list')}>
-  //         <SheetPopup side="right" className={sheetBg} portalProps={{ container: portalContainer ?? undefined }}>
-  //           <SheetHeader>
-  //             <SheetTitle>Network</SheetTitle>
-  //           </SheetHeader>
-  //           <SheetPanel className="p-4">
-  //             <div className={ITEM_CARD}>
-  //               <TailscaleRow tailscale={tailscale} />
-  //             </div>
-  //           </SheetPanel>
-  //         </SheetPopup>
-  //       </Sheet>
-  //     </div>
-  //   )
-  // }
+        <Sheet open={view === 'network'} onOpenChange={(open) => setView(open ? 'network' : 'list')}>
+          <SheetPopup side="right" className={sheetBg} portalProps={{ container: portalContainer ?? undefined }}>
+            <SheetHeader>
+              <SheetTitle>Network</SheetTitle>
+            </SheetHeader>
+            <SheetPanel className="p-4">{networkFields}</SheetPanel>
+          </SheetPopup>
+        </Sheet>
+
+        <Sheet open={view === 'navigation'} onOpenChange={(open) => setView(open ? 'navigation' : 'display')}>
+          <SheetPopup side="right" className={sheetBg} portalProps={{ container: portalContainer ?? undefined }}>
+            <SheetHeader>
+              <SheetTitle>Navigation</SheetTitle>
+            </SheetHeader>
+            <SheetPanel className="p-4">{navigationFields}</SheetPanel>
+          </SheetPopup>
+        </Sheet>
+      </div>
+    )
+  }
 
   // navStyle === 'subpage'
   if (view === 'list') {
     return (
       <div className={CARD_WRAPPER}>
        { /* <NavStyleSwitcher value={navStyle} onChange={changeNavStyle} /> TODO*/}
+        <h1 className="mb-2 px-1 font-medium text-base">Settings</h1>
         {groupList}
       </div>
     )

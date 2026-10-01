@@ -16,6 +16,8 @@ function displaySettingsProps(overrides: Partial<SettingsTabProps> = {}): Settin
     onBrightnessChange: vi.fn(),
     onAutoSleepEnabledChange: vi.fn(),
     onAutoSleepTimeoutMinutesChange: vi.fn(),
+    portalContainer: null,
+    active: true,
     ...overrides,
   }
 }
@@ -72,11 +74,32 @@ describe('SettingsTab', () => {
     expect(screen.queryByText('Remote sleep')).not.toBeInTheDocument()
   })
 
+  it('resets to the top-level list when the sidebar navigates away and back', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<SettingsTab {...displaySettingsProps()} />)
+    await user.click(screen.getByText('Display'))
+    expect(screen.getByText('Remote sleep')).toBeInTheDocument()
+
+    // Base UI's Tabs.Panel keeps this component mounted while another
+    // sidebar tab is selected (only `active` flips), so a stale drill-down
+    // `view` would otherwise survive the round trip.
+    rerender(<SettingsTab {...displaySettingsProps({ active: false })} />)
+    rerender(<SettingsTab {...displaySettingsProps({ active: true })} />)
+
+    expect(screen.queryByText('Remote sleep')).not.toBeInTheDocument()
+    expect(screen.getByText('Display')).toBeInTheDocument()
+    expect(screen.getByText('Network')).toBeInTheDocument()
+  })
+
   it('switching to sheet navigation opens Display in a dialog', async () => {
     const user = userEvent.setup()
     render(<SettingsTab {...displaySettingsProps()} />)
-    await user.click(screen.getByText('Sheets'))
     await user.click(screen.getByText('Display'))
+    await user.click(screen.getByText('Navigation'))
+    await user.click(screen.getByText('Sheets'))
+    // Closing the now-sheet-rendered Navigation dialog falls back to its
+    // logical parent (Display), so it reopens immediately as a sheet too.
+    await user.keyboard('{Escape}')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('Remote sleep')).toBeInTheDocument()
   })
@@ -84,6 +107,8 @@ describe('SettingsTab', () => {
   it('persists the chosen navigation style across remounts', async () => {
     const user = userEvent.setup()
     const { unmount } = render(<SettingsTab {...displaySettingsProps()} />)
+    await user.click(screen.getByText('Display'))
+    await user.click(screen.getByText('Navigation'))
     await user.click(screen.getByText('Sheets'))
     unmount()
     render(<SettingsTab {...displaySettingsProps()} />)

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Droplet, Wrench, ToggleLeft, Van, Zap, Heater } from 'lucide-react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
@@ -58,6 +59,16 @@ function App() {
   const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const wallpaper = WALLPAPER[theme]
+  // Base UI's Dialog/Sheet portals to document.body by default, which sits
+  // OUTSIDE the themed div below (the 'dark' class lives on this root, not
+  // <html>) -- so a sheet would render light regardless of theme. Portaling
+  // into this ref instead (a direct child of the themed root, deliberately
+  // NOT nested under `header`'s `backdrop-blur-md`) fixes the theme without
+  // also clipping the sheet's `fixed inset-0` viewport: `backdrop-filter`
+  // establishes a CSS containing block for `position: fixed` descendants,
+  // so portaling anywhere under the header would shrink the sheet to the
+  // header's box instead of the full viewport.
+  const [sheetPortalContainer, setSheetPortalContainer] = useState<HTMLDivElement | null>(null)
 
   const handleSleep = () => publish('renewvan/kiosk/display/power/set', 'off')
   const handleWake = () => publish('renewvan/kiosk/display/power/set', 'on')
@@ -85,6 +96,7 @@ function App() {
         )}
         style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : undefined}
       />
+      <div ref={setSheetPortalContainer} />
       <SleepOverlay displayPower={displayPower} onWake={handleWake} />
       <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 bg-card/40 px-3 py-1.5 backdrop-blur-md">
         <img
@@ -134,6 +146,8 @@ function App() {
               onBrightnessChange={(v) => publish('renewvan/kiosk/display/brightness/set', JSON.stringify(v))}
               onAutoSleepEnabledChange={(v) => publish('renewvan/kiosk/display/auto-sleep-enabled/set', JSON.stringify(v))}
               onAutoSleepTimeoutMinutesChange={(v) => publish('renewvan/kiosk/display/auto-sleep-timeout-minutes/set', JSON.stringify(v))}
+              portalContainer={sheetPortalContainer}
+              active={activeTab === 'settings'}
             />
           </TabsPanel>
           <TabsPanel value="alerts">

@@ -286,10 +286,28 @@ body {
 /* Sidebar nav selection indicator: reuses Coss `TabsList`'s built-in
  * sliding indicator span (positioned/sized automatically from
  * `--active-tab-*` vars, already matching each `TabsTab`'s size-11 circle)
- * as a solid accent-colored badge behind the active icon. */
+ * as a solid accent-colored badge behind the active icon.
+ *
+ * `top`/`translate` here override the shared `tabs.tsx` primitive's own
+ * `bottom-0` + `-translate-y(--active-tab-bottom)` anchor, which Base UI
+ * computes as `tabsListElement.scrollHeight - top - height` --
+ * `scrollHeight` rounds to a whole pixel while `top`/`height` stay
+ * sub-pixel-precise, so mixing them drifts the indicator a visible 2-3px
+ * off the actual button (reported: vertically-oriented rail, consistently
+ * toward the top). `--active-tab-top` is the precise value Base UI derives
+ * straight from `getBoundingClientRect` with no such rounding step, so
+ * anchoring from the top instead eliminates the drift. Kept scoped to
+ * `.sidebar-nav` (not a `tabs.tsx` edit) since this rail is the one
+ * `TabsList` combining `border` + `rounded-full` + backdrop-blur that
+ * seems to land `scrollHeight` on a mismatching sub-pixel boundary often
+ * enough to notice; other (horizontal, borderless) `Tabs` usage is
+ * unaffected and shouldn't inherit an unverified blanket fix. */
 .sidebar-nav [data-slot='tab-indicator'] {
   border-radius: 9999px;
   background: var(--accent);
   box-shadow: none;
+  top: 0;
+  bottom: auto;
+  translate: var(--active-tab-left) var(--active-tab-top);
 }
 
