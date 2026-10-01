@@ -35,7 +35,7 @@ export function Slider({
     >
       {children}
       <SliderPrimitive.Control
-        className="flex touch-none select-none data-disabled:pointer-events-none data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=horizontal]:w-full data-[orientation=horizontal]:min-w-44 data-[orientation=vertical]:flex-col data-disabled:opacity-64"
+        className="flex items-center touch-none select-none data-disabled:pointer-events-none data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=horizontal]:w-full data-[orientation=horizontal]:min-w-44 data-[orientation=vertical]:flex-col data-disabled:opacity-64 pointer-coarse:data-[orientation=horizontal]:min-h-11 pointer-coarse:data-[orientation=vertical]:min-w-11"
         data-slot="slider-control"
       >
         <SliderPrimitive.Track
@@ -48,7 +48,14 @@ export function Slider({
           />
           {Array.from({ length: _values.length }, (_, index) => (
             <SliderPrimitive.Thumb
-              className="block size-5 shrink-0 select-none rounded-full border border-input bg-white not-dark:bg-clip-padding shadow-xs/5 outline-none transition-[box-shadow,scale] before:absolute before:inset-0 before:rounded-full before:shadow-[0_1px_--theme(--color-black/4%)] has-focus-visible:ring-[3px] has-focus-visible:ring-ring/24 data-dragging:scale-120 sm:size-4 dark:border-background dark:has-focus-visible:ring-ring/48 [:has(*:focus-visible),[data-dragging]]:shadow-none"
+              // `pointer-coarse:after:*` is the same touch-target-expansion
+              // pattern Coss's own `number-field.tsx` uses for its
+              // increment/decrement buttons (44x44, matching
+              // docs/design-principles.md's fat-finger/glove minimum) --
+              // absolutely centered rather than relying on the thumb's own
+              // (breakpoint-dependent, size-5/size-4) box, so the hit zone
+              // is exactly 44x44 regardless of the thumb's visual size.
+              className="relative block size-5 shrink-0 select-none rounded-full border border-input bg-white not-dark:bg-clip-padding shadow-xs/5 outline-none transition-[box-shadow,scale] before:absolute before:inset-0 before:rounded-full before:shadow-[0_1px_--theme(--color-black/4%)] has-focus-visible:ring-[3px] has-focus-visible:ring-ring/24 data-dragging:scale-120 sm:size-4 dark:border-background dark:has-focus-visible:ring-ring/48 [:has(*:focus-visible),[data-dragging]]:shadow-none pointer-coarse:after:absolute pointer-coarse:after:left-1/2 pointer-coarse:after:top-1/2 pointer-coarse:after:size-11 pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2"
               data-slot="slider-thumb"
               index={index}
               key={String(index)}
