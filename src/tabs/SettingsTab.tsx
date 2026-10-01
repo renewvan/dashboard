@@ -108,7 +108,9 @@ function RemoteSleepField({ remoteSleepAllowed, onRemoteSleepAllowedChange }: Di
     <Field className="flex-row items-center justify-between px-3.5 py-2.5">
       <div className="flex flex-col gap-0.5">
         <FieldLabel>Remote sleep</FieldLabel>
-        <FieldDescription>Allow the dashboard to put the display to sleep. The host can always sleep it either way.</FieldDescription>
+        <FieldDescription>
+        <p>Allow the dashboard to put the display to sleep.</p> 
+        <p>The host can always sleep it either way.</p></FieldDescription>
       </div>
       <Switch
         checked={remoteSleepAllowed ?? true}

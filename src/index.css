@@ -280,6 +280,21 @@ body {
   }
   html {
     @apply font-sans font-mono;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Touch kiosk, not a desktop page: nothing here is meant to be
+   * copy-pasted, and there's no keyboard/mouse to intentionally select
+   * with -- only fingers, where a slow tap or drag (e.g. dragging the
+   * brightness slider) reads as a text-selection gesture instead and
+   * highlights whatever label it started on. Carved back out for
+   * `input`/`textarea`/`contenteditable` so a genuine text field (none
+   * exist today, but `ui/input.tsx` etc. are still vendored) keeps normal
+   * selection/caret behavior if one's ever wired up. `-webkit-touch-callout`
+   * kills iOS's long-press "copy/lookup" menu the same gesture would
+   * otherwise open. */
+  *:not(input, textarea, [contenteditable='true']) {
+    -webkit-touch-callout: none;
+    user-select: none;
   }
 }
 
