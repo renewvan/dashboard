@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
-import { ClipboardClock, Thermometer, WavesArrowUp, WavesArrowDown } from 'lucide-react'
+import { ClipboardClock, Gauge, Thermometer, WavesArrowUp, WavesArrowDown } from 'lucide-react'
 import { Badge } from '../ui/badge'
 import { Card, CardContent, CardHeader } from '../ui/card'
 import { FLUID_LABELS, STATUS_LABELS } from '../../lib/tank-labels'
-import { tankLiquidColor } from '../../lib/tank-alarm'
+import { TANK_SEVERITY_COLOR, tankLevelStatus, tankLiquidColor } from '../../lib/tank-alarm'
 import type { Tank } from '../../types'
 import { ConfigureButton } from './ConfigureButton'
 
@@ -32,16 +32,43 @@ function formatLatchDate(iso: string): string {
   return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()} ${hh}:${mm}`
 }
 
+/** Average pace in liters/hour since `latchIso` (the fluid_type-relevant
+ *  `last_full_at`/`last_empty_at`), derived from the matching
+ *  `volume_since_full_l`/`volume_since_empty_l` -- both already
+ *  unconditional live fields, no schema addition needed. Undefined
+ *  when there's no latch yet (nothing to measure a pace against), or
+ *  the latch is under a minute old (avoids a near-infinite rate the
+ *  instant a tank crosses full/empty, before any real time has passed). */
+function consumptionRateLph(volumeL: number, latchIso: string | undefined): number | undefined {
+  if (!latchIso) return undefined
+  const elapsedHours = (Date.now() - new Date(latchIso).getTime()) / 3_600_000
+  if (elapsedHours < 1 / 60) return undefined
+  return volumeL / elapsedHours
+}
+
 /** One telemetry row of the card's info column: accent icon + muted
  *  label, bold value beneath — the reference mockup's section shape. */
-function InfoField({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function InfoField({
+  icon,
+  label,
+  value,
+  valueColor,
+}: {
+  icon: ReactNode
+  label: string
+  value: string
+  /** Overrides the value's text color (e.g. the Status row's zone severity); defaults to the card's normal text color. */
+  valueColor?: string
+}) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1 text-xs">
-        <span className="text-[var(--kiosk-accent)]">{icon}</span>
-        <span className="text-muted-foreground dark:text-[var(--kiosk-accent)]">{label}</span>
+        <span className="text-[var(--accent)]">{icon}</span>
+        <span className="text-muted-foreground dark:text-[var(--accent)]">{label}</span>
       </div>
-      <div className="text-sm font-semibold">{value}</div>
+      <div className="text-sm font-semibold" style={valueColor ? { color: valueColor } : undefined}>
+        {value}
+      </div>
     </div>
   )
 }
@@ -65,6 +92,7 @@ function InfoField({ icon, label, value }: { icon: ReactNode; label: string; val
  */
 export function TankCard({ tank }: TankCardProps) {
   const ok = tank.status === 'ok'
+
   const pct = Math.min(100, Math.max(0, tank.level_pct))
   const liters = Math.round((tank.capacity_l * tank.level_pct) / 100)
   const liquidColor = tankLiquidColor(tank, pct)
@@ -74,6 +102,14 @@ export function TankCard({ tank }: TankCardProps) {
   // matching latch timestamp instead of a hardcoded stub date.
   const isRefill = tank.fluid_type === 'fresh_water'
   const latchDate = isRefill ? tank.last_full_at : tank.last_empty_at
+  const levelStatus = tankLevelStatus(tank, pct)
+
+  // Fresh water/fuel/lpg: refilled at last_full_at, so the meaningful pace
+  // to show is how fast it's draining since that refill. Grey/black water:
+  // emptied at last_empty_at, so the meaningful pace is how fast it's
+  // filling since that empty-out. Same direction the footer/latch date
+  // already reads in.
+  const rateLph = consumptionRateLph(isRefill ? tank.volume_since_full_l : tank.volume_since_empty_l, latchDate)
 
   return (
     <Card data-testid="tank-card" className="h-full">
@@ -81,14 +117,11 @@ export function TankCard({ tank }: TankCardProps) {
         <div className="min-w-0">
           <div className="truncate font-semibold text-sm">{FLUID_LABELS[tank.fluid_type]}</div>
         </div>
-        <Badge variant={ok ? 'success' : 'destructive'} size="sm">
-          {ok ? 'Normal' : 'Fault'}
+        <Badge variant={!ok ? 'error' : levelStatus ? levelStatus.color : 'success'} size="sm">
+          {!ok ? 'Fault' : levelStatus ? levelStatus.label : 'Normal'}
         </Badge>
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col items-center gap-2 px-3 py-2">
-        {!ok && (
-          <div className="shrink-0 text-center text-destructive-foreground text-xs">{STATUS_LABELS[tank.status]}</div>
-        )}
         <div className="flex min-h-0 flex-1 items-stretch gap-2">
           <div className="flex justify-between items-stretch gap-4">
             <div className="flex min-h-0 flex-1 items-stretch gap-1">
@@ -131,18 +164,33 @@ export function TankCard({ tank }: TankCardProps) {
               </div>
             </div>
             {/* Telemetry info column per the reference mockup: blue icon +
-                label, bold value below; Flow Rates carries fill and
-                drain side by side (drain label dimmed per the mockup).
-                "Fill Rate"/"Drain Rate" show volume_since_full_l/
-                volume_since_empty_l (net liters moved since the last
-                full/empty latch) per hub/schema/tank.schema.json v0.4 —
-                despite the label, these are cumulative volumes, not the
-                schema's separate fill_rate_lpm/drain_rate_lpm instantaneous
-                LPM fields (explicit choice, not a units mismatch). */}
-            <div className="flex shrink-0 flex-col justify-between gap-2 py-10" data-testid="tank-info-column">
-              <InfoField icon={<Thermometer className="size-4" />} label="Temperature" value="23°C" />
-              <InfoField icon={<WavesArrowUp className="size-4" />} label="Fill Rate" value={`${Math.round(tank.volume_since_full_l)} L`} />
-              <InfoField icon={<WavesArrowDown className="size-4" />} label="Drain Rate" value={`${Math.round(tank.volume_since_empty_l)} L`} />
+                label, bold value below. Up to three rows, each hidden when
+                not applicable: Status (level zone, hidden with no alarm
+                configured -- see tankLevelStatus), Temperature (hidden with
+                no DS18B20 sensor configured), and a pace-based Fill/Drain
+                Rate in L/h since the last refill/empty-out (hidden until a
+                first latch exists) -- replaces the earlier design that
+                showed volume_since_full_l/volume_since_empty_l as static
+                cumulative totals under a "Rate" label with no time unit. */}
+            <div className="flex shrink-0 flex-col justify-between gap-2 py-12" data-testid="tank-info-column">
+              {(!ok || levelStatus) && (
+                <InfoField
+                  icon={<Gauge className="size-4" />}
+                  label="Status"
+                  value={!ok ? STATUS_LABELS[tank.status] :  (levelStatus as NonNullable<typeof levelStatus>).label}
+                  valueColor={!ok ? 'var(--bad)' : (levelStatus as NonNullable<typeof levelStatus>).label === "Full" && tank.alarm_direction === 'low' ? '' : TANK_SEVERITY_COLOR[(levelStatus as NonNullable<typeof levelStatus>).color]}
+                />
+              )}
+              <InfoField
+                icon={<Thermometer className="size-4" />}
+                label="Temperature"
+                value={tank.temperature_c != null ? `${tank.temperature_c.toFixed(0)}°C` : '--'}
+              />
+              <InfoField
+                icon={isRefill ? <WavesArrowDown className="size-4" /> : <WavesArrowUp className="size-4" />}
+                label={isRefill ? 'Drain Rate' : 'Fill Rate'}
+                value={rateLph !== undefined ? `${rateLph.toFixed(1)} L/h` : '--'}
+              />
             </div>
           </div>
         </div>

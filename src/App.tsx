@@ -8,7 +8,6 @@ import { Clock } from './components/Clock'
 import { DisplayPowerButton } from './components/DisplayPowerButton'
 import { AlertsButton } from './components/AlertsButton'
 import { RouterStatusIcon } from './components/RouterStatusIcon'
-import { UplinkStatusButton } from './components/UplinkStatusButton'
 import { Sidebar, type NavItem } from './components/Sidebar'
 import { SleepOverlay } from './components/SleepOverlay'
 import { ThemeToggleButton } from './components/ThemeToggleButton'
@@ -53,7 +52,7 @@ const WALLPAPER: Record<Theme, string | undefined> = {
 }
 
 function App() {
-  const { state, status, displayPower, tailscale, uplink, publish } = useRenewvanBus()
+  const { state, status, displayPower, tailscale, publish } = useRenewvanBus()
   useAlertToasts({ tanks: state.tanks, status, tailscale })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'home')
   const unseenAlertCount = useUnseenAlertCount(activeTab)
@@ -95,7 +94,6 @@ function App() {
         />
         <Clock />
         <div className="flex items-center justify-end gap-1.5">
-          <UplinkStatusButton uplink={uplink} tailscale={tailscale} onOpenSettings={() => setActiveTab('settings')} />
           <RouterStatusIcon status={status} />
           <Separator orientation="vertical" className="mx-1.5"/>
           <AlertsButton onClick={() => setActiveTab('alerts')} count={unseenAlertCount} active={activeTab === 'alerts'} />

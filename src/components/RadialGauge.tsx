@@ -13,7 +13,7 @@ export interface RadialGaugeProps {
  * `battery.soc_pct`), per the winning `prototype/dashboard-06` variant C
  * layout. Pure presentational component — props in, markup out.
  */
-export function RadialGauge({ pct, label, sub, color = 'var(--kiosk-accent)' }: RadialGaugeProps) {
+export function RadialGauge({ pct, label, sub, color = 'var(--accent)' }: RadialGaugeProps) {
   const clamped = Math.min(100, Math.max(0, pct))
   const ringStyle = { background: `conic-gradient(${color} ${clamped * 3.6}deg, var(--panel-2) 0deg)` }
 

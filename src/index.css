@@ -15,7 +15,7 @@
   --panel-2: color-mix(in srgb, #ffffff 92%, black);
   --text: #0f1a2a;
   --kiosk-muted: #64748b;
-  --kiosk-accent: #439eff;
+  --accent: #439eff;
   --ok: #4caf7d;
   --warn: #e0a72c;
   --bad: #e05c5c;
@@ -224,7 +224,7 @@ body {
   --panel-2: color-mix(in srgb, #0f1a2a 88%, white);
   --text: #f6f8fb;
   --kiosk-muted: #9aa1ad;
-  --kiosk-accent: #439eff;
+  --accent: #439eff;
   color-scheme: dark;
   --destructive-foreground: var(--color-red-400);
   --info: var(--color-blue-500);
@@ -233,7 +233,6 @@ body {
   --success-foreground: var(--color-emerald-400);
   --warning: var(--warn);
   --warning-foreground: var(--color-amber-400);
-  --accent: --alpha(var(--color-white) / 4%);
   --accent-foreground: var(--color-neutral-100);
   --background: var(--bg);
   --border: var(--panel-2);
@@ -246,9 +245,9 @@ body {
   --muted-foreground: var(--kiosk-muted);
   --popover: var(--panel-2);
   --popover-foreground: var(--text);
-  --primary: var(--kiosk-accent);
+  --primary: var(--accent);
   --primary-foreground: var(--bg);
-  --ring: var(--kiosk-accent);
+  --ring: var(--accent);
   --secondary: var(--panel-2);
   --secondary-foreground: var(--text);
   --chart-1: var(--color-blue-700);
@@ -290,7 +289,7 @@ body {
  * as a solid accent-colored badge behind the active icon. */
 .sidebar-nav [data-slot='tab-indicator'] {
   border-radius: 9999px;
-  background: var(--kiosk-accent);
+  background: var(--accent);
   box-shadow: none;
 }
 

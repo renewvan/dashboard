@@ -33,14 +33,14 @@ export function TankStatCard({ id, tank }: TankStatCardProps) {
         </div>
         <div
           className="text-5xl font-bold tabular-nums"
-          style={{ color: ok ? 'var(--kiosk-accent)' : 'var(--bad)' }}
+          style={{ color: ok ? 'var(--accent)' : 'var(--bad)' }}
         >
           {pct.toFixed(0)}%
         </div>
         <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--panel-2)]">
           <div
             className="h-full transition-[width]"
-            style={{ width: `${pct}%`, background: ok ? 'var(--kiosk-accent)' : 'var(--bad)' }}
+            style={{ width: `${pct}%`, background: ok ? 'var(--accent)' : 'var(--bad)' }}
           />
         </div>
         <div className="text-muted-foreground text-sm">

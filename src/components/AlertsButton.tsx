@@ -22,7 +22,7 @@ export interface AlertsButtonProps {
  * only while `count > 0` — no unseen alerts means no visual alarm, so
  * it falls back to the plain `text-foreground` the other header icon
  * buttons use. While `active` (the Alerts tab is open), that all gets
- * overridden by a solid `--kiosk-accent` circle with a white icon —
+ * overridden by a solid `--accent` circle with a white icon —
  * same treatment `Sidebar`'s selected nav item gets — which wins over
  * both the resting and alert-red states so "currently viewing" always
  * reads unambiguously.
@@ -38,7 +38,7 @@ export function AlertsButton({ onClick, count, active }: AlertsButtonProps) {
       data-active={active}
       onClick={onClick}
       className={`relative flex size-11 shrink-0 items-center justify-center rounded-full ${
-        active ? 'bg-[var(--kiosk-accent)] hover:bg-[var(--kiosk-accent)]' : 'bg-foreground/10 hover:bg-foreground/16'
+        active ? 'bg-[var(--accent)] hover:bg-[var(--accent)]' : 'bg-foreground/10 hover:bg-foreground/16'
       }`}
     >
       <Bell className={`size-5 ${active ? 'text-white' : count > 0 ? 'text-destructive' : 'text-foreground'}`} />

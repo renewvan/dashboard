@@ -27,7 +27,7 @@ export function TankRowCard({ id, tank }: TankRowCardProps) {
         <div className="relative h-16 w-6 shrink-0 overflow-hidden rounded-full border bg-[var(--panel-2)]">
           <div
             className="absolute inset-x-0 bottom-0"
-            style={{ height: `${pct}%`, background: ok ? 'var(--kiosk-accent)' : 'var(--bad)' }}
+            style={{ height: `${pct}%`, background: ok ? 'var(--accent)' : 'var(--bad)' }}
           />
         </div>
         <div className="min-w-0 flex-1">

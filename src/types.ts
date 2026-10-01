@@ -1,12 +1,13 @@
 // v0.1 device-model entity shapes, per hub/schema/*.schema.json. Tank
-// mirrors hub schema v0.6 (fill_rate_lpm, drain_rate_lpm,
-// volume_since_full_l, volume_since_empty_l added as unconditional live
-// fields; last_full_date/last_empty_date renamed to last_full_at/
-// last_empty_at with full ISO-8601 timestamps; alarm_direction/
+// mirrors hub schema v0.7 (volume_since_full_l, volume_since_empty_l added
+// as unconditional live fields; last_full_date/last_empty_date renamed to
+// last_full_at/last_empty_at with full ISO-8601 timestamps; alarm_direction/
 // alarm_threshold_pct/alarm_restore_pct added as retained identity fields,
 // per docs/adr/0004 in hub -- see lib/tank-alarm.ts for how these replace
 // the former hardcoded TANK_ALARM_CONFIGS mirror; level_pct_smoothed
-// removed per docs/adr/0005 in hub -- TankCard shows raw level_pct).
+// removed per docs/adr/0005 in hub -- TankCard shows raw level_pct;
+// fill_rate_lpm/drain_rate_lpm removed per docs/adr/0006 in hub -- never
+// consumed here, superseded by volume_since_full_l/volume_since_empty_l).
 // Each entity is keyed by `id` (the topic's path segment, never a payload
 // field) — see hub/CONTEXT.md's Entity/topic-convention terms.
 
@@ -26,12 +27,12 @@ export interface Tank {
    * this — the driver-facing number is the sender's actual reading. */
   level_pct: number
   status: TankStatus
-  fill_rate_lpm: number
-  drain_rate_lpm: number
-  /** Net liters moved since the last committed full latch — TankCard's "Fill Rate" field, despite the name (a volume, not a rate). */
+  /** Net liters moved since the last committed full latch. */
   volume_since_full_l: number
-  /** Net liters moved since the last committed empty latch — TankCard's "Drain Rate" field. */
+  /** Net liters moved since the last committed empty latch. */
   volume_since_empty_l: number
+  /** Degrees Celsius. Optional — only present if a DS18B20 sensor is configured for this tank. */
+  temperature_c?: number
   alarm_state?: TankAlarmState
   /** Which side of alarm_threshold_pct triggers alarm. Retained/static,
    * published once at startup. Present under the same condition as
@@ -63,8 +64,6 @@ export function isCompleteTank(tank: Partial<Tank>): tank is Tank {
     tank.capacity_l !== undefined &&
     tank.level_pct !== undefined &&
     tank.status !== undefined &&
-    tank.fill_rate_lpm !== undefined &&
-    tank.drain_rate_lpm !== undefined &&
     tank.volume_since_full_l !== undefined &&
     tank.volume_since_empty_l !== undefined
   )

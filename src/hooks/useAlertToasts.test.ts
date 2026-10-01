@@ -10,8 +10,6 @@ const okTank: Tank = {
   capacity_l: 100,
   level_pct: 50,
   status: 'ok',
-  fill_rate_lpm: 0,
-  drain_rate_lpm: 0,
   volume_since_full_l: 0,
   volume_since_empty_l: 0,
 }

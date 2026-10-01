@@ -7,8 +7,6 @@ import { TanksTab } from './TanksTab'
 // zero/empty defaults so each test only spells out what it exercises.
 function tank(overrides: Pick<Tank, 'fluid_type' | 'capacity_l' | 'level_pct' | 'status'> & Partial<Tank>): Tank {
   return {
-    fill_rate_lpm: 0,
-    drain_rate_lpm: 0,
     volume_since_full_l: 0,
     volume_since_empty_l: 0,
     ...overrides,
@@ -50,7 +48,7 @@ describe('TanksTab', () => {
         tanks={{ fresh: tank({ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 0, status: 'open_circuit' }) }}
       />,
     )
-    expect(screen.getByText(/Sensor fault: open circuit/)).toBeInTheDocument()
+    expect(screen.getByText(/Open circuit/)).toBeInTheDocument()
   })
 
   it('surfaces a short_circuit fault status too', () => {
@@ -59,7 +57,7 @@ describe('TanksTab', () => {
         tanks={{ grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'short_circuit' }) }}
       />,
     )
-    expect(screen.getByText(/Sensor fault: short circuit/)).toBeInTheDocument()
+    expect(screen.getByText(/Short circuit/)).toBeInTheDocument()
   })
 
   it('shows an empty state with no tank data', () => {

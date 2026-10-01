@@ -8,8 +8,6 @@ import { TankStatCard } from './TankStatCard'
 // TankStatCard reads level_pct directly — unused prototype variant, out of scope to migrate.
 function tank(overrides: Pick<Tank, 'fluid_type' | 'capacity_l' | 'level_pct' | 'status'> & Partial<Tank>): Tank {
   return {
-    fill_rate_lpm: 0,
-    drain_rate_lpm: 0,
     volume_since_full_l: 0,
     volume_since_empty_l: 0,
     ...overrides,
@@ -32,6 +30,6 @@ describe('TankStatCard', () => {
       />,
     )
     expect(screen.getByText('Fault')).toBeInTheDocument()
-    expect(screen.getByText('Sensor fault: open circuit')).toBeInTheDocument()
+    expect(screen.getByText('Open circuit')).toBeInTheDocument()
   })
 })
