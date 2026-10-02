@@ -169,7 +169,7 @@ export function TankCard({ tank }: TankCardProps) {
                 label, bold value below. Up to three rows, each hidden when
                 not applicable: Status (level zone, hidden with no alarm
                 configured -- see tankLevelStatus), Temperature (hidden with
-                no DS18B20 sensor configured), and a pace-based Fill/Drain
+                no NTC temperature sensor configured), and a pace-based Fill/Drain
                 Rate in L/h since the last refill/empty-out (hidden until a
                 first latch exists) -- replaces the earlier design that
                 showed volume_since_full_l/volume_since_empty_l as static

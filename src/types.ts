@@ -31,7 +31,7 @@ export interface Tank {
   volume_since_full_l: number
   /** Net liters moved since the last committed empty latch. */
   volume_since_empty_l: number
-  /** Degrees Celsius. Optional — only present if a DS18B20 sensor is configured for this tank. */
+  /** Degrees Celsius. Optional — only present if an NTC temperature sensor is configured for this tank. */
   temperature_c?: number
   alarm_state?: TankAlarmState
   /** Which side of alarm_threshold_pct triggers alarm. Retained/static,
