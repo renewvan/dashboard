@@ -19,6 +19,7 @@ import { useUnseenAlertCount } from './hooks/useUnseenAlertCount'
 import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { useTheme, type Theme } from './hooks/useTheme'
 import { useUrlTab } from './hooks/useUrlTab'
+import { isLocalKiosk } from './lib/kioskHost'
 import { cn } from './lib/utils'
 import { AlertsTab } from './tabs/AlertsTab'
 import { HomeTab } from './tabs/HomeTab'
@@ -97,7 +98,7 @@ function App() {
         style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : undefined}
       />
       <div ref={setSheetPortalContainer} />
-      <SleepOverlay displayPower={displayPower} onWake={handleWake} />
+      {isLocalKiosk() && <SleepOverlay displayPower={displayPower} onWake={handleWake} />}
       <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 bg-card/40 px-3 py-1.5 backdrop-blur-md">
         <img
           src={theme === 'dark' ? lockupWhite : lockupDark}

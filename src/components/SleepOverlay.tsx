@@ -15,6 +15,13 @@ export interface SleepOverlayProps {
  * Rendered as null when displayPower is "on" or null (not yet received),
  * so there is no flash on initial load before the retained topic arrives.
  *
+ * Mounted by `App` only when `isLocalKiosk()` is true — this overlay
+ * represents *this physical screen's* sleep state, so a remote viewer
+ * (phone, laptop) must never see it: a host sleep/wake toggle is purely a
+ * command sent to the van, not something that should visually affect the
+ * device doing the viewing. `DisplayPowerButton`'s icon state is the
+ * host-status indicator available to remote viewers instead.
+ *
  * Stays hand-rolled (per ticket 06): Base UI's `Dialog`/`Popover`
  * primitives bring focus-trap, Escape-to-close, and backdrop-click-dismiss
  * semantics that don't fit a kiosk overlay meant to wake on *any* touch
