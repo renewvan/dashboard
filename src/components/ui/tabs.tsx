@@ -90,7 +90,7 @@ export function TabsTab({
 export function TabsPanel({ className, ...props }: TabsPrimitive.Panel.Props): React.ReactElement {
   return (
     <TabsPrimitive.Panel
-      className={cn('flex-1 outline-none', className)}
+      className={cn('min-h-0 flex-1 outline-none', className)}
       data-slot="tabs-content"
       {...props}
     />

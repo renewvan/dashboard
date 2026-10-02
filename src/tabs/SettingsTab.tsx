@@ -8,6 +8,7 @@ import { Slider } from '../components/ui/slider'
 import { Field, FieldLabel } from '../components/ui/field'
 import { Sheet, SheetPopup, SheetHeader, SheetTitle, SheetPanel } from '../components/ui/sheet'
 import { Frame, FramePanel } from '../components/ui/frame'
+import { ScrollArea } from '../components/ui/scroll-area'
 import { Label } from '../components/ui/label'
 import { Radio, RadioGroup } from '../components/ui/radio-group'
 import {
@@ -238,7 +239,7 @@ function NavStyleSwitcher({
 }
 
 const CARD_WRAPPER =
-  'flex flex-1 flex-col h-full overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md'
+  'flex flex-1 flex-col h-full overflow-hidden rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md [clip-path:inset(0_round_var(--radius-2xl))]'
 
 /**
  * Settings panel — Display and Network groups. Two navigation styles are
@@ -322,7 +323,13 @@ export function SettingsTab(props: SettingsTabProps) {
     return (
       <div className={CARD_WRAPPER}>
         <h1 className="mb-2 px-1 text-base font-medium">Settings</h1>
-        {groupList}
+        <ScrollArea
+          className="min-h-0 flex-1 **:data-[slot=scroll-area-scrollbar]:hidden"
+          overscrollContain
+          scrollFade
+        >
+          {groupList}
+        </ScrollArea>
 
         <Sheet
           open={view === 'display'}
@@ -381,7 +388,13 @@ export function SettingsTab(props: SettingsTabProps) {
       <div className={CARD_WRAPPER}>
         {/* <NavStyleSwitcher value={navStyle} onChange={changeNavStyle} /> TODO*/}
         <h1 className="mb-2 px-1 text-base font-medium">Settings</h1>
-        {groupList}
+        <ScrollArea
+          className="min-h-0 flex-1 **:data-[slot=scroll-area-scrollbar]:hidden"
+          overscrollContain
+          scrollFade
+        >
+          {groupList}
+        </ScrollArea>
       </div>
     )
   }
@@ -417,7 +430,13 @@ export function SettingsTab(props: SettingsTabProps) {
           ))}
         </BreadcrumbList>
       </Breadcrumb>
-      {content}
+      <ScrollArea
+        className="min-h-0 flex-1 **:data-[slot=scroll-area-scrollbar]:hidden"
+        overscrollContain
+        scrollFade
+      >
+        {content}
+      </ScrollArea>
     </div>
   )
 }

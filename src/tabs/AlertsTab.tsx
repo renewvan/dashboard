@@ -1,6 +1,7 @@
 import { Bell, CircleAlertIcon, TriangleAlertIcon, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Badge } from '../components/ui/badge'
+import { ScrollArea } from '../components/ui/scroll-area'
 import { EmptyState } from '../components/EmptyState'
 import { useAlertHistory } from '../hooks/useAlertHistory'
 import type { AlertHistoryEntry } from '../lib/alertHistory'
@@ -80,61 +81,67 @@ export function AlertsTab() {
   }
 
   return (
-    <div className="bg-card/40 flex h-full flex-1 flex-col overflow-y-auto rounded-2xl border border-white/10 p-4 backdrop-blur-md">
-      <div className="flex flex-col gap-2" data-testid="alerts-list">
-        {entries.map((entry) => {
-          const Icon = SEVERITY_ICONS[entry.type]
-          const iconClass = SEVERITY_TEXT_CLASS[entry.type]
-          const resolved = entry.resolvedAt !== undefined
-          const acknowledged = entry.acknowledgedAt !== undefined
-          return (
-            <div
-              key={entry.id}
-              data-testid="alert-row"
-              data-resolved={resolved}
-              data-acknowledged={acknowledged}
-              className={`flex items-start justify-between gap-3 rounded-lg border px-3.5 py-2.5 backdrop-blur-md ${SEVERITY_BORDER_CLASS[entry.type]}`}
-            >
-              <div className="flex items-start gap-2">
-                <Icon className={`mt-0.5 size-4 shrink-0 ${iconClass}`} />
-                <div className="flex flex-col gap-1">
-                  <span className="font-medium">{entry.title}</span>
-                  <p className="text-muted-foreground/90 line-clamp-2 text-sm">
-                    {entry.description}
-                  </p>
+    <div className="bg-card/40 flex h-full flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 p-4 backdrop-blur-md [clip-path:inset(0_round_var(--radius-2xl))]">
+      <ScrollArea
+        className="min-h-0 flex-1 **:data-[slot=scroll-area-scrollbar]:hidden"
+        overscrollContain
+        scrollFade
+      >
+        <div className="flex flex-col gap-2" data-testid="alerts-list">
+          {entries.map((entry) => {
+            const Icon = SEVERITY_ICONS[entry.type]
+            const iconClass = SEVERITY_TEXT_CLASS[entry.type]
+            const resolved = entry.resolvedAt !== undefined
+            const acknowledged = entry.acknowledgedAt !== undefined
+            return (
+              <div
+                key={entry.id}
+                data-testid="alert-row"
+                data-resolved={resolved}
+                data-acknowledged={acknowledged}
+                className={`flex items-start justify-between gap-3 rounded-lg border px-3.5 py-2.5 backdrop-blur-md ${SEVERITY_BORDER_CLASS[entry.type]}`}
+              >
+                <div className="flex items-start gap-2">
+                  <Icon className={`mt-0.5 size-4 shrink-0 ${iconClass}`} />
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium">{entry.title}</span>
+                    <p className="text-muted-foreground/90 line-clamp-2 text-sm">
+                      {entry.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <div className="flex items-start gap-3">
-                  {resolved ? (
-                    <Badge variant="success" size="sm" className="w-fit">
-                      Resolved
-                    </Badge>
-                  ) : acknowledged ? (
-                    <Badge variant="info" size="sm" className="w-fit">
-                      Acknowledged
-                    </Badge>
-                  ) : null}
-                  <button
-                    type="button"
-                    aria-label="Remove alert"
-                    onClick={() => remove(entry.id)}
-                    className="text-destructive rounded p-0.5 opacity-70 hover:opacity-100"
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <div className="flex items-start gap-3">
+                    {resolved ? (
+                      <Badge variant="success" size="sm" className="w-fit">
+                        Resolved
+                      </Badge>
+                    ) : acknowledged ? (
+                      <Badge variant="info" size="sm" className="w-fit">
+                        Acknowledged
+                      </Badge>
+                    ) : null}
+                    <button
+                      type="button"
+                      aria-label="Remove alert"
+                      onClick={() => remove(entry.id)}
+                      className="text-destructive rounded p-0.5 opacity-70 hover:opacity-100"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                  <span
+                    className="text-muted-foreground/90 text-xs font-semibold tabular-nums"
+                    data-testid="alert-row-timestamp"
                   >
-                    <X className="size-4" />
-                  </button>
+                    {formatTimestamp(entry.createdAt)}
+                  </span>
                 </div>
-                <span
-                  className="text-muted-foreground/90 text-xs font-semibold tabular-nums"
-                  data-testid="alert-row-timestamp"
-                >
-                  {formatTimestamp(entry.createdAt)}
-                </span>
               </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      </ScrollArea>
     </div>
   )
 }

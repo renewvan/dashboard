@@ -130,7 +130,7 @@ function App() {
       </header>
       <div className="flex flex-1 gap-3 overflow-hidden">
         <Sidebar items={NAV_ITEMS} />
-        <div className="flex flex-1 flex-col overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsPanel value="home">
             <HomeTab />
           </TabsPanel>
