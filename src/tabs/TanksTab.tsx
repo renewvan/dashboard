@@ -15,9 +15,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
   // whose record hasn't fully arrived yet (see `isCompleteTank`).
   const ids = Object.keys(tanks)
     .filter((id) => isCompleteTank(tanks[id]))
-    .sort(
-      (a, b) => TANK_ORDER.indexOf(a) - TANK_ORDER.indexOf(b) || a.localeCompare(b),
-    )
+    .sort((a, b) => TANK_ORDER.indexOf(a) - TANK_ORDER.indexOf(b) || a.localeCompare(b))
 
   if (ids.length === 0) {
     return (

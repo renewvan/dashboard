@@ -28,7 +28,13 @@ vi.mock('mqtt', () => ({
   },
 }))
 
-const uplinkPayload = { path: 'wifi', online: true, ssid: 'VanNet', interface: 'wlan0', ip: '192.168.1.42' }
+const uplinkPayload = {
+  path: 'wifi',
+  online: true,
+  ssid: 'VanNet',
+  interface: 'wlan0',
+  ip: '192.168.1.42',
+}
 
 describe('useRenewvanBus uplink field', () => {
   beforeEach(() => {
@@ -110,7 +116,9 @@ describe('useRenewvanBus display settings', () => {
   it('parses auto-sleep-timeout-minutes only when it is one of the preset choices', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(messageHandlers.length).toBeGreaterThan(0))
-    messageHandlers[0]('renewvan/kiosk/display/auto-sleep-timeout-minutes', { toString: () => '15' })
+    messageHandlers[0]('renewvan/kiosk/display/auto-sleep-timeout-minutes', {
+      toString: () => '15',
+    })
     await waitFor(() => expect(result.current.autoSleepTimeoutMinutes).toBe(15))
 
     messageHandlers[0]('renewvan/kiosk/display/auto-sleep-timeout-minutes', { toString: () => '7' })

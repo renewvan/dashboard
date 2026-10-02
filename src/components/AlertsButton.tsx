@@ -38,10 +38,14 @@ export function AlertsButton({ onClick, count, active }: AlertsButtonProps) {
       data-active={active}
       onClick={onClick}
       className={`relative flex size-11 shrink-0 items-center justify-center rounded-full ${
-        active ? 'bg-[var(--accent)] hover:bg-[var(--accent)]' : 'bg-foreground/10 hover:bg-foreground/16'
+        active
+          ? 'bg-[var(--accent)] hover:bg-[var(--accent)]'
+          : 'bg-foreground/10 hover:bg-foreground/16'
       }`}
     >
-      <Bell className={`size-5 ${active ? 'text-white' : count > 0 ? 'text-destructive' : 'text-foreground'}`} />
+      <Bell
+        className={`size-5 ${active ? 'text-white' : count > 0 ? 'text-destructive' : 'text-foreground'}`}
+      />
       {count > 0 && (
         <Badge
           variant="destructive"

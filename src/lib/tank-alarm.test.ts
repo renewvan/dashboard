@@ -47,7 +47,11 @@ function baseTank(overrides: Partial<Tank> = {}): Tank {
 
 describe('tankAlarmConfig', () => {
   it('reads direction/threshold/restore off the wire fields (hub schema v0.5)', () => {
-    const tank = baseTank({ alarm_direction: 'low', alarm_threshold_pct: 27, alarm_restore_pct: 48 })
+    const tank = baseTank({
+      alarm_direction: 'low',
+      alarm_threshold_pct: 27,
+      alarm_restore_pct: 48,
+    })
     expect(tankAlarmConfig(tank)).toEqual({ direction: 'low', threshold: 27, restore: 48 })
   })
 
@@ -57,7 +61,9 @@ describe('tankAlarmConfig', () => {
 
   it('returns undefined if only some of the three wire fields are present', () => {
     expect(tankAlarmConfig(baseTank({ alarm_direction: 'low' }))).toBeUndefined()
-    expect(tankAlarmConfig(baseTank({ alarm_threshold_pct: 27, alarm_restore_pct: 48 }))).toBeUndefined()
+    expect(
+      tankAlarmConfig(baseTank({ alarm_threshold_pct: 27, alarm_restore_pct: 48 })),
+    ).toBeUndefined()
   })
 })
 
@@ -69,7 +75,11 @@ describe('tankAlarmConfig', () => {
 // must defer to the more precise zone math, not the coarser bit, or
 // caution never renders while rising (only while falling).
 describe('tankLiquidColor', () => {
-  const lowConfig = { alarm_direction: 'low' as const, alarm_threshold_pct: 27, alarm_restore_pct: 48 }
+  const lowConfig = {
+    alarm_direction: 'low' as const,
+    alarm_threshold_pct: 27,
+    alarm_restore_pct: 48,
+  }
 
   it('shows caution amber while falling through the band (alarm_state still ok)', () => {
     const tank = baseTank({ ...lowConfig, alarm_state: 'ok' })
@@ -94,7 +104,9 @@ describe('tankLiquidColor', () => {
   it('colors the normal band by fluid type, not one shared blue', () => {
     expect(tankLiquidColor(baseTank({ fluid_type: 'fresh_water' }), 50)).toBe('var(--accent)')
     expect(tankLiquidColor(baseTank({ fluid_type: 'grey_water' }), 50)).toBe('var(--accent)')
-    expect(tankLiquidColor(baseTank({ fluid_type: 'black_water' }), 50)).toBe('var(--color-stone-800)')
+    expect(tankLiquidColor(baseTank({ fluid_type: 'black_water' }), 50)).toBe(
+      'var(--color-stone-800)',
+    )
     expect(tankLiquidColor(baseTank({ fluid_type: 'fuel' }), 50)).toBe('var(--color-amber-600)')
     expect(tankLiquidColor(baseTank({ fluid_type: 'lpg' }), 50)).toBe('var(--color-orange-500)')
   })
@@ -107,8 +119,16 @@ describe('tankLiquidColor', () => {
 })
 
 describe('tankLevelStatus', () => {
-  const lowConfig = { alarm_direction: 'low' as const, alarm_threshold_pct: 27, alarm_restore_pct: 48 }
-  const highConfig = { alarm_direction: 'high' as const, alarm_threshold_pct: 90, alarm_restore_pct: 80 }
+  const lowConfig = {
+    alarm_direction: 'low' as const,
+    alarm_threshold_pct: 27,
+    alarm_restore_pct: 48,
+  }
+  const highConfig = {
+    alarm_direction: 'high' as const,
+    alarm_threshold_pct: 90,
+    alarm_restore_pct: 80,
+  }
 
   it('colors the caution band warning while rising (alarm_state still alarm)', () => {
     const tank = baseTank({ ...lowConfig, alarm_state: 'alarm' })

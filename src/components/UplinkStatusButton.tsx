@@ -30,13 +30,23 @@ interface UplinkPresentation {
 function present(uplink: UplinkStatus | null): UplinkPresentation {
   if (uplink === null) {
     // No retained message yet — the hub's first probe hasn't landed.
-    return { Icon: Loader2, iconClass: 'text-warning animate-spin', label: 'Checking uplink…', online: null }
+    return {
+      Icon: Loader2,
+      iconClass: 'text-warning animate-spin',
+      label: 'Checking uplink…',
+      online: null,
+    }
   }
   if (!uplink.online) {
     return { Icon: CloudOff, iconClass: 'text-destructive', label: 'Uplink offline', online: false }
   }
   if (uplink.path === 'lan') {
-    return { Icon: ChevronsLeftRightEllipsis, iconClass: 'text-success', label: 'Uplink via LAN', online: true }
+    return {
+      Icon: ChevronsLeftRightEllipsis,
+      iconClass: 'text-success',
+      label: 'Uplink via LAN',
+      online: true,
+    }
   }
   if (uplink.path === 'wifi') {
     return {
@@ -46,12 +56,17 @@ function present(uplink: UplinkStatus | null): UplinkPresentation {
       online: true,
     }
   }
-  return { Icon: ShieldLock, iconClass: 'text-success', label: 'Uplink via Tailscale', online: true }
+  return {
+    Icon: ShieldLock,
+    iconClass: 'text-success',
+    label: 'Uplink via Tailscale',
+    online: true,
+  }
 }
 
 function FieldRow({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="flex items-center justify-between gap-3 text-muted-foreground">
+    <div className="text-muted-foreground flex items-center justify-between gap-3">
       <span>{label}</span>
       <span className="text-foreground">{value ?? '—'}</span>
     </div>
@@ -89,4 +104,3 @@ export function UplinkStatusButton({ uplink, tailscale, onOpenSettings }: Uplink
     />
   )
 }
-

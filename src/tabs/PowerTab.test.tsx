@@ -30,7 +30,14 @@ describe('PowerTab', () => {
     render(
       <PowerTab
         batteries={{
-          house: { soc_pct: 40, voltage_v: 12.4, current_a: -3.1, power_w: -38, temperature_c: 21, charge_state: 'discharging' },
+          house: {
+            soc_pct: 40,
+            voltage_v: 12.4,
+            current_a: -3.1,
+            power_w: -38,
+            temperature_c: 21,
+            charge_state: 'discharging',
+          },
         }}
       />,
     )

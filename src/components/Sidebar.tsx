@@ -78,14 +78,14 @@ export interface SidebarProps {
 export function Sidebar({ items }: SidebarProps) {
   return (
     <aside className="flex h-full w-fit shrink-0 flex-col items-start justify-center">
-      <TabsList className="sidebar-nav h-full flex-col items-center justify-center gap-3 rounded-full border border-white/10 bg-card/40 p-2 backdrop-blur-md">
+      <TabsList className="sidebar-nav bg-card/40 h-full flex-col items-center justify-center gap-3 rounded-full border border-white/10 p-2 backdrop-blur-md">
         {items.map((item) => (
           <TabsTab
             key={item.id}
             value={item.id}
             data-testid={`nav-${item.id}`}
             aria-label={item.label}
-            className="size-11! shrink-0 grow-0 justify-center! rounded-full bg-foreground/10 p-0 hover:bg-foreground/16 data-active:text-white!"
+            className="bg-foreground/10 hover:bg-foreground/16 size-11! shrink-0 grow-0 justify-center! rounded-full p-0 data-active:text-white!"
           >
             {item.icon}
           </TabsTab>

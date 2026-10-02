@@ -28,7 +28,7 @@ export function ThemeToggleButton({ theme, onThemeChange }: ThemeToggleButtonPro
       title={`Switch to ${nextTheme} theme`}
       data-testid="dark-theme-toggle"
       onClick={() => onThemeChange(nextTheme)}
-      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground/10 hover:bg-foreground/16"
+      className="bg-foreground/10 hover:bg-foreground/16 flex size-11 shrink-0 items-center justify-center rounded-full"
     >
       <Icon className="size-5" />
     </button>

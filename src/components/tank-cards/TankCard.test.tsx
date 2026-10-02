@@ -9,7 +9,9 @@ import { TankCard } from './TankCard'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 function expectedLatchDate(iso: string): RegExp {
   const date = new Date(iso)
-  return new RegExp(`^${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()} \\d{2}:\\d{2}$`)
+  return new RegExp(
+    `^${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()} \\d{2}:\\d{2}$`,
+  )
 }
 
 describe('TankCard', () => {
@@ -286,7 +288,9 @@ describe('TankCard', () => {
         }}
       />,
     )
-    const header = screen.getByTestId('tank-card').querySelector('[data-slot="card-header"]') as HTMLElement
+    const header = screen
+      .getByTestId('tank-card')
+      .querySelector('[data-slot="card-header"]') as HTMLElement
     const badge = within(header).getByText('Full')
     expect(badge.className).toContain('success')
 
@@ -392,7 +396,7 @@ describe('TankCard liquid color', () => {
     expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--bad)' })
   })
 
-  it('fills in the fluid\'s own color (not accent blue) for a tank with no alarm config and no alarm on the wire', () => {
+  it("fills in the fluid's own color (not accent blue) for a tank with no alarm config and no alarm on the wire", () => {
     render(
       <TankCard
         id="fuel"
@@ -413,7 +417,14 @@ describe('TankCard liquid color', () => {
     const { rerender } = render(
       <TankCard
         id="t"
-        tank={{ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 50, status: 'ok', volume_since_full_l: 0, volume_since_empty_l: 0 }}
+        tank={{
+          fluid_type: 'fresh_water',
+          capacity_l: 100,
+          level_pct: 50,
+          status: 'ok',
+          volume_since_full_l: 0,
+          volume_since_empty_l: 0,
+        }}
       />,
     )
     expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--accent)' })
@@ -421,7 +432,14 @@ describe('TankCard liquid color', () => {
     rerender(
       <TankCard
         id="t"
-        tank={{ fluid_type: 'grey_water', capacity_l: 100, level_pct: 50, status: 'ok', volume_since_full_l: 0, volume_since_empty_l: 0 }}
+        tank={{
+          fluid_type: 'grey_water',
+          capacity_l: 100,
+          level_pct: 50,
+          status: 'ok',
+          volume_since_full_l: 0,
+          volume_since_empty_l: 0,
+        }}
       />,
     )
     expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--accent)' })
@@ -429,7 +447,14 @@ describe('TankCard liquid color', () => {
     rerender(
       <TankCard
         id="t"
-        tank={{ fluid_type: 'black_water', capacity_l: 100, level_pct: 50, status: 'ok', volume_since_full_l: 0, volume_since_empty_l: 0 }}
+        tank={{
+          fluid_type: 'black_water',
+          capacity_l: 100,
+          level_pct: 50,
+          status: 'ok',
+          volume_since_full_l: 0,
+          volume_since_empty_l: 0,
+        }}
       />,
     )
     expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--color-stone-800)' })
@@ -437,7 +462,14 @@ describe('TankCard liquid color', () => {
     rerender(
       <TankCard
         id="t"
-        tank={{ fluid_type: 'lpg', capacity_l: 100, level_pct: 50, status: 'ok', volume_since_full_l: 0, volume_since_empty_l: 0 }}
+        tank={{
+          fluid_type: 'lpg',
+          capacity_l: 100,
+          level_pct: 50,
+          status: 'ok',
+          volume_since_full_l: 0,
+          volume_since_empty_l: 0,
+        }}
       />,
     )
     expect(screen.getByTestId('tank-liquid')).toHaveStyle({ background: 'var(--color-orange-500)' })

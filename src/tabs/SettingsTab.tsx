@@ -10,8 +10,18 @@ import { Sheet, SheetPopup, SheetHeader, SheetTitle, SheetPanel } from '../compo
 import { Frame, FramePanel } from '../components/ui/frame'
 import { Label } from '../components/ui/label'
 import { Radio, RadioGroup } from '../components/ui/radio-group'
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '../components/ui/breadcrumb'
-import { segmentedControlRootClassName, segmentedControlItemVariants } from '../lib/segmented-control'
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../components/ui/breadcrumb'
+import {
+  segmentedControlRootClassName,
+  segmentedControlItemVariants,
+} from '../lib/segmented-control'
 import { cn } from '../lib/utils'
 
 export interface SettingsTabProps {
@@ -57,18 +67,26 @@ const TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 const BRIGHTNESS_TICKS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 const BRIGHTNESS_TICK_SKIP_INTERVAL = 2
 
-function GroupRow({ label, description, onClick }: { label: string; description: string; onClick: () => void }) {
+function GroupRow({
+  label,
+  description,
+  onClick,
+}: {
+  label: string
+  description: string
+  onClick: () => void
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between px-3.5 py-3 text-left hover:bg-foreground/5"
+      className="hover:bg-foreground/5 flex w-full items-center justify-between px-3.5 py-3 text-left"
     >
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium">{label}</span>
         <span className="text-muted-foreground text-xs">{description}</span>
       </div>
-      <ChevronRight className="size-4 text-muted-foreground" />
+      <ChevronRight className="text-muted-foreground size-4" />
     </button>
   )
 }
@@ -111,34 +129,37 @@ function BrightnessField({ brightness, onBrightnessChange }: DisplayFieldsProps)
   return (
     <Field className="gap-5 px-3.5 py-2.5">
       <div className="flex w-full items-center justify-between gap-1">
-        <FieldLabel className="font-medium text-sm">Brightness</FieldLabel>
-        <span className="text-muted-foreground text-xs">{brightness === null ? '—' : `${brightness}%`}</span>
+        <FieldLabel className="text-sm font-medium">Brightness</FieldLabel>
+        <span className="text-muted-foreground text-xs">
+          {brightness === null ? '—' : `${brightness}%`}
+        </span>
       </div>
-            <div className="flex flex-col w-full items-center justify-between gap-1">
-
-      <Slider
-        value={value}
-        max={100}
-        disabled={brightness === null}
-        onValueChange={(v) => onBrightnessChange(Array.isArray(v) ? v[0] : v)}
-      />
-      <div
-        aria-label="Brightness scale from 0 to 100"
-        className="mt-1 flex w-full items-center justify-between gap-1 px-2.5 font-medium text-muted-foreground text-xs"
-        role="group"
-      >
-        {BRIGHTNESS_TICKS.map((tick, i) => (
-          <span className="flex w-0 flex-col items-center justify-center gap-2" key={tick}>
-            <span
-              className={cn(
-                'h-1 w-px bg-muted-foreground/72',
-                i % BRIGHTNESS_TICK_SKIP_INTERVAL !== 0 && 'h-0.5',
-              )}
-            />
-            <span className={cn(i % BRIGHTNESS_TICK_SKIP_INTERVAL !== 0 && 'opacity-0')}>{tick}</span>
-          </span>
-        ))}
-      </div>
+      <div className="flex w-full flex-col items-center">
+        <Slider
+          value={value}
+          max={100}
+          disabled={brightness === null}
+          onValueChange={(v) => onBrightnessChange(Array.isArray(v) ? v[0] : v)}
+        />
+        <div
+          aria-label="Brightness scale from 0 to 100"
+          className="text-muted-foreground mt-1 flex w-full items-center justify-between gap-1 px-2.5 text-xs font-medium"
+          role="group"
+        >
+          {BRIGHTNESS_TICKS.map((tick, i) => (
+            <span className="flex w-0 flex-col items-center justify-center gap-2" key={tick}>
+              <span
+                className={cn(
+                  'bg-muted-foreground/72 h-1 w-px',
+                  i % BRIGHTNESS_TICK_SKIP_INTERVAL !== 0 && 'h-0.5',
+                )}
+              />
+              <span className={cn(i % BRIGHTNESS_TICK_SKIP_INTERVAL !== 0 && 'opacity-0')}>
+                {tick}
+              </span>
+            </span>
+          ))}
+        </div>
       </div>
     </Field>
   )
@@ -161,7 +182,7 @@ function AutoSleepField({
         />
       </Field>
       {autoSleepEnabled && (
-        <div className="flex items-center justify-between border-border border-t px-3.5 py-2.5">
+        <div className="border-border flex items-center justify-between border-t px-3.5 py-2.5">
           <span className="text-muted-foreground text-xs">Sleep after</span>
           <div className={segmentedControlRootClassName}>
             {TIMEOUT_CHOICES.map((m) => (
@@ -187,13 +208,23 @@ const NAV_STYLE_OPTIONS: { value: SettingsNavStyle; label: string; description: 
   { value: 'sheet', label: 'Sheets', description: 'Each group opens a slide-in flyout.' },
 ]
 
-function NavStyleSwitcher({ value, onChange }: { value: SettingsNavStyle; onChange: (v: SettingsNavStyle) => void }) {
+function NavStyleSwitcher({
+  value,
+  onChange,
+}: {
+  value: SettingsNavStyle
+  onChange: (v: SettingsNavStyle) => void
+}) {
   return (
-    <RadioGroup value={value} onValueChange={(v) => onChange(v as SettingsNavStyle)} className="w-full gap-2">
+    <RadioGroup
+      value={value}
+      onValueChange={(v) => onChange(v as SettingsNavStyle)}
+      className="w-full gap-2"
+    >
       {NAV_STYLE_OPTIONS.map((option) => (
         <Label
           key={option.value}
-          className="flex items-start gap-2 rounded-lg border border-border p-3 hover:bg-foreground/5 has-data-checked:border-primary/48 has-data-checked:bg-foreground/5"
+          className="border-border hover:bg-foreground/5 has-data-checked:border-primary/48 has-data-checked:bg-foreground/5 flex items-start gap-2 rounded-lg border p-3"
         >
           <Radio value={option.value} className="mt-0.5" />
           <div className="flex flex-col gap-0.5">
@@ -206,7 +237,8 @@ function NavStyleSwitcher({ value, onChange }: { value: SettingsNavStyle; onChan
   )
 }
 
-const CARD_WRAPPER = 'flex flex-1 flex-col h-full overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md'
+const CARD_WRAPPER =
+  'flex flex-1 flex-col h-full overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md'
 
 /**
  * Settings panel — Display and Network groups. Two navigation styles are
@@ -236,10 +268,18 @@ export function SettingsTab(props: SettingsTabProps) {
   const groupList = (
     <Frame className={FRAME_CLASS}>
       <FramePanel className={PANEL_CLASS}>
-        <GroupRow label="Display" description="Remote sleep, brightness, auto-sleep" onClick={() => setView('display')} />
+        <GroupRow
+          label="Display"
+          description="Remote sleep, brightness, auto-sleep"
+          onClick={() => setView('display')}
+        />
       </FramePanel>
       <FramePanel className={PANEL_CLASS}>
-        <GroupRow label="Network" description={tailscaleStatusText(tailscale)} onClick={() => setView('network')} />
+        <GroupRow
+          label="Network"
+          description={tailscaleStatusText(tailscale)}
+          onClick={() => setView('network')}
+        />
       </FramePanel>
     </Frame>
   )
@@ -272,7 +312,7 @@ export function SettingsTab(props: SettingsTabProps) {
 
   const navigationFields = (
     <Frame className={FRAME_CLASS}>
-      <FramePanel className="border-white/10 bg-card/20 backdrop-blur-md">
+      <FramePanel className="bg-card/20 border-white/10 backdrop-blur-md">
         <NavStyleSwitcher value={navStyle} onChange={setNavStyle} />
       </FramePanel>
     </Frame>
@@ -281,11 +321,18 @@ export function SettingsTab(props: SettingsTabProps) {
   if (navStyle === 'sheet') {
     return (
       <div className={CARD_WRAPPER}>
-        <h1 className="mb-2 px-1 font-medium text-base">Settings</h1>
+        <h1 className="mb-2 px-1 text-base font-medium">Settings</h1>
         {groupList}
 
-        <Sheet open={view === 'display'} onOpenChange={(open) => setView(open ? 'display' : 'list')}>
-          <SheetPopup side="right" className={sheetBg} portalProps={{ container: portalContainer ?? undefined }}>
+        <Sheet
+          open={view === 'display'}
+          onOpenChange={(open) => setView(open ? 'display' : 'list')}
+        >
+          <SheetPopup
+            side="right"
+            className={sheetBg}
+            portalProps={{ container: portalContainer ?? undefined }}
+          >
             <SheetHeader>
               <SheetTitle>Display</SheetTitle>
             </SheetHeader>
@@ -293,8 +340,15 @@ export function SettingsTab(props: SettingsTabProps) {
           </SheetPopup>
         </Sheet>
 
-        <Sheet open={view === 'network'} onOpenChange={(open) => setView(open ? 'network' : 'list')}>
-          <SheetPopup side="right" className={sheetBg} portalProps={{ container: portalContainer ?? undefined }}>
+        <Sheet
+          open={view === 'network'}
+          onOpenChange={(open) => setView(open ? 'network' : 'list')}
+        >
+          <SheetPopup
+            side="right"
+            className={sheetBg}
+            portalProps={{ container: portalContainer ?? undefined }}
+          >
             <SheetHeader>
               <SheetTitle>Network</SheetTitle>
             </SheetHeader>
@@ -302,8 +356,15 @@ export function SettingsTab(props: SettingsTabProps) {
           </SheetPopup>
         </Sheet>
 
-        <Sheet open={view === 'navigation'} onOpenChange={(open) => setView(open ? 'navigation' : 'display')}>
-          <SheetPopup side="right" className={sheetBg} portalProps={{ container: portalContainer ?? undefined }}>
+        <Sheet
+          open={view === 'navigation'}
+          onOpenChange={(open) => setView(open ? 'navigation' : 'display')}
+        >
+          <SheetPopup
+            side="right"
+            className={sheetBg}
+            portalProps={{ container: portalContainer ?? undefined }}
+          >
             <SheetHeader>
               <SheetTitle>Navigation</SheetTitle>
             </SheetHeader>
@@ -318,8 +379,8 @@ export function SettingsTab(props: SettingsTabProps) {
   if (view === 'list') {
     return (
       <div className={CARD_WRAPPER}>
-       { /* <NavStyleSwitcher value={navStyle} onChange={changeNavStyle} /> TODO*/}
-        <h1 className="mb-2 px-1 font-medium text-base">Settings</h1>
+        {/* <NavStyleSwitcher value={navStyle} onChange={changeNavStyle} /> TODO*/}
+        <h1 className="mb-2 px-1 text-base font-medium">Settings</h1>
         {groupList}
       </div>
     )
@@ -334,7 +395,8 @@ export function SettingsTab(props: SettingsTabProps) {
           { label: 'Navigation' },
         ]
       : [{ label: 'Settings', onClick: () => setView('list') }, { label: title }]
-  const content = view === 'display' ? displayFields : view === 'network' ? networkFields : navigationFields
+  const content =
+    view === 'display' ? displayFields : view === 'network' ? networkFields : navigationFields
   return (
     <div className={CARD_WRAPPER}>
       <Breadcrumb className="mb-3 px-1">

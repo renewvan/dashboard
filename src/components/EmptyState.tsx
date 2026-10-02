@@ -1,11 +1,5 @@
 import type { ReactNode } from 'react'
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 
 export interface EmptyStateProps {
   icon: ReactNode
@@ -39,7 +33,9 @@ export function EmptyState({ icon, title, description }: EmptyStateProps) {
           {icon}
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
-        {description && <EmptyDescription className="text-white/50">{description}</EmptyDescription>}
+        {description && (
+          <EmptyDescription className="text-white/50">{description}</EmptyDescription>
+        )}
       </EmptyHeader>
     </Empty>
   )

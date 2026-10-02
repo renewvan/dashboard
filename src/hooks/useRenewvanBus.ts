@@ -85,7 +85,10 @@ function applyMessage(prev: RenewvanBusState, topic: string, payload: string): R
   if (domain === 'tank') {
     return {
       ...prev,
-      tanks: { ...prev.tanks, [id]: { ...prev.tanks[id], [property]: value } as RenewvanBusState['tanks'][string] },
+      tanks: {
+        ...prev.tanks,
+        [id]: { ...prev.tanks[id], [property]: value } as RenewvanBusState['tanks'][string],
+      },
     }
   }
   if (domain === 'battery') {
@@ -118,7 +121,8 @@ export function useRenewvanBus(): RenewvanBus {
   const [displayPower, setDisplayPower] = useState<DisplayPower>(null)
   const [brightness, setBrightness] = useState<number | null>(null)
   const [autoSleepEnabled, setAutoSleepEnabled] = useState<boolean | null>(null)
-  const [autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes] = useState<AutoSleepTimeoutMinutes | null>(null)
+  const [autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes] =
+    useState<AutoSleepTimeoutMinutes | null>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
   const [uplink, setUplink] = useState<UplinkStatus | null>(null)
   const clientRef = useRef<MqttClient | null>(null)

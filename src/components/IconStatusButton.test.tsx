@@ -21,7 +21,11 @@ describe('IconStatusButton', () => {
   it('shows the popover content when tapped', async () => {
     const user = userEvent.setup()
     render(
-      <IconStatusButton label="Uplink" icon={<span>icon</span>} popoverContent={<span>Uplink details</span>} />,
+      <IconStatusButton
+        label="Uplink"
+        icon={<span>icon</span>}
+        popoverContent={<span>Uplink details</span>}
+      />,
     )
     await user.click(screen.getByRole('button', { name: 'Uplink' }))
     expect(await screen.findByText('Uplink details')).toBeInTheDocument()
@@ -36,7 +40,14 @@ describe('IconStatusButton', () => {
     expect(await screen.findByText('details')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /open settings/i })).not.toBeInTheDocument()
 
-    rerender(<IconStatusButton label="Uplink" icon={<span>icon</span>} popoverContent="details" onOpenSettings={onOpenSettings} />)
+    rerender(
+      <IconStatusButton
+        label="Uplink"
+        icon={<span>icon</span>}
+        popoverContent="details"
+        onOpenSettings={onOpenSettings}
+      />,
+    )
     await userEvent.setup().click(screen.getByRole('button', { name: /open settings/i }))
     expect(onOpenSettings).toHaveBeenCalledTimes(1)
   })

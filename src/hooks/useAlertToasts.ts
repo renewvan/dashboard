@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { acknowledgeAlertHistoryEntry, appendAlertHistoryEntry, resolveAlertHistoryEntry } from '../lib/alertHistory'
+import {
+  acknowledgeAlertHistoryEntry,
+  appendAlertHistoryEntry,
+  resolveAlertHistoryEntry,
+} from '../lib/alertHistory'
 import { toastManager } from '../components/ui/toast'
 import { isCompleteTank, type RenewvanBusState, type Tank } from '../types'
 import type { ConnectionStatus, TailscaleStatus } from './useRenewvanBus'

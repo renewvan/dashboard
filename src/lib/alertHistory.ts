@@ -68,7 +68,9 @@ export function subscribeAlertHistory(listener: Listener): () => void {
 }
 
 /** Appends a new entry (newest-first) and returns its id, for later `resolveEntry` correlation. */
-export function appendAlertHistoryEntry(entry: Pick<AlertHistoryEntry, 'key' | 'type' | 'title' | 'description'>): string {
+export function appendAlertHistoryEntry(
+  entry: Pick<AlertHistoryEntry, 'key' | 'type' | 'title' | 'description'>,
+): string {
   const id = `${entry.key}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   write([{ ...entry, id, createdAt: Date.now() }, ...read()])
   return id

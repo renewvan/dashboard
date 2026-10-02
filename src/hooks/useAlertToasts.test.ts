@@ -28,7 +28,9 @@ describe('useAlertToasts', () => {
   it('adds a critical toast when a tank enters alarm_state', async () => {
     const add = vi.spyOn(toastManager, 'add').mockReturnValue('t1')
 
-    renderHook(() => useAlertToasts({ tanks: { fresh: alarmTank }, status: 'connected', tailscale: null }))
+    renderHook(() =>
+      useAlertToasts({ tanks: { fresh: alarmTank }, status: 'connected', tailscale: null }),
+    )
     await flush()
 
     expect(add).toHaveBeenCalledWith(
@@ -55,7 +57,9 @@ describe('useAlertToasts', () => {
   it('does not add a toast for a tank in ok state', async () => {
     const add = vi.spyOn(toastManager, 'add').mockReturnValue('t1')
 
-    renderHook(() => useAlertToasts({ tanks: { fresh: okTank }, status: 'connected', tailscale: null }))
+    renderHook(() =>
+      useAlertToasts({ tanks: { fresh: okTank }, status: 'connected', tailscale: null }),
+    )
     await flush()
 
     expect(add).not.toHaveBeenCalled()

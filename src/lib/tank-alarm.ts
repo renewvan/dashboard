@@ -128,9 +128,14 @@ export function tankLevelStatus(tank: Tank, levelPct: number): TankLevelStatus |
   const base: TankLevelStatus =
     zone === 'normal' && !committedAlarm
       ? { label: 'Normal', color: 'info' }
-      : { label: config.direction === 'low' ? 'Low' : 'High', color: zone === 'caution' ? 'warning' : 'destructive' }
+      : {
+          label: config.direction === 'low' ? 'Low' : 'High',
+          color: zone === 'caution' ? 'warning' : 'destructive',
+        }
   const rounded = Math.round(levelPct)
-  if (rounded === 0) return { label: 'Empty', color: config.direction === 'low' ? 'destructive' : 'success' }
-  if (rounded === 100) return { label: 'Full', color: config.direction === 'low' ? 'success' : 'destructive' }
+  if (rounded === 0)
+    return { label: 'Empty', color: config.direction === 'low' ? 'destructive' : 'success' }
+  if (rounded === 100)
+    return { label: 'Full', color: config.direction === 'low' ? 'success' : 'destructive' }
   return base
 }

@@ -15,7 +15,9 @@ export interface RadialGaugeProps {
  */
 export function RadialGauge({ pct, label, sub, color = 'var(--accent)' }: RadialGaugeProps) {
   const clamped = Math.min(100, Math.max(0, pct))
-  const ringStyle = { background: `conic-gradient(${color} ${clamped * 3.6}deg, var(--panel-2) 0deg)` }
+  const ringStyle = {
+    background: `conic-gradient(${color} ${clamped * 3.6}deg, var(--panel-2) 0deg)`,
+  }
 
   return (
     <div className="radial-gauge" data-testid="radial-gauge">

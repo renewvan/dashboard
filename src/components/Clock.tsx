@@ -37,11 +37,7 @@ export function Clock() {
   }, [])
 
   return (
-    <time
-      dateTime={now.toISOString()}
-      data-testid="clock"
-      className="text-sm tabular-nums"
-    >
+    <time dateTime={now.toISOString()} data-testid="clock" className="text-sm tabular-nums">
       {formatTime(now)}
     </time>
   )

@@ -109,13 +109,16 @@ export function TankCard({ tank }: TankCardProps) {
   // emptied at last_empty_at, so the meaningful pace is how fast it's
   // filling since that empty-out. Same direction the footer/latch date
   // already reads in.
-  const rateLph = consumptionRateLph(isRefill ? tank.volume_since_full_l : tank.volume_since_empty_l, latchDate)
+  const rateLph = consumptionRateLph(
+    isRefill ? tank.volume_since_full_l : tank.volume_since_empty_l,
+    latchDate,
+  )
 
   return (
     <Card data-testid="tank-card" className="h-full">
       <CardHeader className="flex flex-row items-center justify-between gap-2 px-5 py-3">
         <div className="min-w-0">
-          <div className="truncate font-semibold text-sm">{FLUID_LABELS[tank.fluid_type]}</div>
+          <div className="truncate text-sm font-semibold">{FLUID_LABELS[tank.fluid_type]}</div>
         </div>
         <Badge variant={!ok ? 'error' : levelStatus ? levelStatus.color : 'success'} size="sm">
           {!ok ? 'Fault' : levelStatus ? levelStatus.label : 'Normal'}
@@ -123,22 +126,22 @@ export function TankCard({ tank }: TankCardProps) {
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col items-center gap-2 px-3 py-2">
         <div className="flex min-h-0 flex-1 items-stretch gap-2">
-          <div className="flex justify-between items-stretch gap-4">
+          <div className="flex items-stretch justify-between gap-4">
             <div className="flex min-h-0 flex-1 items-stretch gap-1">
               <div className="flex min-h-0 flex-col items-center gap-2">
                 <div className="relative min-h-0 w-[125px] flex-1 overflow-hidden rounded-xl border bg-[var(--panel-2)]">
                   {GRIDLINES.map((mark) => (
                     <div
                       key={mark}
-                      className="absolute inset-x-0 border-t border-[--alpha(var(--bg)/50%)] z-1000"
+                      className="absolute inset-x-0 z-1000 border-t border-[--alpha(var(--bg)/50%)]"
                       style={{ bottom: `${mark}%` }}
                     />
                   ))}
-              <div
-                data-testid="tank-liquid"
-                className="absolute inset-x-0 bottom-0 flex items-start justify-center rounded-t-sm pt-1 text-[12px] text-white font-semibold transition-[height]"
-                style={{ height: `${pct}%`, background: liquidColor }}
-              >
+                  <div
+                    data-testid="tank-liquid"
+                    className="absolute inset-x-0 bottom-0 flex items-start justify-center rounded-t-sm pt-1 text-[12px] font-semibold text-white transition-[height]"
+                    style={{ height: `${pct}%`, background: liquidColor }}
+                  >
                     {pct >= 16 && `${pct.toFixed(0)}%`}
                   </div>
                   {pct < 16 && (
@@ -147,20 +150,19 @@ export function TankCard({ tank }: TankCardProps) {
                     </div>
                   )}
                 </div>
-                <div className="shrink-0 text-muted-foreground text-sm font-semibold">
+                <div className="text-muted-foreground shrink-0 text-sm font-semibold">
                   {liters}/{tank.capacity_l} {'\u2113'}
                 </div>
               </div>
               {/* Percentage scale: a tick-marked vertical axis, one small horizontal
                   divider per labelled value (100/75/50/25/0%), per the reference mockup. */}
-              <div className="flex flex-col justify-between text-[10px]  pb-5">
+              <div className="flex flex-col justify-between pb-6 text-[10px]">
                 {SCALE_MARKS.map((mark) => (
                   <div key={mark} className="flex items-center gap-1">
-                    <span className="h-px w-2 bg-border" />
+                    <span className="bg-border h-px w-2" />
                     <span>{mark}%</span>
                   </div>
                 ))}
-            
               </div>
             </div>
             {/* Telemetry info column per the reference mockup: blue icon +
@@ -172,13 +174,29 @@ export function TankCard({ tank }: TankCardProps) {
                 first latch exists) -- replaces the earlier design that
                 showed volume_since_full_l/volume_since_empty_l as static
                 cumulative totals under a "Rate" label with no time unit. */}
-            <div className="flex shrink-0 flex-col justify-between gap-2 py-12" data-testid="tank-info-column">
+            <div
+              className="flex shrink-0 flex-col justify-between gap-2 py-12"
+              data-testid="tank-info-column"
+            >
               {(!ok || levelStatus) && (
                 <InfoField
                   icon={<Gauge className="size-4" />}
                   label="Status"
-                  value={!ok ? STATUS_LABELS[tank.status] :  (levelStatus as NonNullable<typeof levelStatus>).label}
-                  valueColor={!ok ? 'var(--bad)' : (levelStatus as NonNullable<typeof levelStatus>).label === "Full" && tank.alarm_direction === 'low' ? '' : TANK_SEVERITY_COLOR[(levelStatus as NonNullable<typeof levelStatus>).color]}
+                  value={
+                    !ok
+                      ? STATUS_LABELS[tank.status]
+                      : (levelStatus as NonNullable<typeof levelStatus>).label
+                  }
+                  valueColor={
+                    !ok
+                      ? 'var(--bad)'
+                      : (levelStatus as NonNullable<typeof levelStatus>).label === 'Full' &&
+                          tank.alarm_direction === 'low'
+                        ? ''
+                        : TANK_SEVERITY_COLOR[
+                            (levelStatus as NonNullable<typeof levelStatus>).color
+                          ]
+                  }
                 />
               )}
               <InfoField
@@ -187,7 +205,13 @@ export function TankCard({ tank }: TankCardProps) {
                 value={tank.temperature_c != null ? `${tank.temperature_c.toFixed(0)}°C` : '20°C'}
               />
               <InfoField
-                icon={isRefill ? <WavesArrowDown className="size-4" /> : <WavesArrowUp className="size-4" />}
+                icon={
+                  isRefill ? (
+                    <WavesArrowDown className="size-4" />
+                  ) : (
+                    <WavesArrowUp className="size-4" />
+                  )
+                }
                 label={isRefill ? 'Drain Rate' : 'Fill Rate'}
                 value={rateLph !== undefined ? `${rateLph.toFixed(1)} L/h` : '--'}
               />
@@ -196,10 +220,12 @@ export function TankCard({ tank }: TankCardProps) {
         </div>
       </CardContent>
       <div className="flex shrink-0 items-center justify-between gap-2 border-t px-5 py-2">
-        <div className="flex min-w-0 items-center gap-1  text-xs ">
+        <div className="flex min-w-0 items-center gap-1 text-xs">
           <ClipboardClock className="size-3.5 shrink-0" />
           <span className="truncate font-semibold">{`Last ${isRefill ? 'refilled' : 'emptied'}:`}</span>
-          <span className="truncate font-normal">{latchDate ? formatLatchDate(latchDate) : '—'}</span>
+          <span className="truncate font-normal">
+            {latchDate ? formatLatchDate(latchDate) : '—'}
+          </span>
         </div>
         <ConfigureButton size="icon-xl" iconOnly round />
       </div>

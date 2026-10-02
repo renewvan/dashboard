@@ -71,12 +71,16 @@ export function AlertsTab() {
 
   if (entries.length === 0) {
     return (
-      <EmptyState icon={<Bell />} title="Well done, no active alerts!" description="Alerts will appear here as the hub reports them." />
+      <EmptyState
+        icon={<Bell />}
+        title="Well done, no active alerts!"
+        description="Alerts will appear here as the hub reports them."
+      />
     )
   }
 
   return (
-    <div className="flex flex-1 flex-col h-full overflow-y-auto rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md">
+    <div className="bg-card/40 flex h-full flex-1 flex-col overflow-y-auto rounded-2xl border border-white/10 p-4 backdrop-blur-md">
       <div className="flex flex-col gap-2" data-testid="alerts-list">
         {entries.map((entry) => {
           const Icon = SEVERITY_ICONS[entry.type]
@@ -95,7 +99,9 @@ export function AlertsTab() {
                 <Icon className={`mt-0.5 size-4 shrink-0 ${iconClass}`} />
                 <div className="flex flex-col gap-1">
                   <span className="font-medium">{entry.title}</span>
-                  <p className="line-clamp-2 text-sm text-muted-foreground/90">{entry.description}</p>
+                  <p className="text-muted-foreground/90 line-clamp-2 text-sm">
+                    {entry.description}
+                  </p>
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -113,12 +119,15 @@ export function AlertsTab() {
                     type="button"
                     aria-label="Remove alert"
                     onClick={() => remove(entry.id)}
-                    className="rounded p-0.5 text-destructive opacity-70 hover:opacity-100"
+                    className="text-destructive rounded p-0.5 opacity-70 hover:opacity-100"
                   >
                     <X className="size-4" />
                   </button>
                 </div>
-                <span className="text-xs text-muted-foreground/90 tabular-nums font-semibold" data-testid="alert-row-timestamp">
+                <span
+                  className="text-muted-foreground/90 text-xs font-semibold tabular-nums"
+                  data-testid="alert-row-timestamp"
+                >
                   {formatTimestamp(entry.createdAt)}
                 </span>
               </div>

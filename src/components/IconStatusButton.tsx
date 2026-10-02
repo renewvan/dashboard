@@ -23,14 +23,21 @@ export interface IconStatusButtonProps extends React.ComponentPropsWithoutRef<'b
  * The button itself is the popover trigger; callers never touch the
  * popover primitives.
  */
-export function IconStatusButton({ icon, label, popoverContent, onOpenSettings, type = 'button', ...rest }: IconStatusButtonProps) {
+export function IconStatusButton({
+  icon,
+  label,
+  popoverContent,
+  onOpenSettings,
+  type = 'button',
+  ...rest
+}: IconStatusButtonProps) {
   return (
     <Popover>
       <PopoverTrigger
         type={type}
         aria-label={label}
         title={label}
-        className="flex size-11 shrink-0 items-center justify-center rounded-full border active:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="active:bg-foreground/10 focus-visible:ring-ring flex size-11 shrink-0 items-center justify-center rounded-full border focus-visible:ring-2 focus-visible:outline-none"
         {...rest}
       >
         {icon}
@@ -41,7 +48,7 @@ export function IconStatusButton({ icon, label, popoverContent, onOpenSettings, 
           // Full-width 44px row per docs/design-principles.md — this is a
           // real touch target on the same gloved-finger flow as the trigger.
           <PopoverClose
-            className="-mx-3 -mb-3 mt-1 flex min-h-11 items-center justify-center rounded-b-[inherit] border-t border-border text-muted-foreground active:bg-foreground/10"
+            className="border-border text-muted-foreground active:bg-foreground/10 -mx-3 mt-1 -mb-3 flex min-h-11 items-center justify-center rounded-b-[inherit] border-t"
             onClick={onOpenSettings}
           >
             Open settings

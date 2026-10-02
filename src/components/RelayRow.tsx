@@ -15,7 +15,7 @@ export interface RelayRowProps {
 export function RelayRow({ label, state }: RelayRowProps) {
   return (
     <div
-      className="flex items-center justify-between rounded-lg bg-card/50 p-3.5 backdrop-blur-md"
+      className="bg-card/50 flex items-center justify-between rounded-lg p-3.5 backdrop-blur-md"
       data-testid="relay-row"
     >
       <span>{label}</span>

@@ -5,7 +5,9 @@ import { TanksTab } from './TanksTab'
 
 // Local fixture helper: fills in schema-required fields with inert
 // zero/empty defaults so each test only spells out what it exercises.
-function tank(overrides: Pick<Tank, 'fluid_type' | 'capacity_l' | 'level_pct' | 'status'> & Partial<Tank>): Tank {
+function tank(
+  overrides: Pick<Tank, 'fluid_type' | 'capacity_l' | 'level_pct' | 'status'> & Partial<Tank>,
+): Tank {
   return {
     volume_since_full_l: 0,
     volume_since_empty_l: 0,
@@ -34,7 +36,12 @@ describe('TanksTab', () => {
       <TanksTab
         tanks={{
           fresh: tank({ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 50, status: 'ok' }),
-          grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'open_circuit' }),
+          grey: tank({
+            fluid_type: 'grey_water',
+            capacity_l: 80,
+            level_pct: 0,
+            status: 'open_circuit',
+          }),
         }}
       />,
     )
@@ -45,7 +52,14 @@ describe('TanksTab', () => {
   it('surfaces a sensor-fault status instead of liters remaining', () => {
     render(
       <TanksTab
-        tanks={{ fresh: tank({ fluid_type: 'fresh_water', capacity_l: 100, level_pct: 0, status: 'open_circuit' }) }}
+        tanks={{
+          fresh: tank({
+            fluid_type: 'fresh_water',
+            capacity_l: 100,
+            level_pct: 0,
+            status: 'open_circuit',
+          }),
+        }}
       />,
     )
     expect(screen.getByText(/Open circuit/)).toBeInTheDocument()
@@ -54,7 +68,14 @@ describe('TanksTab', () => {
   it('surfaces a short_circuit fault status too', () => {
     render(
       <TanksTab
-        tanks={{ grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 0, status: 'short_circuit' }) }}
+        tanks={{
+          grey: tank({
+            fluid_type: 'grey_water',
+            capacity_l: 80,
+            level_pct: 0,
+            status: 'short_circuit',
+          }),
+        }}
       />,
     )
     expect(screen.getByText(/Short circuit/)).toBeInTheDocument()

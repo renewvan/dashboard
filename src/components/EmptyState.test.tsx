@@ -17,9 +17,7 @@ describe('EmptyState', () => {
         description="Waiting for readings from the renewvan hub."
       />,
     )
-    expect(
-      screen.getByText('Waiting for readings from the renewvan hub.'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Waiting for readings from the renewvan hub.')).toBeInTheDocument()
   })
 
   it('omits the description when none is given', () => {

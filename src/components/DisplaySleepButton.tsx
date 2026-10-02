@@ -62,7 +62,7 @@ export function DisplaySleepButton({ displayPower, onSleep, onWake }: DisplaySle
       data-testid="display-sleep-button"
       disabled={displayPower === null}
       onClick={() => (isOn ? onSleep() : onWake())}
-      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-foreground/10 hover:bg-foreground/16 disabled:cursor-not-allowed disabled:opacity-64"
+      className="bg-foreground/10 hover:bg-foreground/16 flex size-11 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-64"
     >
       <Icon className="size-5" />
     </button>

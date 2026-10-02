@@ -3,7 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsTab, type SettingsTabProps } from './SettingsTab'
 
-const connectedTailscale = { enabled: true, connected: true, ip: '100.64.0.1', hostname: 'renewvan', peers: 1 }
+const connectedTailscale = {
+  enabled: true,
+  connected: true,
+  ip: '100.64.0.1',
+  hostname: 'renewvan',
+  peers: 1,
+}
 
 function displaySettingsProps(overrides: Partial<SettingsTabProps> = {}): SettingsTabProps {
   return {
@@ -48,7 +54,11 @@ describe('SettingsTab', () => {
 
   it('shows not authenticated when enabled but not connected', async () => {
     const user = userEvent.setup()
-    render(<SettingsTab {...displaySettingsProps({ tailscale: { ...connectedTailscale, connected: false } })} />)
+    render(
+      <SettingsTab
+        {...displaySettingsProps({ tailscale: { ...connectedTailscale, connected: false } })}
+      />,
+    )
     await user.click(screen.getByText('Network'))
     expect(screen.getByTestId('tailscale-status')).toHaveTextContent(/not authenticated/i)
   })
@@ -56,7 +66,11 @@ describe('SettingsTab', () => {
   it('shows not installed when tailscale is not enabled', async () => {
     const user = userEvent.setup()
     render(
-      <SettingsTab {...displaySettingsProps({ tailscale: { ...connectedTailscale, connected: false, enabled: false } })} />,
+      <SettingsTab
+        {...displaySettingsProps({
+          tailscale: { ...connectedTailscale, connected: false, enabled: false },
+        })}
+      />,
     )
     await user.click(screen.getByText('Network'))
     expect(screen.getByTestId('tailscale-status')).toHaveTextContent(/not installed/i)
@@ -117,7 +131,9 @@ describe('SettingsTab', () => {
   it('reflects the bus-backed brightness value and calls onBrightnessChange on drag', async () => {
     const onBrightnessChange = vi.fn()
     const user = userEvent.setup()
-    const { container } = render(<SettingsTab {...displaySettingsProps({ brightness: 42, onBrightnessChange })} />)
+    const { container } = render(
+      <SettingsTab {...displaySettingsProps({ brightness: 42, onBrightnessChange })} />,
+    )
     await user.click(screen.getByText('Display'))
     expect(screen.getByText('42%')).toBeInTheDocument()
     // Base UI's Slider thumb stays `visibility: hidden` until it measures
@@ -142,7 +158,13 @@ describe('SettingsTab', () => {
     const onAutoSleepTimeoutMinutesChange = vi.fn()
     const user = userEvent.setup()
     render(
-      <SettingsTab {...displaySettingsProps({ autoSleepEnabled: true, autoSleepTimeoutMinutes: 5, onAutoSleepTimeoutMinutesChange })} />,
+      <SettingsTab
+        {...displaySettingsProps({
+          autoSleepEnabled: true,
+          autoSleepTimeoutMinutes: 5,
+          onAutoSleepTimeoutMinutesChange,
+        })}
+      />,
     )
     await user.click(screen.getByText('Display'))
     await user.click(screen.getByText('15m'))

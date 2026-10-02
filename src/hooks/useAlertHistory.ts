@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
-import { getAlertHistory, removeAlertHistoryEntry, subscribeAlertHistory, type AlertHistoryEntry } from '../lib/alertHistory'
+import {
+  getAlertHistory,
+  removeAlertHistoryEntry,
+  subscribeAlertHistory,
+  type AlertHistoryEntry,
+} from '../lib/alertHistory'
 
 export interface UseAlertHistoryResult {
   entries: AlertHistoryEntry[]

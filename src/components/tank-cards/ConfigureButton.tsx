@@ -19,7 +19,11 @@ export interface ConfigureButtonProps {
  * touch target per `docs/design-principles.md`, not just the invisible
  * `pointer-coarse` hit-area overlay `Button` adds on top of that).
  */
-export function ConfigureButton({ size = 'default', iconOnly = false, round = false }: ConfigureButtonProps) {
+export function ConfigureButton({
+  size = 'default',
+  iconOnly = false,
+  round = false,
+}: ConfigureButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger

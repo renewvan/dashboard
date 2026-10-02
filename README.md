@@ -18,10 +18,10 @@ immediately, not a blank screen).
 
 Three domain tabs, same tabbed interaction at every supported width:
 
-| Tab | Content |
-|---|---|
-| Tanks | Radial gauge per tank (`level_pct`), liters-remaining readout, sensor-fault status in place of the readout when `status != ok` |
-| Power | Radial gauge per battery (`soc_pct`), voltage/current/power/temperature readout, `charge_state` badge |
+| Tab      | Content                                                                                                                                          |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tanks    | Radial gauge per tank (`level_pct`), liters-remaining readout, sensor-fault status in place of the readout when `status != ok`                   |
+| Power    | Radial gauge per battery (`soc_pct`), voltage/current/power/temperature readout, `charge_state` badge                                            |
 | Switches | One row per relay: dashboard-side `id → label` mapping + on/off indicator — **read-only**, no tap-to-toggle (`relay` has no command topic in v0) |
 
 ## Architecture
@@ -42,11 +42,11 @@ Three domain tabs, same tabbed interaction at every supported width:
 
 All config is Vite build-time env vars (`VITE_*`), see `.env.example`:
 
-| Variable | Default | Notes |
-|---|---|---|
-| `VITE_MQTT_WS_URL` | _(required)_ | Mosquitto's WS listener, browser-reachable, e.g. `ws://<host>:9001` |
-| `VITE_MQTT_USERNAME` / `VITE_MQTT_PASSWORD` | _(none)_ | Read-scoped credentials; blank while the broker allows anonymous access |
-| `VITE_RELAY_LABELS` | _(built-in defaults)_ | JSON `id -> label` override for the Switches tab |
+| Variable                                    | Default               | Notes                                                                   |
+| ------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
+| `VITE_MQTT_WS_URL`                          | _(required)_          | Mosquitto's WS listener, browser-reachable, e.g. `ws://<host>:9001`     |
+| `VITE_MQTT_USERNAME` / `VITE_MQTT_PASSWORD` | _(none)_              | Read-scoped credentials; blank while the broker allows anonymous access |
+| `VITE_RELAY_LABELS`                         | _(built-in defaults)_ | JSON `id -> label` override for the Switches tab                        |
 
 ## Running
 
