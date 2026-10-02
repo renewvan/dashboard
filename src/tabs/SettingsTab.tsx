@@ -5,7 +5,7 @@ import { tailscaleStatusText } from '../lib/tailscale'
 import { useSettingsNavStyle, type SettingsNavStyle } from '../hooks/useSettingsNavStyle'
 import { Switch } from '../components/ui/switch'
 import { Slider } from '../components/ui/slider'
-import { Field, FieldLabel, FieldDescription } from '../components/ui/field'
+import { Field, FieldLabel } from '../components/ui/field'
 import { Sheet, SheetPopup, SheetHeader, SheetTitle, SheetPanel } from '../components/ui/sheet'
 import { Frame, FramePanel } from '../components/ui/frame'
 import { Label } from '../components/ui/label'
@@ -20,14 +20,12 @@ export interface SettingsTabProps {
    * Display group settings, sourced from `useRenewvanBus` — `null` until
    * the retained topic arrives (wire contract:
    * hub's `.scratch/kiosk-settings-panel/issues/01-settings-mqtt-contract.md`).
-   * Controls disable while `null`, matching `DisplayPowerButton`'s existing
+   * Controls disable while `null`, matching `DisplaySleepButton`'s existing
    * convention for not-yet-known state.
    */
-  remoteSleepAllowed: boolean | null
   brightness: number | null
   autoSleepEnabled: boolean | null
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
-  onRemoteSleepAllowedChange: (value: boolean) => void
   onBrightnessChange: (value: number) => void
   onAutoSleepEnabledChange: (value: boolean) => void
   onAutoSleepTimeoutMinutesChange: (value: AutoSleepTimeoutMinutes) => void
@@ -93,33 +91,13 @@ function TailscaleRow({ tailscale }: { tailscale: TailscaleStatus | null }) {
 
 type DisplayFieldsProps = Pick<
   SettingsTabProps,
-  | 'remoteSleepAllowed'
   | 'brightness'
   | 'autoSleepEnabled'
   | 'autoSleepTimeoutMinutes'
-  | 'onRemoteSleepAllowedChange'
   | 'onBrightnessChange'
   | 'onAutoSleepEnabledChange'
   | 'onAutoSleepTimeoutMinutesChange'
 >
-
-function RemoteSleepField({ remoteSleepAllowed, onRemoteSleepAllowedChange }: DisplayFieldsProps) {
-  return (
-    <Field className="flex-row items-center justify-between px-3.5 py-2.5">
-      <div className="flex flex-col gap-0.5">
-        <FieldLabel>Remote sleep</FieldLabel>
-        <FieldDescription>
-        <p>Allow the dashboard to put the display to sleep.</p> 
-        <p>The host can always sleep it either way.</p></FieldDescription>
-      </div>
-      <Switch
-        checked={remoteSleepAllowed ?? true}
-        disabled={remoteSleepAllowed === null}
-        onCheckedChange={(checked) => onRemoteSleepAllowedChange(checked)}
-      />
-    </Field>
-  )
-}
 
 function BrightnessField({ brightness, onBrightnessChange }: DisplayFieldsProps) {
   // Coss UI "slider with ticks" form-integration pattern
@@ -272,14 +250,11 @@ export function SettingsTab(props: SettingsTabProps) {
         <BrightnessField {...props} />
       </FramePanel>
       <FramePanel className={PANEL_CLASS}>
-        <RemoteSleepField {...props} />
-      </FramePanel>
-      <FramePanel className={PANEL_CLASS}>
         <AutoSleepField {...props} />
       </FramePanel>
       <FramePanel className={PANEL_CLASS}>
         <GroupRow
-          label="Navigation"
+          label="Navigation style"
           description={navStyle === 'subpage' ? 'Subpages' : 'Sheets'}
           onClick={() => setView('navigation')}
         />

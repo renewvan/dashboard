@@ -15,7 +15,7 @@ export interface IconStatusButtonProps extends React.ComponentPropsWithoutRef<'b
 /**
  * A header *status* button: reports a live condition, opens a detail
  * popover on tap (`CONTEXT.md`'s "Status button"). Visually the opposite
- * of the tinted *action* buttons (`ThemeToggleButton`/`DisplayPowerButton`):
+ * of the tinted *action* buttons (`ThemeToggleButton`/`DisplaySleepButton`):
  * fully transparent background — color lives in the caller's icon element,
  * not here — so feedback is the `active:` press flash plus a
  * `focus-visible` ring, never a hover reveal (`docs/design-principles.md`).

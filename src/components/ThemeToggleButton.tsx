@@ -8,14 +8,14 @@ export interface ThemeToggleButtonProps {
 
 /**
  * Header theme toggle — a plain icon button, not a `Switch`/`IconSwitch`
- * (replaced per explicit request), matching `DisplayPowerButton`'s
+ * (replaced per explicit request), matching `DisplaySleepButton`'s
  * style exactly (`bg-foreground/10` resting, `hover:bg-foreground/16`,
  * `rounded-full`, real 44×44px touch target).
  *
  * Shows the icon for the *other* theme — the one tapping switches
  * to — not the current one: `Sun` while dark (tap for light), `Moon`
  * while light (tap for dark). Same "icon signals the action, not the
- * current state" convention as `DisplayPowerButton` (`Power`/`PowerOff`
+ * current state" convention as `DisplaySleepButton` (`SleepIcon`/`SleepOffIcon`
  * reflect what tapping does, not just display the current on/off).
  */
 export function ThemeToggleButton({ theme, onThemeChange }: ThemeToggleButtonProps) {

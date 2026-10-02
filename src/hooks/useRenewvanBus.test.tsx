@@ -78,22 +78,19 @@ describe('useRenewvanBus display settings', () => {
     vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
   })
 
-  it('starts all four display settings null until a message arrives', async () => {
+  it('starts all three display settings null until a message arrives', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(result.current.status).toBe('connected'))
-    expect(result.current.remoteSleepAllowed).toBeNull()
     expect(result.current.brightness).toBeNull()
     expect(result.current.autoSleepEnabled).toBeNull()
     expect(result.current.autoSleepTimeoutMinutes).toBeNull()
   })
 
-  it('parses remote-sleep-allowed and auto-sleep-enabled as booleans', async () => {
+  it('parses auto-sleep-enabled as a boolean', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(messageHandlers.length).toBeGreaterThan(0))
-    messageHandlers[0]('renewvan/kiosk/display/remote-sleep-allowed', { toString: () => 'false' })
     messageHandlers[0]('renewvan/kiosk/display/auto-sleep-enabled', { toString: () => 'true' })
-    await waitFor(() => expect(result.current.remoteSleepAllowed).toBe(false))
-    expect(result.current.autoSleepEnabled).toBe(true)
+    await waitFor(() => expect(result.current.autoSleepEnabled).toBe(true))
   })
 
   it('parses brightness as an integer within 0-100', async () => {

@@ -6,11 +6,10 @@ import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
 import lockupDark from '../assets/logo/renewvan-lockup.svg'
 import { EmptyState } from './components/EmptyState'
 import { Clock } from './components/Clock'
-import { DisplayPowerButton } from './components/DisplayPowerButton'
+import { DisplaySleepButton } from './components/DisplaySleepButton'
 import { AlertsButton } from './components/AlertsButton'
 import { RouterStatusIcon } from './components/RouterStatusIcon'
 import { Sidebar, type NavItem } from './components/Sidebar'
-import { SleepOverlay } from './components/SleepOverlay'
 import { ThemeToggleButton } from './components/ThemeToggleButton'
 import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
 import { Separator } from "@/components/ui/separator";
@@ -19,7 +18,6 @@ import { useUnseenAlertCount } from './hooks/useUnseenAlertCount'
 import { useRenewvanBus } from './hooks/useRenewvanBus'
 import { useTheme, type Theme } from './hooks/useTheme'
 import { useUrlTab } from './hooks/useUrlTab'
-import { isLocalKiosk } from './lib/kioskHost'
 import { cn } from './lib/utils'
 import { AlertsTab } from './tabs/AlertsTab'
 import { HomeTab } from './tabs/HomeTab'
@@ -54,7 +52,7 @@ const WALLPAPER: Record<Theme, string | undefined> = {
 }
 
 function App() {
-  const { state, status, displayPower, remoteSleepAllowed, brightness, autoSleepEnabled, autoSleepTimeoutMinutes, tailscale, publish } = useRenewvanBus()
+  const { state, status, displayPower, brightness, autoSleepEnabled, autoSleepTimeoutMinutes, tailscale, publish } = useRenewvanBus()
   useAlertToasts({ tanks: state.tanks, status, tailscale })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'home')
   const unseenAlertCount = useUnseenAlertCount(activeTab)
@@ -98,7 +96,6 @@ function App() {
         style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : undefined}
       />
       <div ref={setSheetPortalContainer} />
-      {isLocalKiosk() && <SleepOverlay displayPower={displayPower} onWake={handleWake} />}
       <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 bg-card/40 px-3 py-1.5 backdrop-blur-md">
         <img
           src={theme === 'dark' ? lockupWhite : lockupDark}
@@ -111,7 +108,7 @@ function App() {
           <Separator orientation="vertical" className="mx-1.5"/>
           <AlertsButton onClick={() => setActiveTab('alerts')} count={unseenAlertCount} active={activeTab === 'alerts'} />
           <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
-          <DisplayPowerButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
+          <DisplaySleepButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
         </div>
       </header>
       <div className="flex flex-1 gap-3 overflow-hidden">
@@ -139,11 +136,9 @@ function App() {
           <TabsPanel value="settings">
             <SettingsTab
               tailscale={tailscale}
-              remoteSleepAllowed={remoteSleepAllowed}
               brightness={brightness}
               autoSleepEnabled={autoSleepEnabled}
               autoSleepTimeoutMinutes={autoSleepTimeoutMinutes}
-              onRemoteSleepAllowedChange={(v) => publish('renewvan/kiosk/display/remote-sleep-allowed/set', JSON.stringify(v))}
               onBrightnessChange={(v) => publish('renewvan/kiosk/display/brightness/set', JSON.stringify(v))}
               onAutoSleepEnabledChange={(v) => publish('renewvan/kiosk/display/auto-sleep-enabled/set', JSON.stringify(v))}
               onAutoSleepTimeoutMinutesChange={(v) => publish('renewvan/kiosk/display/auto-sleep-timeout-minutes/set', JSON.stringify(v))}

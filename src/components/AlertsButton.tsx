@@ -14,7 +14,7 @@ export interface AlertsButtonProps {
  * Header alert bell — a real *action* button (`CONTEXT.md`'s distinction
  * from a *status* button): tapping it navigates to the "Alerts" tab
  * rather than opening a popover in place, so it's styled like
- * `ThemeToggleButton`/`DisplayPowerButton` (opaque `bg-foreground/10`
+ * `ThemeToggleButton`/`DisplaySleepButton` (opaque `bg-foreground/10`
  * circle), not `IconStatusButton`'s transparent trigger.
  *
  * The icon is tinted `text-destructive` (the codebase's "alert" red,

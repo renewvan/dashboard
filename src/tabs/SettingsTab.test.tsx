@@ -8,11 +8,9 @@ const connectedTailscale = { enabled: true, connected: true, ip: '100.64.0.1', h
 function displaySettingsProps(overrides: Partial<SettingsTabProps> = {}): SettingsTabProps {
   return {
     tailscale: connectedTailscale,
-    remoteSleepAllowed: true,
     brightness: 70,
     autoSleepEnabled: false,
     autoSleepTimeoutMinutes: 5,
-    onRemoteSleepAllowedChange: vi.fn(),
     onBrightnessChange: vi.fn(),
     onAutoSleepEnabledChange: vi.fn(),
     onAutoSleepTimeoutMinutesChange: vi.fn(),
@@ -68,17 +66,17 @@ describe('SettingsTab', () => {
     const user = userEvent.setup()
     render(<SettingsTab {...displaySettingsProps()} />)
     await user.click(screen.getByText('Display'))
-    expect(screen.getByText('Remote sleep')).toBeInTheDocument()
+    expect(screen.getByText('Brightness')).toBeInTheDocument()
     await user.click(screen.getByText('Settings'))
     expect(screen.getByText('Display')).toBeInTheDocument()
-    expect(screen.queryByText('Remote sleep')).not.toBeInTheDocument()
+    expect(screen.queryByText('Brightness')).not.toBeInTheDocument()
   })
 
   it('resets to the top-level list when the sidebar navigates away and back', async () => {
     const user = userEvent.setup()
     const { rerender } = render(<SettingsTab {...displaySettingsProps()} />)
     await user.click(screen.getByText('Display'))
-    expect(screen.getByText('Remote sleep')).toBeInTheDocument()
+    expect(screen.getByText('Brightness')).toBeInTheDocument()
 
     // Base UI's Tabs.Panel keeps this component mounted while another
     // sidebar tab is selected (only `active` flips), so a stale drill-down
@@ -86,7 +84,7 @@ describe('SettingsTab', () => {
     rerender(<SettingsTab {...displaySettingsProps({ active: false })} />)
     rerender(<SettingsTab {...displaySettingsProps({ active: true })} />)
 
-    expect(screen.queryByText('Remote sleep')).not.toBeInTheDocument()
+    expect(screen.queryByText('Brightness')).not.toBeInTheDocument()
     expect(screen.getByText('Display')).toBeInTheDocument()
     expect(screen.getByText('Network')).toBeInTheDocument()
   })
@@ -95,20 +93,20 @@ describe('SettingsTab', () => {
     const user = userEvent.setup()
     render(<SettingsTab {...displaySettingsProps()} />)
     await user.click(screen.getByText('Display'))
-    await user.click(screen.getByText('Navigation'))
+    await user.click(screen.getByText('Navigation style'))
     await user.click(screen.getByText('Sheets'))
     // Closing the now-sheet-rendered Navigation dialog falls back to its
     // logical parent (Display), so it reopens immediately as a sheet too.
     await user.keyboard('{Escape}')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
-    expect(screen.getByText('Remote sleep')).toBeInTheDocument()
+    expect(screen.getByText('Brightness')).toBeInTheDocument()
   })
 
   it('persists the chosen navigation style across remounts', async () => {
     const user = userEvent.setup()
     const { unmount } = render(<SettingsTab {...displaySettingsProps()} />)
     await user.click(screen.getByText('Display'))
-    await user.click(screen.getByText('Navigation'))
+    await user.click(screen.getByText('Navigation style'))
     await user.click(screen.getByText('Sheets'))
     unmount()
     render(<SettingsTab {...displaySettingsProps()} />)
@@ -132,22 +130,12 @@ describe('SettingsTab', () => {
     expect(onBrightnessChange).toHaveBeenCalledWith(43)
   })
 
-  it('disables the brightness slider and remote-sleep switch until a retained value arrives', async () => {
+  it('disables the brightness slider until a retained value arrives', async () => {
     const user = userEvent.setup()
-    const { container } = render(<SettingsTab {...displaySettingsProps({ brightness: null, remoteSleepAllowed: null })} />)
+    const { container } = render(<SettingsTab {...displaySettingsProps({ brightness: null })} />)
     await user.click(screen.getByText('Display'))
     const input = container.querySelector('input[type="range"]') as HTMLInputElement
     expect(input).toBeDisabled()
-    expect(screen.getByRole('switch', { name: 'Remote sleep' })).toHaveAttribute('aria-disabled', 'true')
-  })
-
-  it('calls onRemoteSleepAllowedChange when the remote-sleep switch is toggled', async () => {
-    const onRemoteSleepAllowedChange = vi.fn()
-    const user = userEvent.setup()
-    render(<SettingsTab {...displaySettingsProps({ remoteSleepAllowed: true, onRemoteSleepAllowedChange })} />)
-    await user.click(screen.getByText('Display'))
-    await user.click(screen.getByRole('switch', { name: 'Remote sleep' }))
-    expect(onRemoteSleepAllowedChange).toHaveBeenCalledWith(false)
   })
 
   it('calls onAutoSleepTimeoutMinutesChange when a preset is picked', async () => {

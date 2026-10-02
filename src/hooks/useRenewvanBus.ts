@@ -29,7 +29,6 @@ export interface RenewvanBus {
   state: RenewvanBusState
   status: ConnectionStatus
   displayPower: DisplayPower
-  remoteSleepAllowed: boolean | null
   brightness: number | null
   autoSleepEnabled: boolean | null
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
@@ -50,7 +49,6 @@ export interface UplinkStatus {
 
 const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery)\/([^/]+)\/([^/]+)$/
 const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
-const TOPIC_REMOTE_SLEEP_ALLOWED = 'renewvan/kiosk/display/remote-sleep-allowed'
 const TOPIC_BRIGHTNESS = 'renewvan/kiosk/display/brightness'
 const TOPIC_AUTO_SLEEP_ENABLED = 'renewvan/kiosk/display/auto-sleep-enabled'
 const TOPIC_AUTO_SLEEP_TIMEOUT = 'renewvan/kiosk/display/auto-sleep-timeout-minutes'
@@ -118,7 +116,6 @@ export function useRenewvanBus(): RenewvanBus {
   const [state, setState] = useState<RenewvanBusState>(emptyRenewvanBusState)
   const [status, setStatus] = useState<ConnectionStatus>('connecting')
   const [displayPower, setDisplayPower] = useState<DisplayPower>(null)
-  const [remoteSleepAllowed, setRemoteSleepAllowed] = useState<boolean | null>(null)
   const [brightness, setBrightness] = useState<number | null>(null)
   const [autoSleepEnabled, setAutoSleepEnabled] = useState<boolean | null>(null)
   const [autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes] = useState<AutoSleepTimeoutMinutes | null>(null)
@@ -156,10 +153,6 @@ export function useRenewvanBus(): RenewvanBus {
       const payload = message.toString()
       if (topic === TOPIC_DISPLAY_POWER) {
         if (payload === 'on' || payload === 'off') setDisplayPower(payload)
-        return
-      }
-      if (topic === TOPIC_REMOTE_SLEEP_ALLOWED) {
-        if (payload === 'true' || payload === 'false') setRemoteSleepAllowed(payload === 'true')
         return
       }
       if (topic === TOPIC_BRIGHTNESS) {
@@ -207,7 +200,6 @@ export function useRenewvanBus(): RenewvanBus {
     state,
     status,
     displayPower,
-    remoteSleepAllowed,
     brightness,
     autoSleepEnabled,
     autoSleepTimeoutMinutes,
