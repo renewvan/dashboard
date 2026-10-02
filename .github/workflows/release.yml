@@ -43,3 +43,39 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/dashboard:${{ github.event.release.tag_name }}
             ghcr.io/${{ github.repository_owner }}/dashboard:latest
+
+  bump-version:
+    needs: publish-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Bump package.json version to match release tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${TAG#v}"
+          node -e "
+            const fs = require('node:fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = process.argv[1];
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          " "$version"
+
+      - name: Commit and push
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if git diff --quiet -- package.json; then
+            echo "package.json already at $TAG, nothing to commit"
+            exit 0
+          fi
+          git config user.name "renewvan"
+          git config user.email "github@renewvan.com"
+          git add package.json
+          git commit -m "chore: bump package.json version to match release tag $TAG"
+          git push origin HEAD:main
