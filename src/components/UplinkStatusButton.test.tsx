@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import type { TailscaleStatus, UplinkStatus } from '../hooks/useRenewvanBus'
+import type { RouterHealth, TailscaleStatus } from '../hooks/useRenewvanBus'
+import type { Router } from '../types'
 import { UplinkStatusButton } from './UplinkStatusButton'
 
 const connectedTailscale: TailscaleStatus = {
@@ -12,137 +13,149 @@ const connectedTailscale: TailscaleStatus = {
   peers: 1,
 }
 
-const wifiOnline: UplinkStatus = {
-  path: 'wifi',
-  online: true,
-  ssid: 'VanNet',
-  interface: 'wlan0',
-  ip: '192.168.1.42',
+const liveRouter: Router = {
+  signal_rsrp_dbm: -85,
+  signal_rsrq_db: -10,
+  signal_sinr_db: 6,
+  signal_rssi_dbm: -54,
+  operator: '26203',
+  network_type: 'lte',
+  uptime_s: 826_671,
+  data_used_month_tx_b: 140.2 * 1024 * 1024,
+  data_used_month_rx_b: 385.1 * 1024 * 1024,
 }
-const lanOnline: UplinkStatus = { ...wifiOnline, path: 'lan', ssid: null }
-const tailscaleOnly: UplinkStatus = {
-  path: 'none',
-  online: true,
-  ssid: null,
-  interface: null,
-  ip: null,
+
+function setup(
+  router: Partial<Router> | undefined,
+  routerHealth: RouterHealth | null,
+  ageMs: number | null = null,
+  tailscale: TailscaleStatus = connectedTailscale,
+  onOpenSettings: () => void = () => {},
+) {
+  render(
+    <UplinkStatusButton
+      router={router}
+      routerHealth={routerHealth}
+      lastReceivedAt={ageMs === null ? undefined : Date.now() - ageMs}
+      tailscale={tailscale}
+      onOpenSettings={onOpenSettings}
+    />,
+  )
 }
-const offline: UplinkStatus = { ...lanOnline, online: false }
 
 function iconClassOf(container: HTMLElement): string | null {
   return container.querySelector<SVGSVGElement>('svg')?.getAttribute('class') ?? null
 }
 
-describe('UplinkStatusButton icon per state', () => {
-  it('shows a checking spinner before the first message arrives', () => {
-    const { container } = render(
-      <UplinkStatusButton uplink={null} tailscale={null} onOpenSettings={() => {}} />,
-    )
-    expect(screen.getByRole('button', { name: 'Checking uplink…' })).toBeInTheDocument()
-    expect(iconClassOf(container)).toContain('lucide-loader-circle')
-    expect(screen.getByTestId('uplink-status-button')).toHaveAttribute('data-state', 'checking')
+describe('UplinkStatusButton icon per tier', () => {
+  it('shows a checking spinner before any router data arrives', () => {
+    setup(undefined, null)
+    const button = screen.getByTestId('uplink-status-button')
+    expect(button).toHaveAttribute('aria-label', 'Checking connection…')
+    expect(button).toHaveAttribute('data-state', 'checking')
+    expect(iconClassOf(button)).toContain('animate-spin')
   })
 
-  it('shows the wired glyph for LAN online', () => {
-    const { container } = render(
-      <UplinkStatusButton uplink={lanOnline} tailscale={null} onOpenSettings={() => {}} />,
-    )
-    expect(screen.getByRole('button', { name: 'Uplink via LAN' })).toBeInTheDocument()
-    expect(iconClassOf(container)).toContain('lucide-chevrons-left-right-ellipsis')
-    expect(screen.getByTestId('uplink-status-button')).toHaveAttribute('data-state', 'online')
+  it.each([
+    [-85, 'bars-4', 'Connection: 4 of 5 bars', 'text-success'],
+    [-90, 'bars-3', 'Connection: 3 of 5 bars', 'text-success'],
+    [-100, 'bars-2', 'Connection: 2 of 5 bars', 'text-warning'],
+    [-110, 'bars-1', 'Connection: 1 of 5 bars', 'text-warning'],
+  ])('maps rsrp %d to its bar tier', (rsrp, state, label, tone) => {
+    setup({ ...liveRouter, signal_rsrp_dbm: rsrp }, 'online', 30_000)
+    const button = screen.getByTestId('uplink-status-button')
+    expect(button).toHaveAttribute('aria-label', label)
+    expect(button).toHaveAttribute('data-state', state)
+    expect(iconClassOf(button)).toContain(tone)
   })
 
-  it('shows the wifi glyph, label including the SSID', () => {
-    const { container } = render(
-      <UplinkStatusButton uplink={wifiOnline} tailscale={null} onOpenSettings={() => {}} />,
-    )
-    expect(screen.getByRole('button', { name: 'Uplink via WiFi (VanNet)' })).toBeInTheDocument()
-    expect(iconClassOf(container)).toContain('lucide-wifi')
+  it('reads no-service below the signal floor while the node stays online', () => {
+    setup({ ...liveRouter, signal_rsrp_dbm: -120 }, 'online', 30_000)
+    const button = screen.getByTestId('uplink-status-button')
+    expect(button).toHaveAttribute('aria-label', 'Connection: no service')
+    expect(button).toHaveAttribute('data-state', 'no-service')
+    expect(iconClassOf(button)).toContain('text-destructive')
   })
 
-  it('shows the tunnel glyph for Tailscale-only online', () => {
-    const { container } = render(
-      <UplinkStatusButton
-        uplink={tailscaleOnly}
-        tailscale={connectedTailscale}
-        onOpenSettings={() => {}}
-      />,
-    )
-    expect(screen.getByRole('button', { name: 'Uplink via Tailscale' })).toBeInTheDocument()
-    expect(iconClassOf(container)).toContain('lucide-shield-lock')
+  it('collapses to the reserved CloudOff glyph when the node health says offline', () => {
+    setup(liveRouter, 'offline', 30_000)
+    const button = screen.getByTestId('uplink-status-button')
+    expect(button).toHaveAttribute('aria-label', 'Connection offline')
+    expect(button).toHaveAttribute('data-state', 'offline')
+    expect(iconClassOf(button)).toContain('text-destructive')
   })
 
-  it('collapses every offline path to the reserved CloudOff glyph', () => {
-    const { container } = render(
-      <UplinkStatusButton uplink={offline} tailscale={null} onOpenSettings={() => {}} />,
-    )
-    expect(screen.getByRole('button', { name: 'Uplink offline' })).toBeInTheDocument()
-    expect(iconClassOf(container)).toContain('lucide-cloud-off')
-    expect(screen.getByTestId('uplink-status-button')).toHaveAttribute('data-state', 'offline')
+  it('goes offline on stale data even with a good signal and healthy node', () => {
+    setup(liveRouter, 'online', 200_000)
+    const button = screen.getByTestId('uplink-status-button')
+    expect(button).toHaveAttribute('aria-label', 'Connection offline')
+    expect(button).toHaveAttribute('data-state', 'offline')
   })
 })
 
 describe('UplinkStatusButton popover', () => {
-  it('shows wifi detail and online-only diagnostic fields, plus the Tailscale row', async () => {
+  it('shows network, operator, RSRP, and monthly data, plus the Tailscale row', async () => {
     const user = userEvent.setup()
-    render(
-      <UplinkStatusButton
-        uplink={wifiOnline}
-        tailscale={connectedTailscale}
-        onOpenSettings={() => {}}
-      />,
-    )
-    await user.click(screen.getByRole('button', { name: 'Uplink via WiFi (VanNet)' }))
+    setup(liveRouter, 'online', 30_000)
+    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 5 bars' }))
 
-    expect(await screen.findByText('Online')).toBeInTheDocument()
-    expect(screen.getByText('Wi-Fi network')).toBeInTheDocument()
-    expect(screen.getByText('VanNet')).toBeInTheDocument()
-    expect(screen.getByText('Interface')).toBeInTheDocument()
-    expect(screen.getByText('192.168.1.42')).toBeInTheDocument()
+    expect(await screen.findByText('LTE · 26203')).toBeInTheDocument()
+    expect(screen.getByText('RSRP')).toBeInTheDocument()
+    expect(screen.getByText('-85 dBm')).toBeInTheDocument()
+    expect(screen.getByText('Data this month')).toBeInTheDocument()
+    expect(screen.getByText(/↓ 385\.1 MB · ↑ 140\.2 MB/)).toBeInTheDocument()
     expect(screen.getByText('Tailscale')).toBeInTheDocument()
     expect(screen.getByText('100.64.0.1')).toBeInTheDocument()
   })
 
-  it('omits diagnostic fields when offline but keeps the Tailscale row', async () => {
+  it("renders em-dashes, not hidden rows, for fields a partial entity hasn't sent", async () => {
     const user = userEvent.setup()
-    render(
-      <UplinkStatusButton
-        uplink={offline}
-        tailscale={{ enabled: false, connected: false, ip: null, hostname: null, peers: 0 }}
-        onOpenSettings={() => {}}
-      />,
-    )
-    await user.click(screen.getByRole('button', { name: 'Uplink offline' }))
+    setup({ signal_rsrp_dbm: -85 }, 'online', 30_000, {
+      enabled: false,
+      connected: false,
+      ip: null,
+      hostname: null,
+      peers: 0,
+    })
+    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 5 bars' }))
 
-    expect(await screen.findByText('Offline')).toBeInTheDocument()
-    expect(screen.queryByText('Interface')).not.toBeInTheDocument()
-    expect(screen.queryByText('Local IP')).not.toBeInTheDocument()
+    expect(await screen.findByText('UNKNOWN · —')).toBeInTheDocument()
+    expect(screen.getByText('-85 dBm')).toBeInTheDocument()
+    expect(screen.getByText('Data this month')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
     expect(screen.getByText('Tailscale')).toBeInTheDocument()
     expect(screen.getByText('Not installed')).toBeInTheDocument()
   })
 
-  it('renders a dash for a null field while online, instead of hiding the row', async () => {
+  it('checks instead of guessing while nothing has arrived', async () => {
     const user = userEvent.setup()
-    render(
-      <UplinkStatusButton
-        uplink={{ ...wifiOnline, ip: null, interface: null }}
-        tailscale={null}
-        onOpenSettings={() => {}}
-      />,
-    )
-    await user.click(screen.getByRole('button', { name: 'Uplink via WiFi (VanNet)' }))
+    setup(undefined, null)
+    await user.click(screen.getByRole('button', { name: 'Checking connection…' }))
 
-    expect(await screen.findAllByText('—')).toHaveLength(2)
+    expect(await screen.findByText('Checking…')).toBeInTheDocument()
+    expect(screen.queryByText('RSRP')).not.toBeInTheDocument()
+    expect(screen.getByText('Tailscale')).toBeInTheDocument()
   })
 
-  it('opens settings via the popover footer action', async () => {
-    const onOpenSettings = vi.fn()
+  it('drops the detail rows when offline but keeps the Tailscale row', async () => {
     const user = userEvent.setup()
-    render(
-      <UplinkStatusButton uplink={lanOnline} tailscale={null} onOpenSettings={onOpenSettings} />,
-    )
-    await user.click(screen.getByRole('button', { name: 'Uplink via LAN' }))
-    await user.click(await screen.findByRole('button', { name: /open settings/i }))
+    setup(liveRouter, 'offline', 30_000)
+    await user.click(screen.getByRole('button', { name: 'Connection offline' }))
+
+    expect(await screen.findByText('Offline')).toBeInTheDocument()
+    expect(screen.queryByText('RSRP')).not.toBeInTheDocument()
+    expect(screen.queryByText('Data this month')).not.toBeInTheDocument()
+    expect(screen.getByText('Tailscale')).toBeInTheDocument()
+  })
+
+  it('navigates to settings from the popover footer and closes it', async () => {
+    const user = userEvent.setup()
+    const onOpenSettings = vi.fn()
+    setup(liveRouter, 'online', 30_000, connectedTailscale, onOpenSettings)
+    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 5 bars' }))
+
+    await user.click(await screen.findByRole('button', { name: 'Open settings' }))
     expect(onOpenSettings).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('LTE · 26203')).not.toBeInTheDocument()
   })
 })

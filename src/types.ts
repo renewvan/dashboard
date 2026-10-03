@@ -114,15 +114,45 @@ export interface Relay {
   state: boolean
 }
 
+export type NetworkType = '2g' | '3g' | 'lte' | 'nr' | 'unknown'
+
+/**
+ * Router entity per hub/schema/router.schema.json (the cellular uplink).
+ * Same partial-accumulation caveat as {@link Tank}: between the first and
+ * last retained message for an id, records in `RenewvanBusState.routers`
+ * are `Partial<Router>` — but deliberately NO isCompleteRouter guard:
+ * consumers degrade (the header connection icon renders checking/— for
+ * missing fields rather than crashing or hiding).
+ */
+export interface Router {
+  signal_rsrp_dbm: number
+  signal_rsrq_db: number
+  signal_sinr_db: number
+  signal_rssi_dbm: number
+  /** Raw PLMN string (e.g. '26203'); carrier-name mapping is presentation, elsewhere. */
+  operator: string
+  network_type: NetworkType
+  uptime_s: number
+  data_used_month_tx_b: number
+  data_used_month_rx_b: number
+}
+
 /** Live state of the renewvan bus, keyed by entity id within each domain. */
 export interface RenewvanBusState {
   tanks: Record<string, Tank>
   batteries: Record<string, Battery>
   relays: Record<string, Relay>
+  routers: Record<string, Router>
+  /** Epoch ms of the newest router property per id — feeds the connection
+   * icon's staleness rule (health offline OR older than 180 s = offline;
+   * see lib/connection.ts). */
+  routerUpdatedAt: Record<string, number>
 }
 
 export const emptyRenewvanBusState: RenewvanBusState = {
   tanks: {},
   batteries: {},
   relays: {},
+  routers: {},
+  routerUpdatedAt: {},
 }

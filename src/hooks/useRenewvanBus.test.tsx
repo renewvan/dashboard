@@ -28,52 +28,71 @@ vi.mock('mqtt', () => ({
   },
 }))
 
-const uplinkPayload = {
-  path: 'wifi',
-  online: true,
-  ssid: 'VanNet',
-  interface: 'wlan0',
-  ip: '192.168.1.42',
-}
-
-describe('useRenewvanBus uplink field', () => {
+describe('useRenewvanBus router entity', () => {
   beforeEach(() => {
     messageHandlers.length = 0
     connectMock.mockClear()
     vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
   })
 
-  it('starts with uplink null until a message arrives', async () => {
+  it('starts with no routers, no health, and no receipt times', async () => {
     const { result } = renderHook(() => useRenewvanBus())
-    await waitFor(() => expect(result.current.status).toBe('connected'))
-    expect(result.current.uplink).toBeNull()
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    expect(result.current.state.routers).toEqual({})
+    expect(result.current.routerHealth).toBeNull()
+    expect(result.current.state.routerUpdatedAt).toEqual({})
   })
 
-  it('stores a parsed renewvan/uplink/status payload', async () => {
+  it('accumulates router properties per id, JSON-scalars like other entities', async () => {
     const { result } = renderHook(() => useRenewvanBus())
-    await waitFor(() => expect(messageHandlers.length).toBeGreaterThan(0))
-
-    messageHandlers[0]('renewvan/uplink/status', { toString: () => JSON.stringify(uplinkPayload) })
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/router/main/signal_rsrp_dbm', { toString: () => '-85' })
+    messageHandlers[0]('renewvan/router/main/operator', { toString: () => '"26203"' })
+    messageHandlers[0]('renewvan/router/backup/network_type', { toString: () => '"lte"' })
     await waitFor(() =>
-      expect(result.current.uplink).toEqual({
-        path: 'wifi',
-        online: true,
-        ssid: 'VanNet',
-        interface: 'wlan0',
-        ip: '192.168.1.42',
+      expect(result.current.state.routers).toEqual({
+        main: { signal_rsrp_dbm: -85, operator: '26203' },
+        backup: { network_type: 'lte' },
       }),
     )
   })
 
-  it('leaves the previous uplink in place on a malformed payload, and ignores unrelated topics', async () => {
-    const { result } = renderHook(() => useRenewvanBus())
-    await waitFor(() => expect(messageHandlers.length).toBeGreaterThan(0))
-    messageHandlers[0]('renewvan/uplink/status', { toString: () => JSON.stringify(uplinkPayload) })
-    await waitFor(() => expect(result.current.uplink).not.toBeNull())
+  it('stamps the receipt time of the latest router property per id', async () => {
+    const nowSpy = vi.spyOn(Date, 'now')
+    try {
+      const { result } = renderHook(() => useRenewvanBus())
+      await waitFor(() => expect(connectMock).toHaveBeenCalled())
+      nowSpy.mockReturnValue(1_791_028_800_000) // 2026-10-03T12:00:00Z
+      messageHandlers[0]('renewvan/router/main/signal_rsrp_dbm', { toString: () => '-85' })
+      nowSpy.mockReturnValue(1_791_028_830_000) // 2026-10-03T12:00:30Z
+      messageHandlers[0]('renewvan/router/main/operator', { toString: () => '"26203"' })
+      await waitFor(() =>
+        expect(result.current.state.routerUpdatedAt).toEqual({ main: 1_791_028_830_000 }),
+      )
+    } finally {
+      nowSpy.mockRestore()
+    }
+  })
 
-    messageHandlers[0]('renewvan/uplink/status', { toString: () => 'not json' })
-    messageHandlers[0]('renewvan/tank/tank-1/level', { toString: () => '42' })
-    expect(result.current.uplink).toEqual(uplinkPayload)
+  it("tracks the node's health from renewvan/router/health, ignoring unknown payloads", async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/router/health', { toString: () => 'online' })
+    await waitFor(() => expect(result.current.routerHealth).toBe('online'))
+    messageHandlers[0]('renewvan/router/health', { toString: () => 'offline' })
+    await waitFor(() => expect(result.current.routerHealth).toBe('offline'))
+    messageHandlers[0]('renewvan/router/health', { toString: () => 'rebooting' })
+    await waitFor(() => expect(result.current.routerHealth).toBe('offline'))
+  })
+
+  it('drops the superseded renewvan/uplink/status topic entirely', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/uplink/status', {
+      toString: () => '{"path":"wifi","online":true}',
+    })
+    await waitFor(() => expect(result.current.state.routers).toEqual({}))
+    expect('uplink' in result.current).toBe(false)
   })
 })
 

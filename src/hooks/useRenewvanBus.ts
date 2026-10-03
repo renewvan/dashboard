@@ -14,6 +14,7 @@ import { getEnv } from '../config/runtimeEnv'
 // separately against fixed props.
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
+export type RouterHealth = 'online' | 'offline'
 export type DisplayPower = 'on' | 'off' | null
 export type AutoSleepTimeoutMinutes = 1 | 5 | 15 | 30
 
@@ -33,27 +34,17 @@ export interface RenewvanBus {
   autoSleepEnabled: boolean | null
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
   tailscale: TailscaleStatus | null
-  uplink: UplinkStatus | null
+  routerHealth: RouterHealth | null
   publish: (topic: string, payload: string) => void
 }
 
-export type UplinkPath = 'lan' | 'wifi' | 'none'
-
-export interface UplinkStatus {
-  path: UplinkPath
-  online: boolean
-  ssid: string | null
-  interface: string | null
-  ip: string | null
-}
-
-const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery)\/([^/]+)\/([^/]+)$/
+const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery|router)\/([^/]+)\/([^/]+)$/
 const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
 const TOPIC_BRIGHTNESS = 'renewvan/kiosk/display/brightness'
 const TOPIC_AUTO_SLEEP_ENABLED = 'renewvan/kiosk/display/auto-sleep-enabled'
 const TOPIC_AUTO_SLEEP_TIMEOUT = 'renewvan/kiosk/display/auto-sleep-timeout-minutes'
 const TOPIC_TAILSCALE = 'renewvan/tailscale/status'
-const TOPIC_UPLINK = 'renewvan/uplink/status'
+const TOPIC_ROUTER_HEALTH = 'renewvan/router/health'
 const AUTO_SLEEP_TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 
 /**
@@ -82,6 +73,17 @@ function applyMessage(prev: RenewvanBusState, topic: string, payload: string): R
   const value = parseValue(payload)
   if (value === undefined) return prev
 
+  if (domain === 'router') {
+    const receivedAt = Date.now()
+    return {
+      ...prev,
+      routers: {
+        ...prev.routers,
+        [id]: { ...prev.routers[id], [property]: value } as RenewvanBusState['routers'][string],
+      },
+      routerUpdatedAt: { ...prev.routerUpdatedAt, [id]: receivedAt },
+    }
+  }
   if (domain === 'tank') {
     return {
       ...prev,
@@ -124,7 +126,7 @@ export function useRenewvanBus(): RenewvanBus {
   const [autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes] =
     useState<AutoSleepTimeoutMinutes | null>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
-  const [uplink, setUplink] = useState<UplinkStatus | null>(null)
+  const [routerHealth, setRouterHealth] = useState<RouterHealth | null>(null)
   const clientRef = useRef<MqttClient | null>(null)
 
   const publish = (topic: string, payload: string) => {
@@ -183,12 +185,8 @@ export function useRenewvanBus(): RenewvanBus {
         }
         return
       }
-      if (topic === TOPIC_UPLINK) {
-        try {
-          setUplink(JSON.parse(payload) as UplinkStatus)
-        } catch {
-          // malformed payload — ignore
-        }
+      if (topic === TOPIC_ROUTER_HEALTH) {
+        if (payload === 'online' || payload === 'offline') setRouterHealth(payload)
         return
       }
       setState((prev) => applyMessage(prev, topic, payload))
@@ -208,7 +206,7 @@ export function useRenewvanBus(): RenewvanBus {
     autoSleepEnabled,
     autoSleepTimeoutMinutes,
     tailscale,
-    uplink,
+    routerHealth,
     publish,
   }
 }
