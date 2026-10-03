@@ -91,7 +91,7 @@ function App() {
       onValueChange={(value) => setActiveTab(value as string)}
       orientation="vertical"
       className={cn(
-        'text-foreground relative flex h-svh flex-col! gap-3 overflow-hidden p-4',
+        'text-foreground relative flex h-svh flex-col! gap-2 overflow-hidden px-2 py-1',
         theme === 'dark' && 'dark',
       )}
     >
@@ -140,7 +140,7 @@ function App() {
           />
         </div>
       </header>
-      <div className="flex flex-1 gap-3 overflow-hidden">
+      <div className="flex flex-1 gap-2 overflow-hidden">
         <Sidebar items={NAV_ITEMS} />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsPanel value="home">

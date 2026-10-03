@@ -78,7 +78,7 @@ export interface SidebarProps {
 export function Sidebar({ items }: SidebarProps) {
   return (
     <aside className="flex h-full w-fit shrink-0 flex-col items-start justify-center">
-      <TabsList className="sidebar-nav bg-card/40 h-full flex-col items-center justify-center gap-3 rounded-full border border-white/10 p-2 backdrop-blur-md">
+      <TabsList className="sidebar-nav bg-card/40 flex-col items-center justify-center gap-2 rounded-full border border-white/10 p-2 backdrop-blur-md">
         {items.map((item) => (
           <TabsTab
             key={item.id}
