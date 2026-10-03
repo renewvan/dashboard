@@ -66,41 +66,32 @@ function parseValue(payload: string): unknown {
   }
 }
 
+/** Spread-accumulate one entity property into its per-id record — the
+ * shared shape of the tank/battery/router entity topics. */
+function accumulate<T>(
+  record: Record<string, T>,
+  id: string,
+  property: string,
+  value: unknown,
+): Record<string, T> {
+  return { ...record, [id]: { ...record[id], [property]: value } as T }
+}
+
 function applyMessage(prev: RenewvanBusState, topic: string, payload: string): RenewvanBusState {
   const match = TOPIC_PATTERN.exec(topic)
   if (!match) return prev
   const [, domain, id, property] = match
   const value = parseValue(payload)
-  if (value === undefined) return prev
-
   if (domain === 'router') {
-    const receivedAt = Date.now()
     return {
       ...prev,
-      routers: {
-        ...prev.routers,
-        [id]: { ...prev.routers[id], [property]: value } as RenewvanBusState['routers'][string],
-      },
-      routerUpdatedAt: { ...prev.routerUpdatedAt, [id]: receivedAt },
+      routers: accumulate(prev.routers, id, property, value),
+      routerUpdatedAt: { ...prev.routerUpdatedAt, [id]: Date.now() },
     }
   }
-  if (domain === 'tank') {
-    return {
-      ...prev,
-      tanks: {
-        ...prev.tanks,
-        [id]: { ...prev.tanks[id], [property]: value } as RenewvanBusState['tanks'][string],
-      },
-    }
-  }
+  if (domain === 'tank') return { ...prev, tanks: accumulate(prev.tanks, id, property, value) }
   if (domain === 'battery') {
-    return {
-      ...prev,
-      batteries: {
-        ...prev.batteries,
-        [id]: { ...prev.batteries[id], [property]: value } as RenewvanBusState['batteries'][string],
-      },
-    }
+    return { ...prev, batteries: accumulate(prev.batteries, id, property, value) }
   }
   // relay: only `state`, a JSON boolean.
   return {

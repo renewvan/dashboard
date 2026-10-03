@@ -24,7 +24,7 @@ import type { RouterHealth } from '../hooks/useRenewvanBus'
 export type ConnectionTier =
   'checking' | 'offline' | 'no-service' | 'bars-1' | 'bars-2' | 'bars-3' | 'bars-4'
 
-export const STALE_MS = 180_000
+const STALE_MS = 180_000
 
 export function connectionTier(
   rsrp: number | undefined,

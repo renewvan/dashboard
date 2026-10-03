@@ -9,8 +9,15 @@ The kiosk's live MQTT-over-WebSocket connection to the van's broker — what the
 _Avoid_: Connection status, router status, internet connection
 
 **Uplink**:
-The van's internet path as seen by the hub: ethernet (LAN), WiFi, or Tailscale — including its being down. The subject of the internet status icon.
-_Avoid_: Internet connection, WAN, network status
+The van's cellular internet connection through the router entity
+(`renewvan/router/<id>/*` + `renewvan/router/health`, hub schema
+`router.schema.json`): five signal tiers (0–4 bars) from RSRP (≥ -85/
+-95/-105/-115 dBm), offline when the node's health says offline or
+data is older than 180 s, checking until data arrives. The subject of the
+header's connection status button (`UplinkStatusButton`) — the icon reports
+the van's uplink, distinct from the bus link the router icon reports.
+_Avoid_: Internet connection, WAN, network status, signal strength (alone —
+it's the whole connection state, including offline/no-service)
 
 **Status button**:
 A header icon button that reports a live condition and opens a detail popover on tap; visually transparent, unlike an action button.

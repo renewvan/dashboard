@@ -1,13 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  CloudOff,
-  Loader2,
-  Signal,
-  SignalHigh,
-  SignalLow,
-  SignalMedium,
-  SignalZero,
-} from 'lucide-react'
+import { CloudOff, Loader2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { RouterHealth, TailscaleStatus } from '../hooks/useRenewvanBus'
 import { connectionTier, type ConnectionTier } from '../lib/connection'
@@ -26,7 +18,8 @@ export interface UplinkStatusButtonProps {
 }
 
 interface TierPresentation {
-  Icon: LucideIcon
+  filled: number | null // null = not a bar glyph (offline/checking)
+  Icon?: LucideIcon
   iconClass: string
   label: string
 }
@@ -34,37 +27,62 @@ interface TierPresentation {
 /**
  * Header button for the van's uplink (`CONTEXT.md`) — the cellular
  * connection through the router entity (`renewvan/router/<id>/*`), not the
- * kiosk's bus link (`RouterStatusIcon`). One morphing five-bar icon whose
- * tier comes from `connectionTier` (lib/connection.ts owns the bands and
- * the offline/staleness rules; glyph set per the router-connection-icon
- * prototype decision). `CloudOff` stays reserved exclusively for this
- * button so the two red header icons never share a shape.
+ * kiosk's bus link (`RouterStatusIcon`). One morphing icon across five
+ * tiers (0–4 bars) whose tier comes from `connectionTier`
+ * (lib/connection.ts owns the bands and the offline/staleness rules).
+ * Bar glyphs are the custom four-bar tower
+ * (prototype variant B, .scratch/router-connection-icon/issues/01 — MDI
+ * rejected: native 3-bar scale collapses the 4-vs-3 tier); `CloudOff`
+ * stays reserved exclusively for this button so the two red header icons
+ * never share a shape.
  */
 function present(tier: ConnectionTier): TierPresentation {
   switch (tier) {
     case 'bars-4':
-      return { Icon: SignalHigh, iconClass: 'text-success', label: 'Connection: 4 of 5 bars' }
+      return { filled: 4, iconClass: 'text-success', label: 'Connection: 4 of 4 bars' }
     case 'bars-3':
-      return { Icon: Signal, iconClass: 'text-success', label: 'Connection: 3 of 5 bars' }
+      return { filled: 3, iconClass: 'text-success', label: 'Connection: 3 of 4 bars' }
     case 'bars-2':
-      return {
-        Icon: SignalMedium,
-        iconClass: 'text-warning',
-        label: 'Connection: 2 of 5 bars',
-      }
+      return { filled: 2, iconClass: 'text-warning', label: 'Connection: 2 of 4 bars' }
     case 'bars-1':
-      return { Icon: SignalLow, iconClass: 'text-warning', label: 'Connection: 1 of 5 bars' }
+      return { filled: 1, iconClass: 'text-warning', label: 'Connection: 1 of 4 bars' }
     case 'no-service':
-      return { Icon: SignalZero, iconClass: 'text-destructive', label: 'Connection: no service' }
+      return { filled: 0, iconClass: 'text-destructive', label: 'Connection: no service' }
     case 'offline':
-      return { Icon: CloudOff, iconClass: 'text-destructive', label: 'Connection offline' }
+      return {
+        Icon: CloudOff,
+        filled: null,
+        iconClass: 'text-destructive',
+        label: 'Connection offline',
+      }
     default:
       return {
         Icon: Loader2,
+        filled: null,
         iconClass: 'text-warning animate-spin',
         label: 'Checking connection…',
       }
   }
+}
+
+/** Four ascending bars, filled count per tier, remainder dimmed — the
+ * five-tier scale readable at kiosk distance. */
+function BarTower({ filled, className }: { filled: number; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`size-5 ${className ?? ''}`} aria-hidden>
+      {[0, 1, 2, 3].map((i) => (
+        <rect
+          key={i}
+          x={2 + i * 5.5}
+          y={17 - i * 4.5}
+          width="4"
+          height={4.5 + i * 4.5}
+          rx="1"
+          className={i < filled ? 'fill-current' : 'fill-current opacity-25'}
+        />
+      ))}
+    </svg>
+  )
 }
 
 /** Re-render on a slow tick so the icon degrades to offline on staleness
@@ -108,14 +126,20 @@ export function UplinkStatusButton({
 }: UplinkStatusButtonProps) {
   const now = useNow(30_000)
   const tier = connectionTier(router?.signal_rsrp_dbm, routerHealth, lastReceivedAt, now)
-  const { Icon, iconClass, label } = present(tier)
+  const { filled, Icon, iconClass, label } = present(tier)
 
   return (
     <IconStatusButton
       label={label}
       data-testid="uplink-status-button"
       data-state={tier}
-      icon={<Icon className={`size-5 ${iconClass}`} />}
+      icon={
+        Icon !== undefined ? (
+          <Icon className={`size-5 ${iconClass}`} />
+        ) : (
+          <BarTower filled={filled ?? 0} className={iconClass} />
+        )
+      }
       onOpenSettings={onOpenSettings}
       popoverContent={
         <div className="flex flex-col gap-1.5">

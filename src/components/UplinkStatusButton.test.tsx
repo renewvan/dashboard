@@ -57,10 +57,10 @@ describe('UplinkStatusButton icon per tier', () => {
   })
 
   it.each([
-    [-85, 'bars-4', 'Connection: 4 of 5 bars', 'text-success'],
-    [-90, 'bars-3', 'Connection: 3 of 5 bars', 'text-success'],
-    [-100, 'bars-2', 'Connection: 2 of 5 bars', 'text-warning'],
-    [-110, 'bars-1', 'Connection: 1 of 5 bars', 'text-warning'],
+    [-85, 'bars-4', 'Connection: 4 of 4 bars', 'text-success'],
+    [-90, 'bars-3', 'Connection: 3 of 4 bars', 'text-success'],
+    [-100, 'bars-2', 'Connection: 2 of 4 bars', 'text-warning'],
+    [-110, 'bars-1', 'Connection: 1 of 4 bars', 'text-warning'],
   ])('maps rsrp %d to its bar tier', (rsrp, state, label, tone) => {
     setup({ ...liveRouter, signal_rsrp_dbm: rsrp }, 'online', 30_000)
     const button = screen.getByTestId('uplink-status-button')
@@ -97,7 +97,7 @@ describe('UplinkStatusButton popover', () => {
   it('shows network, operator, RSRP, and monthly data, plus the Tailscale row', async () => {
     const user = userEvent.setup()
     setup(liveRouter, 'online', 30_000)
-    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 5 bars' }))
+    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 4 bars' }))
 
     expect(await screen.findByText('LTE · 26203')).toBeInTheDocument()
     expect(screen.getByText('RSRP')).toBeInTheDocument()
@@ -117,7 +117,7 @@ describe('UplinkStatusButton popover', () => {
       hostname: null,
       peers: 0,
     })
-    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 5 bars' }))
+    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 4 bars' }))
 
     expect(await screen.findByText('UNKNOWN · —')).toBeInTheDocument()
     expect(screen.getByText('-85 dBm')).toBeInTheDocument()
@@ -152,7 +152,7 @@ describe('UplinkStatusButton popover', () => {
     const user = userEvent.setup()
     const onOpenSettings = vi.fn()
     setup(liveRouter, 'online', 30_000, connectedTailscale, onOpenSettings)
-    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 5 bars' }))
+    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 4 bars' }))
 
     await user.click(await screen.findByRole('button', { name: 'Open settings' }))
     expect(onOpenSettings).toHaveBeenCalledTimes(1)

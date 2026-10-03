@@ -8,6 +8,7 @@ import { EmptyState } from './components/EmptyState'
 import { Clock } from './components/Clock'
 import { DisplaySleepButton } from './components/DisplaySleepButton'
 import { AlertsButton } from './components/AlertsButton'
+import { UplinkStatusButton } from './components/UplinkStatusButton'
 import { RouterStatusIcon } from './components/RouterStatusIcon'
 import { Sidebar, type NavItem } from './components/Sidebar'
 import { ThemeToggleButton } from './components/ThemeToggleButton'
@@ -60,6 +61,7 @@ function App() {
     autoSleepEnabled,
     autoSleepTimeoutMinutes,
     tailscale,
+    routerHealth,
     publish,
   } = useRenewvanBus()
   useAlertToasts({ tanks: state.tanks, status, tailscale })
@@ -67,6 +69,8 @@ function App() {
   const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const wallpaper = WALLPAPER[theme]
+  // single router per hub (compose ROUTER_ID) — first id decides; none yet → checking
+  const routerId = Object.keys(state.routers)[0]
   // Base UI's Dialog/Sheet portals to document.body by default, which sits
   // OUTSIDE the themed div below (the 'dark' class lives on this root, not
   // <html>) -- so a sheet would render light regardless of theme. Portaling
@@ -113,6 +117,14 @@ function App() {
         />
         <Clock />
         <div className="flex items-center justify-end gap-1.5">
+          {/* single router per hub (hub compose's ROUTER_ID) */}
+          <UplinkStatusButton
+            router={state.routers[routerId]}
+            routerHealth={routerHealth}
+            lastReceivedAt={state.routerUpdatedAt[routerId]}
+            tailscale={tailscale}
+            onOpenSettings={() => setActiveTab('settings')}
+          />
           <RouterStatusIcon status={status} />
           <Separator orientation="vertical" className="mx-1.5" />
           <AlertsButton
