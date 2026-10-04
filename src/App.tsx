@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Droplet, Wrench, ToggleLeft, Van, Zap, Heater } from 'lucide-react'
+import { Droplet, Wrench, ToggleLeft, Van, Zap, Heater, Map } from 'lucide-react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
@@ -20,6 +20,7 @@ import { useTheme, type Theme } from './hooks/useTheme'
 import { useUrlTab } from './hooks/useUrlTab'
 import { cn } from './lib/utils'
 import { AlertsTab } from './tabs/AlertsTab'
+import { GpsTab } from './tabs/GpsTab'
 import { HomeTab } from './tabs/HomeTab'
 import { PowerTab } from './tabs/PowerTab'
 import { SettingsTab } from './tabs/SettingsTab'
@@ -30,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: <Van className="size-5" /> },
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
   { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
+  { id: 'gps', label: 'GPS', icon: <Map className="size-5" /> },
   { id: 'switches', label: 'Switches', icon: <ToggleLeft className="size-5" /> },
   { id: 'heater', label: 'Heater', icon: <Heater className="size-5" /> },
   { id: 'settings', label: 'Settings', icon: <Wrench className="size-5" /> },
@@ -157,13 +159,16 @@ function App() {
         <Sidebar items={NAV_ITEMS} />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsPanel value="home">
-            <HomeTab />
+            <HomeTab gps={state.gps} />
           </TabsPanel>
           <TabsPanel value="tanks">
             <TanksTab tanks={state.tanks} />
           </TabsPanel>
           <TabsPanel value="power">
             <PowerTab batteries={state.batteries} />
+          </TabsPanel>
+          <TabsPanel value="gps">
+            <GpsTab gps={state.gps} />
           </TabsPanel>
           <TabsPanel value="switches">
             <SwitchesTab relays={state.relays} />

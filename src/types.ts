@@ -110,6 +110,48 @@ export function isCompleteBattery(battery: Partial<Battery>): battery is Battery
   )
 }
 
+/**
+ * GPS position fix per hub/schema/gps.schema.json. `fix_quality`/
+ * `satellites_in_use`/`avg_snr_db` are unconditional (the latter absent
+ * only before the node's first GSV sentence); every position/motion
+ * field is present only once fix_quality !== 'no_fix' — see
+ * `isCompleteGps` for the render-readiness check and `hasGpsFix` for
+ * the separate "is there actually a position to plot" check.
+ */
+export type GpsFixQuality =
+  'no_fix' | 'gps' | 'dgps' | 'pps' | 'rtk' | 'float_rtk' | 'estimated' | 'manual' | 'simulation'
+
+export interface Gps {
+  fix_quality: GpsFixQuality
+  satellites_in_use: number
+  /** Mean C/N0 (dB-Hz) across tracked satellites; independent of
+   * fix_quality. Absent only before the first GSV sentence is decoded. */
+  avg_snr_db?: number
+  latitude?: number
+  longitude?: number
+  altitude_m?: number
+  hdop?: number
+  speed_kmh?: number
+  course_deg?: number
+  /** ISO-8601 UTC timestamp of the fix, explicit +00:00 offset. */
+  fix_time?: string
+}
+
+/** Same partial-accumulation caveat as {@link isCompleteTank} — but
+ * unlike Tank, "complete" here only means the two truly unconditional
+ * fields have arrived, not that a position exists yet (no_fix is a
+ * valid, fully-formed state with every other field absent). */
+export function isCompleteGps(gps: Partial<Gps>): gps is Gps {
+  return gps.fix_quality !== undefined && gps.satellites_in_use !== undefined
+}
+
+/** True once a Gps record actually has a plottable position — separate
+ * from isCompleteGps because 'no_fix' is itself a complete, valid state
+ * with no coordinates. */
+export function hasGpsFix(gps: Gps): boolean {
+  return gps.fix_quality !== 'no_fix' && gps.latitude !== undefined && gps.longitude !== undefined
+}
+
 export interface Relay {
   state: boolean
 }
@@ -143,6 +185,7 @@ export interface RenewvanBusState {
   batteries: Record<string, Battery>
   relays: Record<string, Relay>
   routers: Record<string, Router>
+  gps: Record<string, Gps>
   /** Epoch ms of the newest router property per id — feeds the connection
    * icon's staleness rule (health offline OR older than 180 s = offline;
    * see lib/connection.ts). */
@@ -154,5 +197,6 @@ export const emptyRenewvanBusState: RenewvanBusState = {
   batteries: {},
   relays: {},
   routers: {},
+  gps: {},
   routerUpdatedAt: {},
 }

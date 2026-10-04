@@ -38,7 +38,7 @@ export interface RenewvanBus {
   publish: (topic: string, payload: string) => void
 }
 
-const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery|router)\/([^/]+)\/([^/]+)$/
+const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery|router|gps)\/([^/]+)\/([^/]+)$/
 const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
 const TOPIC_BRIGHTNESS = 'renewvan/kiosk/display/brightness'
 const TOPIC_AUTO_SLEEP_ENABLED = 'renewvan/kiosk/display/auto-sleep-enabled'
@@ -90,6 +90,7 @@ function applyMessage(prev: RenewvanBusState, topic: string, payload: string): R
     }
   }
   if (domain === 'tank') return { ...prev, tanks: accumulate(prev.tanks, id, property, value) }
+  if (domain === 'gps') return { ...prev, gps: accumulate(prev.gps, id, property, value) }
   if (domain === 'battery') {
     return { ...prev, batteries: accumulate(prev.batteries, id, property, value) }
   }
