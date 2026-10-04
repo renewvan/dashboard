@@ -1,4 +1,6 @@
-import type { RouterHealth } from '../hooks/useRenewvanBus'
+import type { ConnectionStatus, RouterHealth } from '../hooks/useRenewvanBus'
+import type { Router } from '../types'
+import { plmnOperatorName } from './plmn'
 
 /**
  * The header connection icon's state model, derived from the router entity
@@ -41,4 +43,38 @@ export function connectionTier(
   if (rsrp >= -105) return 'bars-2'
   if (rsrp >= -115) return 'bars-1'
   return 'no-service'
+}
+
+/**
+ * One-line summary of the uplink tier (`LTE · <operator>` / `Checking…` /
+ * `Offline` / `No service`) — the uplink popover's title and
+ * SettingsTab's Network group description read from this one copy source,
+ * not two independently-drifting strings (tailscaleStatusText precedent).
+ * Degrades on a partial Router exactly like the old popover row did
+ * (`UNKNOWN · —`) — no isCompleteRouter guard, per types.ts.
+ */
+export function uplinkHeadline(router: Partial<Router> | undefined, tier: ConnectionTier): string {
+  if (tier === 'checking') return 'Checking…'
+  if (tier === 'offline') return 'Offline'
+  if (tier === 'no-service') return 'No service'
+  return `${(router?.network_type ?? 'unknown').toUpperCase()} · ${
+    plmnOperatorName(router?.operator) ?? router?.operator ?? '—'
+  }`
+}
+
+/**
+ * Human-readable copy for the kiosk's MQTT bus link
+ * (`ConnectionStatus` from `useRenewvanBus`) — shared by the uplink
+ * popover's hub-link row and SettingsTab's Network subpage. Supersedes
+ * the deleted `RouterStatusIcon`'s private COPY map.
+ */
+export function busStatusText(status: ConnectionStatus): string {
+  switch (status) {
+    case 'connected':
+      return 'Connected'
+    case 'connecting':
+      return 'Connecting…'
+    case 'disconnected':
+      return 'Down — showing last-known state'
+  }
 }

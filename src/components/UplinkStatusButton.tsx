@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react'
 import { CloudOff, Loader2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { RouterHealth, TailscaleStatus } from '../hooks/useRenewvanBus'
-import { connectionTier, type ConnectionTier } from '../lib/connection'
+import { useNow } from '../hooks/useNow'
+import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '../hooks/useRenewvanBus'
+import {
+  busStatusText,
+  connectionTier,
+  uplinkHeadline,
+  type ConnectionTier,
+} from '../lib/connection'
+import { formatBytes } from '../lib/format'
 import { tailscaleStatusText } from '../lib/tailscale'
 import type { Router } from '../types'
 import { IconStatusButton } from './IconStatusButton'
@@ -14,11 +20,19 @@ export interface UplinkStatusButtonProps {
   /** `state.routerUpdatedAt[id]`, epoch ms — feeds the staleness rule. */
   lastReceivedAt: number | undefined
   tailscale: TailscaleStatus | null
+  /** `useRenewvanBus().status` — the kiosk's MQTT bus link, merged into
+   * this popover as a dot row (supersedes the deleted `RouterStatusIcon`). */
+  busStatus: ConnectionStatus
   onOpenSettings: () => void
+  /** App's themed-root portal node (`App.tsx`) — forwarded so the popover
+   * resolves dark tokens instead of `document.body`'s light defaults. */
+  portalContainer: HTMLDivElement | null
 }
 
 interface TierPresentation {
-  filled: number | null // null = not a bar glyph (offline/checking)
+  /** Filled bar count — bar tiers only. */
+  filled?: number
+  /** Reserved glyph — checking/offline tiers only. */
   Icon?: LucideIcon
   iconClass: string
   label: string
@@ -26,43 +40,109 @@ interface TierPresentation {
 
 /**
  * Header button for the van's uplink (`CONTEXT.md`) — the cellular
- * connection through the router entity (`renewvan/router/<id>/*`), not the
- * kiosk's bus link (`RouterStatusIcon`). One morphing icon across five
- * tiers (0–4 bars) whose tier comes from `connectionTier`
- * (lib/connection.ts owns the bands and the offline/staleness rules).
- * Bar glyphs are the custom four-bar tower
- * (prototype variant B, .scratch/router-connection-icon/issues/01 — MDI
- * rejected: native 3-bar scale collapses the 4-vs-3 tier); `CloudOff`
- * stays reserved exclusively for this button so the two red header icons
- * never share a shape.
+ * connection through the router entity (`renewvan/router/<id>/*`). One
+ * morphing icon across five tiers (0–4 bars) whose tier comes from
+ * `connectionTier` (lib/connection.ts owns the bands and the
+ * offline/staleness rules). Bar glyphs are the custom four-bar tower
+ * (`BarTower`) so tiers read at kiosk distance without pulling an icon
+ * package for a shape lucide doesn't have.
+ *
+ * Its popover is the single connection surface of the header: uplink
+ * fields, the kiosk's MQTT bus-link state (dot row, merged in from the
+ * deleted `RouterStatusIcon`), Tailscale, and a CTA that deep-links into
+ * Settings → Network where every router field lives.
  */
-function present(tier: ConnectionTier): TierPresentation {
-  switch (tier) {
-    case 'bars-4':
-      return { filled: 4, iconClass: 'text-success', label: 'Connection: 4 of 4 bars' }
-    case 'bars-3':
-      return { filled: 3, iconClass: 'text-success', label: 'Connection: 3 of 4 bars' }
-    case 'bars-2':
-      return { filled: 2, iconClass: 'text-warning', label: 'Connection: 2 of 4 bars' }
-    case 'bars-1':
-      return { filled: 1, iconClass: 'text-warning', label: 'Connection: 1 of 4 bars' }
-    case 'no-service':
-      return { filled: 0, iconClass: 'text-destructive', label: 'Connection: no service' }
-    case 'offline':
-      return {
-        Icon: CloudOff,
-        filled: null,
-        iconClass: 'text-destructive',
-        label: 'Connection offline',
+const TIER_PRESENTATION: Record<ConnectionTier, TierPresentation> = {
+  checking: {
+    Icon: Loader2,
+    iconClass: 'text-warning animate-spin',
+    label: 'Checking connection…',
+  },
+  offline: { Icon: CloudOff, iconClass: 'text-destructive', label: 'Connection offline' },
+  'no-service': { filled: 0, iconClass: 'text-destructive', label: 'Connection: no service' },
+  'bars-1': { filled: 1, iconClass: 'text-warning', label: 'Connection: 1 of 4 bars' },
+  'bars-2': { filled: 2, iconClass: 'text-warning', label: 'Connection: 2 of 4 bars' },
+  'bars-3': { filled: 3, iconClass: 'text-success', label: 'Connection: 3 of 4 bars' },
+  'bars-4': { filled: 4, iconClass: 'text-success', label: 'Connection: 4 of 4 bars' },
+}
+
+/** Dot + text status row shared by the hub-link and Tailscale lines —
+ * the "get rid of the icon, just leave a dot" treatment. */
+function StatusDotRow({ label, tone, text }: { label: string; tone: string; text: string }) {
+  return (
+    <div className="text-muted-foreground flex items-center justify-between gap-3">
+      <span>{label}</span>
+      <span className="text-foreground flex items-center gap-2">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${tone}`} aria-hidden />
+        {text}
+      </span>
+    </div>
+  )
+}
+
+const BUS_TONE: Record<ConnectionStatus, string> = {
+  connected: 'bg-success',
+  connecting: 'bg-warning',
+  disconnected: 'bg-destructive',
+}
+
+export function UplinkStatusButton({
+  router,
+  routerHealth,
+  lastReceivedAt,
+  tailscale,
+  busStatus,
+  onOpenSettings,
+  portalContainer,
+}: UplinkStatusButtonProps) {
+  const now = useNow(30_000)
+  const tier = connectionTier(router?.signal_rsrp_dbm, routerHealth, lastReceivedAt, now)
+  const { filled, Icon, iconClass, label } = TIER_PRESENTATION[tier]
+
+  return (
+    <IconStatusButton
+      label={label}
+      data-testid="uplink-status-button"
+      data-state={tier}
+      icon={
+        Icon !== undefined ? (
+          <Icon className={`size-5 ${iconClass}`} />
+        ) : (
+          <BarTower filled={filled ?? 0} className={iconClass} />
+        )
       }
-    default:
-      return {
-        Icon: Loader2,
-        filled: null,
-        iconClass: 'text-warning animate-spin',
-        label: 'Checking connection…',
-      }
-  }
+      title={uplinkHeadline(router, tier)}
+      onOpenSettings={onOpenSettings}
+      settingsLabel="Network settings"
+      portalContainer={portalContainer}
+    >
+      {tier !== 'checking' && tier !== 'offline' && (
+        <>
+          <FieldRow
+            label="RSRP"
+            value={router?.signal_rsrp_dbm !== undefined ? `${router.signal_rsrp_dbm} dBm` : null}
+          />
+          <FieldRow
+            label="Data"
+            value={
+              router?.data_used_month_rx_b !== undefined &&
+              router?.data_used_month_tx_b !== undefined
+                ? `↓ ${formatBytes(router.data_used_month_rx_b)} · ↑ ${formatBytes(router.data_used_month_tx_b)}`
+                : null
+            }
+          />
+        </>
+      )}
+      <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
+        <StatusDotRow label="Hub" tone={BUS_TONE[busStatus]} text={busStatusText(busStatus)} />
+        <StatusDotRow
+          label="Tailscale"
+          tone={tailscale?.connected ? 'bg-success' : 'bg-muted-foreground'}
+          text={tailscaleStatusText(tailscale)}
+        />
+      </div>
+    </IconStatusButton>
+  )
 }
 
 /** Four ascending bars, filled count per tier, remainder dimmed — the
@@ -85,93 +165,11 @@ function BarTower({ filled, className }: { filled: number; className?: string })
   )
 }
 
-/** Re-render on a slow tick so the icon degrades to offline on staleness
- * even when no other bus traffic arrives to re-render the header. */
-function useNow(intervalMs: number): number {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), intervalMs)
-    return () => clearInterval(timer)
-  }, [intervalMs])
-  return now
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  const units = ['KB', 'MB', 'GB', 'TB']
-  let value = bytes
-  let unit = -1
-  do {
-    value /= 1024
-    unit += 1
-  } while (value >= 1024 && unit < units.length - 1)
-  return `${value.toFixed(1)} ${units[unit]}`
-}
-
 function FieldRow({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="text-muted-foreground flex items-center justify-between gap-3">
       <span>{label}</span>
       <span className="text-foreground">{value ?? '—'}</span>
     </div>
-  )
-}
-
-export function UplinkStatusButton({
-  router,
-  routerHealth,
-  lastReceivedAt,
-  tailscale,
-  onOpenSettings,
-}: UplinkStatusButtonProps) {
-  const now = useNow(30_000)
-  const tier = connectionTier(router?.signal_rsrp_dbm, routerHealth, lastReceivedAt, now)
-  const { filled, Icon, iconClass, label } = present(tier)
-
-  return (
-    <IconStatusButton
-      label={label}
-      data-testid="uplink-status-button"
-      data-state={tier}
-      icon={
-        Icon !== undefined ? (
-          <Icon className={`size-5 ${iconClass}`} />
-        ) : (
-          <BarTower filled={filled ?? 0} className={iconClass} />
-        )
-      }
-      onOpenSettings={onOpenSettings}
-      popoverContent={
-        <div className="flex flex-col gap-1.5">
-          {tier === 'checking' ? (
-            'Checking…'
-          ) : tier === 'offline' ? (
-            <div className="font-medium">Offline</div>
-          ) : (
-            <>
-              <div className="font-medium">
-                {`${(router?.network_type ?? 'unknown').toUpperCase()} · ${router?.operator ?? '—'}`}
-              </div>
-              <FieldRow
-                label="RSRP"
-                value={
-                  router?.signal_rsrp_dbm !== undefined ? `${router.signal_rsrp_dbm} dBm` : null
-                }
-              />
-              <FieldRow
-                label="Data this month"
-                value={
-                  router?.data_used_month_rx_b !== undefined &&
-                  router?.data_used_month_tx_b !== undefined
-                    ? `↓ ${formatBytes(router.data_used_month_rx_b)} · ↑ ${formatBytes(router.data_used_month_tx_b)}`
-                    : null
-                }
-              />
-            </>
-          )}
-          <FieldRow label="Tailscale" value={tailscaleStatusText(tailscale)} />
-        </div>
-      }
-    />
   )
 }
