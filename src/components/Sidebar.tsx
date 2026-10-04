@@ -39,11 +39,10 @@ export interface SidebarProps {
  * structurally — not a hardcoded width that can drift out of sync with
  * the pill again later.
  *
- * Icons sit vertically centered because the pill itself is `h-full`
- * (matching the content pane's column height) with `justify-center` on
- * its flex axis, rather than `justify-start` — `justify-start` would
- * leave dead space below the icons once the pill fills the full rail
- * height instead of hugging its content. `item.icon` MUST carry an
+ * The nav icons ride as one `gap-2` group at the pill's top; settings
+ * sits alone at the bottom (`justify-between` on the pill's `h-full`
+ * flex axis, matching the content pane's column height, is what splits
+ * the two). `item.icon` MUST carry an
  * explicit `size-*` class (see `App.tsx`'s `NAV_ITEMS`) —
  * Coss's shared `segmentedControlItemLayoutClassName` (used by
  * `TabsTab`, from `@/lib/segmented-control`) applies
@@ -76,20 +75,39 @@ export interface SidebarProps {
  * size and left-aligns the icon inside it instead of centering it.
  */
 export function Sidebar({ items }: SidebarProps) {
+  // Settings rides separately at the pill's bottom (`justify-between`
+  // above splits the rail into nav group + pinned settings) — read, not
+  // `pop()`, so the caller's array (App's module-level `NAV_ITEMS`)
+  // isn't mutated across renders.
+  const settings = items.at(-1)
+
   return (
     <aside className="flex h-full w-fit shrink-0 flex-col items-start justify-center">
-      <TabsList className="sidebar-nav bg-card/40 flex-col items-center justify-center gap-2 rounded-full border border-white/10 p-2 backdrop-blur-md">
-        {items.map((item) => (
+      <TabsList className="sidebar-nav bg-card/40 h-full flex-col items-center justify-between gap-2 rounded-full border border-white/10 p-2 backdrop-blur-md">
+        <div className="flex flex-col gap-2">
+          {items.slice(0, -1).map((item) => (
+            <TabsTab
+              key={item.id}
+              value={item.id}
+              data-testid={`nav-${item.id}`}
+              aria-label={item.label}
+              className="bg-foreground/10 hover:bg-foreground/16 size-11! shrink-0 grow-0 justify-center! rounded-full p-0 data-active:text-white!"
+            >
+              {item.icon}
+            </TabsTab>
+          ))}
+        </div>
+        {settings && (
           <TabsTab
-            key={item.id}
-            value={item.id}
-            data-testid={`nav-${item.id}`}
-            aria-label={item.label}
+            key={settings.id}
+            value={settings.id}
+            data-testid={`nav-${settings.id}`}
+            aria-label={settings.label}
             className="bg-foreground/10 hover:bg-foreground/16 size-11! shrink-0 grow-0 justify-center! rounded-full p-0 data-active:text-white!"
           >
-            {item.icon}
+            {settings.icon}
           </TabsTab>
-        ))}
+        )}
       </TabsList>
     </aside>
   )
