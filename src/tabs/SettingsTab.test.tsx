@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Router } from '../types'
 import { SettingsTab, type SettingsTabProps } from './SettingsTab'
 
 const connectedTailscale = {
@@ -9,6 +10,18 @@ const connectedTailscale = {
   ip: '100.64.0.1',
   hostname: 'renewvan',
   peers: 1,
+}
+
+const liveRouter: Router = {
+  signal_rsrp_dbm: -85,
+  signal_rsrq_db: -10,
+  signal_sinr_db: 6,
+  signal_rssi_dbm: -54,
+  operator: '26203',
+  network_type: 'lte',
+  uptime_s: 826_671,
+  data_used_month_tx_b: 140.2 * 1024 * 1024,
+  data_used_month_rx_b: 385.1 * 1024 * 1024,
 }
 
 function displaySettingsProps(overrides: Partial<SettingsTabProps> = {}): SettingsTabProps {
@@ -22,6 +35,10 @@ function displaySettingsProps(overrides: Partial<SettingsTabProps> = {}): Settin
     onAutoSleepTimeoutMinutesChange: vi.fn(),
     portalContainer: null,
     active: true,
+    router: liveRouter,
+    routerHealth: 'online',
+    routerUpdatedAt: Date.now(),
+    busStatus: 'connected',
     ...overrides,
   }
 }
@@ -43,6 +60,63 @@ describe('SettingsTab', () => {
     render(<SettingsTab {...displaySettingsProps()} />)
     await user.click(screen.getByText('Network'))
     expect(screen.getByTestId('tailscale-status')).toHaveTextContent('100.64.0.1')
+  })
+
+  it('network subpage lists the hub link dot row and every router field', async () => {
+    const user = userEvent.setup()
+    render(<SettingsTab {...displaySettingsProps()} />)
+    await user.click(screen.getByText('Network'))
+
+    expect(screen.getByTestId('bus-status')).toHaveTextContent('Connected')
+    expect(screen.getByText('Operator')).toBeInTheDocument()
+    expect(screen.getByText('O2')).toBeInTheDocument()
+    expect(screen.getByText('LTE')).toBeInTheDocument()
+    expect(screen.getByText('-10 dB')).toBeInTheDocument()
+    expect(screen.getByText('6 dB')).toBeInTheDocument()
+    expect(screen.getByText('-54 dBm')).toBeInTheDocument()
+    expect(screen.getByText('9d 13h')).toBeInTheDocument()
+    expect(screen.getByText(/↓ 385\.1 MB · ↑ 140\.2 MB/)).toBeInTheDocument()
+  })
+
+  it('degrades missing router fields to em-dashes, not hidden rows', async () => {
+    const user = userEvent.setup()
+    render(
+      <SettingsTab
+        {...displaySettingsProps({ router: { signal_rsrp_dbm: -85 }, routerUpdatedAt: Date.now() })}
+      />,
+    )
+    await user.click(screen.getByText('Network'))
+
+    expect(screen.getByText('-85 dBm')).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('deep-links straight into the Network subpage via focusView', () => {
+    render(<SettingsTab {...displaySettingsProps({ focusView: 'network' })} />)
+    expect(screen.getByTestId('tailscale-status')).toBeInTheDocument()
+    expect(screen.getByTestId('bus-status')).toBeInTheDocument()
+  })
+
+  it('reports focusView as consumed so a repeat CTA tap re-triggers the jump', () => {
+    // App clears focusView once fired; without the callback a second tap
+    // with the same value would be a no-op and dead-end on the list.
+    const onFocusConsumed = vi.fn()
+    const { rerender } = render(
+      <SettingsTab {...displaySettingsProps({ focusView: 'network', onFocusConsumed })} />,
+    )
+    expect(onFocusConsumed).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('bus-status')).toBeInTheDocument()
+
+    // Consumed (App cleared it): stays put, does not re-fire.
+    rerender(<SettingsTab {...displaySettingsProps({ onFocusConsumed })} />)
+    expect(onFocusConsumed).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('bus-status')).toBeInTheDocument()
+  })
+
+  it('plain sidebar entry still lands on the list when focusView is unset', () => {
+    render(<SettingsTab {...displaySettingsProps()} />)
+    expect(screen.getByText('Display')).toBeInTheDocument()
+    expect(screen.queryByTestId('tailscale-status')).not.toBeInTheDocument()
   })
 
   it('shows loading state when tailscale is null', async () => {

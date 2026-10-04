@@ -202,7 +202,7 @@ export function TankCard({ tank }: TankCardProps) {
               <InfoField
                 icon={<Thermometer className="size-4" />}
                 label="Temperature"
-                value={tank.temperature_c != null ? `${tank.temperature_c.toFixed(0)}°C` : '20°C'}
+                value={tank.temperature_c != null ? `${tank.temperature_c.toFixed(0)}°C` : '--°C'}
               />
               <InfoField
                 icon={

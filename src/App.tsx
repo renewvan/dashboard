@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Droplet, Wrench, ToggleLeft, Van, Zap, Heater } from 'lucide-react'
 import wallpaperLight from '../assets/light-unsplash.jpg'
 import wallpaperDark from '../assets/dark-unsplash.jpg'
@@ -9,7 +9,6 @@ import { Clock } from './components/Clock'
 import { DisplaySleepButton } from './components/DisplaySleepButton'
 import { AlertsButton } from './components/AlertsButton'
 import { UplinkStatusButton } from './components/UplinkStatusButton'
-import { RouterStatusIcon } from './components/RouterStatusIcon'
 import { Sidebar, type NavItem } from './components/Sidebar'
 import { ThemeToggleButton } from './components/ThemeToggleButton'
 import { Tabs as TabsRoot, TabsPanel } from './components/ui/tabs'
@@ -66,21 +65,34 @@ function App() {
   } = useRenewvanBus()
   useAlertToasts({ tanks: state.tanks, status, tailscale })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'home')
+  // Deep-link target for the uplink popover's "Network settings" CTA.
+  // Cleared on consumption and whenever Settings is not the active tab,
+  // so a plain sidebar entry never inherits a stale focus — and a repeat
+  // CTA tap (same value) still re-triggers the jump.
+  const [settingsFocus, setSettingsFocus] = useState<'network' | undefined>(undefined)
+  useEffect(() => {
+    if (activeTab !== 'settings') setSettingsFocus(undefined)
+  }, [activeTab])
+  const openSettings = (focus?: 'network') => {
+    setSettingsFocus(focus)
+    setActiveTab('settings')
+  }
   const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const wallpaper = WALLPAPER[theme]
   // single router per hub (compose ROUTER_ID) — first id decides; none yet → checking
   const routerId = Object.keys(state.routers)[0]
-  // Base UI's Dialog/Sheet portals to document.body by default, which sits
-  // OUTSIDE the themed div below (the 'dark' class lives on this root, not
-  // <html>) -- so a sheet would render light regardless of theme. Portaling
-  // into this ref instead (a direct child of the themed root, deliberately
-  // NOT nested under `header`'s `backdrop-blur-md`) fixes the theme without
-  // also clipping the sheet's `fixed inset-0` viewport: `backdrop-filter`
-  // establishes a CSS containing block for `position: fixed` descendants,
-  // so portaling anywhere under the header would shrink the sheet to the
-  // header's box instead of the full viewport.
-  const [sheetPortalContainer, setSheetPortalContainer] = useState<HTMLDivElement | null>(null)
+  // Base UI's Dialog/Sheet/Popover portals to document.body by default,
+  // which sits OUTSIDE the themed div below (the 'dark' class lives on
+  // this root, not <html>) -- so a sheet or popover would render light
+  // regardless of theme. Portaling into this ref instead (a direct child
+  // of the themed root, deliberately NOT nested under `header`'s
+  // `backdrop-blur-md`) fixes the theme without also clipping the
+  // portal's `fixed` positioning: `backdrop-filter` establishes a CSS
+  // containing block for `position: fixed` descendants, so portaling
+  // anywhere under the header would shrink the sheet to the header's box
+  // instead of the full viewport.
+  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null)
 
   const handleSleep = () => publish('renewvan/kiosk/display/power/set', 'off')
   const handleWake = () => publish('renewvan/kiosk/display/power/set', 'on')
@@ -91,7 +103,7 @@ function App() {
       onValueChange={(value) => setActiveTab(value as string)}
       orientation="vertical"
       className={cn(
-        'text-foreground relative flex h-svh flex-col! gap-3 overflow-hidden p-4',
+        'text-foreground relative flex h-svh flex-col! gap-2 overflow-hidden px-2 py-1',
         theme === 'dark' && 'dark',
       )}
     >
@@ -108,7 +120,7 @@ function App() {
         )}
         style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : undefined}
       />
-      <div ref={setSheetPortalContainer} />
+      <div ref={setPortalContainer} />
       <header className="bg-card/40 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 px-3 py-1.5 backdrop-blur-md">
         <img
           src={theme === 'dark' ? lockupWhite : lockupDark}
@@ -123,9 +135,10 @@ function App() {
             routerHealth={routerHealth}
             lastReceivedAt={state.routerUpdatedAt[routerId]}
             tailscale={tailscale}
-            onOpenSettings={() => setActiveTab('settings')}
+            busStatus={status}
+            onOpenSettings={() => openSettings('network')}
+            portalContainer={portalContainer}
           />
-          <RouterStatusIcon status={status} />
           <Separator orientation="vertical" className="mx-1.5" />
           <AlertsButton
             onClick={() => setActiveTab('alerts')}
@@ -140,7 +153,7 @@ function App() {
           />
         </div>
       </header>
-      <div className="flex flex-1 gap-3 overflow-hidden">
+      <div className="flex flex-1 gap-2 overflow-hidden">
         <Sidebar items={NAV_ITEMS} />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsPanel value="home">
@@ -177,8 +190,14 @@ function App() {
               onAutoSleepTimeoutMinutesChange={(v) =>
                 publish('renewvan/kiosk/display/auto-sleep-timeout-minutes/set', JSON.stringify(v))
               }
-              portalContainer={sheetPortalContainer}
+              portalContainer={portalContainer}
               active={activeTab === 'settings'}
+              router={state.routers[routerId]}
+              routerHealth={routerHealth}
+              routerUpdatedAt={state.routerUpdatedAt[routerId]}
+              busStatus={status}
+              focusView={settingsFocus}
+              onFocusConsumed={() => setSettingsFocus(undefined)}
             />
           </TabsPanel>
           <TabsPanel value="alerts">

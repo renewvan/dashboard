@@ -6,11 +6,9 @@ import { IconStatusButton } from './IconStatusButton'
 describe('IconStatusButton', () => {
   it('renders a transparent status trigger labelled by the label prop', () => {
     render(
-      <IconStatusButton
-        label="Uplink via LAN"
-        icon={<span data-testid="icon">icon</span>}
-        popoverContent="details"
-      />,
+      <IconStatusButton label="Uplink via LAN" icon={<span data-testid="icon">icon</span>}>
+        details
+      </IconStatusButton>,
     )
     const trigger = screen.getByRole('button', { name: 'Uplink via LAN' })
     expect(trigger).toHaveClass('rounded-full', 'size-11')
@@ -18,23 +16,24 @@ describe('IconStatusButton', () => {
     expect(screen.getByTestId('icon')).toBeInTheDocument()
   })
 
-  it('shows the popover content when tapped', async () => {
+  it('labels the popup with PopoverTitle and renders body children', async () => {
     const user = userEvent.setup()
     render(
-      <IconStatusButton
-        label="Uplink"
-        icon={<span>icon</span>}
-        popoverContent={<span>Uplink details</span>}
-      />,
+      <IconStatusButton label="Uplink" icon={<span>icon</span>} title="LTE · O2">
+        <span>Uplink details</span>
+      </IconStatusButton>,
     )
     await user.click(screen.getByRole('button', { name: 'Uplink' }))
     expect(await screen.findByText('Uplink details')).toBeInTheDocument()
+    expect(screen.getByText('LTE · O2')).toBeInTheDocument()
   })
 
-  it('offers an Open settings action only when onOpenSettings is given, closing first', async () => {
+  it('offers a settings action only when onOpenSettings is given, closing first', async () => {
     const onOpenSettings = vi.fn()
     const { rerender } = render(
-      <IconStatusButton label="Uplink" icon={<span>icon</span>} popoverContent="details" />,
+      <IconStatusButton label="Uplink" icon={<span>icon</span>}>
+        details
+      </IconStatusButton>,
     )
     await userEvent.setup().click(screen.getByRole('button', { name: 'Uplink' }))
     expect(await screen.findByText('details')).toBeInTheDocument()
@@ -44,11 +43,13 @@ describe('IconStatusButton', () => {
       <IconStatusButton
         label="Uplink"
         icon={<span>icon</span>}
-        popoverContent="details"
+        settingsLabel="Network settings"
         onOpenSettings={onOpenSettings}
-      />,
+      >
+        details
+      </IconStatusButton>,
     )
-    await userEvent.setup().click(screen.getByRole('button', { name: /open settings/i }))
+    await userEvent.setup().click(screen.getByRole('button', { name: /network settings/i }))
     expect(onOpenSettings).toHaveBeenCalledTimes(1)
   })
 })

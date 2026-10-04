@@ -5,7 +5,7 @@ The touchscreen kiosk UI mounted in the van. It renders live van state (tanks, b
 ## Language
 
 **Bus link**:
-The kiosk's live MQTT-over-WebSocket connection to the van's broker — what the header's router icon reports. Says nothing about the van's internet reachability.
+The kiosk's live MQTT-over-WebSocket connection to the van's broker — reported as the Hub dot row inside the uplink popover. Says nothing about the van's internet reachability.
 _Avoid_: Connection status, router status, internet connection
 
 **Uplink**:
@@ -15,7 +15,7 @@ The van's cellular internet connection through the router entity
 -95/-105/-115 dBm), offline when the node's health says offline or
 data is older than 180 s, checking until data arrives. The subject of the
 header's connection status button (`UplinkStatusButton`) — the icon reports
-the van's uplink, distinct from the bus link the router icon reports.
+the van's uplink; its popover's Hub dot row reports the bus link.
 _Avoid_: Internet connection, WAN, network status, signal strength (alone —
 it's the whole connection state, including offline/no-service)
 

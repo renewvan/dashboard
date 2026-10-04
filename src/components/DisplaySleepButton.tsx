@@ -41,8 +41,8 @@ export interface DisplaySleepButtonProps {
  * lucide's generic `Power`/`PowerOff`; renamed + re-iconed so the icon and
  * the name both say "sleep", matching what the button is actually for.
  *
- * A real `<button>`, not decorative like `RouterStatusIcon` — tapping it
- * does something — so it keeps the 44×44px minimum touch target
+ * A real `<button>`, not a decorative glyph — tapping it does something —
+ * so it keeps the 44×44px minimum touch target
  * (`size-11`) per docs/design-principles.md.
  *
  * Styled to match the sidebar's circular nav buttons exactly

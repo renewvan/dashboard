@@ -1,6 +1,15 @@
 import { Fragment, useEffect, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
-import type { AutoSleepTimeoutMinutes, TailscaleStatus } from '../hooks/useRenewvanBus'
+import type {
+  AutoSleepTimeoutMinutes,
+  ConnectionStatus,
+  RouterHealth,
+  TailscaleStatus,
+} from '../hooks/useRenewvanBus'
+import { BUS_TONE, busStatusText, connectionTier, uplinkHeadline } from '../lib/connection'
+import { formatBytes, formatUptime } from '../lib/format'
+import { plmnOperatorName } from '../lib/plmn'
+import { useNow } from '../hooks/useNow'
 import { tailscaleStatusText } from '../lib/tailscale'
 import { useSettingsNavStyle, type SettingsNavStyle } from '../hooks/useSettingsNavStyle'
 import { Switch } from '../components/ui/switch'
@@ -23,7 +32,10 @@ import {
   segmentedControlRootClassName,
   segmentedControlItemVariants,
 } from '../lib/segmented-control'
+import type { Router } from '../types'
 import { cn } from '../lib/utils'
+
+export type SettingsView = 'list' | 'display' | 'network' | 'navigation'
 
 export interface SettingsTabProps {
   tailscale: TailscaleStatus | null
@@ -62,6 +74,27 @@ export interface SettingsTabProps {
    * `true`) so the panel is already fresh before its next appearance.
    */
   active: boolean
+  /**
+   * Router uplink entity (`state.routers[routerId]`) + node health +
+   * last-received timestamp — rendered as the Network subpage's detail
+   * rows and summarized in the Network group's description. Partial
+   * between retained messages, deliberately (see types.ts).
+   */
+  router: Partial<Router> | undefined
+  routerHealth: RouterHealth | null
+  routerUpdatedAt: number | undefined
+  /** Kiosk MQTT bus-link state — the dot row merged in from the deleted `RouterStatusIcon`. */
+  busStatus: ConnectionStatus
+  /**
+   * Deep-link target: when defined at the moment `active` flips true
+   * (the header uplink popover's "Network settings" CTA), the Network
+   * subpage opens directly instead of the top-level list. App owns and
+   * clears this so a plain sidebar entry never inherits a stale focus.
+   */
+  focusView?: 'network'
+  /** Fired when `focusView` has been applied — App clears the target, so
+   * a repeat CTA tap (same value) still re-fires the jump next time. */
+  onFocusConsumed?: () => void
 }
 
 const TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
@@ -105,6 +138,85 @@ function TailscaleRow({ tailscale }: { tailscale: TailscaleStatus | null }) {
         <span className="text-muted-foreground text-xs">{tailscaleStatusText(tailscale)}</span>
       </div>
     </div>
+  )
+}
+
+/** Status-dot colour shared with the uplink popover's Hub row —
+ * `lib/connection.ts`'s `BUS_TONE`. */
+
+function BusStatusRow({ status }: { status: ConnectionStatus }) {
+  return (
+    <div className="flex items-center justify-between px-3.5 py-2.5">
+      <span className="text-sm">Hub</span>
+      <div className="flex items-center gap-2" data-testid="bus-status">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${BUS_TONE[status]}`} />
+        <span className="text-muted-foreground text-xs">{busStatusText(status)}</span>
+      </div>
+    </div>
+  )
+}
+
+/** One read-only row per field, `—` until that property's retained MQTT
+ * message arrives (Partial Router, per types.ts — degrade, don't hide). */
+function DetailRow({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="flex items-center justify-between px-3.5 py-2.5">
+      <span className="text-sm">{label}</span>
+      <span className="text-muted-foreground text-xs tabular-nums">{value ?? '—'}</span>
+    </div>
+  )
+}
+
+/**
+ * Every field the router entity publishes (`hub/schema/router.schema.json`):
+ * operator, network type, the four signal metrics, uptime, and this
+ * month's rx/tx data. Lives in the Network subpage — the uplink
+ * popover's CTA lands here.
+ */
+function RouterDetails({ router }: { router: Partial<Router> | undefined }) {
+  return (
+    <>
+      <DetailRow
+        label="Operator"
+        value={
+          router?.operator !== undefined
+            ? (plmnOperatorName(router.operator) ?? router.operator)
+            : null
+        }
+      />
+      <DetailRow
+        label="Network"
+        value={router?.network_type !== undefined ? router.network_type.toUpperCase() : null}
+      />
+      <DetailRow
+        label="RSRP"
+        value={router?.signal_rsrp_dbm !== undefined ? `${router.signal_rsrp_dbm} dBm` : null}
+      />
+      <DetailRow
+        label="RSRQ"
+        value={router?.signal_rsrq_db !== undefined ? `${router.signal_rsrq_db} dB` : null}
+      />
+      <DetailRow
+        label="SINR"
+        value={router?.signal_sinr_db !== undefined ? `${router.signal_sinr_db} dB` : null}
+      />
+      <DetailRow
+        label="RSSI"
+        value={router?.signal_rssi_dbm !== undefined ? `${router.signal_rssi_dbm} dBm` : null}
+      />
+      <DetailRow
+        label="Uptime"
+        value={router?.uptime_s !== undefined ? formatUptime(router.uptime_s) : null}
+      />
+      <DetailRow
+        label="Data this month"
+        value={
+          router?.data_used_month_rx_b !== undefined && router?.data_used_month_tx_b !== undefined
+            ? `↓ ${formatBytes(router.data_used_month_rx_b)} · ↑ ${formatBytes(router.data_used_month_tx_b)}`
+            : null
+        }
+      />
+    </>
   )
 }
 
@@ -253,13 +365,34 @@ const CARD_WRAPPER =
  * props from `useRenewvanBus`, publishing to the matching `/set` topics.
  */
 export function SettingsTab(props: SettingsTabProps) {
-  const { tailscale, portalContainer, active } = props
+  const { tailscale, portalContainer, active, focusView, onFocusConsumed } = props
   const [navStyle, setNavStyle] = useSettingsNavStyle()
-  const [view, setView] = useState<'list' | 'display' | 'network' | 'navigation'>('list')
+  const [view, setView] = useState<SettingsView>('list')
+  // Ticks so the Network group's headline degrades to Offline on a stale
+  // feed even with no bus traffic re-rendering the tree.
+  const now = useNow(30_000)
+  const tier = connectionTier(
+    props.router?.signal_rsrp_dbm,
+    props.routerHealth,
+    props.routerUpdatedAt,
+    now,
+  )
 
   useEffect(() => {
     if (!active) setView('list')
   }, [active])
+
+  // Deep-link from the header uplink popover's "Network settings" CTA:
+  // jump straight into the Network subpage when Settings appears with a
+  // focus target set. Consumed here (App clears it) so a repeat tap on
+  // the CTA — same value, no prop change — still re-fires the jump after
+  // the user has navigated back to the list.
+  useEffect(() => {
+    if (active && focusView) {
+      setView(focusView)
+      onFocusConsumed?.()
+    }
+  }, [active, focusView, onFocusConsumed])
 
   const sheetBg = 'border-white/10 bg-card/40 text-foreground backdrop-blur-md'
 
@@ -278,7 +411,7 @@ export function SettingsTab(props: SettingsTabProps) {
       <FramePanel className={PANEL_CLASS}>
         <GroupRow
           label="Network"
-          description={tailscaleStatusText(tailscale)}
+          description={uplinkHeadline(props.router, tier)}
           onClick={() => setView('network')}
         />
       </FramePanel>
@@ -305,6 +438,12 @@ export function SettingsTab(props: SettingsTabProps) {
 
   const networkFields = (
     <Frame className={FRAME_CLASS}>
+      <FramePanel className={PANEL_CLASS}>
+        <BusStatusRow status={props.busStatus} />
+      </FramePanel>
+      <FramePanel className={PANEL_CLASS}>
+        <RouterDetails router={props.router} />
+      </FramePanel>
       <FramePanel className={PANEL_CLASS}>
         <TailscaleRow tailscale={tailscale} />
       </FramePanel>

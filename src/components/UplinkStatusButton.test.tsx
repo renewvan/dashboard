@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import type { RouterHealth, TailscaleStatus } from '../hooks/useRenewvanBus'
+import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '../hooks/useRenewvanBus'
 import type { Router } from '../types'
 import { UplinkStatusButton } from './UplinkStatusButton'
 
@@ -31,6 +31,7 @@ function setup(
   ageMs: number | null = null,
   tailscale: TailscaleStatus = connectedTailscale,
   onOpenSettings: () => void = () => {},
+  busStatus: ConnectionStatus = 'connected',
 ) {
   render(
     <UplinkStatusButton
@@ -38,7 +39,9 @@ function setup(
       routerHealth={routerHealth}
       lastReceivedAt={ageMs === null ? undefined : Date.now() - ageMs}
       tailscale={tailscale}
+      busStatus={busStatus}
       onOpenSettings={onOpenSettings}
+      portalContainer={null}
     />,
   )
 }
@@ -99,13 +102,22 @@ describe('UplinkStatusButton popover', () => {
     setup(liveRouter, 'online', 30_000)
     await user.click(screen.getByRole('button', { name: 'Connection: 4 of 4 bars' }))
 
-    expect(await screen.findByText('LTE · 26203')).toBeInTheDocument()
+    expect(await screen.findByText('LTE · O2')).toBeInTheDocument()
     expect(screen.getByText('RSRP')).toBeInTheDocument()
     expect(screen.getByText('-85 dBm')).toBeInTheDocument()
-    expect(screen.getByText('Data this month')).toBeInTheDocument()
+    expect(screen.getByText('Data')).toBeInTheDocument()
     expect(screen.getByText(/↓ 385\.1 MB · ↑ 140\.2 MB/)).toBeInTheDocument()
     expect(screen.getByText('Tailscale')).toBeInTheDocument()
     expect(screen.getByText('100.64.0.1')).toBeInTheDocument()
+  })
+
+  it('carries the bus-link state as a dot row merged in from RouterStatusIcon', async () => {
+    const user = userEvent.setup()
+    setup(liveRouter, 'online', 30_000, connectedTailscale, () => {}, 'disconnected')
+    await user.click(screen.getByRole('button', { name: 'Connection: 4 of 4 bars' }))
+
+    expect(await screen.findByText('Hub')).toBeInTheDocument()
+    expect(screen.getByText('Down — showing last-known state')).toBeInTheDocument()
   })
 
   it("renders em-dashes, not hidden rows, for fields a partial entity hasn't sent", async () => {
@@ -121,7 +133,7 @@ describe('UplinkStatusButton popover', () => {
 
     expect(await screen.findByText('UNKNOWN · —')).toBeInTheDocument()
     expect(screen.getByText('-85 dBm')).toBeInTheDocument()
-    expect(screen.getByText('Data this month')).toBeInTheDocument()
+    expect(screen.getByText('Data')).toBeInTheDocument()
     expect(screen.getByText('—')).toBeInTheDocument()
     expect(screen.getByText('Tailscale')).toBeInTheDocument()
     expect(screen.getByText('Not installed')).toBeInTheDocument()
@@ -144,7 +156,7 @@ describe('UplinkStatusButton popover', () => {
 
     expect(await screen.findByText('Offline')).toBeInTheDocument()
     expect(screen.queryByText('RSRP')).not.toBeInTheDocument()
-    expect(screen.queryByText('Data this month')).not.toBeInTheDocument()
+    expect(screen.queryByText('Data')).not.toBeInTheDocument()
     expect(screen.getByText('Tailscale')).toBeInTheDocument()
   })
 
@@ -154,8 +166,8 @@ describe('UplinkStatusButton popover', () => {
     setup(liveRouter, 'online', 30_000, connectedTailscale, onOpenSettings)
     await user.click(screen.getByRole('button', { name: 'Connection: 4 of 4 bars' }))
 
-    await user.click(await screen.findByRole('button', { name: 'Open settings' }))
+    await user.click(await screen.findByRole('button', { name: 'Network settings' }))
     expect(onOpenSettings).toHaveBeenCalledTimes(1)
-    expect(screen.queryByText('LTE · 26203')).not.toBeInTheDocument()
+    expect(screen.queryByText('LTE · O2')).not.toBeInTheDocument()
   })
 })
