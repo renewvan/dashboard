@@ -97,6 +97,22 @@ describe('SettingsTab', () => {
     expect(screen.getByTestId('bus-status')).toBeInTheDocument()
   })
 
+  it('reports focusView as consumed so a repeat CTA tap re-triggers the jump', () => {
+    // App clears focusView once fired; without the callback a second tap
+    // with the same value would be a no-op and dead-end on the list.
+    const onFocusConsumed = vi.fn()
+    const { rerender } = render(
+      <SettingsTab {...displaySettingsProps({ focusView: 'network', onFocusConsumed })} />,
+    )
+    expect(onFocusConsumed).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('bus-status')).toBeInTheDocument()
+
+    // Consumed (App cleared it): stays put, does not re-fire.
+    rerender(<SettingsTab {...displaySettingsProps({ onFocusConsumed })} />)
+    expect(onFocusConsumed).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('bus-status')).toBeInTheDocument()
+  })
+
   it('plain sidebar entry still lands on the list when focusView is unset', () => {
     render(<SettingsTab {...displaySettingsProps()} />)
     expect(screen.getByText('Display')).toBeInTheDocument()

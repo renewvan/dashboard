@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useNow } from '../hooks/useNow'
 import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '../hooks/useRenewvanBus'
 import {
+  BUS_TONE,
   busStatusText,
   connectionTier,
   uplinkHeadline,
@@ -80,11 +81,8 @@ function StatusDotRow({ label, tone, text }: { label: string; tone: string; text
   )
 }
 
-const BUS_TONE: Record<ConnectionStatus, string> = {
-  connected: 'bg-success',
-  connecting: 'bg-warning',
-  disconnected: 'bg-destructive',
-}
+/** Status-dot colour shared with SettingsTab's Network subpage —
+ * `lib/connection.ts`'s `BUS_TONE`. */
 
 export function UplinkStatusButton({
   router,

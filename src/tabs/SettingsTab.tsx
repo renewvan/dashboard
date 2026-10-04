@@ -6,7 +6,7 @@ import type {
   RouterHealth,
   TailscaleStatus,
 } from '../hooks/useRenewvanBus'
-import { busStatusText, connectionTier, uplinkHeadline } from '../lib/connection'
+import { BUS_TONE, busStatusText, connectionTier, uplinkHeadline } from '../lib/connection'
 import { formatBytes, formatUptime } from '../lib/format'
 import { plmnOperatorName } from '../lib/plmn'
 import { useNow } from '../hooks/useNow'
@@ -92,6 +92,9 @@ export interface SettingsTabProps {
    * clears this so a plain sidebar entry never inherits a stale focus.
    */
   focusView?: 'network'
+  /** Fired when `focusView` has been applied — App clears the target, so
+   * a repeat CTA tap (same value) still re-fires the jump next time. */
+  onFocusConsumed?: () => void
 }
 
 const TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
@@ -138,13 +141,8 @@ function TailscaleRow({ tailscale }: { tailscale: TailscaleStatus | null }) {
   )
 }
 
-/** Same dot treatment as `TailscaleRow`, for the kiosk's MQTT bus link —
- * merged in from the deleted `RouterStatusIcon` header button. */
-const BUS_TONE: Record<ConnectionStatus, string> = {
-  connected: 'bg-success',
-  connecting: 'bg-warning',
-  disconnected: 'bg-destructive',
-}
+/** Status-dot colour shared with the uplink popover's Hub row —
+ * `lib/connection.ts`'s `BUS_TONE`. */
 
 function BusStatusRow({ status }: { status: ConnectionStatus }) {
   return (
@@ -367,7 +365,7 @@ const CARD_WRAPPER =
  * props from `useRenewvanBus`, publishing to the matching `/set` topics.
  */
 export function SettingsTab(props: SettingsTabProps) {
-  const { tailscale, portalContainer, active, focusView } = props
+  const { tailscale, portalContainer, active, focusView, onFocusConsumed } = props
   const [navStyle, setNavStyle] = useSettingsNavStyle()
   const [view, setView] = useState<SettingsView>('list')
   // Ticks so the Network group's headline degrades to Offline on a stale
@@ -386,10 +384,15 @@ export function SettingsTab(props: SettingsTabProps) {
 
   // Deep-link from the header uplink popover's "Network settings" CTA:
   // jump straight into the Network subpage when Settings appears with a
-  // focus target set.
+  // focus target set. Consumed here (App clears it) so a repeat tap on
+  // the CTA — same value, no prop change — still re-fires the jump after
+  // the user has navigated back to the list.
   useEffect(() => {
-    if (active && focusView) setView(focusView)
-  }, [active, focusView])
+    if (active && focusView) {
+      setView(focusView)
+      onFocusConsumed?.()
+    }
+  }, [active, focusView, onFocusConsumed])
 
   const sheetBg = 'border-white/10 bg-card/40 text-foreground backdrop-blur-md'
 

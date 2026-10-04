@@ -66,9 +66,9 @@ function App() {
   useAlertToasts({ tanks: state.tanks, status, tailscale })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'home')
   // Deep-link target for the uplink popover's "Network settings" CTA.
-  // Cleared whenever Settings is not the active tab so a plain sidebar
-  // entry never inherits a stale focus (SettingsTab reads it only while
-  // `active` flips true).
+  // Cleared on consumption and whenever Settings is not the active tab,
+  // so a plain sidebar entry never inherits a stale focus — and a repeat
+  // CTA tap (same value) still re-triggers the jump.
   const [settingsFocus, setSettingsFocus] = useState<'network' | undefined>(undefined)
   useEffect(() => {
     if (activeTab !== 'settings') setSettingsFocus(undefined)
@@ -197,6 +197,7 @@ function App() {
               routerUpdatedAt={state.routerUpdatedAt[routerId]}
               busStatus={status}
               focusView={settingsFocus}
+              onFocusConsumed={() => setSettingsFocus(undefined)}
             />
           </TabsPanel>
           <TabsPanel value="alerts">

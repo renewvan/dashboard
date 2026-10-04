@@ -78,3 +78,11 @@ export function busStatusText(status: ConnectionStatus): string {
       return 'Down — showing last-known state'
   }
 }
+
+/** Status-dot colour for the same bus-link surfaces that share
+ * `busStatusText` (above) — one copy source, not two maps drifting. */
+export const BUS_TONE: Record<ConnectionStatus, string> = {
+  connected: 'bg-success',
+  connecting: 'bg-warning',
+  disconnected: 'bg-destructive',
+}
