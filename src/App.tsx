@@ -113,22 +113,35 @@ function App() {
           fallback: it only shows through when WALLPAPER[theme] has no
           photo. When it does, the photo covers it entirely — scaled up
           and pre-blurred so the blur radius never reveals a sharp/
-          transparent edge against the glass surfaces on top of it. */}
+          transparent edge against the glass surfaces on top of it.
+
+          Darkening is a separate flat overlay div, NOT `filter:
+          brightness()` on this div: a `filter` on ANY element creates
+          its own stacking context and compositing layer, and Chromium's
+          `backdrop-filter` sampling breaks (silently renders opaque, no
+          blur) for glass surfaces painted above a layer that has its
+          own `filter` -- killing every `backdrop-blur-md` panel
+          app-wide (header, sidebar, cards). A plain `bg-black/30`
+          overlay (no `filter`) darkens identically -- alpha-compositing
+          black at 30% over any channel is the same multiply-by-0.7 math
+          as `brightness(0.7)` -- without that side effect. It also
+          means `blur-xs` below no longer gets silently clobbered: that
+          class and `filter: brightness()` both set the `filter`
+          property, and an inline `style.filter` always wins over a
+          class, so the old code's `blur-xs` was a no-op the whole time.
+          Applied in both themes now (not just light) for consistent
+          wallpaper-photo legibility under the glass surfaces. */}
       <div
         aria-hidden
         className={cn(
           'pointer-events-none absolute inset-0 -z-10 bg-[var(--panel)]',
           wallpaper && 'scale-105 bg-cover bg-center blur-xs',
         )}
-        style={
-          wallpaper
-            ? {
-                backgroundImage: `url(${wallpaper})`,
-                filter: theme !== 'dark' ? 'brightness(0.7)' : undefined,
-              }
-            : undefined
-        }
+        style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : undefined}
       />
+      {wallpaper && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-black/20" />
+      )}
       <div ref={setPortalContainer} />
       <header className="bg-card/40 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 px-3 py-1.5 backdrop-blur-md">
         <img

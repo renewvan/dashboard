@@ -12,7 +12,7 @@ export interface HomeTabProps {
 const OSM_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 const OSM_ATTRIBUTION = '&copy; OpenStreetMap contributors'
 
-function GpsWidgetVariantA({ gps }: { gps: Gps }) {
+function GpsWidget({ gps }: { gps: Gps }) {
   if (!hasGpsFix(gps)) {
     return (
       <Card>
@@ -25,39 +25,33 @@ function GpsWidgetVariantA({ gps }: { gps: Gps }) {
   const position: [number, number] = [gps.latitude as number, gps.longitude as number]
 
   return (
-    <Card data-testid="gps-widget-a">
-      <CardContent className="flex flex-col gap-2 p-2">
-        {/* isolate: Leaflet's internal panes/marker z-index (up to 600
-            here, since zoomControl/attributionControl are both off)
-            would otherwise compare in the root stacking context against
-            unrelated page UI -- see GpsTab.tsx's identical comment for the
-            full explanation. */}
-        <div className="isolate h-36 w-full overflow-hidden rounded-lg">
-          <MapContainer
-            center={position}
-            zoom={13}
-            zoomControl={false}
-            dragging={false}
-            scrollWheelZoom={false}
-            doubleClickZoom={false}
-            attributionControl={false}
-            className="h-full w-full"
-          >
-            <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} />
-            <Marker position={position} />
-          </MapContainer>
-        </div>
-        <div className="flex items-center justify-between px-1 pb-1">
-          <span className="text-muted-foreground text-xs tabular-nums">
+    <Card data-testid="gps-widget-a" className="h-full">
+      <div className="relative isolate h-full w-full overflow-hidden rounded-lg">
+        <MapContainer
+          center={position}
+          zoom={13}
+          zoomControl={false}
+          dragging={false}
+          scrollWheelZoom={false}
+          doubleClickZoom={false}
+          attributionControl={false}
+          className="h-full w-full"
+        >
+          <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} />
+          <Marker position={position} />
+        </MapContainer>
+        <div
+          className="absolute right-2 bottom-2 flex flex-col gap-1 rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs text-white backdrop-blur-md"
+          style={{ zIndex: 1001 }}
+        >
+          <span className="tabular-nums">
             {gps.latitude?.toFixed(4)}, {gps.longitude?.toFixed(4)}
           </span>
           {gps.speed_kmh !== undefined && (
-            <span className="text-sm font-semibold tabular-nums">
-              {gps.speed_kmh.toFixed(0)} km/h
-            </span>
+            <span className="font-semibold tabular-nums">{gps.speed_kmh.toFixed(0)} km/h</span>
           )}
         </div>
-      </CardContent>
+      </div>
     </Card>
   )
 }
@@ -77,34 +71,49 @@ export function HomeTab({ gps }: HomeTabProps) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 p-3">
-      {/* Row 1: Weather (1/3) | GPS Map (2/3) */}
-      <div className="flex gap-3">
-        <div className="w-1/3 min-w-0">
-          {/* Weather widget placeholder */}
-          <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-white backdrop-blur-md">
-            <div className="text-xs text-white/60">Weather</div>
-            <div className="mt-2 text-sm">(placeholder)</div>
-          </div>
+    // Column 1 (Weather/Thermostat) and columns 2-4 (Map/Switches+Battery)
+    // each need their own top:bottom ratio -- a single shared grid-rows-2
+    // across the full width can't express that, which is why the old
+    // version reached for ad hoc %/absolute hacks per widget, each fighting
+    // the shared gap-2 rhythm differently. Two independent nested grids
+    // (fr-ratio rows, no percent) solve both at once: every gap in the
+    // whole layout is the exact same `gap-2` (matches TanksTab's gutter),
+    // and each column's own two rows size off ITS OWN fr ratio instead of
+    // the other column's.
+    <div className="grid h-full grid-cols-4 gap-2 overflow-hidden p-0">
+      {/* Column 1: Weather (2fr) / Thermostat (3fr) */}
+      <div className="col-span-1 grid min-h-0 grid-rows-[2fr_3fr] gap-2">
+        <div className="bg-card/40 min-h-0 rounded-2xl border border-white/10 p-4 backdrop-blur-md">
+          <div className="text-muted-foreground text-xs">Weather</div>
         </div>
-        <div className="w-2/3 min-w-0">
-          <GpsWidgetVariantA gps={record} />
+        <div className="bg-card/40 min-h-0 rounded-2xl border border-white/10 p-4 backdrop-blur-md">
+          <div className="text-muted-foreground text-xs">Thermostat</div>
         </div>
       </div>
-      {/* Row 2: Thermostat (1/3) | Switches (2/3) */}
-      <div className="flex gap-3">
-        <div className="w-1/3 min-w-0">
-          {/* Thermostat widget placeholder */}
-          <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-white backdrop-blur-md">
-            <div className="text-xs text-white/60">Thermostat</div>
-            <div className="mt-2 text-sm">(placeholder)</div>
-          </div>
+      {/* Columns 2-4: GPS Map (6fr) / Switches (2fr) + Battery (1fr) row (5fr) */}
+      <div className="col-span-3 grid min-h-0 grid-rows-[6fr_5fr] gap-2">
+        <div className="min-h-0">
+          <GpsWidget gps={record} />
         </div>
-        <div className="w-2/3 min-w-0">
-          {/* Switches placeholder */}
-          <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-white backdrop-blur-md">
-            <div className="text-xs text-white/60">Switches</div>
-            <div className="mt-2 text-sm">(placeholder)</div>
+        <div className="grid min-h-0 grid-cols-2 gap-2">
+          <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">
+            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
+              <div className="text-muted-foreground text-xs">Switches</div>
+            </div>
+            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
+              <div className="text-muted-foreground text-xs">Switches</div>
+            </div>
+            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
+              <div className="text-muted-foreground text-xs">Switches</div>
+            </div>
+            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
+              <div className="text-muted-foreground text-xs">Switches</div>
+            </div>
+          </div>
+          <div className="min-h-0">
+            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
+              <div className="text-muted-foreground text-xs">Battery</div>
+            </div>
           </div>
         </div>
       </div>

@@ -29,7 +29,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
 
   return (
     <div
-      className="grid h-full gap-3"
+      className="grid h-full gap-2"
       style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}
     >
       {ids.map((id) => (
