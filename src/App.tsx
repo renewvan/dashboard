@@ -120,7 +120,14 @@ function App() {
           'pointer-events-none absolute inset-0 -z-10 bg-[var(--panel)]',
           wallpaper && 'scale-105 bg-cover bg-center blur-xs',
         )}
-        style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : undefined}
+        style={
+          wallpaper
+            ? {
+                backgroundImage: `url(${wallpaper})`,
+                filter: theme !== 'dark' ? 'brightness(0.7)' : undefined,
+              }
+            : undefined
+        }
       />
       <div ref={setPortalContainer} />
       <header className="bg-card/40 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 px-3 py-1.5 backdrop-blur-md">
