@@ -1,9 +1,11 @@
 import { Van } from 'lucide-react'
 import { MapContainer, Marker, TileLayer } from 'react-leaflet'
+import { useEffect, useState } from 'react'
 import { EmptyState } from '../components/EmptyState'
 import { Card, CardContent } from '../components/ui/card'
 import '../lib/leafletIconFix'
 import { hasGpsFix, isCompleteGps, type Gps } from '../types'
+import { WeatherWidget } from '../components/widgets/WeatherWidget'
 
 export interface HomeTabProps {
   gps: Record<string, Gps>
@@ -13,6 +15,24 @@ const OSM_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 const OSM_ATTRIBUTION = '&copy; OpenStreetMap contributors'
 
 function GpsWidget({ gps }: { gps: Gps }) {
+  const [locationName, setLocationName] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!hasGpsFix(gps)) return
+    const lat = gps.latitude as number
+    const lon = gps.longitude as number
+
+    // Reverse geocode coordinates to location name
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const name =
+          data.address?.village || data.address?.town || data.address?.city || data.display_name
+        setLocationName(name || null)
+      })
+      .catch(() => setLocationName(null))
+  }, [gps.latitude, gps.longitude])
+
   if (!hasGpsFix(gps)) {
     return (
       <Card>
@@ -44,9 +64,7 @@ function GpsWidget({ gps }: { gps: Gps }) {
           className="absolute right-2 bottom-2 flex flex-col gap-1 rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs text-white backdrop-blur-md"
           style={{ zIndex: 1001 }}
         >
-          <span className="tabular-nums">
-            {gps.latitude?.toFixed(4)}, {gps.longitude?.toFixed(4)}
-          </span>
+          {locationName && <span className="line-clamp-2">{locationName}</span>}
           {gps.speed_kmh !== undefined && (
             <span className="font-semibold tabular-nums">{gps.speed_kmh.toFixed(0)} km/h</span>
           )}
@@ -71,50 +89,33 @@ export function HomeTab({ gps }: HomeTabProps) {
   }
 
   return (
-    // Column 1 (Weather/Thermostat) and columns 2-4 (Map/Switches+Battery)
-    // each need their own top:bottom ratio -- a single shared grid-rows-2
-    // across the full width can't express that, which is why the old
-    // version reached for ad hoc %/absolute hacks per widget, each fighting
-    // the shared gap-2 rhythm differently. Two independent nested grids
-    // (fr-ratio rows, no percent) solve both at once: every gap in the
-    // whole layout is the exact same `gap-2` (matches TanksTab's gutter),
-    // and each column's own two rows size off ITS OWN fr ratio instead of
-    // the other column's.
-    <div className="grid h-full grid-cols-4 gap-2 overflow-hidden p-0">
-      {/* Column 1: Weather (2fr) / Thermostat (3fr) */}
-      <div className="col-span-1 grid min-h-0 grid-rows-[2fr_3fr] gap-2">
-        <div className="bg-card/40 min-h-0 rounded-2xl border border-white/10 p-4 backdrop-blur-md">
-          <div className="text-muted-foreground text-xs">Weather</div>
-        </div>
-        <div className="bg-card/40 min-h-0 rounded-2xl border border-white/10 p-4 backdrop-blur-md">
-          <div className="text-muted-foreground text-xs">Thermostat</div>
-        </div>
+    <div className="grid h-full grid-cols-3 grid-rows-2 gap-2 overflow-hidden p-0">
+      <div className="bg-card/40 min-h-0 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
+        <WeatherWidget lat={record.latitude} lon={record.longitude} />
       </div>
-      {/* Columns 2-4: GPS Map (6fr) / Switches (2fr) + Battery (1fr) row (5fr) */}
-      <div className="col-span-3 grid min-h-0 grid-rows-[6fr_5fr] gap-2">
-        <div className="min-h-0">
-          <GpsWidget gps={record} />
+      <div className="col-span-2 min-h-0">
+        <GpsWidget gps={record} />
+      </div>
+      <div className="bg-card/40 min-h-0 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
+        <div className="text-muted-foreground text-xs">Thermostat</div>
+      </div>
+      <div className="col-span-2 grid min-h-0 grid-cols-2 gap-2">
+        <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">
+          <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-2 backdrop-blur-md">
+            <div className="text-muted-foreground text-xs">Switches</div>
+          </div>
+          <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-2 backdrop-blur-md">
+            <div className="text-muted-foreground text-xs">Switches</div>
+          </div>
+          <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-2 backdrop-blur-md">
+            <div className="text-muted-foreground text-xs">Switches</div>
+          </div>
+          <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-2 backdrop-blur-md">
+            <div className="text-muted-foreground text-xs">Switches</div>
+          </div>
         </div>
-        <div className="grid min-h-0 grid-cols-2 gap-2">
-          <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">
-            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
-              <div className="text-muted-foreground text-xs">Switches</div>
-            </div>
-            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
-              <div className="text-muted-foreground text-xs">Switches</div>
-            </div>
-            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
-              <div className="text-muted-foreground text-xs">Switches</div>
-            </div>
-            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
-              <div className="text-muted-foreground text-xs">Switches</div>
-            </div>
-          </div>
-          <div className="min-h-0">
-            <div className="bg-card/40 h-full rounded-2xl border border-white/10 p-4 backdrop-blur-md">
-              <div className="text-muted-foreground text-xs">Battery</div>
-            </div>
-          </div>
+        <div className="bg-card/40 min-h-0 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
+          <div className="text-muted-foreground text-xs">Battery</div>
         </div>
       </div>
     </div>
