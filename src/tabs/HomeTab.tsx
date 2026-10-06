@@ -46,14 +46,11 @@ function GpsWidget({ gps }: { gps: Gps }) {
 
   return (
     <Card data-testid="gps-widget-a" className="h-full">
-      <div className="relative isolate h-full w-full overflow-hidden rounded-lg">
+      <div className="relative isolate h-full w-full overflow-hidden rounded-lg [&_.leaflet-bar_a]:flex [&_.leaflet-bar_a]:size-11 [&_.leaflet-bar_a]:items-center [&_.leaflet-bar_a]:justify-center [&_.leaflet-bar_a]:text-xl">
         <MapContainer
           center={position}
           zoom={13}
-          zoomControl={false}
-          dragging={false}
-          scrollWheelZoom={false}
-          doubleClickZoom={false}
+          zoomControl
           attributionControl={false}
           className="h-full w-full"
         >
@@ -89,15 +86,17 @@ export function HomeTab({ gps }: HomeTabProps) {
   }
 
   return (
-    <div className="grid h-full grid-cols-3 grid-rows-2 gap-2 overflow-hidden p-0">
-      <div className="bg-card/40 min-h-0 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
-        <WeatherWidget lat={record.latitude} lon={record.longitude} />
+    <div className="grid h-full grid-cols-[1.1fr_1fr_1fr] grid-rows-2 gap-2 overflow-hidden p-0">
+      <div className="row-span-2 flex min-h-0 flex-col gap-2">
+        <div className="bg-card/40 min-h-0 flex-1 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
+          <WeatherWidget lat={record.latitude} lon={record.longitude} />
+        </div>
+        <div className="bg-card/40 h-3/5 w-full shrink-0 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
+          <div className="text-muted-foreground text-xs">Thermostat</div>
+        </div>
       </div>
       <div className="col-span-2 min-h-0">
         <GpsWidget gps={record} />
-      </div>
-      <div className="bg-card/40 min-h-0 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
-        <div className="text-muted-foreground text-xs">Thermostat</div>
       </div>
       <div className="col-span-2 grid min-h-0 grid-cols-2 gap-2">
         <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">

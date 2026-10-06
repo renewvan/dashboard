@@ -111,20 +111,20 @@ export function WeatherWidget({ lat, lon }: { lat?: number; lon?: number }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-1 overflow-hidden">
-      <div className="flex min-h-0 flex-[1.5] items-center justify-around gap-2">
-        <WeatherIcon code={weather.code} className="size-12 shrink-0" />
+      <div className="flex min-h-0 flex-[1.5] items-center justify-around gap-2 pt-0.5">
+        <WeatherIcon code={weather.code} className="size-10 shrink-0" />
         <div className="flex flex-col items-center">
-          <span className="text-4xl leading-none font-semibold tabular-nums">
+          <span className="text-3xl leading-none font-semibold tabular-nums">
             {deg(weather.temp)}
           </span>
           <span className="text-muted-foreground mt-1 text-xs">Outside</span>
         </div>
         <div className="flex flex-col items-center">
-          <span className="text-4xl leading-none font-semibold tabular-nums">{deg(indoor)}</span>
+          <span className="text-3xl leading-none font-semibold tabular-nums">{deg(indoor)}</span>
           <span className="text-muted-foreground mt-1 text-xs">Inside</span>
         </div>
       </div>
-      <Separator className="mt-1 mb-2" />
+      <Separator className="mb-1" />
       <div className="grid min-h-0 flex-[2] grid-cols-3 gap-1">
         {weather.days.slice(0, 3).map((d, i) => (
           <div
@@ -134,10 +134,10 @@ export function WeatherWidget({ lat, lon }: { lat?: number; lon?: number }) {
               i === 0 && 'bg-black/30 ring-1 ring-white/10',
             )}
           >
-            <span className={cn('text-sm', i !== 0 && 'text-muted-foreground')}>
+            <span className={cn('text-xs', i !== 0 && 'text-muted-foreground')}>
               {i === 0 ? 'Today' : dayName(d.date)}
             </span>
-            <WeatherIcon code={d.code} className="size-6" />
+            <WeatherIcon code={d.code} className="size-8" />
             <span className="tabular-nums">
               {deg(d.max)} <span className="text-muted-foreground">|</span> {deg(d.min)}
             </span>
