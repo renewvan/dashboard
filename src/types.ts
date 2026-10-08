@@ -152,6 +152,29 @@ export function hasGpsFix(gps: Gps): boolean {
   return gps.fix_quality !== 'no_fix' && gps.latitude !== undefined && gps.longitude !== undefined
 }
 
+export type TemperatureUnit = 'C' | 'F'
+export type TemperatureStatus = 'ok' | 'no_reading' | 'disconnected'
+
+/**
+ * Temperature sensor per hub/schema/temperature.schema.json (1-Wire
+ * DS18B20 probes + the Pi CPU, read by renewvan/node-temperature).
+ * `temperature_c` is ALWAYS Celsius on the wire; `unit` is only the
+ * user's display preference, applied by lib/temperature.ts. While
+ * `status` is not 'ok' the node stops republishing `temperature_c` but
+ * the LAST retained value stays on the broker, so a reading must only
+ * be shown when `status === 'ok'` (see {@link temperatureReading}).
+ * Same partial-accumulation caveat as {@link isCompleteTank}.
+ */
+export interface TemperatureSensor {
+  name: string
+  unit: TemperatureUnit
+  source: 'w1' | 'cpu'
+  /** 1-Wire id; present only when source is 'w1'. */
+  serial?: string
+  temperature_c?: number
+  status: TemperatureStatus
+}
+
 export interface Relay {
   state: boolean
 }
@@ -186,6 +209,7 @@ export interface RenewvanBusState {
   relays: Record<string, Relay>
   routers: Record<string, Router>
   gps: Record<string, Gps>
+  temperatures: Record<string, TemperatureSensor>
   /** Epoch ms of the newest router property per id — feeds the connection
    * icon's staleness rule (health offline OR older than 180 s = offline;
    * see lib/connection.ts). */
@@ -198,5 +222,6 @@ export const emptyRenewvanBusState: RenewvanBusState = {
   relays: {},
   routers: {},
   gps: {},
+  temperatures: {},
   routerUpdatedAt: {},
 }

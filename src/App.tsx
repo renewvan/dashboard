@@ -179,7 +179,7 @@ function App() {
         <Sidebar items={NAV_ITEMS} />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsPanel value="home">
-            <HomeTab gps={state.gps} />
+            <HomeTab gps={state.gps} temperatures={state.temperatures} />
           </TabsPanel>
           <TabsPanel value="tanks">
             <TanksTab tanks={state.tanks} />
@@ -214,6 +214,13 @@ function App() {
               }
               onAutoSleepTimeoutMinutesChange={(v) =>
                 publish('renewvan/kiosk/display/auto-sleep-timeout-minutes/set', JSON.stringify(v))
+              }
+              temperatures={state.temperatures}
+              onTemperatureNameChange={(id, name) =>
+                publish(`renewvan/temperature/${id}/name/set`, JSON.stringify(name))
+              }
+              onTemperatureUnitChange={(id, unit) =>
+                publish(`renewvan/temperature/${id}/unit/set`, JSON.stringify(unit))
               }
               portalContainer={portalContainer}
               active={activeTab === 'settings'}

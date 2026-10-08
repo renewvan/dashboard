@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Router } from '../types'
+import type { Router, TemperatureSensor } from '../types'
 import { SettingsTab, type SettingsTabProps } from './SettingsTab'
 
 const connectedTailscale = {
@@ -33,6 +33,9 @@ function displaySettingsProps(overrides: Partial<SettingsTabProps> = {}): Settin
     onBrightnessChange: vi.fn(),
     onAutoSleepEnabledChange: vi.fn(),
     onAutoSleepTimeoutMinutesChange: vi.fn(),
+    temperatures: {},
+    onTemperatureNameChange: vi.fn(),
+    onTemperatureUnitChange: vi.fn(),
     portalContainer: null,
     active: true,
     router: liveRouter,
@@ -243,5 +246,152 @@ describe('SettingsTab', () => {
     await user.click(screen.getByText('Display'))
     await user.click(screen.getByText('15m'))
     expect(onAutoSleepTimeoutMinutesChange).toHaveBeenCalledWith(15)
+  })
+
+  describe('Temperature group', () => {
+    const sensor = (over: Partial<TemperatureSensor> = {}): TemperatureSensor => ({
+      name: 'Outdoor',
+      unit: 'C',
+      source: 'w1',
+      serial: '28-000000259026',
+      temperature_c: 31.4,
+      status: 'ok',
+      ...over,
+    })
+
+    it('summarises the sensor count on the group row', () => {
+      render(
+        <SettingsTab
+          {...displaySettingsProps({ temperatures: { outdoor: sensor(), indoor: sensor() } })}
+        />,
+      )
+      expect(screen.getByText('Temperature')).toBeInTheDocument()
+      expect(screen.getByText('2 sensors')).toBeInTheDocument()
+    })
+
+    it('says so when no sensor has published yet', async () => {
+      const user = userEvent.setup()
+      render(<SettingsTab {...displaySettingsProps()} />)
+      expect(screen.getByText('No sensors found')).toBeInTheDocument()
+      await user.click(screen.getByText('Temperature'))
+      expect(screen.getByText(/No temperature sensors found/)).toBeInTheDocument()
+    })
+
+    it('lists each sensor with its name, serial and current value in its own unit', async () => {
+      const user = userEvent.setup()
+      render(
+        <SettingsTab
+          {...displaySettingsProps({
+            temperatures: {
+              outdoor: sensor({ unit: 'F', temperature_c: 0 }),
+              indoor: sensor({ name: 'Indoor', serial: '28-0623641a2877', temperature_c: 22 }),
+            },
+          })}
+        />,
+      )
+      await user.click(screen.getByText('Temperature'))
+      const outdoor = screen.getByTestId('temperature-sensor-outdoor')
+      expect(outdoor).toHaveTextContent('28-000000259026')
+      expect(outdoor).toHaveTextContent('32°F')
+      expect(screen.getByLabelText('Name for outdoor')).toHaveValue('Outdoor')
+      expect(screen.getByTestId('temperature-sensor-indoor')).toHaveTextContent('22°C')
+    })
+
+    it('does not show a stale reading for a sensor that is no longer ok', async () => {
+      const user = userEvent.setup()
+      render(
+        <SettingsTab
+          {...displaySettingsProps({
+            temperatures: { outdoor: sensor({ status: 'disconnected', temperature_c: 31.4 }) },
+          })}
+        />,
+      )
+      await user.click(screen.getByText('Temperature'))
+      const row = screen.getByTestId('temperature-sensor-outdoor')
+      expect(row).toHaveTextContent('--°C')
+      expect(row).not.toHaveTextContent('31')
+    })
+
+    it('publishes the chosen unit for that sensor only', async () => {
+      const user = userEvent.setup()
+      const onTemperatureUnitChange = vi.fn()
+      render(
+        <SettingsTab
+          {...displaySettingsProps({
+            temperatures: { outdoor: sensor(), indoor: sensor({ name: 'Indoor' }) },
+            onTemperatureUnitChange,
+          })}
+        />,
+      )
+      await user.click(screen.getByText('Temperature'))
+      await user.click(
+        within(screen.getByTestId('temperature-sensor-outdoor')).getByRole('button', {
+          name: '°F',
+        }),
+      )
+      expect(onTemperatureUnitChange).toHaveBeenCalledExactlyOnceWith('outdoor', 'F')
+    })
+
+    it('commits a renamed sensor once, on Enter, trimmed -- not per keystroke', async () => {
+      const user = userEvent.setup()
+      const onTemperatureNameChange = vi.fn()
+      render(
+        <SettingsTab
+          {...displaySettingsProps({
+            temperatures: { outdoor: sensor() },
+            onTemperatureNameChange,
+          })}
+        />,
+      )
+      await user.click(screen.getByText('Temperature'))
+      const input = screen.getByLabelText('Name for outdoor')
+      await user.clear(input)
+      await user.type(input, '  Galley roof ')
+      expect(onTemperatureNameChange).not.toHaveBeenCalled()
+      await user.keyboard('{Enter}')
+      expect(onTemperatureNameChange).toHaveBeenCalledExactlyOnceWith('outdoor', 'Galley roof')
+    })
+
+    it('reverts instead of publishing an empty, unchanged or cancelled name', async () => {
+      const user = userEvent.setup()
+      const onTemperatureNameChange = vi.fn()
+      render(
+        <SettingsTab
+          {...displaySettingsProps({
+            temperatures: { outdoor: sensor() },
+            onTemperatureNameChange,
+          })}
+        />,
+      )
+      await user.click(screen.getByText('Temperature'))
+      const input = screen.getByLabelText('Name for outdoor')
+
+      await user.clear(input)
+      await user.type(input, '   {Enter}')
+      expect(input).toHaveValue('Outdoor')
+
+      await user.clear(input)
+      await user.type(input, 'Outdoor{Enter}')
+
+      await user.clear(input)
+      await user.type(input, 'Typo{Escape}')
+      expect(input).toHaveValue('Outdoor')
+
+      expect(onTemperatureNameChange).not.toHaveBeenCalled()
+    })
+
+    it('disables editing until the sensor has published its identity', async () => {
+      const user = userEvent.setup()
+      render(
+        <SettingsTab {...displaySettingsProps({ temperatures: { outdoor: { status: 'ok' } } })} />,
+      )
+      await user.click(screen.getByText('Temperature'))
+      expect(screen.getByLabelText('Name for outdoor')).toBeDisabled()
+      expect(
+        within(screen.getByTestId('temperature-sensor-outdoor')).getByRole('button', {
+          name: '°F',
+        }),
+      ).toBeDisabled()
+    })
   })
 })

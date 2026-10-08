@@ -144,3 +144,39 @@ describe('useRenewvanBus display settings', () => {
     expect(result.current.autoSleepTimeoutMinutes).toBe(15) // unchanged — 7 isn't a preset
   })
 })
+
+describe('useRenewvanBus temperature entity', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  it('accumulates identity and live fields per sensor id', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/temperature/outdoor/name', { toString: () => '"Outdoor"' })
+    messageHandlers[0]('renewvan/temperature/outdoor/unit', { toString: () => '"F"' })
+    messageHandlers[0]('renewvan/temperature/outdoor/temperature_c', { toString: () => '31.5' })
+    messageHandlers[0]('renewvan/temperature/outdoor/status', { toString: () => '"ok"' })
+    messageHandlers[0]('renewvan/temperature/cpu/source', { toString: () => '"cpu"' })
+    await waitFor(() =>
+      expect(result.current.state.temperatures).toEqual({
+        outdoor: { name: 'Outdoor', unit: 'F', temperature_c: 31.5, status: 'ok' },
+        cpu: { source: 'cpu' },
+      }),
+    )
+  })
+
+  it('ignores the node health topic and the <field>/set command topics', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/temperature/health', { toString: () => 'online' })
+    messageHandlers[0]('renewvan/temperature/outdoor/unit/set', { toString: () => '"F"' })
+    messageHandlers[0]('renewvan/temperature/outdoor/name/set', { toString: () => '"x"' })
+    messageHandlers[0]('renewvan/temperature/outdoor/status', { toString: () => '"ok"' })
+    await waitFor(() =>
+      expect(result.current.state.temperatures).toEqual({ outdoor: { status: 'ok' } }),
+    )
+  })
+})

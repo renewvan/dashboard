@@ -32,10 +32,12 @@ import {
   segmentedControlRootClassName,
   segmentedControlItemVariants,
 } from '../lib/segmented-control'
-import type { Router } from '../types'
+import type { Router, TemperatureSensor, TemperatureUnit } from '../types'
+import { TemperatureSettings } from '../components/TemperatureSettings'
+import { temperatureSummary } from '../lib/temperature'
 import { cn } from '../lib/utils'
 
-export type SettingsView = 'list' | 'display' | 'network' | 'navigation'
+export type SettingsView = 'list' | 'display' | 'network' | 'temperature' | 'navigation'
 
 export interface SettingsTabProps {
   tailscale: TailscaleStatus | null
@@ -52,6 +54,15 @@ export interface SettingsTabProps {
   onBrightnessChange: (value: number) => void
   onAutoSleepEnabledChange: (value: boolean) => void
   onAutoSleepTimeoutMinutesChange: (value: AutoSleepTimeoutMinutes) => void
+  /**
+   * node-temperature sensors keyed by id, plus the callbacks that publish
+   * name/unit edits to their `<field>/set` command topics. The node
+   * persists a valid edit and republishes it retained, which is what
+   * updates `temperatures` here -- nothing is applied optimistically.
+   */
+  temperatures: Record<string, Partial<TemperatureSensor>>
+  onTemperatureNameChange: (id: string, name: string) => void
+  onTemperatureUnitChange: (id: string, unit: TemperatureUnit) => void
   /**
    * DOM node sheets portal into, supplied by `App.tsx` from a ref on a
    * direct child of the theme-toggling root -- NOT a descendant of any
@@ -415,6 +426,13 @@ export function SettingsTab(props: SettingsTabProps) {
           onClick={() => setView('network')}
         />
       </FramePanel>
+      <FramePanel className={PANEL_CLASS}>
+        <GroupRow
+          label="Temperature"
+          description={temperatureSummary(props.temperatures)}
+          onClick={() => setView('temperature')}
+        />
+      </FramePanel>
     </Frame>
   )
 
@@ -448,6 +466,14 @@ export function SettingsTab(props: SettingsTabProps) {
         <TailscaleRow tailscale={tailscale} />
       </FramePanel>
     </Frame>
+  )
+
+  const temperatureFields = (
+    <TemperatureSettings
+      temperatures={props.temperatures}
+      onNameChange={props.onTemperatureNameChange}
+      onUnitChange={props.onTemperatureUnitChange}
+    />
   )
 
   const navigationFields = (
@@ -503,6 +529,22 @@ export function SettingsTab(props: SettingsTabProps) {
         </Sheet>
 
         <Sheet
+          open={view === 'temperature'}
+          onOpenChange={(open) => setView(open ? 'temperature' : 'list')}
+        >
+          <SheetPopup
+            side="right"
+            className={sheetBg}
+            portalProps={{ container: portalContainer ?? undefined }}
+          >
+            <SheetHeader>
+              <SheetTitle>Temperature</SheetTitle>
+            </SheetHeader>
+            <SheetPanel className="p-4">{temperatureFields}</SheetPanel>
+          </SheetPopup>
+        </Sheet>
+
+        <Sheet
           open={view === 'navigation'}
           onOpenChange={(open) => setView(open ? 'navigation' : 'display')}
         >
@@ -538,7 +580,14 @@ export function SettingsTab(props: SettingsTabProps) {
     )
   }
 
-  const title = view === 'display' ? 'Display' : view === 'network' ? 'Network' : 'Navigation'
+  const title =
+    view === 'display'
+      ? 'Display'
+      : view === 'network'
+        ? 'Network'
+        : view === 'temperature'
+          ? 'Temperature'
+          : 'Navigation'
   const crumbs: Array<{ label: string; onClick?: () => void }> =
     view === 'navigation'
       ? [
@@ -548,7 +597,13 @@ export function SettingsTab(props: SettingsTabProps) {
         ]
       : [{ label: 'Settings', onClick: () => setView('list') }, { label: title }]
   const content =
-    view === 'display' ? displayFields : view === 'network' ? networkFields : navigationFields
+    view === 'display'
+      ? displayFields
+      : view === 'network'
+        ? networkFields
+        : view === 'temperature'
+          ? temperatureFields
+          : navigationFields
   return (
     <div className={CARD_WRAPPER}>
       <Breadcrumb className="mb-3 px-1">

@@ -1,14 +1,15 @@
-// Home-tab weather card: current conditions + 4-day outlook (today first)
-// from Open-Meteo (no API key) at the van's GPS position.
-//
-// Inside temperature is SIMULATED: the bus has no temperature entity yet
-// (`useRenewvanBus` TOPIC_PATTERN is tank|relay|battery|router|gps).
-// Replace `useSimIndoor` with a bus-backed reading once the hub publishes one.
+// Home-tab weather card: current conditions + 3-day outlook (today first)
+// from Open-Meteo (no API key) at the van's GPS position, plus the van's own
+// Inside/Outside readings from the node-temperature probes on the bus.
+// Outside shows the outdoor probe and falls back to Open-Meteo's air
+// temperature, labelled "(forecast)", when the probe has no valid reading.
 
 import { useEffect, useState } from 'react'
 import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Snowflake, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
+import { INDOOR_ID, OUTDOOR_ID, formatTemperature, temperatureReading } from '@/lib/temperature'
+import type { TemperatureSensor } from '@/types'
 
 interface Day {
   date: string
@@ -80,26 +81,22 @@ function useWeather(lat: number, lon: number) {
   return { weather, error }
 }
 
-// Slow drift around 21C; stands in for a real cabin thermometer.
-function useSimIndoor() {
-  const [t, setT] = useState(21.4)
-  useEffect(() => {
-    const id = setInterval(
-      () => setT((v) => Math.round((v + (Math.random() - 0.5) * 0.4) * 10) / 10),
-      3000,
-    )
-    return () => clearInterval(id)
-  }, [])
-  return t
-}
-
 const dayName = (iso: string) =>
   new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })
 const deg = (n: number) => `${Math.round(n)}°`
 
-export function WeatherWidget({ lat, lon }: { lat?: number; lon?: number }) {
+export interface WeatherWidgetProps {
+  lat?: number
+  lon?: number
+  /** Live bus sensors; `indoor`/`outdoor` (lib/temperature.ts) drive the
+   * Inside/Outside readings. */
+  temperatures: Record<string, Partial<TemperatureSensor>>
+}
+
+export function WeatherWidget({ lat, lon, temperatures }: WeatherWidgetProps) {
   const { weather, error } = useWeather(lat ?? FALLBACK.lat, lon ?? FALLBACK.lon)
-  const indoor = useSimIndoor()
+  const indoor = temperatures[INDOOR_ID]
+  const outdoor = temperatures[OUTDOOR_ID]
 
   if (!weather) {
     return (
@@ -109,19 +106,30 @@ export function WeatherWidget({ lat, lon }: { lat?: number; lon?: number }) {
     )
   }
 
+  // The outdoor probe is the source of truth; Open-Meteo's air temperature
+  // only stands in while the probe has no valid reading, and is flagged so a
+  // forecast value is never mistaken for the sensor.
+  const outdoorFromProbe = temperatureReading(outdoor) !== null
+  const outsideText = outdoorFromProbe
+    ? formatTemperature(outdoor)
+    : formatTemperature({ temperature_c: weather.temp, status: 'ok', unit: outdoor?.unit })
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-1 overflow-hidden">
       <div className="flex min-h-0 flex-[1.5] items-center justify-around gap-2 pt-0.5">
         <WeatherIcon code={weather.code} className="size-10 shrink-0" />
-        <div className="flex flex-col items-center">
-          <span className="text-3xl leading-none font-semibold tabular-nums">
-            {deg(weather.temp)}
+        <div className="flex flex-col items-center" data-testid="weather-outside">
+          <span className="text-3xl leading-none font-semibold tabular-nums">{outsideText}</span>
+          <span className="text-muted-foreground mt-1 text-xs">
+            {outdoor?.name ?? 'Outside'}
+            {!outdoorFromProbe && ' (forecast)'}
           </span>
-          <span className="text-muted-foreground mt-1 text-xs">Outside</span>
         </div>
-        <div className="flex flex-col items-center">
-          <span className="text-3xl leading-none font-semibold tabular-nums">{deg(indoor)}</span>
-          <span className="text-muted-foreground mt-1 text-xs">Inside</span>
+        <div className="flex flex-col items-center" data-testid="weather-inside">
+          <span className="text-3xl leading-none font-semibold tabular-nums">
+            {formatTemperature(indoor)}
+          </span>
+          <span className="text-muted-foreground mt-1 text-xs">{indoor?.name ?? 'Inside'}</span>
         </div>
       </div>
       <Separator className="mb-1" />

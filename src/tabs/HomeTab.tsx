@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react'
 import { EmptyState } from '../components/EmptyState'
 import { Card, CardContent } from '../components/ui/card'
 import '../lib/leafletIconFix'
-import { hasGpsFix, isCompleteGps, type Gps } from '../types'
+import { hasGpsFix, isCompleteGps, type Gps, type TemperatureSensor } from '../types'
 import { WeatherWidget } from '../components/widgets/WeatherWidget'
 
 export interface HomeTabProps {
   gps: Record<string, Gps>
+  temperatures: Record<string, Partial<TemperatureSensor>>
 }
 
 const OSM_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -71,11 +72,14 @@ function GpsWidget({ gps }: { gps: Gps }) {
   )
 }
 
-export function HomeTab({ gps }: HomeTabProps) {
+export function HomeTab({ gps, temperatures }: HomeTabProps) {
   const id = Object.keys(gps).find((key) => isCompleteGps(gps[key]))
   const record = id ? gps[id] : undefined
 
-  if (!record) {
+  // Temperature probes alone are enough to show the Home grid: a van with no
+  // GPS module (or no fix yet) still has indoor/outdoor readings to display,
+  // and the weather widget already falls back to a default location.
+  if (!record && Object.keys(temperatures).length === 0) {
     return (
       <EmptyState
         icon={<Van />}
@@ -89,14 +93,26 @@ export function HomeTab({ gps }: HomeTabProps) {
     <div className="grid h-full grid-cols-[1.1fr_1fr_1fr] grid-rows-2 gap-2 overflow-hidden p-0">
       <div className="row-span-2 flex min-h-0 flex-col gap-2">
         <div className="bg-card/40 min-h-0 flex-1 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
-          <WeatherWidget lat={record.latitude} lon={record.longitude} />
+          <WeatherWidget
+            lat={record?.latitude}
+            lon={record?.longitude}
+            temperatures={temperatures}
+          />
         </div>
         <div className="bg-card/40 h-3/5 w-full shrink-0 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
           <div className="text-muted-foreground text-xs">Thermostat</div>
         </div>
       </div>
       <div className="col-span-2 min-h-0">
-        <GpsWidget gps={record} />
+        {record ? (
+          <GpsWidget gps={record} />
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center gap-2 py-6 text-center">
+              <div className="text-muted-foreground text-sm">No GPS fix yet</div>
+            </CardContent>
+          </Card>
+        )}
       </div>
       <div className="col-span-2 grid min-h-0 grid-cols-2 gap-2">
         <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">
