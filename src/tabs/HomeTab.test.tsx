@@ -23,13 +23,7 @@ const probe = (over: Partial<TemperatureSensor> = {}): TemperatureSensor => ({
 })
 
 describe('HomeTab', () => {
-  // import.meta.env.DEV is true under Vitest by default, which would hit
-  // HomeTab's dev-only GPS-widget prototype branch instead of the real
-  // production fallback this test exercises — stub it false so the test
-  // covers the lasting behavior, not the throwaway prototype scaffolding
-  // (see HomeTab.tsx's PROTOTYPE SCAFFOLDING comment).
   beforeEach(() => {
-    vi.stubEnv('DEV', false)
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({ ok: true, json: async () => OPEN_METEO })),
@@ -37,12 +31,11 @@ describe('HomeTab', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllEnvs()
     vi.unstubAllGlobals()
   })
 
   it('renders the waiting-for-hub empty state with no gps or temperature data', () => {
-    render(<HomeTab gps={{}} temperatures={{}} />)
+    render(<HomeTab gps={{}} temperatures={{}} tilt={{}} />)
     expect(screen.getByText('No campervan data yet.')).toBeInTheDocument()
     expect(screen.getByText('Waiting for readings from the renewvan hub.')).toBeInTheDocument()
   })
@@ -51,6 +44,7 @@ describe('HomeTab', () => {
     render(
       <HomeTab
         gps={{}}
+        tilt={{}}
         temperatures={{
           outdoor: probe({ temperature_c: 31.4 }),
           indoor: probe({ name: 'Indoor', temperature_c: 22.6 }),
@@ -68,6 +62,7 @@ describe('HomeTab', () => {
     render(
       <HomeTab
         gps={{}}
+        tilt={{}}
         temperatures={{
           // Stale last-retained value must NOT be shown once status != ok.
           outdoor: probe({ status: 'disconnected', temperature_c: 31.4 }),
@@ -85,6 +80,7 @@ describe('HomeTab', () => {
     render(
       <HomeTab
         gps={{}}
+        tilt={{}}
         temperatures={{
           outdoor: probe({ unit: 'F', temperature_c: 0 }),
           indoor: probe({ name: 'Indoor', unit: 'C', temperature_c: 20 }),
@@ -98,8 +94,34 @@ describe('HomeTab', () => {
   })
 
   it('shows a placeholder for a missing indoor probe instead of a made-up number', async () => {
-    render(<HomeTab gps={{}} temperatures={{ outdoor: probe() }} />)
+    render(<HomeTab gps={{}} tilt={{}} temperatures={{ outdoor: probe() }} />)
     await screen.findByTestId('weather-outside')
     expect(within(screen.getByTestId('weather-inside')).getByText('--°')).toBeInTheDocument()
+  })
+
+  it('shows the van tilt from the node, tinted by the level tolerance', () => {
+    render(
+      <HomeTab
+        gps={{}}
+        temperatures={{ outdoor: probe() }}
+        tilt={{ tilt: { roll_deg: 0.7, pitch_deg: -2.3, status: 'ok' } }}
+      />,
+    )
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('-2.3°')
+    expect(screen.getByTestId('tilt-pitch')).toHaveClass('text-amber-400')
+    expect(screen.getByTestId('tilt-roll')).toHaveTextContent('+0.7°')
+    expect(screen.getByTestId('tilt-roll')).toHaveClass('text-emerald-400')
+  })
+
+  it('does not show stale tilt angles while the sensor is in error', () => {
+    render(
+      <HomeTab
+        gps={{}}
+        temperatures={{ outdoor: probe() }}
+        tilt={{ tilt: { roll_deg: 4, pitch_deg: 3, status: 'sensor_error' } }}
+      />,
+    )
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('—')
+    expect(screen.getByTestId('tilt-roll')).toHaveTextContent('—')
   })
 })

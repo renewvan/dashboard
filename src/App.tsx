@@ -179,7 +179,7 @@ function App() {
         <Sidebar items={NAV_ITEMS} />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsPanel value="home">
-            <HomeTab gps={state.gps} temperatures={state.temperatures} />
+            <HomeTab gps={state.gps} temperatures={state.temperatures} tilt={state.tilt} />
           </TabsPanel>
           <TabsPanel value="tanks">
             <TanksTab tanks={state.tanks} />

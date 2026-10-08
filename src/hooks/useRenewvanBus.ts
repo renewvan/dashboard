@@ -40,7 +40,8 @@ export interface RenewvanBus {
 
 // `<id>/<property>` is exactly two segments, so the temperature node's
 // `<id>/name/set` and `<id>/unit/set` command topics (three) never match.
-const TOPIC_PATTERN = /^renewvan\/(tank|relay|battery|router|gps|temperature)\/([^/]+)\/([^/]+)$/
+const TOPIC_PATTERN =
+  /^renewvan\/(tank|relay|battery|router|gps|temperature|tilt)\/([^/]+)\/([^/]+)$/
 const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
 const TOPIC_BRIGHTNESS = 'renewvan/kiosk/display/brightness'
 const TOPIC_AUTO_SLEEP_ENABLED = 'renewvan/kiosk/display/auto-sleep-enabled'
@@ -93,6 +94,7 @@ function applyMessage(prev: RenewvanBusState, topic: string, payload: string): R
   }
   if (domain === 'tank') return { ...prev, tanks: accumulate(prev.tanks, id, property, value) }
   if (domain === 'gps') return { ...prev, gps: accumulate(prev.gps, id, property, value) }
+  if (domain === 'tilt') return { ...prev, tilt: accumulate(prev.tilt, id, property, value) }
   if (domain === 'temperature') {
     return { ...prev, temperatures: accumulate(prev.temperatures, id, property, value) }
   }

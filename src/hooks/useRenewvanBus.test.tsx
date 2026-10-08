@@ -180,3 +180,33 @@ describe('useRenewvanBus temperature entity', () => {
     )
   })
 })
+
+describe('useRenewvanBus tilt entity', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  it('accumulates tilt properties per id as JSON scalars', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tilt/tilt/roll_deg', { toString: () => '0.73' })
+    messageHandlers[0]('renewvan/tilt/tilt/pitch_deg', { toString: () => '-2.22' })
+    messageHandlers[0]('renewvan/tilt/tilt/status', { toString: () => '"ok"' })
+    await waitFor(() =>
+      expect(result.current.state.tilt).toEqual({
+        tilt: { roll_deg: 0.73, pitch_deg: -2.22, status: 'ok' },
+      }),
+    )
+  })
+
+  it('ignores the node liveness topic and the level_zero command topic', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tilt/health', { toString: () => 'online' })
+    messageHandlers[0]('renewvan/tilt/tilt/level_zero/set', { toString: () => 'now' })
+    messageHandlers[0]('renewvan/tilt/tilt/status', { toString: () => '"ok"' })
+    await waitFor(() => expect(result.current.state.tilt).toEqual({ tilt: { status: 'ok' } }))
+  })
+})

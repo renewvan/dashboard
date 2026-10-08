@@ -175,6 +175,23 @@ export interface TemperatureSensor {
   status: TemperatureStatus
 }
 
+export type TiltStatus = 'ok' | 'sensor_error'
+
+/**
+ * Van inclination per hub/schema/tilt.schema.json (read by
+ * renewvan/node-tilt). Angles are in the van frame, already level-zeroed
+ * by the node: `roll_deg` positive = left side down, `pitch_deg` positive
+ * = nose up. While `status` is 'sensor_error' the node stops republishing
+ * angles but the LAST retained values stay on the broker, so an angle must
+ * only be shown when `status === 'ok'`. Same partial-accumulation caveat
+ * as {@link isCompleteTank}.
+ */
+export interface Tilt {
+  roll_deg: number
+  pitch_deg: number
+  status: TiltStatus
+}
+
 export interface Relay {
   state: boolean
 }
@@ -210,6 +227,7 @@ export interface RenewvanBusState {
   routers: Record<string, Router>
   gps: Record<string, Gps>
   temperatures: Record<string, TemperatureSensor>
+  tilt: Record<string, Tilt>
   /** Epoch ms of the newest router property per id — feeds the connection
    * icon's staleness rule (health offline OR older than 180 s = offline;
    * see lib/connection.ts). */
@@ -223,5 +241,6 @@ export const emptyRenewvanBusState: RenewvanBusState = {
   routers: {},
   gps: {},
   temperatures: {},
+  tilt: {},
   routerUpdatedAt: {},
 }

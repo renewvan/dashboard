@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import { EmptyState } from '../components/EmptyState'
 import { Card, CardContent } from '../components/ui/card'
 import '../lib/leafletIconFix'
-import { hasGpsFix, isCompleteGps, type Gps, type TemperatureSensor } from '../types'
+import { hasGpsFix, isCompleteGps, type Gps, type TemperatureSensor, type Tilt } from '../types'
 import { WeatherWidget } from '../components/widgets/WeatherWidget'
+import { TiltCard } from '../components/tilt/TiltCard'
 
 export interface HomeTabProps {
   gps: Record<string, Gps>
   temperatures: Record<string, Partial<TemperatureSensor>>
+  tilt: Record<string, Partial<Tilt>>
 }
 
 const OSM_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -72,7 +74,7 @@ function GpsWidget({ gps }: { gps: Gps }) {
   )
 }
 
-export function HomeTab({ gps, temperatures }: HomeTabProps) {
+export function HomeTab({ gps, temperatures, tilt }: HomeTabProps) {
   const id = Object.keys(gps).find((key) => isCompleteGps(gps[key]))
   const record = id ? gps[id] : undefined
 
@@ -100,7 +102,7 @@ export function HomeTab({ gps, temperatures }: HomeTabProps) {
           />
         </div>
         <div className="bg-card/40 h-3/5 w-full shrink-0 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
-          <div className="text-muted-foreground text-xs">Thermostat</div>
+          <TiltCard tilt={tilt[Object.keys(tilt)[0]]} />
         </div>
       </div>
       <div className="col-span-2 min-h-0">
