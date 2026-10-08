@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { formatDeg, isLevel, rearViewRotation, sideViewRotation, tiltReading } from './tilt'
+import {
+  MAX_DRAWN_TILT_DEG,
+  formatDeg,
+  isLevel,
+  rearViewRotation,
+  sideViewRotation,
+  tiltReading,
+} from './tilt'
 
 describe('tiltReading', () => {
   it('returns the angles while the sensor is ok', () => {
@@ -66,10 +73,12 @@ describe('rotation direction', () => {
   })
 
   it('stops drawing past the clamp but not before it', () => {
-    expect(sideViewRotation(40)).toBe(15)
-    expect(sideViewRotation(-40)).toBe(-15)
-    expect(rearViewRotation(40)).toBe(-15)
-    expect(sideViewRotation(15)).toBe(15)
+    const max = MAX_DRAWN_TILT_DEG
+    expect(sideViewRotation(40)).toBe(max)
+    expect(sideViewRotation(-40)).toBe(-max)
+    expect(rearViewRotation(40)).toBe(-max)
+    expect(sideViewRotation(max)).toBe(max)
+    expect(sideViewRotation(max - 1)).toBe(max - 1)
   })
 
   it('stays upright without a reading', () => {

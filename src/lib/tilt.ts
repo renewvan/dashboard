@@ -5,7 +5,7 @@ import type { Tilt } from '../types'
 export const LEVEL_TOLERANCE_DEG = 1
 
 /** The drawn vans stop rotating past this; the number still shows the truth. */
-export const MAX_DRAWN_TILT_DEG = 15
+export const MAX_DRAWN_TILT_DEG = 12
 
 export interface TiltReading {
   /** Degrees, positive = left side down; null when there is no usable reading. */

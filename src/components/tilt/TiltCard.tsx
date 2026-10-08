@@ -12,7 +12,7 @@ function tone(deg: number | null): string {
   return isLevel(deg) ? 'text-emerald-400' : 'text-amber-400'
 }
 
-const VAN = 'h-[55%] origin-bottom transition-transform duration-500'
+const VAN = 'h-[38%] origin-bottom transition-transform duration-500'
 
 /**
  * Home-tab card showing the van's inclination: a side van (pitch) and a rear
@@ -24,7 +24,7 @@ export function TiltCard({ tilt }: TiltCardProps) {
   return (
     <div data-testid="tilt-card" className="flex h-full flex-col">
       <div className="text-muted-foreground text-xs">Van Tilt</div>
-      <div className="grid min-h-0 flex-1 grid-cols-[1.45fr_1fr] items-end justify-items-center gap-6 px-1 pt-1">
+      <div className="grid min-h-0 flex-1 grid-cols-[1.45fr_1fr] items-end justify-items-center gap-4 px-1 pt-1">
         <VanSide
           className={`${VAN} ${tone(pitch)}`}
           style={{ transform: `rotate(${sideViewRotation(pitch)}deg)` }}
@@ -35,7 +35,7 @@ export function TiltCard({ tilt }: TiltCardProps) {
         />
       </div>
       <div className="bg-foreground/40 my-1 h-0.5 w-full rounded" />
-      <div className="grid grid-cols-[1.45fr_1fr] gap-6 text-center text-2xl font-bold tabular-nums">
+      <div className="grid grid-cols-[1.45fr_1fr] gap-4 text-center text-2xl font-bold tabular-nums">
         <span data-testid="tilt-pitch" className={tone(pitch)}>
           {formatDeg(pitch)}
         </span>
