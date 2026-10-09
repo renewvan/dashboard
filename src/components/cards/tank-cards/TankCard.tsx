@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { ClipboardClock, Gauge, Thermometer, WavesArrowUp, WavesArrowDown } from 'lucide-react'
-import { Badge } from '../ui/badge'
-import { Card, CardContent, CardHeader } from '../ui/card'
-import { FLUID_LABELS, STATUS_LABELS } from '../../lib/tank-labels'
-import { TANK_SEVERITY_COLOR, tankLevelStatus, tankLiquidColor } from '../../lib/tank-alarm'
-import type { Tank } from '../../types'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { FLUID_LABELS, STATUS_LABELS } from '@/lib/tank-labels'
+import { TANK_SEVERITY_COLOR, tankLevelStatus, tankLiquidColor } from '@/lib/tank-alarm'
+import type { Tank } from '@/types'
 import { ConfigureButton } from './ConfigureButton'
 
 export interface TankCardProps {

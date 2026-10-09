@@ -3,9 +3,9 @@ import {
   acknowledgeAlertHistoryEntry,
   appendAlertHistoryEntry,
   resolveAlertHistoryEntry,
-} from '../lib/alertHistory'
-import { toastManager } from '../components/ui/toast'
-import { isCompleteTank, type RenewvanBusState, type Tank } from '../types'
+} from '@/lib/alertHistory'
+import { toastManager } from '@/components/ui/toast'
+import { isCompleteTank, type RenewvanBusState, type Tank } from '@/types'
 import type { ConnectionStatus, TailscaleStatus } from './useRenewvanBus'
 
 // Mirrors TanksTab.tsx's own fluid-label copy — kept local rather than a

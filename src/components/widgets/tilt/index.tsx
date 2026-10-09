@@ -3,5 +3,5 @@
 // rotation about the bottom-centre (CSS `origin-bottom`) then tilts the van as
 // it rests on the road, instead of lifting it off the line.
 
-export { VanRear } from './VanRearArt'
-export { VanSide } from './VanSideArt'
+export { VanRear } from './VanRear'
+export { VanSide } from './VanSide'

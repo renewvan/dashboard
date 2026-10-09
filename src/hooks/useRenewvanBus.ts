@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import mqtt, { type MqttClient } from 'mqtt'
-import { emptyRenewvanBusState, type RenewvanBusState } from '../types'
-import { getEnv } from '../config/runtimeEnv'
+import { emptyRenewvanBusState, type RenewvanBusState } from '@/types'
+import { getEnv } from '@/config/runtimeEnv'
 
 // Client-side MQTT-over-WebSocket connection to the renewvan bus broker
 // (Mosquitto's WS listener), per

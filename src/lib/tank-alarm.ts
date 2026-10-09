@@ -1,5 +1,5 @@
 import { FLUID_COLORS } from './tank-labels'
-import type { Tank, TankAlarmDirection } from '../types'
+import type { Tank, TankAlarmDirection } from '@/types'
 export interface TankAlarmConfig {
   /** `low`: alarm when level drains below the threshold (fresh/fuel).
    *  `high`: alarm when level rises above the threshold (grey/black). */

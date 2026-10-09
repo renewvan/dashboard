@@ -1,4 +1,4 @@
-import type { TemperatureSensor, TemperatureUnit } from '../types'
+import type { TemperatureSensor, TemperatureUnit } from '@/types'
 
 /** Sensor ids the Home widget binds to. They are the `[sensor.<id>]`
  * section names in the Pi's node-temperature config.ini

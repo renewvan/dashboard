@@ -4,7 +4,7 @@ import {
   removeAlertHistoryEntry,
   subscribeAlertHistory,
   type AlertHistoryEntry,
-} from '../lib/alertHistory'
+} from '@/lib/alertHistory'
 
 export interface UseAlertHistoryResult {
   entries: AlertHistoryEntry[]

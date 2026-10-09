@@ -1,12 +1,12 @@
 import { Van } from 'lucide-react'
 import { MapContainer, Marker, TileLayer } from 'react-leaflet'
 import { useEffect, useState } from 'react'
-import { EmptyState } from '../components/EmptyState'
-import { Card, CardContent } from '../components/ui/card'
+import { EmptyState } from '@/components/EmptyState'
+import { Card, CardContent } from '@/components/ui/card'
 import '../lib/leafletIconFix'
-import { hasGpsFix, isCompleteGps, type Gps, type TemperatureSensor, type Tilt } from '../types'
-import { WeatherWidget } from '../components/widgets/WeatherWidget'
-import { TiltCard } from '../components/tilt/TiltCard'
+import { hasGpsFix, isCompleteGps, type Gps, type TemperatureSensor, type Tilt } from '@/types'
+import { WeatherWidget } from '@/components/widgets/weather/WeatherWidget'
+import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 
 export interface HomeTabProps {
   gps: Record<string, Gps>
@@ -102,7 +102,7 @@ export function HomeTab({ gps, temperatures, tilt }: HomeTabProps) {
           />
         </div>
         <div className="bg-card/40 h-3/5 w-full shrink-0 rounded-2xl border border-white/10 p-2 backdrop-blur-md">
-          <TiltCard tilt={tilt[Object.keys(tilt)[0]]} />
+          <TiltWidget tilt={tilt[Object.keys(tilt)[0]]} />
         </div>
       </div>
       <div className="col-span-2 min-h-0">

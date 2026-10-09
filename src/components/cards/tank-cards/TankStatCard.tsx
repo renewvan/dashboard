@@ -1,7 +1,7 @@
-import { Badge } from '../ui/badge'
-import { Card, CardContent } from '../ui/card'
-import { FLUID_LABELS, STATUS_LABELS } from '../../lib/tank-labels'
-import type { Tank } from '../../types'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { FLUID_LABELS, STATUS_LABELS } from '@/lib/tank-labels'
+import type { Tank } from '@/types'
 import { ConfigureButton } from './ConfigureButton'
 
 export interface TankStatCardProps {

@@ -1,5 +1,5 @@
-import type { ConnectionStatus, RouterHealth } from '../hooks/useRenewvanBus'
-import type { Router } from '../types'
+import type { ConnectionStatus, RouterHealth } from '@/hooks/useRenewvanBus'
+import type { Router } from '@/types'
 import { plmnOperatorName } from './plmn'
 
 /**

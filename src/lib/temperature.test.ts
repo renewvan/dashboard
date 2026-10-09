@@ -5,7 +5,7 @@ import {
   sortedSensorIds,
   temperatureReading,
 } from './temperature'
-import type { TemperatureSensor } from '../types'
+import type { TemperatureSensor } from '@/types'
 
 const ok = (over: Partial<TemperatureSensor> = {}): TemperatureSensor => ({
   name: 'Indoor',

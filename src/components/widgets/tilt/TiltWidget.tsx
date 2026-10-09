@@ -1,8 +1,8 @@
-import { formatDeg, isLevel, rearViewRotation, sideViewRotation, tiltReading } from '../../lib/tilt'
-import type { Tilt } from '../../types'
-import { VanRear, VanSide } from './VanArt'
+import { formatDeg, isLevel, rearViewRotation, sideViewRotation, tiltReading } from '@/lib/tilt'
+import type { Tilt } from '@/types'
+import { VanRear, VanSide } from './index.tsx'
 
-export interface TiltCardProps {
+export interface TiltWidgetProps {
   /** Latest tilt record; undefined until the node publishes anything. */
   tilt: Partial<Tilt> | undefined
 }
@@ -19,7 +19,7 @@ const VAN = 'h-[38%] origin-bottom transition-transform duration-500'
  * van (roll) that physically tilt over a ground line, with the angles below.
  * Each angle is tinted green inside the level tolerance and amber outside.
  */
-export function TiltCard({ tilt }: TiltCardProps) {
+export function TiltWidget({ tilt }: TiltWidgetProps) {
   const { roll, pitch } = tiltReading(tilt)
   return (
     <div data-testid="tilt-card" className="flex h-full flex-col">

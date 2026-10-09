@@ -1,10 +1,10 @@
 import 'leaflet/dist/leaflet.css'
 import { Map, Satellite } from 'lucide-react'
 import { MapContainer, Marker, TileLayer } from 'react-leaflet'
-import { EmptyState } from '../components/EmptyState'
-import { Badge } from '../components/ui/badge'
+import { EmptyState } from '@/components/EmptyState'
+import { Badge } from '@/components/ui/badge'
 import '../lib/leafletIconFix'
-import { hasGpsFix, isCompleteGps, type Gps } from '../types'
+import { hasGpsFix, isCompleteGps, type Gps } from '@/types'
 
 export interface GpsTabProps {
   gps: Record<string, Gps>

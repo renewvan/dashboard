@@ -1,5 +1,5 @@
 import type { SVGProps } from 'react'
-import type { DisplayPower } from '../hooks/useRenewvanBus'
+import type { DisplayPower } from '@/hooks/useRenewvanBus'
 
 // lucide-react has no "idle/sleeping display" glyph pair distinct from
 // generic power on/off -- these are Material Design Icons' `sleep` and

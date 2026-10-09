@@ -1,4 +1,4 @@
-import type { Tilt } from '../types'
+import type { Tilt } from '@/types'
 
 /** Within this many degrees the van counts as level for that axis. A
  * presentation threshold: the node publishes raw angles, not a level flag. */

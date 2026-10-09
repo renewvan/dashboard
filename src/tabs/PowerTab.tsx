@@ -1,9 +1,9 @@
 import { Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { EmptyState } from '../components/EmptyState'
-import { RadialGauge } from '../components/RadialGauge'
-import { isCompleteBattery, type Battery } from '../types'
+import { EmptyState } from '@/components/EmptyState'
+import { RadialGauge } from '@/components/RadialGauge'
+import { isCompleteBattery, type Battery } from '@/types'
 
 export interface PowerTabProps {
   batteries: Record<string, Battery>

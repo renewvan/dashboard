@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { Tank } from '../../types'
+import type { Tank } from '@/types'
 import { TankStatCard } from './TankStatCard'
 
 // Local fixture helper: fills in schema-required fields with inert

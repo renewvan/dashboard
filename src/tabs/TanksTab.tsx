@@ -1,7 +1,7 @@
 import { Droplet } from 'lucide-react'
-import { EmptyState } from '../components/EmptyState'
-import { TankCard } from '../components/tank-cards/TankCard'
-import { isCompleteTank, type Tank } from '../types'
+import { EmptyState } from '@/components/EmptyState'
+import { TankCard } from '@/components/cards/tank-cards/TankCard'
+import { isCompleteTank, type Tank } from '@/types'
 
 export interface TanksTabProps {
   tanks: Record<string, Tank>

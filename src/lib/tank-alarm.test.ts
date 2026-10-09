@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Tank } from '../types'
+import type { Tank } from '@/types'
 import { tankAlarmConfig, tankAlarmZone, tankLevelStatus, tankLiquidColor } from './tank-alarm'
 
 // Boundary semantics must match node-tank's `_crossed` (driver.py): entry

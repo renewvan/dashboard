@@ -1,4 +1,4 @@
-import type { Tank } from '../types'
+import type { Tank } from '@/types'
 
 export const FLUID_LABELS: Record<Tank['fluid_type'], string> = {
   fresh_water: 'Fresh water',

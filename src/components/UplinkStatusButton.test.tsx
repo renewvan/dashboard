@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '../hooks/useRenewvanBus'
-import type { Router } from '../types'
+import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '@/hooks/useRenewvanBus'
+import type { Router } from '@/types'
 import { UplinkStatusButton } from './UplinkStatusButton'
 
 const connectedTailscale: TailscaleStatus = {

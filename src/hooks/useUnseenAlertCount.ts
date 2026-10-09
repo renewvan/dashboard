@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ToastPrimitive } from '../components/ui/toast'
+import { ToastPrimitive } from '@/components/ui/toast'
 
 /**
  * Header badge count for `AlertsButton` — deliberately *not* derived from

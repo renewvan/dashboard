@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react'
 import { Input } from './ui/input'
 import { Frame, FramePanel } from './ui/frame'
-import { formatTemperature, sortedSensorIds } from '../lib/temperature'
+import { formatTemperature, sortedSensorIds } from '@/lib/temperature'
 import {
   segmentedControlRootClassName,
   segmentedControlItemVariants,
-} from '../lib/segmented-control'
-import type { TemperatureSensor, TemperatureUnit } from '../types'
+} from '@/lib/segmented-control'
+import type { TemperatureSensor, TemperatureUnit } from '@/types'
 
 const UNITS: TemperatureUnit[] = ['C', 'F']
 

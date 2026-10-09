@@ -5,21 +5,21 @@ import type {
   ConnectionStatus,
   RouterHealth,
   TailscaleStatus,
-} from '../hooks/useRenewvanBus'
-import { BUS_TONE, busStatusText, connectionTier, uplinkHeadline } from '../lib/connection'
-import { formatBytes, formatUptime } from '../lib/format'
-import { plmnOperatorName } from '../lib/plmn'
-import { useNow } from '../hooks/useNow'
-import { tailscaleStatusText } from '../lib/tailscale'
-import { useSettingsNavStyle, type SettingsNavStyle } from '../hooks/useSettingsNavStyle'
-import { Switch } from '../components/ui/switch'
-import { Slider } from '../components/ui/slider'
-import { Field, FieldLabel } from '../components/ui/field'
-import { Sheet, SheetPopup, SheetHeader, SheetTitle, SheetPanel } from '../components/ui/sheet'
-import { Frame, FramePanel } from '../components/ui/frame'
-import { ScrollArea } from '../components/ui/scroll-area'
-import { Label } from '../components/ui/label'
-import { Radio, RadioGroup } from '../components/ui/radio-group'
+} from '@/hooks/useRenewvanBus'
+import { BUS_TONE, busStatusText, connectionTier, uplinkHeadline } from '@/lib/connection'
+import { formatBytes, formatUptime } from '@/lib/format'
+import { plmnOperatorName } from '@/lib/plmn'
+import { useNow } from '@/hooks/useNow'
+import { tailscaleStatusText } from '@/lib/tailscale'
+import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
+import { Switch } from '@/components/ui/switch'
+import { Slider } from '@/components/ui/slider'
+import { Field, FieldLabel } from '@/components/ui/field'
+import { Sheet, SheetPopup, SheetHeader, SheetTitle, SheetPanel } from '@/components/ui/sheet'
+import { Frame, FramePanel } from '@/components/ui/frame'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Label } from '@/components/ui/label'
+import { Radio, RadioGroup } from '@/components/ui/radio-group'
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -27,15 +27,15 @@ import {
   BreadcrumbLink,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '../components/ui/breadcrumb'
+} from '@/components/ui/breadcrumb'
 import {
   segmentedControlRootClassName,
   segmentedControlItemVariants,
-} from '../lib/segmented-control'
-import type { Router, TemperatureSensor, TemperatureUnit } from '../types'
-import { TemperatureSettings } from '../components/TemperatureSettings'
-import { temperatureSummary } from '../lib/temperature'
-import { cn } from '../lib/utils'
+} from '@/lib/segmented-control'
+import type { Router, TemperatureSensor, TemperatureUnit } from '@/types'
+import { TemperatureSettings } from '@/components/TemperatureSettings'
+import { temperatureSummary } from '@/lib/temperature'
+import { cn } from '@/lib/utils'
 
 export type SettingsView = 'list' | 'display' | 'network' | 'temperature' | 'navigation'
 

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { Battery } from '../types'
+import type { Battery } from '@/types'
 import { PowerTab } from './PowerTab'
 
 // Fixture matches schema/battery.schema.json, including a charge_state

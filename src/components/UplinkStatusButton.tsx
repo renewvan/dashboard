@@ -1,17 +1,17 @@
 import { CloudOff, Loader2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useNow } from '../hooks/useNow'
-import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '../hooks/useRenewvanBus'
+import { useNow } from '@/hooks/useNow'
+import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '@/hooks/useRenewvanBus'
 import {
   BUS_TONE,
   busStatusText,
   connectionTier,
   uplinkHeadline,
   type ConnectionTier,
-} from '../lib/connection'
-import { formatBytes } from '../lib/format'
-import { tailscaleStatusText } from '../lib/tailscale'
-import type { Router } from '../types'
+} from '@/lib/connection'
+import { formatBytes } from '@/lib/format'
+import { tailscaleStatusText } from '@/lib/tailscale'
+import type { Router } from '@/types'
 import { IconStatusButton } from './IconStatusButton'
 
 export interface UplinkStatusButtonProps {

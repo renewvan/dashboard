@@ -1,7 +1,7 @@
 import { Settings } from 'lucide-react'
-import { Button, type ButtonProps } from '../ui/button'
-import { cn } from '../../lib/utils'
-import { Tooltip, TooltipPopup, TooltipTrigger } from '../ui/tooltip'
+import { Button, type ButtonProps } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { Tooltip, TooltipPopup, TooltipTrigger } from '@/components/ui/tooltip'
 
 export interface ConfigureButtonProps {
   size?: ButtonProps['size']

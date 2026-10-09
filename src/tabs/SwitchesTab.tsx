@@ -1,8 +1,8 @@
 import { ToggleLeft } from 'lucide-react'
-import { EmptyState } from '../components/EmptyState'
-import { RelayRow } from '../components/RelayRow'
-import { relayLabel } from '../config/relayLabels'
-import type { Relay } from '../types'
+import { EmptyState } from '@/components/EmptyState'
+import { RelayRow } from '@/components/RelayRow'
+import { relayLabel } from '@/config/relayLabels'
+import type { Relay } from '@/types'
 
 export interface SwitchesTabProps {
   relays: Record<string, Relay>

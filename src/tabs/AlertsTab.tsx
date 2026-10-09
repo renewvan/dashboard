@@ -1,10 +1,10 @@
 import { Bell, CircleAlertIcon, TriangleAlertIcon, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { Badge } from '../components/ui/badge'
-import { ScrollArea } from '../components/ui/scroll-area'
-import { EmptyState } from '../components/EmptyState'
-import { useAlertHistory } from '../hooks/useAlertHistory'
-import type { AlertHistoryEntry } from '../lib/alertHistory'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { EmptyState } from '@/components/EmptyState'
+import { useAlertHistory } from '@/hooks/useAlertHistory'
+import type { AlertHistoryEntry } from '@/lib/alertHistory'
 
 const SEVERITY_ICONS: Record<AlertHistoryEntry['type'], LucideIcon> = {
   error: CircleAlertIcon,

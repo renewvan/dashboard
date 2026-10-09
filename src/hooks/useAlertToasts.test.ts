@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { toastManager } from '../components/ui/toast'
-import type { Tank } from '../types'
+import { toastManager } from '@/components/ui/toast'
+import type { Tank } from '@/types'
 import type { ConnectionStatus } from './useRenewvanBus'
 import { useAlertToasts } from './useAlertToasts'
 
