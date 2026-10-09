@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import { Droplet, Wrench, ToggleLeft, Van, Zap, Heater, Map } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
@@ -33,6 +34,9 @@ const NAV_ITEMS: NavItem[] = [
 const TAB_IDS = [...NAV_ITEMS.map((item) => item.id), 'alerts']
 
 // HeroUI's component CSS is unlayered, so utilities need `!` to override its spacing; the shell sizes panes itself.
+/** Custom property the header publishes on `<html>` so the toast region (portaled to `<body>`, see `main.tsx`) can sit below it. */
+const HEADER_HEIGHT_VAR = '--app-header-height'
+
 const PANEL_CLASS = 'm-0! flex min-h-0 min-w-0 flex-1 flex-col p-0!'
 
 function App() {
@@ -43,6 +47,20 @@ function App() {
   const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
+  const headerRef = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+    const root = document.documentElement
+    const publish = () => root.style.setProperty(HEADER_HEIGHT_VAR, `${header.offsetHeight}px`)
+    publish()
+    const observer = new ResizeObserver(publish)
+    observer.observe(header)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty(HEADER_HEIGHT_VAR)
+    }
+  }, [])
   // single router per hub (compose ROUTER_ID) — first id decides; none yet → checking
   const routerId = Object.keys(state.routers)[0]
 
@@ -51,7 +69,10 @@ function App() {
 
   return (
     <div className="bg-background text-foreground flex h-svh flex-col overflow-hidden">
-      <header className="bg-surface border-border grid shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b px-3 py-1.5">
+      <header
+        ref={headerRef}
+        className="bg-surface border-border grid shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b px-3 py-1.5"
+      >
         <img
           src={theme === 'dark' ? lockupWhite : lockupDark}
           alt="renewvan"

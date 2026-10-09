@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { MqttClient } from 'mqtt'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
@@ -30,6 +30,28 @@ const JUST_BELOW_KIOSK_WIDTH = 799
 
 const NAV_LABELS = ['Home', 'Power', 'Tanks', 'GPS', 'Switches', 'Heater', 'Settings']
 
+const HEADER_HEIGHT_VAR = '--app-header-height'
+
+/** jsdom has no layout or ResizeObserver: the stub exposes the observer callbacks, and the header's `offsetHeight` is whatever the test sets. */
+let headerHeight = 0
+const resizeCallbacks = new Set<() => void>()
+
+class StubResizeObserver {
+  private readonly callback: () => void
+  constructor(callback: () => void) {
+    this.callback = callback
+  }
+  observe() {
+    resizeCallbacks.add(this.callback)
+  }
+  unobserve() {
+    resizeCallbacks.delete(this.callback)
+  }
+  disconnect() {
+    resizeCallbacks.delete(this.callback)
+  }
+}
+
 let viewport: MatchMediaStub
 let consoleWarn: MockInstance<typeof console.warn>
 let consoleError: MockInstance<typeof console.error>
@@ -55,6 +77,14 @@ function selectedTab() {
 }
 
 beforeEach(() => {
+  headerHeight = 49
+  vi.stubGlobal('ResizeObserver', StubResizeObserver)
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+    configurable: true,
+    get() {
+      return this.tagName === 'HEADER' ? headerHeight : 0
+    },
+  })
   // jsdom has no Web Animations API; React Aria's tab indicator transition calls it on selection change.
   Object.defineProperty(Element.prototype, 'getAnimations', {
     configurable: true,
@@ -74,6 +104,9 @@ afterEach(() => {
   vi.unstubAllEnvs()
   viewport.restore()
   Reflect.deleteProperty(Element.prototype, 'getAnimations')
+  Reflect.deleteProperty(HTMLElement.prototype, 'offsetHeight')
+  resizeCallbacks.clear()
+  vi.unstubAllGlobals()
   window.history.replaceState(null, '', '/')
 })
 
@@ -270,5 +303,22 @@ describe('App shell header', () => {
     await user.click(await screen.findByRole('button', { name: /network settings/i }))
     expect(selectedTab()).toHaveAccessibleName('Settings')
     expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
+  })
+})
+
+describe('App shell header height', () => {
+  it('publishes the header height for the toast region and keeps it current', async () => {
+    await renderAt(KIOSK_WIDTH)
+    expect(document.documentElement.style.getPropertyValue(HEADER_HEIGHT_VAR)).toBe('49px')
+
+    headerHeight = 53
+    act(() => resizeCallbacks.forEach((callback) => callback()))
+    expect(document.documentElement.style.getPropertyValue(HEADER_HEIGHT_VAR)).toBe('53px')
+  })
+
+  it('stops publishing when the app unmounts', async () => {
+    await renderAt(KIOSK_WIDTH)
+    cleanup()
+    expect(document.documentElement.style.getPropertyValue(HEADER_HEIGHT_VAR)).toBe('')
   })
 })
