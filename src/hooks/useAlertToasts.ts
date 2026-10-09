@@ -5,18 +5,9 @@ import {
   appendAlertHistoryEntry,
   resolveAlertHistoryEntry,
 } from '@/lib/alertHistory'
-import { isCompleteTank, type RenewvanBusState, type Tank } from '@/types'
+import { FLUID_LABELS } from '@/lib/tank-labels'
+import { isCompleteTank, type RenewvanBusState } from '@/types'
 import type { ConnectionStatus, TailscaleStatus } from './useRenewvanBus'
-
-// Mirrors TanksTab.tsx's own fluid-label copy — kept local rather than a
-// shared import since no shared tank-labels module exists at this commit.
-const FLUID_LABELS: Record<Tank['fluid_type'], string> = {
-  fresh_water: 'Fresh water',
-  grey_water: 'Grey water',
-  black_water: 'Black water',
-  fuel: 'Fuel',
-  lpg: 'LPG',
-}
 
 // Turns backend-published alert state into toast add/remove plus a
 // persistent history entry (`lib/alertHistory.ts`), per wayfinder

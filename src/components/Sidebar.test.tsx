@@ -1,23 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import { Tabs } from '@heroui/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import { Sidebar, type NavItem } from './Sidebar'
 
 // HeroUI's Tabs read window.matchMedia (absent in jsdom).
-vi.stubGlobal(
-  'matchMedia',
-  (query: string): MediaQueryList =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      addListener: () => {},
-      removeListener: () => {},
-      dispatchEvent: () => false,
-    }) as MediaQueryList,
-)
+let viewport: MatchMediaStub
+
+beforeEach(() => {
+  viewport = stubMatchMedia(1024)
+})
 
 const items: NavItem[] = [
   { id: 'tanks', label: 'Tanks', icon: <span data-testid="icon-tanks" /> },
@@ -42,6 +34,7 @@ function renderSidebar({ isMobile = false, selectedKey = 'tanks' } = {}) {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  viewport.restore()
 })
 
 describe.each([

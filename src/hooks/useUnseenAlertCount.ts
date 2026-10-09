@@ -8,9 +8,9 @@ const getSnapshot = () => toastQueue.visibleToasts
  * Header badge count for `AlertsButton` — deliberately *not* derived from
  * the live toast count: dismissing a toast early via its own `×` would
  * then instantly shrink the badge, which reads as "the alert went away"
- * even though the driver never actually looked at it. (`AlertsTab`'s own
- * row `×` is unrelated to this count — it removes a `localStorage`
- * history entry, not a live toast.) Per explicit request, the badge
+ * even though the driver never actually looked at it. (The Alerts page's own
+ * row `×` — not yet ported — is unrelated to this count: it removes a
+ * `localStorage` history entry, not a live toast.) Per explicit request, the badge
  * should only clear once the driver visits the Alerts tab.
  *
  * Tracks every toast key ever seen (via a ref, so re-renders don't reset

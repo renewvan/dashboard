@@ -12,7 +12,7 @@ export interface UseAlertHistoryResult {
   remove: (id: string) => void
 }
 
-/** Reactive wrapper around `lib/alertHistory.ts`'s module-level store, for `AlertsTab`. */
+/** Reactive wrapper around `lib/alertHistory.ts`'s module-level store, for the Alerts page (not yet ported). */
 export function useAlertHistory(): UseAlertHistoryResult {
   const [entries, setEntries] = useState<AlertHistoryEntry[]>(() => getAlertHistory())
 

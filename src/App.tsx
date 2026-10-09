@@ -33,10 +33,10 @@ const NAV_ITEMS: NavItem[] = [
 // request, so `useUrlTab` needs its own superset of valid ids.
 const TAB_IDS = [...NAV_ITEMS.map((item) => item.id), 'alerts']
 
-// HeroUI's component CSS is unlayered, so utilities need `!` to override its spacing; the shell sizes panes itself.
 /** Custom property the header publishes on `<html>` so the toast region (portaled to `<body>`, see `main.tsx`) can sit below it. */
 const HEADER_HEIGHT_VAR = '--app-header-height'
 
+// HeroUI's component CSS is unlayered, so utilities need `!` to override its spacing; the shell sizes panes itself.
 const PANEL_CLASS = 'm-0! flex min-h-0 min-w-0 flex-1 flex-col p-0!'
 
 function App() {
@@ -52,9 +52,10 @@ function App() {
     const header = headerRef.current
     if (!header) return
     const root = document.documentElement
-    const publish = () => root.style.setProperty(HEADER_HEIGHT_VAR, `${header.offsetHeight}px`)
-    publish()
-    const observer = new ResizeObserver(publish)
+    const syncHeaderHeight = () =>
+      root.style.setProperty(HEADER_HEIGHT_VAR, `${header.offsetHeight}px`)
+    syncHeaderHeight()
+    const observer = new ResizeObserver(syncHeaderHeight)
     observer.observe(header)
     return () => {
       observer.disconnect()
