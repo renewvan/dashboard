@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Pre-paint theme: sets <html data-theme> before first paint so there is
+         no flash of the wrong theme. Mirrors src/hooks/useTheme.ts (same
+         storage key, same 'dark' default); keep the two in sync. -->
+    <script>
+      try {
+        var storedTheme = localStorage.getItem('renewvan-dashboard-theme')
+        document.documentElement.dataset.theme =
+          storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark'
+      } catch (e) {
+        document.documentElement.dataset.theme = 'dark'
+      }
+    </script>
     <title>renewvan hub — dashboard</title>
   </head>
   <body>
