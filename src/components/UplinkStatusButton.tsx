@@ -21,8 +21,8 @@ export interface UplinkStatusButtonProps {
   /** `state.routerUpdatedAt[id]`, epoch ms — feeds the staleness rule. */
   lastReceivedAt: number | undefined
   tailscale: TailscaleStatus | null
-  /** `useRenewvanBus().status` — the kiosk's MQTT bus link, merged into
-   * this popover as a dot row (supersedes the deleted `RouterStatusIcon`). */
+  /** `useRenewvanBus().status` — the kiosk's MQTT bus link, shown in
+   * this popover as a dot row. */
   busStatus: ConnectionStatus
   onOpenSettings: () => void
 }
@@ -36,20 +36,7 @@ interface TierPresentation {
   label: string
 }
 
-/**
- * Header button for the van's uplink (`CONTEXT.md`) — the cellular
- * connection through the router entity (`renewvan/router/<id>/*`). One
- * morphing icon across five tiers (0–4 bars) whose tier comes from
- * `connectionTier` (lib/connection.ts owns the bands and the
- * offline/staleness rules). Bar glyphs are the custom four-bar tower
- * (`BarTower`) so tiers read at kiosk distance without pulling an icon
- * package for a shape lucide doesn't have.
- *
- * Its popover is the single connection surface of the header: uplink
- * fields, the kiosk's MQTT bus-link state (dot row, merged in from the
- * deleted `RouterStatusIcon`), Tailscale, and a CTA that deep-links into
- * Settings → Network where every router field lives.
- */
+/** Icon, colour and accessible label per connection tier (bar tiers set `filled`; checking/offline set `Icon`). */
 const TIER_PRESENTATION: Record<ConnectionTier, TierPresentation> = {
   checking: {
     Icon: Loader2,
@@ -78,6 +65,19 @@ function StatusDotRow({ label, tone, text }: { label: string; tone: string; text
   )
 }
 
+/**
+ * Header button for the van's uplink (`CONTEXT.md`) — the cellular
+ * connection through the router entity (`renewvan/router/<id>/*`). One
+ * morphing icon across five tiers (0–4 bars) whose tier comes from
+ * `connectionTier` (lib/connection.ts owns the bands and the
+ * offline/staleness rules). Bar glyphs are the custom four-bar tower
+ * (`BarTower`) so tiers read at kiosk distance without pulling an icon
+ * package for a shape lucide doesn't have.
+ *
+ * Its popover is the single connection surface of the header: uplink
+ * fields, the kiosk's MQTT bus-link state (dot row), Tailscale, and a CTA
+ * that deep-links into Settings → Network where every router field lives.
+ */
 export function UplinkStatusButton({
   router,
   routerHealth,

@@ -1,4 +1,4 @@
-// Persistent alert log, backing the Alerts tab's list (`AlertsTab.tsx`).
+// Persistent alert log, backing the Alerts page's list (not yet ported).
 // Deliberately separate from HeroUI's live toast stack
 // (`toastQueue`): toasts are ephemeral (dismissible, gone once the
 // backend condition clears, per `useAlertToasts.ts`'s state-driven
