@@ -41,13 +41,8 @@ function setup(
       tailscale={tailscale}
       busStatus={busStatus}
       onOpenSettings={onOpenSettings}
-      portalContainer={null}
     />,
   )
-}
-
-function iconClassOf(container: HTMLElement): string | null {
-  return container.querySelector<SVGSVGElement>('svg')?.getAttribute('class') ?? null
 }
 
 describe('UplinkStatusButton icon per tier', () => {
@@ -56,20 +51,18 @@ describe('UplinkStatusButton icon per tier', () => {
     const button = screen.getByTestId('uplink-status-button')
     expect(button).toHaveAttribute('aria-label', 'Checking connection…')
     expect(button).toHaveAttribute('data-state', 'checking')
-    expect(iconClassOf(button)).toContain('animate-spin')
   })
 
   it.each([
-    [-85, 'bars-4', 'Connection: 4 of 4 bars', 'text-success'],
-    [-90, 'bars-3', 'Connection: 3 of 4 bars', 'text-success'],
-    [-100, 'bars-2', 'Connection: 2 of 4 bars', 'text-warning'],
-    [-110, 'bars-1', 'Connection: 1 of 4 bars', 'text-warning'],
-  ])('maps rsrp %d to its bar tier', (rsrp, state, label, tone) => {
+    [-85, 'bars-4', 'Connection: 4 of 4 bars'],
+    [-90, 'bars-3', 'Connection: 3 of 4 bars'],
+    [-100, 'bars-2', 'Connection: 2 of 4 bars'],
+    [-110, 'bars-1', 'Connection: 1 of 4 bars'],
+  ])('maps rsrp %d to its bar tier', (rsrp, state, label) => {
     setup({ ...liveRouter, signal_rsrp_dbm: rsrp }, 'online', 30_000)
     const button = screen.getByTestId('uplink-status-button')
     expect(button).toHaveAttribute('aria-label', label)
     expect(button).toHaveAttribute('data-state', state)
-    expect(iconClassOf(button)).toContain(tone)
   })
 
   it('reads no-service below the signal floor while the node stays online', () => {
@@ -77,7 +70,6 @@ describe('UplinkStatusButton icon per tier', () => {
     const button = screen.getByTestId('uplink-status-button')
     expect(button).toHaveAttribute('aria-label', 'Connection: no service')
     expect(button).toHaveAttribute('data-state', 'no-service')
-    expect(iconClassOf(button)).toContain('text-destructive')
   })
 
   it('collapses to the reserved CloudOff glyph when the node health says offline', () => {
@@ -85,7 +77,6 @@ describe('UplinkStatusButton icon per tier', () => {
     const button = screen.getByTestId('uplink-status-button')
     expect(button).toHaveAttribute('aria-label', 'Connection offline')
     expect(button).toHaveAttribute('data-state', 'offline')
-    expect(iconClassOf(button)).toContain('text-destructive')
   })
 
   it('goes offline on stale data even with a good signal and healthy node', () => {

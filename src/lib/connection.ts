@@ -84,5 +84,5 @@ export function busStatusText(status: ConnectionStatus): string {
 export const BUS_TONE: Record<ConnectionStatus, string> = {
   connected: 'bg-success',
   connecting: 'bg-warning',
-  disconnected: 'bg-destructive',
+  disconnected: 'bg-danger',
 }

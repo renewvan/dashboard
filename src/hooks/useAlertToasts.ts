@@ -1,10 +1,10 @@
+import { toast } from '@heroui/react'
 import { useEffect, useRef } from 'react'
 import {
   acknowledgeAlertHistoryEntry,
   appendAlertHistoryEntry,
   resolveAlertHistoryEntry,
 } from '@/lib/alertHistory'
-import { toastManager } from '@/components/ui/toast'
 import { isCompleteTank, type RenewvanBusState, type Tank } from '@/types'
 import type { ConnectionStatus, TailscaleStatus } from './useRenewvanBus'
 
@@ -25,8 +25,8 @@ const FLUID_LABELS: Record<Tank['fluid_type'], string> = {
 // Tailscale disconnect -> warning, state-driven dismiss). See
 // .scratch/alert-system/map.md.
 //
-// `toastManager` has no "toast per entity, upsert on change" primitive —
-// `add()` always mints a new id. This hook is that missing mechanism: a
+// HeroUI's `toast.*` has no "toast per entity, upsert on change" primitive
+// here — each call always mints a new id. This hook is that mechanism: a
 // ref keyed by a stable alert key (`tank:<id>`, `mqtt-connection`,
 // `tailscale-connection`) tracks the live toast id *and* the
 // corresponding history entry id for each currently-active alert,
@@ -40,12 +40,12 @@ const FLUID_LABELS: Record<Tank['fluid_type'], string> = {
 // control. "Acknowledged" (`lib/alertHistory.ts`'s `acknowledgedAt`)
 // means specifically the latter: the driver dismissed the toast while
 // the alert was still open, before the backend condition cleared on its
-// own. Distinguishing the two closes both go through `toastManager`'s
-// single `onClose` callback, so a `programmaticCloses` ref records which
-// toast ids *this hook* is closing (the resolved path) right before
-// calling `close()`; `onClose` checks that set and only acknowledges
-// when the id isn't in it — i.e. the close wasn't this hook's own doing,
-// so it must have been the user.
+// own. Distinguishing the two closes both go through the toast's single
+// `onClose` callback (HeroUI fires it for `toast.close(id)` too), so a
+// `programmaticCloses` ref records which toast ids *this hook* is closing
+// (the resolved path) right before calling `close()`; `onClose` checks
+// that set and only acknowledges when the id isn't in it — i.e. the close
+// wasn't this hook's own doing, so it must have been the user.
 
 interface AlertContent {
   type: 'error' | 'warning'
@@ -103,59 +103,51 @@ export function useAlertToasts({ tanks, status, tailscale, enabled }: AlertToast
       })
     }
 
-    // Deferred to a microtask: `ToastProvider` registers its subscription
-    // to `toastManager` in its own `useEffect`, which — since effects run
-    // child-before-parent — hasn't run yet during this hook's own effect
-    // on the very first commit (e.g. a tank already in `alarm_state` on
-    // page load). Calling `add()`/`close()` synchronously here fires into
-    // an empty listener set and the toast is silently dropped. Effects
-    // for one commit all run synchronously within a single task, so a
-    // microtask queued from here always runs after the whole tree
-    // (including the Provider's subscribe effect) has flushed.
-    queueMicrotask(() => {
-      const showToast = (key: string, alert: ActiveAlert) => {
-        const toastId = toastManager.add({
-          ...alert.content,
-          timeout: 0,
-          onClose: () => {
-            // Fires for every close, including this hook's own
-            // `toastManager.close()` calls (resolved / muted paths) —
-            // only acknowledge when *this* toast id wasn't the one we
-            // just marked as a programmatic close.
-            if (programmaticCloses.current.delete(toastId)) return
-            acknowledgeAlertHistoryEntry(alert.historyId)
-          },
-        })
-        active.set(key, { ...alert, toastId })
+    const showToast = (key: string, alert: ActiveAlert) => {
+      const options = {
+        description: alert.content.description,
+        timeout: 0,
+        onClose: () => {
+          // Fires for every close, including this hook's own `toast.close()`
+          // calls (resolved / muted paths) — only acknowledge when *this*
+          // toast id wasn't the one we just marked as a programmatic close.
+          if (programmaticCloses.current.delete(toastId)) return
+          acknowledgeAlertHistoryEntry(alert.historyId)
+        },
       }
+      const toastId =
+        alert.content.type === 'error'
+          ? toast.danger(alert.content.title, options)
+          : toast.warning(alert.content.title, options)
+      active.set(key, { ...alert, toastId })
+    }
 
-      for (const [key, alert] of active) {
-        if (!desired.has(key)) {
-          if (alert.toastId !== null) {
-            programmaticCloses.current.add(alert.toastId)
-            toastManager.close(alert.toastId)
-          }
-          resolveAlertHistoryEntry(alert.historyId)
-          active.delete(key)
-        } else if (!enabled && alert.toastId !== null) {
-          // Muted while the alert is still open: drop the toast without
-          // acknowledging it (the driver didn't dismiss it).
+    for (const [key, alert] of active) {
+      if (!desired.has(key)) {
+        if (alert.toastId !== null) {
           programmaticCloses.current.add(alert.toastId)
-          toastManager.close(alert.toastId)
-          active.set(key, { ...alert, toastId: null })
-        } else if (enabled && alert.toastId === null) {
-          // Un-muted while the alert is still open: surface it again.
-          showToast(key, alert)
+          toast.close(alert.toastId)
         }
+        resolveAlertHistoryEntry(alert.historyId)
+        active.delete(key)
+      } else if (!enabled && alert.toastId !== null) {
+        // Muted while the alert is still open: drop the toast without
+        // acknowledging it (the driver didn't dismiss it).
+        programmaticCloses.current.add(alert.toastId)
+        toast.close(alert.toastId)
+        active.set(key, { ...alert, toastId: null })
+      } else if (enabled && alert.toastId === null) {
+        // Un-muted while the alert is still open: surface it again.
+        showToast(key, alert)
       }
-      for (const [key, content] of desired) {
-        if (!active.has(key)) {
-          const historyId = appendAlertHistoryEntry({ key, ...content })
-          const alert: ActiveAlert = { toastId: null, historyId, content }
-          active.set(key, alert)
-          if (enabled) showToast(key, alert)
-        }
+    }
+    for (const [key, content] of desired) {
+      if (!active.has(key)) {
+        const historyId = appendAlertHistoryEntry({ key, ...content })
+        const alert: ActiveAlert = { toastId: null, historyId, content }
+        active.set(key, alert)
+        if (enabled) showToast(key, alert)
       }
-    })
+    }
   }, [tanks, status, tailscale, enabled])
 }

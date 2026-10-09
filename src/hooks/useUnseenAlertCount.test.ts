@@ -1,7 +1,7 @@
 import { toast, toastQueue } from '@heroui/react'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { useUnseenAlertCount } from './useUnseenAlertCount.heroui'
+import { useUnseenAlertCount } from './useUnseenAlertCount'
 
 // Uses the real HeroUI queue (no provider mounted: the queue is module-level
 // and retains toasts regardless). Closing toasts stay in the queue for their
