@@ -54,17 +54,23 @@ interface AlertContent {
 }
 
 interface ActiveAlert {
-  toastId: string
+  /** `null` while toasts are disabled: the alert is still tracked and
+   * recorded in history, it just has no on-screen toast. */
+  toastId: string | null
   historyId: string
+  content: AlertContent
 }
 
 interface AlertToastArgs {
   tanks: RenewvanBusState['tanks']
   status: ConnectionStatus
   tailscale: TailscaleStatus | null
+  /** Kiosk preference (`useAlertsEnabled`): `false` suppresses toasts only —
+   * alert history keeps recording so nothing is lost while muted. */
+  enabled: boolean
 }
 
-export function useAlertToasts({ tanks, status, tailscale }: AlertToastArgs): void {
+export function useAlertToasts({ tanks, status, tailscale, enabled }: AlertToastArgs): void {
   const activeToasts = useRef(new Map<string, ActiveAlert>())
   const programmaticCloses = useRef(new Set<string>())
 
@@ -107,32 +113,49 @@ export function useAlertToasts({ tanks, status, tailscale }: AlertToastArgs): vo
     // microtask queued from here always runs after the whole tree
     // (including the Provider's subscribe effect) has flushed.
     queueMicrotask(() => {
+      const showToast = (key: string, alert: ActiveAlert) => {
+        const toastId = toastManager.add({
+          ...alert.content,
+          timeout: 0,
+          onClose: () => {
+            // Fires for every close, including this hook's own
+            // `toastManager.close()` calls (resolved / muted paths) —
+            // only acknowledge when *this* toast id wasn't the one we
+            // just marked as a programmatic close.
+            if (programmaticCloses.current.delete(toastId)) return
+            acknowledgeAlertHistoryEntry(alert.historyId)
+          },
+        })
+        active.set(key, { ...alert, toastId })
+      }
+
       for (const [key, alert] of active) {
         if (!desired.has(key)) {
-          programmaticCloses.current.add(alert.toastId)
-          toastManager.close(alert.toastId)
+          if (alert.toastId !== null) {
+            programmaticCloses.current.add(alert.toastId)
+            toastManager.close(alert.toastId)
+          }
           resolveAlertHistoryEntry(alert.historyId)
           active.delete(key)
+        } else if (!enabled && alert.toastId !== null) {
+          // Muted while the alert is still open: drop the toast without
+          // acknowledging it (the driver didn't dismiss it).
+          programmaticCloses.current.add(alert.toastId)
+          toastManager.close(alert.toastId)
+          active.set(key, { ...alert, toastId: null })
+        } else if (enabled && alert.toastId === null) {
+          // Un-muted while the alert is still open: surface it again.
+          showToast(key, alert)
         }
       }
       for (const [key, content] of desired) {
         if (!active.has(key)) {
           const historyId = appendAlertHistoryEntry({ key, ...content })
-          const toastId = toastManager.add({
-            ...content,
-            timeout: 0,
-            onClose: () => {
-              // Fires for every close, including this hook's own
-              // `toastManager.close()` call above (the resolved path) —
-              // only acknowledge when *this* toast id wasn't the one we
-              // just marked as a programmatic close.
-              if (programmaticCloses.current.delete(toastId)) return
-              acknowledgeAlertHistoryEntry(historyId)
-            },
-          })
-          active.set(key, { toastId, historyId })
+          const alert: ActiveAlert = { toastId: null, historyId, content }
+          active.set(key, alert)
+          if (enabled) showToast(key, alert)
         }
       }
     })
-  }, [tanks, status, tailscale])
+  }, [tanks, status, tailscale, enabled])
 }

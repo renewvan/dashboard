@@ -4,6 +4,7 @@ import { toastManager } from '@/components/ui/toast'
 import type { Tank } from '@/types'
 import type { ConnectionStatus } from './useRenewvanBus'
 import { useAlertToasts } from './useAlertToasts'
+import * as alertHistory from '@/lib/alertHistory'
 
 const okTank: Tank = {
   fluid_type: 'fresh_water',
@@ -29,7 +30,12 @@ describe('useAlertToasts', () => {
     const add = vi.spyOn(toastManager, 'add').mockReturnValue('t1')
 
     renderHook(() =>
-      useAlertToasts({ tanks: { fresh: alarmTank }, status: 'connected', tailscale: null }),
+      useAlertToasts({
+        tanks: { fresh: alarmTank },
+        status: 'connected',
+        tailscale: null,
+        enabled: true,
+      }),
     )
     await flush()
 
@@ -43,7 +49,7 @@ describe('useAlertToasts', () => {
     const close = vi.spyOn(toastManager, 'close').mockImplementation(() => {})
 
     const { rerender } = renderHook(
-      ({ tanks }) => useAlertToasts({ tanks, status: 'connected', tailscale: null }),
+      ({ tanks }) => useAlertToasts({ tanks, status: 'connected', tailscale: null, enabled: true }),
       { initialProps: { tanks: { fresh: alarmTank } } },
     )
     await flush()
@@ -58,7 +64,12 @@ describe('useAlertToasts', () => {
     const add = vi.spyOn(toastManager, 'add').mockReturnValue('t1')
 
     renderHook(() =>
-      useAlertToasts({ tanks: { fresh: okTank }, status: 'connected', tailscale: null }),
+      useAlertToasts({
+        tanks: { fresh: okTank },
+        status: 'connected',
+        tailscale: null,
+        enabled: true,
+      }),
     )
     await flush()
 
@@ -69,7 +80,7 @@ describe('useAlertToasts', () => {
     const add = vi.spyOn(toastManager, 'add').mockReturnValue('t1')
 
     const { rerender } = renderHook(
-      ({ tanks }) => useAlertToasts({ tanks, status: 'connected', tailscale: null }),
+      ({ tanks }) => useAlertToasts({ tanks, status: 'connected', tailscale: null, enabled: true }),
       { initialProps: { tanks: { fresh: alarmTank } } },
     )
     await flush()
@@ -82,7 +93,9 @@ describe('useAlertToasts', () => {
   it('adds a warning toast when the MQTT connection is disconnected', async () => {
     const add = vi.spyOn(toastManager, 'add').mockReturnValue('t2')
 
-    renderHook(() => useAlertToasts({ tanks: {}, status: 'disconnected', tailscale: null }))
+    renderHook(() =>
+      useAlertToasts({ tanks: {}, status: 'disconnected', tailscale: null, enabled: true }),
+    )
     await flush()
 
     expect(add).toHaveBeenCalledWith(
@@ -95,7 +108,7 @@ describe('useAlertToasts', () => {
     const close = vi.spyOn(toastManager, 'close').mockImplementation(() => {})
 
     const { rerender } = renderHook<void, { status: ConnectionStatus }>(
-      ({ status }) => useAlertToasts({ tanks: {}, status, tailscale: null }),
+      ({ status }) => useAlertToasts({ tanks: {}, status, tailscale: null, enabled: true }),
       { initialProps: { status: 'disconnected' } },
     )
     await flush()
@@ -113,6 +126,7 @@ describe('useAlertToasts', () => {
         tanks: {},
         status: 'connected',
         tailscale: { enabled: true, connected: false, ip: null, hostname: null, peers: 0 },
+        enabled: true,
       }),
     )
     await flush()
@@ -125,7 +139,9 @@ describe('useAlertToasts', () => {
   it('does not add a tailscale toast while status is still unknown (null)', async () => {
     const add = vi.spyOn(toastManager, 'add').mockReturnValue('t3')
 
-    renderHook(() => useAlertToasts({ tanks: {}, status: 'connected', tailscale: null }))
+    renderHook(() =>
+      useAlertToasts({ tanks: {}, status: 'connected', tailscale: null, enabled: true }),
+    )
     await flush()
 
     expect(add).not.toHaveBeenCalled()
@@ -139,10 +155,97 @@ describe('useAlertToasts', () => {
         tanks: { fresh: { alarm_state: 'alarm' } as Partial<Tank> as Tank },
         status: 'connected',
         tailscale: null,
+        enabled: true,
       }),
     )
     await flush()
 
     expect(add).not.toHaveBeenCalled()
+  })
+
+  describe('when alerts are disabled', () => {
+    it('adds no toast but still records history for a new alarm', async () => {
+      const add = vi.spyOn(toastManager, 'add').mockReturnValue('t1')
+      const append = vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('h1')
+
+      renderHook(() =>
+        useAlertToasts({
+          tanks: { fresh: alarmTank },
+          status: 'connected',
+          tailscale: null,
+          enabled: false,
+        }),
+      )
+      await flush()
+
+      expect(add).not.toHaveBeenCalled()
+      expect(append).toHaveBeenCalledTimes(1)
+    })
+
+    it('closes an open toast when muted, without acknowledging it', async () => {
+      vi.spyOn(toastManager, 'add').mockReturnValue('t1')
+      const close = vi.spyOn(toastManager, 'close').mockImplementation(() => {})
+      const ack = vi.spyOn(alertHistory, 'acknowledgeAlertHistoryEntry')
+
+      const { rerender } = renderHook(
+        ({ enabled }) =>
+          useAlertToasts({
+            tanks: { fresh: alarmTank },
+            status: 'connected',
+            tailscale: null,
+            enabled,
+          }),
+        { initialProps: { enabled: true } },
+      )
+      await flush()
+      rerender({ enabled: false })
+      await flush()
+
+      expect(close).toHaveBeenCalledWith('t1')
+      expect(ack).not.toHaveBeenCalled()
+    })
+
+    it('re-shows a still-open alert when un-muted, without a duplicate history entry', async () => {
+      const add = vi.spyOn(toastManager, 'add').mockReturnValue('t1')
+      vi.spyOn(toastManager, 'close').mockImplementation(() => {})
+      const append = vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('h1')
+
+      const { rerender } = renderHook(
+        ({ enabled }) =>
+          useAlertToasts({
+            tanks: { fresh: alarmTank },
+            status: 'connected',
+            tailscale: null,
+            enabled,
+          }),
+        { initialProps: { enabled: false } },
+      )
+      await flush()
+      expect(add).not.toHaveBeenCalled()
+
+      rerender({ enabled: true })
+      await flush()
+
+      expect(add).toHaveBeenCalledTimes(1)
+      expect(append).toHaveBeenCalledTimes(1)
+    })
+
+    it('resolves history when a muted alert clears, with no toast to close', async () => {
+      const close = vi.spyOn(toastManager, 'close').mockImplementation(() => {})
+      const resolve = vi.spyOn(alertHistory, 'resolveAlertHistoryEntry')
+      vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('h1')
+
+      const { rerender } = renderHook(
+        ({ tanks }) =>
+          useAlertToasts({ tanks, status: 'connected', tailscale: null, enabled: false }),
+        { initialProps: { tanks: { fresh: alarmTank } } },
+      )
+      await flush()
+      rerender({ tanks: { fresh: okTank } })
+      await flush()
+
+      expect(resolve).toHaveBeenCalledWith('h1')
+      expect(close).not.toHaveBeenCalled()
+    })
   })
 })

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Router, TemperatureSensor } from '@/types'
 import { SettingsTab, type SettingsTabProps } from './SettingsTab'
@@ -25,6 +25,8 @@ const liveRouter: Router = {
 }
 
 function displaySettingsProps(overrides: Partial<SettingsTabProps> = {}): SettingsTabProps {
+  const temperatures = overrides.temperatures ?? {}
+  const sensorCount = Object.keys(temperatures).length
   return {
     tailscale: connectedTailscale,
     brightness: 70,
@@ -33,7 +35,13 @@ function displaySettingsProps(overrides: Partial<SettingsTabProps> = {}): Settin
     onBrightnessChange: vi.fn(),
     onAutoSleepEnabledChange: vi.fn(),
     onAutoSleepTimeoutMinutesChange: vi.fn(),
-    temperatures: {},
+    temperatures,
+    // A bus that has sensors has published the temperature node — keep the
+    // two in step unless a test overrides `nodes` explicitly.
+    nodes:
+      sensorCount > 0 ? [{ domain: 'temperatures', label: 'Temperature', count: sensorCount }] : [],
+    alertsEnabled: true,
+    onAlertsEnabledChange: vi.fn(),
     onTemperatureNameChange: vi.fn(),
     onTemperatureUnitChange: vi.fn(),
     portalContainer: null,
@@ -46,31 +54,112 @@ function displaySettingsProps(overrides: Partial<SettingsTabProps> = {}): Settin
   }
 }
 
+/** Drill down the Settings tree by tapping each label in turn. */
+async function openPath(user: UserEvent, ...labels: string[]) {
+  for (const label of labels) await user.click(screen.getByText(label))
+}
+
 beforeEach(() => {
   window.localStorage.clear()
 })
 
 describe('SettingsTab', () => {
-  it('lists Display and Network as groups, not a flat Tailscale row', () => {
+  it('lists exactly Nodes, General and Connectivity at the top level', () => {
     render(<SettingsTab {...displaySettingsProps()} />)
-    expect(screen.getByText('Display')).toBeInTheDocument()
-    expect(screen.getByText('Network')).toBeInTheDocument()
+    expect(screen.getByText('Nodes')).toBeInTheDocument()
+    expect(screen.getByText('General')).toBeInTheDocument()
+    expect(screen.getByText('Connectivity')).toBeInTheDocument()
+    expect(screen.queryByText('Display')).not.toBeInTheDocument()
+    expect(screen.queryByText('Network')).not.toBeInTheDocument()
     expect(screen.queryByTestId('tailscale-status')).not.toBeInTheDocument()
   })
 
-  it('defaults to subpage navigation and shows Tailscale status after opening Network', async () => {
+  it('General lists Access control, Alerts, Display, Firmware and Support', async () => {
     const user = userEvent.setup()
     render(<SettingsTab {...displaySettingsProps()} />)
-    await user.click(screen.getByText('Network'))
-    expect(screen.getByTestId('tailscale-status')).toHaveTextContent('100.64.0.1')
+    await openPath(user, 'General')
+    for (const label of ['Access control', 'Alerts', 'Display', 'Firmware', 'Support']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
   })
 
-  it('network subpage lists the hub link dot row and every router field', async () => {
+  it('Alerts toggle reflects the preference and reports changes', async () => {
+    const user = userEvent.setup()
+    const onAlertsEnabledChange = vi.fn()
+    render(
+      <SettingsTab {...displaySettingsProps({ alertsEnabled: true, onAlertsEnabledChange })} />,
+    )
+    await openPath(user, 'General')
+    expect(screen.getByText('Notifications on')).toBeInTheDocument()
+
+    await user.click(screen.getByText('Alerts'))
+    const toggle = screen.getByRole('switch', { name: 'Show alert notifications' })
+    expect(toggle).toBeChecked()
+
+    await user.click(toggle)
+    expect(onAlertsEnabledChange).toHaveBeenCalledExactlyOnceWith(false)
+  })
+
+  it('Alerts row says notifications are off when disabled', async () => {
+    const user = userEvent.setup()
+    render(<SettingsTab {...displaySettingsProps({ alertsEnabled: false })} />)
+    await openPath(user, 'General')
+    expect(screen.getByText('Notifications off')).toBeInTheDocument()
+  })
+
+  it('Connectivity lists Ethernet, Wi-Fi, Bluetooth, Hub and Tailscale', async () => {
     const user = userEvent.setup()
     render(<SettingsTab {...displaySettingsProps()} />)
-    await user.click(screen.getByText('Network'))
+    await openPath(user, 'Connectivity')
+    for (const label of ['Ethernet', 'Wi-Fi', 'Bluetooth', 'Hub', 'Tailscale']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+  })
 
+  it('leaves without a backing node say so instead of rendering controls', async () => {
+    const user = userEvent.setup()
+    render(<SettingsTab {...displaySettingsProps()} />)
+    await openPath(user, 'Connectivity', 'Bluetooth')
+    expect(screen.getByTestId('not-available')).toHaveTextContent('Bluetooth is not available yet')
+  })
+
+  it('Nodes lists every node that has published, with its entity count', async () => {
+    const user = userEvent.setup()
+    render(
+      <SettingsTab
+        {...displaySettingsProps({
+          nodes: [
+            { domain: 'tanks', label: 'Tanks', count: 3 },
+            { domain: 'gps', label: 'GPS', count: 1 },
+          ],
+        })}
+      />,
+    )
+    expect(screen.getByText('2 nodes')).toBeInTheDocument()
+    await openPath(user, 'Nodes')
+    expect(screen.getByTestId('node-tanks')).toHaveTextContent('3 entities')
+    expect(screen.getByTestId('node-gps')).toHaveTextContent('1 entity')
+  })
+
+  it('Nodes says so before any node has published', async () => {
+    const user = userEvent.setup()
+    render(<SettingsTab {...displaySettingsProps({ nodes: [] })} />)
+    await openPath(user, 'Nodes')
+    expect(screen.getByTestId('no-nodes')).toBeInTheDocument()
+  })
+
+  it('Hub subpage shows the bus link state', async () => {
+    const user = userEvent.setup()
+    render(<SettingsTab {...displaySettingsProps()} />)
+    await openPath(user, 'Connectivity', 'Hub')
     expect(screen.getByTestId('bus-status')).toHaveTextContent('Connected')
+  })
+
+  it('Cellular subpage lists every router field', async () => {
+    const user = userEvent.setup()
+    render(<SettingsTab {...displaySettingsProps()} />)
+    await openPath(user, 'Connectivity', 'Cellular')
+
     expect(screen.getByText('Operator')).toBeInTheDocument()
     expect(screen.getByText('O2')).toBeInTheDocument()
     expect(screen.getByText('LTE')).toBeInTheDocument()
@@ -88,16 +177,16 @@ describe('SettingsTab', () => {
         {...displaySettingsProps({ router: { signal_rsrp_dbm: -85 }, routerUpdatedAt: Date.now() })}
       />,
     )
-    await user.click(screen.getByText('Network'))
+    await openPath(user, 'Connectivity', 'Cellular')
 
     expect(screen.getByText('-85 dBm')).toBeInTheDocument()
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 
-  it('deep-links straight into the Network subpage via focusView', () => {
-    render(<SettingsTab {...displaySettingsProps({ focusView: 'network' })} />)
-    expect(screen.getByTestId('tailscale-status')).toBeInTheDocument()
-    expect(screen.getByTestId('bus-status')).toBeInTheDocument()
+  it('deep-links straight into Connectivity → Cellular via focusView', () => {
+    render(<SettingsTab {...displaySettingsProps({ focusView: 'connectivity' })} />)
+    expect(screen.getByText('Operator')).toBeInTheDocument()
+    expect(screen.getByText('RSRP')).toBeInTheDocument()
   })
 
   it('reports focusView as consumed so a repeat CTA tap re-triggers the jump', () => {
@@ -105,27 +194,27 @@ describe('SettingsTab', () => {
     // with the same value would be a no-op and dead-end on the list.
     const onFocusConsumed = vi.fn()
     const { rerender } = render(
-      <SettingsTab {...displaySettingsProps({ focusView: 'network', onFocusConsumed })} />,
+      <SettingsTab {...displaySettingsProps({ focusView: 'connectivity', onFocusConsumed })} />,
     )
     expect(onFocusConsumed).toHaveBeenCalledTimes(1)
-    expect(screen.getByTestId('bus-status')).toBeInTheDocument()
+    expect(screen.getByText('RSRP')).toBeInTheDocument()
 
     // Consumed (App cleared it): stays put, does not re-fire.
     rerender(<SettingsTab {...displaySettingsProps({ onFocusConsumed })} />)
     expect(onFocusConsumed).toHaveBeenCalledTimes(1)
-    expect(screen.getByTestId('bus-status')).toBeInTheDocument()
+    expect(screen.getByText('RSRP')).toBeInTheDocument()
   })
 
   it('plain sidebar entry still lands on the list when focusView is unset', () => {
     render(<SettingsTab {...displaySettingsProps()} />)
-    expect(screen.getByText('Display')).toBeInTheDocument()
-    expect(screen.queryByTestId('tailscale-status')).not.toBeInTheDocument()
+    expect(screen.getByText('Connectivity')).toBeInTheDocument()
+    expect(screen.queryByText('RSRP')).not.toBeInTheDocument()
   })
 
   it('shows loading state when tailscale is null', async () => {
     const user = userEvent.setup()
     render(<SettingsTab {...displaySettingsProps({ tailscale: null })} />)
-    await user.click(screen.getByText('Network'))
+    await openPath(user, 'Connectivity', 'Tailscale')
     expect(screen.getByTestId('tailscale-status')).toHaveTextContent(/loading/i)
   })
 
@@ -136,7 +225,7 @@ describe('SettingsTab', () => {
         {...displaySettingsProps({ tailscale: { ...connectedTailscale, connected: false } })}
       />,
     )
-    await user.click(screen.getByText('Network'))
+    await openPath(user, 'Connectivity', 'Tailscale')
     expect(screen.getByTestId('tailscale-status')).toHaveTextContent(/not authenticated/i)
   })
 
@@ -149,24 +238,29 @@ describe('SettingsTab', () => {
         })}
       />,
     )
-    await user.click(screen.getByText('Network'))
+    await openPath(user, 'Connectivity', 'Tailscale')
     expect(screen.getByTestId('tailscale-status')).toHaveTextContent(/not installed/i)
   })
 
-  it('subpage style: back chevron returns to the group list', async () => {
+  it('breadcrumb walks back up one level at a time', async () => {
     const user = userEvent.setup()
     render(<SettingsTab {...displaySettingsProps()} />)
-    await user.click(screen.getByText('Display'))
+    await openPath(user, 'General', 'Display')
     expect(screen.getByText('Brightness')).toBeInTheDocument()
-    await user.click(screen.getByText('Settings'))
-    expect(screen.getByText('Display')).toBeInTheDocument()
+
+    await user.click(screen.getByText('General'))
+    expect(screen.getByText('Firmware')).toBeInTheDocument()
     expect(screen.queryByText('Brightness')).not.toBeInTheDocument()
+
+    await user.click(screen.getByText('Settings'))
+    expect(screen.getByText('Connectivity')).toBeInTheDocument()
+    expect(screen.queryByText('Firmware')).not.toBeInTheDocument()
   })
 
   it('resets to the top-level list when the sidebar navigates away and back', async () => {
     const user = userEvent.setup()
     const { rerender } = render(<SettingsTab {...displaySettingsProps()} />)
-    await user.click(screen.getByText('Display'))
+    await openPath(user, 'General', 'Display')
     expect(screen.getByText('Brightness')).toBeInTheDocument()
 
     // Base UI's Tabs.Panel keeps this component mounted while another
@@ -176,15 +270,15 @@ describe('SettingsTab', () => {
     rerender(<SettingsTab {...displaySettingsProps({ active: true })} />)
 
     expect(screen.queryByText('Brightness')).not.toBeInTheDocument()
-    expect(screen.getByText('Display')).toBeInTheDocument()
-    expect(screen.getByText('Network')).toBeInTheDocument()
+    expect(screen.getByText('Nodes')).toBeInTheDocument()
+    expect(screen.getByText('General')).toBeInTheDocument()
+    expect(screen.getByText('Connectivity')).toBeInTheDocument()
   })
 
   it('switching to sheet navigation opens Display in a dialog', async () => {
     const user = userEvent.setup()
     render(<SettingsTab {...displaySettingsProps()} />)
-    await user.click(screen.getByText('Display'))
-    await user.click(screen.getByText('Navigation style'))
+    await openPath(user, 'General', 'Display', 'Navigation style')
     await user.click(screen.getByText('Sheets'))
     // Closing the now-sheet-rendered Navigation dialog falls back to its
     // logical parent (Display), so it reopens immediately as a sheet too.
@@ -196,11 +290,11 @@ describe('SettingsTab', () => {
   it('persists the chosen navigation style across remounts', async () => {
     const user = userEvent.setup()
     const { unmount } = render(<SettingsTab {...displaySettingsProps()} />)
-    await user.click(screen.getByText('Display'))
-    await user.click(screen.getByText('Navigation style'))
+    await openPath(user, 'General', 'Display', 'Navigation style')
     await user.click(screen.getByText('Sheets'))
     unmount()
     render(<SettingsTab {...displaySettingsProps()} />)
+    await user.click(screen.getByText('General'))
     await user.click(screen.getByText('Display'))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
@@ -211,7 +305,7 @@ describe('SettingsTab', () => {
     const { container } = render(
       <SettingsTab {...displaySettingsProps({ brightness: 42, onBrightnessChange })} />,
     )
-    await user.click(screen.getByText('Display'))
+    await openPath(user, 'General', 'Display')
     expect(screen.getByText('42%')).toBeInTheDocument()
     // Base UI's Slider thumb stays `visibility: hidden` until it measures
     // real layout (getBoundingClientRect), which jsdom always reports as
@@ -226,7 +320,7 @@ describe('SettingsTab', () => {
   it('disables the brightness slider until a retained value arrives', async () => {
     const user = userEvent.setup()
     const { container } = render(<SettingsTab {...displaySettingsProps({ brightness: null })} />)
-    await user.click(screen.getByText('Display'))
+    await openPath(user, 'General', 'Display')
     const input = container.querySelector('input[type="range"]') as HTMLInputElement
     expect(input).toBeDisabled()
   })
@@ -243,12 +337,12 @@ describe('SettingsTab', () => {
         })}
       />,
     )
-    await user.click(screen.getByText('Display'))
+    await openPath(user, 'General', 'Display')
     await user.click(screen.getByText('15m'))
     expect(onAutoSleepTimeoutMinutesChange).toHaveBeenCalledWith(15)
   })
 
-  describe('Temperature group', () => {
+  describe('Temperature node', () => {
     const sensor = (over: Partial<TemperatureSensor> = {}): TemperatureSensor => ({
       name: 'Outdoor',
       unit: 'C',
@@ -259,22 +353,16 @@ describe('SettingsTab', () => {
       ...over,
     })
 
-    it('summarises the sensor count on the group row', () => {
+    it('summarises the sensor count on its row under Nodes', async () => {
+      const user = userEvent.setup()
       render(
         <SettingsTab
           {...displaySettingsProps({ temperatures: { outdoor: sensor(), indoor: sensor() } })}
         />,
       )
+      await openPath(user, 'Nodes')
       expect(screen.getByText('Temperature')).toBeInTheDocument()
       expect(screen.getByText('2 sensors')).toBeInTheDocument()
-    })
-
-    it('says so when no sensor has published yet', async () => {
-      const user = userEvent.setup()
-      render(<SettingsTab {...displaySettingsProps()} />)
-      expect(screen.getByText('No sensors found')).toBeInTheDocument()
-      await user.click(screen.getByText('Temperature'))
-      expect(screen.getByText(/No temperature sensors found/)).toBeInTheDocument()
     })
 
     it('lists each sensor with its name, serial and current value in its own unit', async () => {
@@ -289,7 +377,7 @@ describe('SettingsTab', () => {
           })}
         />,
       )
-      await user.click(screen.getByText('Temperature'))
+      await openPath(user, 'Nodes', 'Temperature')
       const outdoor = screen.getByTestId('temperature-sensor-outdoor')
       expect(outdoor).toHaveTextContent('28-000000259026')
       expect(outdoor).toHaveTextContent('32°F')
@@ -306,7 +394,7 @@ describe('SettingsTab', () => {
           })}
         />,
       )
-      await user.click(screen.getByText('Temperature'))
+      await openPath(user, 'Nodes', 'Temperature')
       const row = screen.getByTestId('temperature-sensor-outdoor')
       expect(row).toHaveTextContent('--°C')
       expect(row).not.toHaveTextContent('31')
@@ -323,7 +411,7 @@ describe('SettingsTab', () => {
           })}
         />,
       )
-      await user.click(screen.getByText('Temperature'))
+      await openPath(user, 'Nodes', 'Temperature')
       await user.click(
         within(screen.getByTestId('temperature-sensor-outdoor')).getByRole('button', {
           name: '°F',
@@ -343,7 +431,7 @@ describe('SettingsTab', () => {
           })}
         />,
       )
-      await user.click(screen.getByText('Temperature'))
+      await openPath(user, 'Nodes', 'Temperature')
       const input = screen.getByLabelText('Name for outdoor')
       await user.clear(input)
       await user.type(input, '  Galley roof ')
@@ -363,7 +451,7 @@ describe('SettingsTab', () => {
           })}
         />,
       )
-      await user.click(screen.getByText('Temperature'))
+      await openPath(user, 'Nodes', 'Temperature')
       const input = screen.getByLabelText('Name for outdoor')
 
       await user.clear(input)
@@ -385,7 +473,7 @@ describe('SettingsTab', () => {
       render(
         <SettingsTab {...displaySettingsProps({ temperatures: { outdoor: { status: 'ok' } } })} />,
       )
-      await user.click(screen.getByText('Temperature'))
+      await openPath(user, 'Nodes', 'Temperature')
       expect(screen.getByLabelText('Name for outdoor')).toBeDisabled()
       expect(
         within(screen.getByTestId('temperature-sensor-outdoor')).getByRole('button', {

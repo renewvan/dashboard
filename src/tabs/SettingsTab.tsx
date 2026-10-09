@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Children, Fragment, useEffect, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type {
   AutoSleepTimeoutMinutes,
@@ -35,9 +35,27 @@ import {
 import type { Router, TemperatureSensor, TemperatureUnit } from '@/types'
 import { TemperatureSettings } from '@/components/TemperatureSettings'
 import { temperatureSummary } from '@/lib/temperature'
+import { nodesSummary, type NodeSummary } from '@/lib/nodes'
 import { cn } from '@/lib/utils'
 
-export type SettingsView = 'list' | 'display' | 'network' | 'temperature' | 'navigation'
+export type SettingsView =
+  | 'list'
+  | 'nodes'
+  | 'temperature'
+  | 'general'
+  | 'access'
+  | 'alerts'
+  | 'display'
+  | 'navigation'
+  | 'firmware'
+  | 'support'
+  | 'connectivity'
+  | 'ethernet'
+  | 'wifi'
+  | 'bluetooth'
+  | 'cellular'
+  | 'hub'
+  | 'tailscale'
 
 export interface SettingsTabProps {
   tailscale: TailscaleStatus | null
@@ -61,6 +79,11 @@ export interface SettingsTabProps {
    * updates `temperatures` here -- nothing is applied optimistically.
    */
   temperatures: Record<string, Partial<TemperatureSensor>>
+  /** Every node that has published on the bus — the Nodes group's list. */
+  nodes: NodeSummary[]
+  /** Alert toast preference (`useAlertsEnabled`) — kiosk-local, no bus topic. */
+  alertsEnabled: boolean
+  onAlertsEnabledChange: (enabled: boolean) => void
   onTemperatureNameChange: (id: string, name: string) => void
   onTemperatureUnitChange: (id: string, unit: TemperatureUnit) => void
   /**
@@ -87,22 +110,23 @@ export interface SettingsTabProps {
   active: boolean
   /**
    * Router uplink entity (`state.routers[routerId]`) + node health +
-   * last-received timestamp — rendered as the Network subpage's detail
-   * rows and summarized in the Network group's description. Partial
-   * between retained messages, deliberately (see types.ts).
+   * last-received timestamp — rendered as the Connectivity → Cellular
+   * detail rows and summarized on its group row. Partial between
+   * retained messages, deliberately (see types.ts).
    */
   router: Partial<Router> | undefined
   routerHealth: RouterHealth | null
   routerUpdatedAt: number | undefined
-  /** Kiosk MQTT bus-link state — the dot row merged in from the deleted `RouterStatusIcon`. */
+  /** Kiosk MQTT bus-link state — the Connectivity → Hub row. */
   busStatus: ConnectionStatus
   /**
    * Deep-link target: when defined at the moment `active` flips true
-   * (the header uplink popover's "Network settings" CTA), the Network
-   * subpage opens directly instead of the top-level list. App owns and
-   * clears this so a plain sidebar entry never inherits a stale focus.
+   * (the header uplink popover's "Network settings" CTA), the
+   * Connectivity → Cellular subpage opens directly instead of the
+   * top-level list. App owns and clears this so a plain sidebar entry
+   * never inherits a stale focus.
    */
-  focusView?: 'network'
+  focusView?: 'connectivity'
   /** Fired when `focusView` has been applied — App clears the target, so
    * a repeat CTA tap (same value) still re-fires the jump next time. */
   onFocusConsumed?: () => void
@@ -364,22 +388,75 @@ function NavStyleSwitcher({
 const CARD_WRAPPER =
   'flex flex-1 flex-col h-full overflow-hidden rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-md [clip-path:inset(0_round_var(--radius-2xl))]'
 
+const FRAME_CLASS = 'bg-transparent p-0 gap-0'
+const PANEL_CLASS = 'overflow-hidden border-white/10 bg-card/20 p-0 backdrop-blur-md'
+
+/** One glass panel per child — the frame every Settings page body shares. */
+function Panels({ children }: { children: React.ReactNode }) {
+  return (
+    <Frame className={FRAME_CLASS}>
+      {Children.toArray(children).map((child, i) => (
+        <FramePanel key={i} className={PANEL_CLASS}>
+          {child}
+        </FramePanel>
+      ))}
+    </Frame>
+  )
+}
+
+/** Leaf for a settings area whose backing node/topic doesn't exist yet —
+ * explicit rather than hidden, so the group tree is complete and navigable. */
+function NotAvailable({ what }: { what: string }) {
+  return (
+    <Panels>
+      <p className="text-muted-foreground px-3.5 py-3 text-sm" data-testid="not-available">
+        {what} is not available yet.
+      </p>
+    </Panels>
+  )
+}
+
+type NonRootView = Exclude<SettingsView, 'list'>
+
+interface GroupItem {
+  label: string
+  description: string
+  to: NonRootView
+}
+
+interface ViewNode {
+  title: string
+  /** Breadcrumb/back parent; `list` is the top-level Settings list. */
+  parent: SettingsView
+  content: React.ReactNode
+}
+
 /**
- * Settings panel — Display and Network groups. Two navigation styles are
- * both real, user-selectable options (not a dev prototype switch): sheets
- * (each group opens a slide-in flyout) or subpages (each group replaces
- * the view in place). Picked per `docs/agents` wayfinder ticket 05
- * (hub's `.scratch/kiosk-settings-panel/issues/05-...`) after live
- * comparison; kept as a real toggle rather than a single winner because
- * the decision needs a real touch-display trial to settle for good.
- * Display settings are bus-backed (ticket 06) -- `App.tsx` wires these
- * props from `useRenewvanBus`, publishing to the matching `/set` topics.
+ * Settings panel. Top level is three groups:
+ *
+ * - **Nodes** — every connected device (bus entities by node) + the
+ *   Temperature sensor editor.
+ * - **General** — Access control, Display, Firmware, Support.
+ * - **Connectivity** — Ethernet, Wi-Fi, Bluetooth, Cellular (router),
+ *   Hub, Tailscale.
+ *
+ * Leaves with no backing node/topic yet render {@link NotAvailable}.
+ *
+ * Two navigation styles are both real, user-selectable options (not a dev
+ * prototype switch): sheets (each group opens a slide-in flyout) or
+ * subpages (each group replaces the view in place). Picked per
+ * `docs/agents` wayfinder ticket 05 (hub's
+ * `.scratch/kiosk-settings-panel/issues/05-...`) after live comparison;
+ * kept as a real toggle rather than a single winner because the decision
+ * needs a real touch-display trial to settle for good. Display settings
+ * are bus-backed (ticket 06) -- `App.tsx` wires these props from
+ * `useRenewvanBus`, publishing to the matching `/set` topics.
  */
 export function SettingsTab(props: SettingsTabProps) {
   const { tailscale, portalContainer, active, focusView, onFocusConsumed } = props
   const [navStyle, setNavStyle] = useSettingsNavStyle()
   const [view, setView] = useState<SettingsView>('list')
-  // Ticks so the Network group's headline degrades to Offline on a stale
+  // Ticks so the Cellular row's headline degrades to Offline on a stale
   // feed even with no bus traffic re-rendering the tree.
   const now = useNow(30_000)
   const tier = connectionTier(
@@ -394,171 +471,238 @@ export function SettingsTab(props: SettingsTabProps) {
   }, [active])
 
   // Deep-link from the header uplink popover's "Network settings" CTA:
-  // jump straight into the Network subpage when Settings appears with a
-  // focus target set. Consumed here (App clears it) so a repeat tap on
+  // jump straight into Connectivity → Cellular when Settings appears with
+  // a focus target set. Consumed here (App clears it) so a repeat tap on
   // the CTA — same value, no prop change — still re-fires the jump after
   // the user has navigated back to the list.
   useEffect(() => {
     if (active && focusView) {
-      setView(focusView)
+      setView('cellular')
       onFocusConsumed?.()
     }
   }, [active, focusView, onFocusConsumed])
 
   const sheetBg = 'border-white/10 bg-card/40 text-foreground backdrop-blur-md'
 
-  const FRAME_CLASS = 'bg-transparent p-0 gap-0'
-  const PANEL_CLASS = 'overflow-hidden border-white/10 bg-card/20 p-0 backdrop-blur-md'
-
-  const groupList = (
-    <Frame className={FRAME_CLASS}>
-      <FramePanel className={PANEL_CLASS}>
+  const groupRows = (items: GroupItem[]) => (
+    <Panels>
+      {items.map((item) => (
         <GroupRow
-          label="Display"
-          description="Remote sleep, brightness, auto-sleep"
-          onClick={() => setView('display')}
+          key={item.to}
+          label={item.label}
+          description={item.description}
+          onClick={() => setView(item.to)}
         />
-      </FramePanel>
-      <FramePanel className={PANEL_CLASS}>
-        <GroupRow
-          label="Network"
-          description={uplinkHeadline(props.router, tier)}
-          onClick={() => setView('network')}
-        />
-      </FramePanel>
-      <FramePanel className={PANEL_CLASS}>
-        <GroupRow
-          label="Temperature"
-          description={temperatureSummary(props.temperatures)}
-          onClick={() => setView('temperature')}
-        />
-      </FramePanel>
-    </Frame>
+      ))}
+    </Panels>
   )
 
-  const displayFields = (
-    <Frame className={FRAME_CLASS}>
-      <FramePanel className={PANEL_CLASS}>
-        <BrightnessField {...props} />
-      </FramePanel>
-      <FramePanel className={PANEL_CLASS}>
-        <AutoSleepField {...props} />
-      </FramePanel>
-      <FramePanel className={PANEL_CLASS}>
-        <GroupRow
-          label="Navigation style"
-          description={navStyle === 'subpage' ? 'Subpages' : 'Sheets'}
-          onClick={() => setView('navigation')}
+  const topList = groupRows([
+    { label: 'Nodes', description: nodesSummary(props.nodes), to: 'nodes' },
+    {
+      label: 'General',
+      description: 'Access control, alerts, display, firmware, support',
+      to: 'general',
+    },
+    {
+      label: 'Connectivity',
+      description: 'Ethernet, Wi-Fi, Bluetooth, Hub, Tailscale',
+      to: 'connectivity',
+    },
+  ])
+
+  const nodesPage =
+    props.nodes.length === 0 ? (
+      <Panels>
+        <p className="text-muted-foreground px-3.5 py-3 text-sm" data-testid="no-nodes">
+          No nodes connected. Waiting for the renewvan hub.
+        </p>
+      </Panels>
+    ) : (
+      <Panels>
+        {props.nodes.map((node) =>
+          node.domain === 'temperatures' ? (
+            <GroupRow
+              key={node.domain}
+              label={node.label}
+              description={temperatureSummary(props.temperatures)}
+              onClick={() => setView('temperature')}
+            />
+          ) : (
+            <div
+              key={node.domain}
+              className="flex items-center justify-between px-3.5 py-3"
+              data-testid={`node-${node.domain}`}
+            >
+              <span className="text-sm font-medium">{node.label}</span>
+              <span className="text-muted-foreground text-xs tabular-nums">
+                {node.count === 1 ? '1 entity' : `${node.count} entities`}
+              </span>
+            </div>
+          ),
+        )}
+      </Panels>
+    )
+
+  const VIEWS: Record<NonRootView, ViewNode> = {
+    nodes: { title: 'Nodes', parent: 'list', content: nodesPage },
+    temperature: {
+      title: 'Temperature',
+      parent: 'nodes',
+      content: (
+        <TemperatureSettings
+          temperatures={props.temperatures}
+          onNameChange={props.onTemperatureNameChange}
+          onUnitChange={props.onTemperatureUnitChange}
         />
-      </FramePanel>
-    </Frame>
-  )
+      ),
+    },
+    general: {
+      title: 'General',
+      parent: 'list',
+      content: groupRows([
+        { label: 'Access control', description: 'Not available yet', to: 'access' },
+        {
+          label: 'Alerts',
+          description: props.alertsEnabled ? 'Notifications on' : 'Notifications off',
+          to: 'alerts',
+        },
+        { label: 'Display', description: 'Brightness, auto-sleep, navigation', to: 'display' },
+        { label: 'Firmware', description: 'Not available yet', to: 'firmware' },
+        { label: 'Support', description: 'Not available yet', to: 'support' },
+      ]),
+    },
+    access: {
+      title: 'Access control',
+      parent: 'general',
+      content: <NotAvailable what="Access control" />,
+    },
+    alerts: {
+      title: 'Alerts',
+      parent: 'general',
+      content: (
+        <Panels>
+          <Field className="flex-row items-center justify-between px-3.5 py-2.5">
+            <FieldLabel>Show alert notifications</FieldLabel>
+            <Switch
+              checked={props.alertsEnabled}
+              onCheckedChange={(checked) => props.onAlertsEnabledChange(checked)}
+            />
+          </Field>
+        </Panels>
+      ),
+    },
+    display: {
+      title: 'Display',
+      parent: 'general',
+      content: (
+        <Panels>
+          <BrightnessField {...props} />
+          <AutoSleepField {...props} />
+          <GroupRow
+            label="Navigation style"
+            description={navStyle === 'subpage' ? 'Subpages' : 'Sheets'}
+            onClick={() => setView('navigation')}
+          />
+        </Panels>
+      ),
+    },
+    navigation: {
+      title: 'Navigation',
+      parent: 'display',
+      content: (
+        <Panels>
+          <NavStyleSwitcher value={navStyle} onChange={setNavStyle} />
+        </Panels>
+      ),
+    },
+    firmware: { title: 'Firmware', parent: 'general', content: <NotAvailable what="Firmware" /> },
+    support: { title: 'Support', parent: 'general', content: <NotAvailable what="Support" /> },
+    connectivity: {
+      title: 'Connectivity',
+      parent: 'list',
+      content: groupRows([
+        { label: 'Ethernet', description: 'Not available yet', to: 'ethernet' },
+        { label: 'Wi-Fi', description: 'Not available yet', to: 'wifi' },
+        { label: 'Bluetooth', description: 'Not available yet', to: 'bluetooth' },
+        { label: 'Cellular', description: uplinkHeadline(props.router, tier), to: 'cellular' },
+        { label: 'Hub', description: busStatusText(props.busStatus), to: 'hub' },
+        { label: 'Tailscale', description: tailscaleStatusText(tailscale), to: 'tailscale' },
+      ]),
+    },
+    ethernet: {
+      title: 'Ethernet',
+      parent: 'connectivity',
+      content: <NotAvailable what="Ethernet" />,
+    },
+    wifi: { title: 'Wi-Fi', parent: 'connectivity', content: <NotAvailable what="Wi-Fi" /> },
+    bluetooth: {
+      title: 'Bluetooth',
+      parent: 'connectivity',
+      content: <NotAvailable what="Bluetooth" />,
+    },
+    cellular: {
+      title: 'Cellular',
+      parent: 'connectivity',
+      content: (
+        <Panels>
+          <RouterDetails router={props.router} />
+        </Panels>
+      ),
+    },
+    hub: {
+      title: 'Hub',
+      parent: 'connectivity',
+      content: (
+        <Panels>
+          <BusStatusRow status={props.busStatus} />
+        </Panels>
+      ),
+    },
+    tailscale: {
+      title: 'Tailscale',
+      parent: 'connectivity',
+      content: (
+        <Panels>
+          <TailscaleRow tailscale={tailscale} />
+        </Panels>
+      ),
+    },
+  }
 
-  const networkFields = (
-    <Frame className={FRAME_CLASS}>
-      <FramePanel className={PANEL_CLASS}>
-        <BusStatusRow status={props.busStatus} />
-      </FramePanel>
-      <FramePanel className={PANEL_CLASS}>
-        <RouterDetails router={props.router} />
-      </FramePanel>
-      <FramePanel className={PANEL_CLASS}>
-        <TailscaleRow tailscale={tailscale} />
-      </FramePanel>
-    </Frame>
-  )
-
-  const temperatureFields = (
-    <TemperatureSettings
-      temperatures={props.temperatures}
-      onNameChange={props.onTemperatureNameChange}
-      onUnitChange={props.onTemperatureUnitChange}
-    />
-  )
-
-  const navigationFields = (
-    <Frame className={FRAME_CLASS}>
-      <FramePanel className="bg-card/20 border-white/10 backdrop-blur-md">
-        <NavStyleSwitcher value={navStyle} onChange={setNavStyle} />
-      </FramePanel>
-    </Frame>
+  const scroll = (children: React.ReactNode) => (
+    <ScrollArea
+      className="min-h-0 flex-1 **:data-[slot=scroll-area-scrollbar]:hidden"
+      overscrollContain
+      scrollFade
+    >
+      {children}
+    </ScrollArea>
   )
 
   if (navStyle === 'sheet') {
     return (
       <div className={CARD_WRAPPER}>
         <h1 className="mb-2 px-1 text-base font-medium">Settings</h1>
-        <ScrollArea
-          className="min-h-0 flex-1 **:data-[slot=scroll-area-scrollbar]:hidden"
-          overscrollContain
-          scrollFade
-        >
-          {groupList}
-        </ScrollArea>
-
-        <Sheet
-          open={view === 'display'}
-          onOpenChange={(open) => setView(open ? 'display' : 'list')}
-        >
-          <SheetPopup
-            side="right"
-            className={sheetBg}
-            portalProps={{ container: portalContainer ?? undefined }}
+        {scroll(topList)}
+        {(Object.keys(VIEWS) as NonRootView[]).map((id) => (
+          <Sheet
+            key={id}
+            open={view === id}
+            onOpenChange={(open) => setView(open ? id : VIEWS[id].parent)}
           >
-            <SheetHeader>
-              <SheetTitle>Display</SheetTitle>
-            </SheetHeader>
-            <SheetPanel className="p-4">{displayFields}</SheetPanel>
-          </SheetPopup>
-        </Sheet>
-
-        <Sheet
-          open={view === 'network'}
-          onOpenChange={(open) => setView(open ? 'network' : 'list')}
-        >
-          <SheetPopup
-            side="right"
-            className={sheetBg}
-            portalProps={{ container: portalContainer ?? undefined }}
-          >
-            <SheetHeader>
-              <SheetTitle>Network</SheetTitle>
-            </SheetHeader>
-            <SheetPanel className="p-4">{networkFields}</SheetPanel>
-          </SheetPopup>
-        </Sheet>
-
-        <Sheet
-          open={view === 'temperature'}
-          onOpenChange={(open) => setView(open ? 'temperature' : 'list')}
-        >
-          <SheetPopup
-            side="right"
-            className={sheetBg}
-            portalProps={{ container: portalContainer ?? undefined }}
-          >
-            <SheetHeader>
-              <SheetTitle>Temperature</SheetTitle>
-            </SheetHeader>
-            <SheetPanel className="p-4">{temperatureFields}</SheetPanel>
-          </SheetPopup>
-        </Sheet>
-
-        <Sheet
-          open={view === 'navigation'}
-          onOpenChange={(open) => setView(open ? 'navigation' : 'display')}
-        >
-          <SheetPopup
-            side="right"
-            className={sheetBg}
-            portalProps={{ container: portalContainer ?? undefined }}
-          >
-            <SheetHeader>
-              <SheetTitle>Navigation</SheetTitle>
-            </SheetHeader>
-            <SheetPanel className="p-4">{navigationFields}</SheetPanel>
-          </SheetPopup>
-        </Sheet>
+            <SheetPopup
+              side="right"
+              className={sheetBg}
+              portalProps={{ container: portalContainer ?? undefined }}
+            >
+              <SheetHeader>
+                <SheetTitle>{VIEWS[id].title}</SheetTitle>
+              </SheetHeader>
+              <SheetPanel className="p-4">{VIEWS[id].content}</SheetPanel>
+            </SheetPopup>
+          </Sheet>
+        ))}
       </div>
     )
   }
@@ -567,43 +711,22 @@ export function SettingsTab(props: SettingsTabProps) {
   if (view === 'list') {
     return (
       <div className={CARD_WRAPPER}>
-        {/* <NavStyleSwitcher value={navStyle} onChange={changeNavStyle} /> TODO*/}
         <h1 className="mb-2 px-1 text-base font-medium">Settings</h1>
-        <ScrollArea
-          className="min-h-0 flex-1 **:data-[slot=scroll-area-scrollbar]:hidden"
-          overscrollContain
-          scrollFade
-        >
-          {groupList}
-        </ScrollArea>
+        {scroll(topList)}
       </div>
     )
   }
 
-  const title =
-    view === 'display'
-      ? 'Display'
-      : view === 'network'
-        ? 'Network'
-        : view === 'temperature'
-          ? 'Temperature'
-          : 'Navigation'
-  const crumbs: Array<{ label: string; onClick?: () => void }> =
-    view === 'navigation'
-      ? [
-          { label: 'Settings', onClick: () => setView('list') },
-          { label: 'Display', onClick: () => setView('display') },
-          { label: 'Navigation' },
-        ]
-      : [{ label: 'Settings', onClick: () => setView('list') }, { label: title }]
-  const content =
-    view === 'display'
-      ? displayFields
-      : view === 'network'
-        ? networkFields
-        : view === 'temperature'
-          ? temperatureFields
-          : navigationFields
+  // Root → … → view, e.g. Settings › Connectivity › Hub.
+  const trail: NonRootView[] = []
+  for (let v: SettingsView = view; v !== 'list'; v = VIEWS[v].parent) trail.unshift(v)
+  const crumbs: Array<{ label: string; onClick?: () => void }> = [
+    { label: 'Settings', onClick: () => setView('list') },
+    ...trail.map((id) => ({
+      label: VIEWS[id].title,
+      onClick: id === view ? undefined : () => setView(id),
+    })),
+  ]
   return (
     <div className={CARD_WRAPPER}>
       <Breadcrumb className="mb-3 px-1">
@@ -624,13 +747,7 @@ export function SettingsTab(props: SettingsTabProps) {
           ))}
         </BreadcrumbList>
       </Breadcrumb>
-      <ScrollArea
-        className="min-h-0 flex-1 **:data-[slot=scroll-area-scrollbar]:hidden"
-        overscrollContain
-        scrollFade
-      >
-        {content}
-      </ScrollArea>
+      {scroll(VIEWS[view].content)}
     </div>
   )
 }

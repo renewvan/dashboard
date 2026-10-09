@@ -14,6 +14,7 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { Tabs as TabsRoot, TabsPanel } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
+import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
 import { useTheme, type Theme } from '@/hooks/useTheme'
@@ -24,6 +25,7 @@ import { GpsTab } from '@/tabs/GpsTab'
 import { HomeTab } from '@/tabs/HomeTab'
 import { PowerTab } from '@/tabs/PowerTab'
 import { SettingsTab } from '@/tabs/SettingsTab'
+import { connectedNodes } from '@/lib/nodes'
 import { SwitchesTab } from '@/tabs/SwitchesTab'
 import { TanksTab } from '@/tabs/TanksTab'
 
@@ -65,17 +67,18 @@ function App() {
     routerHealth,
     publish,
   } = useRenewvanBus()
-  useAlertToasts({ tanks: state.tanks, status, tailscale })
+  const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
+  useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'home')
   // Deep-link target for the uplink popover's "Network settings" CTA.
   // Cleared on consumption and whenever Settings is not the active tab,
   // so a plain sidebar entry never inherits a stale focus — and a repeat
   // CTA tap (same value) still re-triggers the jump.
-  const [settingsFocus, setSettingsFocus] = useState<'network' | undefined>(undefined)
+  const [settingsFocus, setSettingsFocus] = useState<'connectivity' | undefined>(undefined)
   useEffect(() => {
     if (activeTab !== 'settings') setSettingsFocus(undefined)
   }, [activeTab])
-  const openSettings = (focus?: 'network') => {
+  const openSettings = (focus?: 'connectivity') => {
     setSettingsFocus(focus)
     setActiveTab('settings')
   }
@@ -158,7 +161,7 @@ function App() {
             lastReceivedAt={state.routerUpdatedAt[routerId]}
             tailscale={tailscale}
             busStatus={status}
-            onOpenSettings={() => openSettings('network')}
+            onOpenSettings={() => openSettings('connectivity')}
             portalContainer={portalContainer}
           />
           <Separator orientation="vertical" className="mx-1.5" />
@@ -216,6 +219,9 @@ function App() {
                 publish('renewvan/kiosk/display/auto-sleep-timeout-minutes/set', JSON.stringify(v))
               }
               temperatures={state.temperatures}
+              nodes={connectedNodes(state)}
+              alertsEnabled={alertsEnabled}
+              onAlertsEnabledChange={setAlertsEnabled}
               onTemperatureNameChange={(id, name) =>
                 publish(`renewvan/temperature/${id}/name/set`, JSON.stringify(name))
               }

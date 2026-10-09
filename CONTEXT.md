@@ -21,6 +21,10 @@ it's the whole connection state, including offline/no-service)
 
 **Status button**:
 A header icon button that reports a live condition and opens a detail popover on tap; visually transparent, unlike an action button.
+
+**Alerts toggle**:
+The kiosk-local Settings → General → Alerts switch (`useAlertsEnabled`, `localStorage`, default on) that shows or hides alert toasts. Muting only suppresses the toast: the alert is still tracked and recorded in the Alerts tab's history, and an alert still open when un-muted is shown again. It does not stop the hub from raising alarms.
+_Avoid_: Disable alerts, alarm off (alarms and history are unaffected)
 _Avoid_: Icon button (ambiguous — could mean an action button)
 
 **Tank alarm zones** (TankCard liquid color):
