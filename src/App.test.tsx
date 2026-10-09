@@ -28,7 +28,7 @@ const KIOSK_WIDTH = 800
 const PHONE_WIDTH = 390
 const JUST_BELOW_KIOSK_WIDTH = 799
 
-const NAV_LABELS = ['Home', 'Power', 'Tanks', 'GPS', 'Switches', 'Heater', 'Settings']
+const NAV_LABELS = ['Start', 'Power', 'Tanks', 'GPS', 'Switches', 'Heater', 'Settings']
 
 const HEADER_HEIGHT_VAR = '--app-header-height'
 
@@ -156,16 +156,16 @@ describe('App shell navigation layout', () => {
   it('puts the navigation before the panes in the DOM on a phone', async () => {
     await renderAt(PHONE_WIDTH)
     const nav = screen.getByRole('navigation', { name: 'Primary' })
-    const pane = screen.getByTestId('pane-home')
+    const pane = screen.getByTestId('pane-start')
     expect(nav.compareDocumentPosition(pane) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })
 
 describe('App shell tab selection', () => {
-  it('starts on Home with its pane visible', async () => {
+  it('starts on Start with its pane visible', async () => {
     await renderAt(KIOSK_WIDTH)
-    expect(selectedTab()).toHaveAccessibleName('Home')
-    expect(screen.getByTestId('pane-home')).toBeInTheDocument()
+    expect(selectedTab()).toHaveAccessibleName('Start')
+    expect(screen.getByTestId('pane-start')).toBeInTheDocument()
   })
 
   it.each([
@@ -177,7 +177,7 @@ describe('App shell tab selection', () => {
     await user.click(screen.getByRole('tab', { name: 'Power' }))
     expect(selectedTab()).toHaveAccessibleName('Power')
     expect(screen.getByTestId('pane-power')).toBeInTheDocument()
-    expect(screen.queryByTestId('pane-home')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('pane-start')).not.toBeInTheDocument()
     expect(new URLSearchParams(window.location.search).get('tab')).toBe('power')
   })
 
@@ -209,10 +209,10 @@ describe('App shell alerts bell', () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('button', { name: /^alerts/i }))
-    await user.click(screen.getByRole('tab', { name: 'Home' }))
+    await user.click(screen.getByRole('tab', { name: 'Start' }))
     expect(screen.queryByTestId('pane-alerts')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^alerts/i })).not.toHaveAttribute('aria-current')
-    expect(selectedTab()).toHaveAccessibleName('Home')
+    expect(selectedTab()).toHaveAccessibleName('Start')
   })
 
   it('deep-links to the alerts pane via ?tab=alerts', async () => {
@@ -229,10 +229,10 @@ describe('App shell URL state', () => {
     expect(screen.getByTestId('pane-gps')).toBeInTheDocument()
   })
 
-  it('falls back to Home for an unknown ?tab=', async () => {
+  it('falls back to Start for an unknown ?tab=', async () => {
     await renderAt(KIOSK_WIDTH, '/?tab=bogus')
-    expect(selectedTab()).toHaveAccessibleName('Home')
-    expect(screen.getByTestId('pane-home')).toBeInTheDocument()
+    expect(selectedTab()).toHaveAccessibleName('Start')
+    expect(screen.getByTestId('pane-start')).toBeInTheDocument()
   })
 
   it('follows browser Back and Forward', async () => {
@@ -303,6 +303,31 @@ describe('App shell header', () => {
     await user.click(await screen.findByRole('button', { name: /network settings/i }))
     expect(selectedTab()).toHaveAccessibleName('Settings')
     expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
+  })
+})
+
+describe('App shell sidebar collapse', () => {
+  it('collapses to the symbol, persists, and restores on reload', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    const logo = () => screen.getByRole('img', { name: 'renewvan' })
+    expect(screen.getAllByRole('img', { name: 'renewvan' })).toHaveLength(1)
+    expect(logo().getAttribute('src')).toMatch(/lockup/)
+
+    await user.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    expect(logo().getAttribute('src')).toMatch(/lockup/)
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-state', 'collapsed')
+    expect(window.localStorage.getItem('renewvan-dashboard-sidebar-collapsed')).toBe('true')
+
+    cleanup()
+    await renderAt(KIOSK_WIDTH)
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-state', 'collapsed')
+  })
+
+  it('keeps the lockup in the header and offers no toggle on a phone', async () => {
+    await renderAt(PHONE_WIDTH)
+    expect(screen.getAllByRole('img', { name: 'renewvan' })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: /sidebar/i })).not.toBeInTheDocument()
   })
 })
 

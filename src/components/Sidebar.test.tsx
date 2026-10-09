@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { Tabs } from '@heroui/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
@@ -17,14 +17,24 @@ const items: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: <span data-testid="icon-settings" /> },
 ]
 
-function renderSidebar({ isMobile = false, selectedKey = 'tanks' } = {}) {
+function renderSidebar({
+  isMobile = false,
+  selectedKey = 'tanks',
+  collapsed = false,
+  theme,
+}: {
+  isMobile?: boolean
+  selectedKey?: string
+  collapsed?: boolean
+  theme?: 'light' | 'dark'
+} = {}) {
   return render(
     <Tabs
       selectedKey={selectedKey}
       onSelectionChange={() => {}}
       orientation={isMobile ? 'horizontal' : 'vertical'}
     >
-      <Sidebar items={items} isMobile={isMobile} />
+      <Sidebar items={items} isMobile={isMobile} collapsed={collapsed} theme={theme} />
       <Tabs.Panel id="tanks">Tanks panel</Tabs.Panel>
       <Tabs.Panel id="power">Power panel</Tabs.Panel>
       <Tabs.Panel id="settings">Settings panel</Tabs.Panel>
@@ -48,12 +58,21 @@ describe.each([
     }
   })
 
-  it('never renders text labels (icon-only)', () => {
-    renderSidebar({ isMobile })
-    // Panels carry their own text; only the nav labels must be absent.
-    expect(screen.queryByText('Tanks')).not.toBeInTheDocument()
-    expect(screen.queryByText('Power')).not.toBeInTheDocument()
-    expect(screen.queryByText('Settings')).not.toBeInTheDocument()
+  it('renders text labels only in the expanded rail', () => {
+    renderSidebar({ isMobile, collapsed: false })
+    // Panels carry their own text; match the label spans inside the tabs.
+    for (const item of items) {
+      const label = within(screen.getByTestId(`nav-${item.id}`)).queryByText(item.label)
+      if (isMobile) expect(label).not.toBeInTheDocument()
+      else expect(label).toBeInTheDocument()
+    }
+  })
+
+  it('never renders text labels when collapsed or on the bottom bar', () => {
+    renderSidebar({ isMobile, collapsed: true })
+    for (const item of items) {
+      expect(within(screen.getByTestId(`nav-${item.id}`)).queryByText(item.label)).toBeNull()
+    }
   })
 
   it('labels each tab for accessibility despite no visible text', () => {
@@ -101,5 +120,38 @@ describe('Sidebar (bottom bar)', () => {
     expect(
       nav.compareDocumentPosition(screen.getByRole('tabpanel')) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
+  })
+})
+
+describe('Sidebar (rail brand)', () => {
+  it('renders the same single lockup whether expanded or collapsed', () => {
+    const { unmount } = renderSidebar({ collapsed: false })
+    const expanded = screen.getByRole('img', { name: 'renewvan' }).getAttribute('src')
+    expect(expanded).toMatch(/lockup/)
+    unmount()
+
+    renderSidebar({ collapsed: true })
+    expect(screen.getAllByRole('img', { name: 'renewvan' })).toHaveLength(1)
+    expect(screen.getByRole('img', { name: 'renewvan' }).getAttribute('src')).toBe(expanded)
+  })
+
+  it('picks the lockup variant for the theme', () => {
+    const { unmount } = renderSidebar({ theme: 'dark' })
+    const dark = screen.getByRole('img', { name: 'renewvan' }).getAttribute('src')
+    unmount()
+    renderSidebar({ theme: 'light' })
+    const light = screen.getByRole('img', { name: 'renewvan' }).getAttribute('src')
+    expect(dark).not.toBe(light)
+  })
+
+  it('keeps every nav item as a tab when collapsed', () => {
+    renderSidebar({ collapsed: true })
+    expect(screen.getAllByRole('tab')).toHaveLength(items.length)
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-state', 'collapsed')
+  })
+
+  it('has no brand on the bottom bar (the header carries it)', () => {
+    renderSidebar({ isMobile: true })
+    expect(screen.queryByRole('img', { name: 'renewvan' })).not.toBeInTheDocument()
   })
 })
