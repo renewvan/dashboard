@@ -2,6 +2,8 @@
 
 Standing constraints on this dashboard's UI, independent of any single feature. Consult before sizing or spacing interactive controls.
 
+> **Suspended on branch `HeroUI`.** The HeroUI layout spike (map: "HeroUI base layout: rebuild Header and Sidebar on HeroUI, coss removed") deliberately ships HeroUI's default component sizes (Button 36-40px, Tab 32px) and drops the 44×44px minimum below **for that effort only**, by explicit decision. The rule is not retired for the project: it applies again to `main` and to anything that ships from it unless that decision is carried over.
+
 ## Touch targets: design for fat fingers and gloves
 
 > "Develop these for people with fat fingers, assume that they maybe are using gloves in winter."

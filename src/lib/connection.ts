@@ -47,9 +47,10 @@ export function connectionTier(
 
 /**
  * One-line summary of the uplink tier (`LTE · <operator>` / `Checking…` /
- * `Offline` / `No service`) — the uplink popover's title and
- * SettingsTab's Network group description read from this one copy source,
- * not two independently-drifting strings (tailscaleStatusText precedent).
+ * `Offline` / `No service`) — the uplink popover's title and, once the
+ * Settings page is ported, its Network group description read from this
+ * one copy source, not two independently-drifting strings
+ * (tailscaleStatusText precedent).
  * Degrades on a partial Router exactly like the old popover row did
  * (`UNKNOWN · —`) — no isCompleteRouter guard, per types.ts.
  */
@@ -65,8 +66,8 @@ export function uplinkHeadline(router: Partial<Router> | undefined, tier: Connec
 /**
  * Human-readable copy for the kiosk's MQTT bus link
  * (`ConnectionStatus` from `useRenewvanBus`) — shared by the uplink
- * popover's hub-link row and SettingsTab's Network subpage. Supersedes
- * the deleted `RouterStatusIcon`'s private COPY map.
+ * popover's hub-link row and, once ported, the Settings page's Network
+ * section. Supersedes the removed `RouterStatusIcon`'s private COPY map.
  */
 export function busStatusText(status: ConnectionStatus): string {
   switch (status) {
@@ -84,5 +85,5 @@ export function busStatusText(status: ConnectionStatus): string {
 export const BUS_TONE: Record<ConnectionStatus, string> = {
   connected: 'bg-success',
   connecting: 'bg-warning',
-  disconnected: 'bg-destructive',
+  disconnected: 'bg-danger',
 }

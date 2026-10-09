@@ -16,14 +16,10 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@base-ui/react": "^1.8.0",
-    "@daypicker/react": "^10.0.1",
-    "@fontsource-variable/geist-mono": "^5.3.0",
-    "@fontsource-variable/inter": "^5.3.0",
+    "@heroui/react": "3.2.6",
+    "@heroui/styles": "3.2.6",
     "@tailwindcss/vite": "^4.3.3",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cn": "^0.4.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.48.0",
     "mqtt": "^5.16.0",

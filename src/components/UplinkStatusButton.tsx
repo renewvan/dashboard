@@ -21,13 +21,10 @@ export interface UplinkStatusButtonProps {
   /** `state.routerUpdatedAt[id]`, epoch ms — feeds the staleness rule. */
   lastReceivedAt: number | undefined
   tailscale: TailscaleStatus | null
-  /** `useRenewvanBus().status` — the kiosk's MQTT bus link, merged into
-   * this popover as a dot row (supersedes the deleted `RouterStatusIcon`). */
+  /** `useRenewvanBus().status` — the kiosk's MQTT bus link, shown in
+   * this popover as a dot row. */
   busStatus: ConnectionStatus
   onOpenSettings: () => void
-  /** App's themed-root portal node (`App.tsx`) — forwarded so the popover
-   * resolves dark tokens instead of `document.body`'s light defaults. */
-  portalContainer: HTMLDivElement | null
 }
 
 interface TierPresentation {
@@ -37,6 +34,35 @@ interface TierPresentation {
   Icon?: LucideIcon
   iconClass: string
   label: string
+}
+
+/** Icon, colour and accessible label per connection tier (bar tiers set `filled`; checking/offline set `Icon`). */
+const TIER_PRESENTATION: Record<ConnectionTier, TierPresentation> = {
+  checking: {
+    Icon: Loader2,
+    iconClass: 'text-warning animate-spin',
+    label: 'Checking connection…',
+  },
+  offline: { Icon: CloudOff, iconClass: 'text-danger', label: 'Connection offline' },
+  'no-service': { filled: 0, iconClass: 'text-danger', label: 'Connection: no service' },
+  'bars-1': { filled: 1, iconClass: 'text-warning', label: 'Connection: 1 of 4 bars' },
+  'bars-2': { filled: 2, iconClass: 'text-warning', label: 'Connection: 2 of 4 bars' },
+  'bars-3': { filled: 3, iconClass: 'text-success', label: 'Connection: 3 of 4 bars' },
+  'bars-4': { filled: 4, iconClass: 'text-success', label: 'Connection: 4 of 4 bars' },
+}
+
+/** Dot + text status row shared by the hub-link and Tailscale lines —
+ * the "get rid of the icon, just leave a dot" treatment. */
+function StatusDotRow({ label, tone, text }: { label: string; tone: string; text: string }) {
+  return (
+    <div className="text-muted flex items-center justify-between gap-3">
+      <span>{label}</span>
+      <span className="text-foreground flex items-center gap-2">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${tone}`} aria-hidden />
+        {text}
+      </span>
+    </div>
+  )
 }
 
 /**
@@ -49,41 +75,9 @@ interface TierPresentation {
  * package for a shape lucide doesn't have.
  *
  * Its popover is the single connection surface of the header: uplink
- * fields, the kiosk's MQTT bus-link state (dot row, merged in from the
- * deleted `RouterStatusIcon`), Tailscale, and a CTA that deep-links into
- * Settings → Network where every router field lives.
+ * fields, the kiosk's MQTT bus-link state (dot row), Tailscale, and a CTA
+ * that deep-links into Settings → Network where every router field lives.
  */
-const TIER_PRESENTATION: Record<ConnectionTier, TierPresentation> = {
-  checking: {
-    Icon: Loader2,
-    iconClass: 'text-warning animate-spin',
-    label: 'Checking connection…',
-  },
-  offline: { Icon: CloudOff, iconClass: 'text-destructive', label: 'Connection offline' },
-  'no-service': { filled: 0, iconClass: 'text-destructive', label: 'Connection: no service' },
-  'bars-1': { filled: 1, iconClass: 'text-warning', label: 'Connection: 1 of 4 bars' },
-  'bars-2': { filled: 2, iconClass: 'text-warning', label: 'Connection: 2 of 4 bars' },
-  'bars-3': { filled: 3, iconClass: 'text-success', label: 'Connection: 3 of 4 bars' },
-  'bars-4': { filled: 4, iconClass: 'text-success', label: 'Connection: 4 of 4 bars' },
-}
-
-/** Dot + text status row shared by the hub-link and Tailscale lines —
- * the "get rid of the icon, just leave a dot" treatment. */
-function StatusDotRow({ label, tone, text }: { label: string; tone: string; text: string }) {
-  return (
-    <div className="text-muted-foreground flex items-center justify-between gap-3">
-      <span>{label}</span>
-      <span className="text-foreground flex items-center gap-2">
-        <span className={`h-2 w-2 shrink-0 rounded-full ${tone}`} aria-hidden />
-        {text}
-      </span>
-    </div>
-  )
-}
-
-/** Status-dot colour shared with SettingsTab's Network subpage —
- * `lib/connection.ts`'s `BUS_TONE`. */
-
 export function UplinkStatusButton({
   router,
   routerHealth,
@@ -91,7 +85,6 @@ export function UplinkStatusButton({
   tailscale,
   busStatus,
   onOpenSettings,
-  portalContainer,
 }: UplinkStatusButtonProps) {
   const now = useNow(30_000)
   const tier = connectionTier(router?.signal_rsrp_dbm, routerHealth, lastReceivedAt, now)
@@ -112,7 +105,6 @@ export function UplinkStatusButton({
       title={uplinkHeadline(router, tier)}
       onOpenSettings={onOpenSettings}
       settingsLabel="Network settings"
-      portalContainer={portalContainer}
     >
       {tier !== 'checking' && tier !== 'offline' && (
         <>
@@ -131,11 +123,11 @@ export function UplinkStatusButton({
           />
         </>
       )}
-      <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
+      <div className="border-border mt-4 flex flex-col gap-2 border-t pt-4">
         <StatusDotRow label="Hub" tone={BUS_TONE[busStatus]} text={busStatusText(busStatus)} />
         <StatusDotRow
           label="Tailscale"
-          tone={tailscale?.connected ? 'bg-success' : 'bg-muted-foreground'}
+          tone={tailscale?.connected ? 'bg-success' : 'bg-muted'}
           text={tailscaleStatusText(tailscale)}
         />
       </div>
@@ -165,7 +157,7 @@ function BarTower({ filled, className }: { filled: number; className?: string })
 
 function FieldRow({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="text-muted-foreground flex items-center justify-between gap-3">
+    <div className="text-muted flex items-center justify-between gap-3">
       <span>{label}</span>
       <span className="text-foreground">{value ?? '—'}</span>
     </div>

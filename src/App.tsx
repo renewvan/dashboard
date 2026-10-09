@@ -1,36 +1,28 @@
-import { useEffect, useState } from 'react'
-import { Droplet, Wrench, ToggleLeft, Van, Zap, Heater, Map } from 'lucide-react'
-import wallpaperLight from '../assets/light-unsplash.jpg'
-import wallpaperDark from '../assets/dark-unsplash.jpg'
-import lockupWhite from '../assets/logo/renewvan-lockup-white.svg'
-import lockupDark from '../assets/logo/renewvan-lockup.svg'
-import { EmptyState } from '@/components/EmptyState'
+import { useLayoutEffect, useRef } from 'react'
+import { Bell, LayoutPanelLeft, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
+import { Separator, Tabs } from '@heroui/react'
+import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
+import lockupDark from '../assets/logo/svg/renewvan-lockup-dark.svg'
+import { cn } from '@/lib/utils'
 import { Clock } from '@/components/Clock'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
+import { StubPane } from '@/components/StubPane'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
-import { Tabs as TabsRoot, TabsPanel } from '@/components/ui/tabs'
-import { Separator } from '@/components/ui/separator'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
+import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
-import { useTheme, type Theme } from '@/hooks/useTheme'
+import { useTheme } from '@/hooks/useTheme'
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed'
+import { SidebarToggle } from '@/components/SidebarToggle'
 import { useUrlTab } from '@/hooks/useUrlTab'
-import { cn } from '@/lib/utils'
-import { AlertsTab } from '@/tabs/AlertsTab'
-import { GpsTab } from '@/tabs/GpsTab'
-import { HomeTab } from '@/tabs/HomeTab'
-import { PowerTab } from '@/tabs/PowerTab'
-import { SettingsTab } from '@/tabs/SettingsTab'
-import { connectedNodes } from '@/lib/nodes'
-import { SwitchesTab } from '@/tabs/SwitchesTab'
-import { TanksTab } from '@/tabs/TanksTab'
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Home', icon: <Van className="size-5" /> },
+  { id: 'start', label: 'Start', icon: <LayoutPanelLeft className="size-5" /> },
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
   { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
   { id: 'gps', label: 'GPS', icon: <Map className="size-5" /> },
@@ -44,206 +36,123 @@ const NAV_ITEMS: NavItem[] = [
 // request, so `useUrlTab` needs its own superset of valid ids.
 const TAB_IDS = [...NAV_ITEMS.map((item) => item.id), 'alerts']
 
-// Per-theme wallpaper photo. No entry (or a falsy value) means that
-// theme has no photo configured — the background falls back to a solid
-// ink color (see the background div below) instead of leaving a blank
-// image request. Dark theme has no photo configured right now; if one
-// is added later, it starts rendering automatically, no other code
-// changes.
-const WALLPAPER: Record<Theme, string | undefined> = {
-  light: wallpaperLight,
-  dark: wallpaperDark,
-}
+/** Custom property the header publishes on `<html>` so the toast region (portaled to `<body>`, see `main.tsx`) can sit below it. */
+const HEADER_HEIGHT_VAR = '--app-header-height'
+
+// HeroUI's component CSS is unlayered, so utilities need `!` to override its spacing; the shell sizes panes itself.
+const PANEL_CLASS = 'm-0! flex min-h-0 min-w-0 flex-1 flex-col p-0!'
 
 function App() {
-  const {
-    state,
-    status,
-    displayPower,
-    brightness,
-    autoSleepEnabled,
-    autoSleepTimeoutMinutes,
-    tailscale,
-    routerHealth,
-    publish,
-  } = useRenewvanBus()
-  const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
+  const { state, status, displayPower, tailscale, routerHealth, publish } = useRenewvanBus()
+  const [alertsEnabled] = useAlertsEnabled()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
-  const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'home')
-  // Deep-link target for the uplink popover's "Network settings" CTA.
-  // Cleared on consumption and whenever Settings is not the active tab,
-  // so a plain sidebar entry never inherits a stale focus — and a repeat
-  // CTA tap (same value) still re-triggers the jump.
-  const [settingsFocus, setSettingsFocus] = useState<'connectivity' | undefined>(undefined)
-  useEffect(() => {
-    if (activeTab !== 'settings') setSettingsFocus(undefined)
-  }, [activeTab])
-  const openSettings = (focus?: 'connectivity') => {
-    setSettingsFocus(focus)
-    setActiveTab('settings')
-  }
+  const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'start')
   const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
-  const wallpaper = WALLPAPER[theme]
+  const isMobile = useIsMobile()
+  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsed()
+  const headerRef = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+    const root = document.documentElement
+    const syncHeaderHeight = () =>
+      root.style.setProperty(HEADER_HEIGHT_VAR, `${header.offsetHeight}px`)
+    syncHeaderHeight()
+    const observer = new ResizeObserver(syncHeaderHeight)
+    observer.observe(header)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty(HEADER_HEIGHT_VAR)
+    }
+  }, [])
   // single router per hub (compose ROUTER_ID) — first id decides; none yet → checking
   const routerId = Object.keys(state.routers)[0]
-  // Base UI's Dialog/Sheet/Popover portals to document.body by default,
-  // which sits OUTSIDE the themed div below (the 'dark' class lives on
-  // this root, not <html>) -- so a sheet or popover would render light
-  // regardless of theme. Portaling into this ref instead (a direct child
-  // of the themed root, deliberately NOT nested under `header`'s
-  // `backdrop-blur-md`) fixes the theme without also clipping the
-  // portal's `fixed` positioning: `backdrop-filter` establishes a CSS
-  // containing block for `position: fixed` descendants, so portaling
-  // anywhere under the header would shrink the sheet to the header's box
-  // instead of the full viewport.
-  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null)
 
   const handleSleep = () => publish('renewvan/kiosk/display/power/set', 'off')
   const handleWake = () => publish('renewvan/kiosk/display/power/set', 'on')
 
-  return (
-    <TabsRoot
-      value={activeTab}
-      onValueChange={(value) => setActiveTab(value as string)}
-      orientation="vertical"
+  const header = (
+    <header
+      ref={headerRef}
       className={cn(
-        'text-foreground relative flex h-svh flex-col! gap-2 overflow-hidden px-2 py-1',
-        theme === 'dark' && 'dark',
+        'bg-surface border-border grid shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b py-1.5 pr-3',
+        isMobile ? 'pl-3' : 'pl-1.5',
       )}
     >
-      {/* bg-[var(--panel)] (the ink navy, #0f1a2a, in dark theme) is the
-          fallback: it only shows through when WALLPAPER[theme] has no
-          photo. When it does, the photo covers it entirely — scaled up
-          and pre-blurred so the blur radius never reveals a sharp/
-          transparent edge against the glass surfaces on top of it.
-
-          Darkening is a separate flat overlay div, NOT `filter:
-          brightness()` on this div: a `filter` on ANY element creates
-          its own stacking context and compositing layer, and Chromium's
-          `backdrop-filter` sampling breaks (silently renders opaque, no
-          blur) for glass surfaces painted above a layer that has its
-          own `filter` -- killing every `backdrop-blur-md` panel
-          app-wide (header, sidebar, cards). A plain `bg-black/30`
-          overlay (no `filter`) darkens identically -- alpha-compositing
-          black at 30% over any channel is the same multiply-by-0.7 math
-          as `brightness(0.7)` -- without that side effect. It also
-          means `blur-xs` below no longer gets silently clobbered: that
-          class and `filter: brightness()` both set the `filter`
-          property, and an inline `style.filter` always wins over a
-          class, so the old code's `blur-xs` was a no-op the whole time.
-          Applied in both themes now (not just light) for consistent
-          wallpaper-photo legibility under the glass surfaces. */}
-      <div
-        aria-hidden
-        className={cn(
-          'pointer-events-none absolute inset-0 -z-10 bg-[var(--panel)]',
-          wallpaper && 'scale-105 bg-cover bg-center blur-xs',
-        )}
-        style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : undefined}
-      />
-      {wallpaper && (
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-black/20" />
-      )}
-      <div ref={setPortalContainer} />
-      <header className="bg-card/40 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-2xl border border-white/10 px-3 py-1.5 backdrop-blur-md">
+      {isMobile ? (
         <img
-          src={theme === 'dark' ? lockupWhite : lockupDark}
+          src={theme === 'dark' ? lockupDark : lockupLight}
           alt="renewvan"
-          className="h-7 w-auto justify-self-start"
+          className="h-8 w-auto justify-self-start"
         />
-        <Clock />
-        <div className="flex items-center justify-end gap-1.5">
-          {/* single router per hub (hub compose's ROUTER_ID) */}
-          <UplinkStatusButton
-            router={state.routers[routerId]}
-            routerHealth={routerHealth}
-            lastReceivedAt={state.routerUpdatedAt[routerId]}
-            tailscale={tailscale}
-            busStatus={status}
-            onOpenSettings={() => openSettings('connectivity')}
-            portalContainer={portalContainer}
-          />
-          <Separator orientation="vertical" className="mx-1.5" />
-          <AlertsButton
-            onClick={() => setActiveTab('alerts')}
-            count={unseenAlertCount}
-            active={activeTab === 'alerts'}
-          />
-          <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
-          <DisplaySleepButton
-            displayPower={displayPower}
-            onSleep={handleSleep}
-            onWake={handleWake}
-          />
+      ) : (
+        <div className="justify-self-start">
+          <SidebarToggle collapsed={sidebarCollapsed} onCollapsedChange={setSidebarCollapsed} />
         </div>
-      </header>
-      <div className="flex flex-1 gap-2 overflow-hidden">
-        <Sidebar items={NAV_ITEMS} />
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <TabsPanel value="home">
-            <HomeTab gps={state.gps} temperatures={state.temperatures} tilt={state.tilt} />
-          </TabsPanel>
-          <TabsPanel value="tanks">
-            <TanksTab tanks={state.tanks} />
-          </TabsPanel>
-          <TabsPanel value="power">
-            <PowerTab batteries={state.batteries} />
-          </TabsPanel>
-          <TabsPanel value="gps">
-            <GpsTab gps={state.gps} />
-          </TabsPanel>
-          <TabsPanel value="switches">
-            <SwitchesTab relays={state.relays} />
-          </TabsPanel>
-          <TabsPanel value="heater">
-            <EmptyState
-              icon={<Heater />}
-              title="No heater data yet."
-              description="Waiting for readings from the renewvan hub."
-            />
-          </TabsPanel>
-          <TabsPanel value="settings">
-            <SettingsTab
-              tailscale={tailscale}
-              brightness={brightness}
-              autoSleepEnabled={autoSleepEnabled}
-              autoSleepTimeoutMinutes={autoSleepTimeoutMinutes}
-              onBrightnessChange={(v) =>
-                publish('renewvan/kiosk/display/brightness/set', JSON.stringify(v))
-              }
-              onAutoSleepEnabledChange={(v) =>
-                publish('renewvan/kiosk/display/auto-sleep-enabled/set', JSON.stringify(v))
-              }
-              onAutoSleepTimeoutMinutesChange={(v) =>
-                publish('renewvan/kiosk/display/auto-sleep-timeout-minutes/set', JSON.stringify(v))
-              }
-              temperatures={state.temperatures}
-              nodes={connectedNodes(state)}
-              alertsEnabled={alertsEnabled}
-              onAlertsEnabledChange={setAlertsEnabled}
-              onTemperatureNameChange={(id, name) =>
-                publish(`renewvan/temperature/${id}/name/set`, JSON.stringify(name))
-              }
-              onTemperatureUnitChange={(id, unit) =>
-                publish(`renewvan/temperature/${id}/unit/set`, JSON.stringify(unit))
-              }
-              portalContainer={portalContainer}
-              active={activeTab === 'settings'}
-              router={state.routers[routerId]}
-              routerHealth={routerHealth}
-              routerUpdatedAt={state.routerUpdatedAt[routerId]}
-              busStatus={status}
-              focusView={settingsFocus}
-              onFocusConsumed={() => setSettingsFocus(undefined)}
-            />
-          </TabsPanel>
-          <TabsPanel value="alerts">
-            <AlertsTab />
-          </TabsPanel>
-        </div>
+      )}
+      <Clock />
+      <div className="flex items-center justify-end gap-1.5">
+        {/* single router per hub (hub compose's ROUTER_ID) */}
+        <UplinkStatusButton
+          router={state.routers[routerId]}
+          routerHealth={routerHealth}
+          lastReceivedAt={state.routerUpdatedAt[routerId]}
+          tailscale={tailscale}
+          busStatus={status}
+          onOpenSettings={() => setActiveTab('settings')}
+        />
+        <Separator orientation="vertical" className="mx-1.5 h-6" />
+        <AlertsButton
+          onClick={() => setActiveTab('alerts')}
+          count={unseenAlertCount}
+          active={activeTab === 'alerts'}
+        />
+        <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
+        <DisplaySleepButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
       </div>
-    </TabsRoot>
+    </header>
+  )
+
+  const panels = (
+    <>
+      {NAV_ITEMS.map((item) => (
+        <Tabs.Panel key={item.id} id={item.id} className={PANEL_CLASS}>
+          <StubPane id={item.id} title={item.label} icon={item.icon} />
+        </Tabs.Panel>
+      ))}
+      <Tabs.Panel id="alerts" className={PANEL_CLASS}>
+        <StubPane id="alerts" title="Alerts" icon={<Bell className="size-5" />} />
+      </Tabs.Panel>
+    </>
+  )
+
+  return (
+    <div className="bg-background text-foreground flex h-svh flex-col overflow-hidden">
+      {/* Kiosk: the rail owns the full height (brand on top) and the header
+          sits beside it, above the panes — one row `Tabs` root. Mobile: the
+          header spans the top and the nav becomes a bottom bar. Either way
+          the nav precedes the panes in the DOM (React Aria warns when a tab
+          panel renders before its tab list); on mobile the Sidebar's own
+          `order-last` moves the bar below the panes. */}
+      {isMobile && header}
+      <Tabs
+        selectedKey={activeTab}
+        onSelectionChange={(key) => setActiveTab(String(key))}
+        orientation={isMobile ? 'horizontal' : 'vertical'}
+        className="min-h-0 flex-1 gap-0!"
+      >
+        <Sidebar items={NAV_ITEMS} isMobile={isMobile} collapsed={sidebarCollapsed} theme={theme} />
+        {isMobile ? (
+          panels
+        ) : (
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {header}
+            {panels}
+          </div>
+        )}
+      </Tabs>
+    </div>
   )
 }
 

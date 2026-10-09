@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <mask id="mask-1" maskUnits="userSpaceOnUse" color-interpolation="sRGB" x="-100000" y="-100000" width="200000" height="200000">
+    <g>
+      <path d="M133.8 164.8 L939.8 164.8 L939.8 846.8 L133.8 846.8 Z" fill="#ffffff"/>
+      <path d="M419 648.4 C419 682.642 391.242 710.4 357 710.4 C322.758 710.4 295 682.642 295 648.4 C295 614.158 322.758 586.4 357 586.4 C391.242 586.4 419 614.158 419 648.4 Z" fill="#000000"/>
+      <path d="M729 648.4 C729 682.642 701.242 710.4 667 710.4 C632.758 710.4 605 682.642 605 648.4 C605 614.158 632.758 586.4 667 586.4 C701.242 586.4 729 614.158 729 648.4 Z" fill="#000000"/>
+      <path d="M533.7 487.2 C533.7 523.154 504.554 552.3 468.6 552.3 C432.646 552.3 403.5 523.154 403.5 487.2 C403.5 451.246 432.646 422.1 468.6 422.1 C504.554 422.1 533.7 451.246 533.7 487.2 Z" fill="#000000"/>
+    </g>
+    </mask>
+  </defs>
+  <title>renewvan-avatar-light.svg</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path d="M0 0 L1024 0 L1024 1024 L0 1024 Z" fill="#ffffff"/>
+    <g mask="url(#mask-1)">
+      <g>
+        <g>
+          <path d="M468.6 487.2 L233 326" fill="none" stroke="#2f8bff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M468.6 487.2 L629.8 326" fill="none" stroke="#2f8bff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M468.6 487.2 L791 499.6" fill="none" stroke="#2f8bff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M468.6 487.2 L357 648.4" fill="none" stroke="#2f8bff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M468.6 487.2 L667 648.4" fill="none" stroke="#2f8bff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <path d="M233 326 L629.8 326 L791 499.6 L791 648.4 L233 648.4 Z" fill="none" stroke="#2f8bff" stroke-width="37.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <g>
+          <path d="M273.3 326 C273.3 348.257 255.257 366.3 233 366.3 C210.743 366.3 192.7 348.257 192.7 326 C192.7 303.743 210.743 285.7 233 285.7 C255.257 285.7 273.3 303.743 273.3 326 Z" fill="#2f8bff"/>
+          <path d="M670.1 326 C670.1 348.257 652.057 366.3 629.8 366.3 C607.543 366.3 589.5 348.257 589.5 326 C589.5 303.743 607.543 285.7 629.8 285.7 C652.057 285.7 670.1 303.743 670.1 326 Z" fill="#2f8bff"/>
+          <path d="M831.3 499.6 C831.3 521.857 813.257 539.9 791 539.9 C768.743 539.9 750.7 521.857 750.7 499.6 C750.7 477.343 768.743 459.3 791 459.3 C813.257 459.3 831.3 477.343 831.3 499.6 Z" fill="#2f8bff"/>
+          <path d="M831.3 648.4 C831.3 670.657 813.257 688.7 791 688.7 C768.743 688.7 750.7 670.657 750.7 648.4 C750.7 626.143 768.743 608.1 791 608.1 C813.257 608.1 831.3 626.143 831.3 648.4 Z" fill="#2f8bff"/>
+          <path d="M273.3 648.4 C273.3 670.657 255.257 688.7 233 688.7 C210.743 688.7 192.7 670.657 192.7 648.4 C192.7 626.143 210.743 608.1 233 608.1 C255.257 608.1 273.3 626.143 273.3 648.4 Z" fill="#2f8bff"/>
+        </g>
+      </g>
+    </g>
+    <path d="M513.55 487.2 C513.55 512.025 493.425 532.15 468.6 532.15 C443.775 532.15 423.65 512.025 423.65 487.2 C423.65 462.375 443.775 442.25 468.6 442.25 C493.425 442.25 513.55 462.375 513.55 487.2 Z" fill="none" stroke="#2f8bff" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M419 648.4 C419 682.642 391.242 710.4 357 710.4 C322.758 710.4 295 682.642 295 648.4 C295 614.158 322.758 586.4 357 586.4 C391.242 586.4 419 614.158 419 648.4 Z" fill="none" stroke="#2f8bff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M729 648.4 C729 682.642 701.242 710.4 667 710.4 C632.758 710.4 605 682.642 605 648.4 C605 614.158 632.758 586.4 667 586.4 C701.242 586.4 729 614.158 729 648.4 Z" fill="none" stroke="#2f8bff" stroke-width="39" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
