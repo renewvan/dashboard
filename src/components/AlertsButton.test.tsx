@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { AlertsButton } from './AlertsButton.heroui'
+import { AlertsButton } from './AlertsButton'
 
 describe('AlertsButton', () => {
   it('is labelled plainly with no badge when nothing is unseen', () => {

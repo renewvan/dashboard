@@ -1,6 +1,6 @@
 // Persistent alert log, backing the Alerts tab's list (`AlertsTab.tsx`).
-// Deliberately separate from `toastManager`'s live toast stack
-// (`ui/toast.tsx`): toasts are ephemeral (dismissible, gone once the
+// Deliberately separate from HeroUI's live toast stack
+// (`toastQueue`): toasts are ephemeral (dismissible, gone once the
 // backend condition clears, per `useAlertToasts.ts`'s state-driven
 // model) — a driver dismissing a toast, or just visiting the Alerts tab,
 // used to make that row vanish from the tab too, since it read straight

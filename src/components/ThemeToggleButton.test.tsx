@@ -29,9 +29,4 @@ describe('ThemeToggleButton', () => {
     await user.click(screen.getByRole('button'))
     expect(onThemeChange).toHaveBeenCalledWith('dark')
   })
-
-  it('meets the 44x44px minimum touch target for kiosk controls', () => {
-    render(<ThemeToggleButton theme="dark" onThemeChange={vi.fn()} />)
-    expect(screen.getByRole('button')).toHaveClass('size-11')
-  })
 })

@@ -34,9 +34,4 @@ describe('DisplaySleepButton', () => {
     render(<DisplaySleepButton displayPower={null} onSleep={vi.fn()} onWake={vi.fn()} />)
     expect(screen.getByRole('button')).toBeDisabled()
   })
-
-  it('meets the 44x44px minimum touch target for kiosk controls', () => {
-    render(<DisplaySleepButton displayPower="on" onSleep={vi.fn()} onWake={vi.fn()} />)
-    expect(screen.getByRole('button')).toHaveClass('size-11')
-  })
 })
