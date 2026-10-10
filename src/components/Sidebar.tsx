@@ -81,7 +81,7 @@ export function Sidebar({
         >
           {item.icon}
           {showLabels && <span className="truncate text-sm font-medium">{item.label}</span>}
-          <Tabs.Indicator className={cn(!isMobile && 'bg-accent/15! rounded-full! shadow-none!')} />
+          <Tabs.Indicator className={cn(!isMobile && 'bg-accent/15! rounded-3xl! shadow-none!')} />
         </Tabs.Tab>
       ))}
     </Tabs.List>
