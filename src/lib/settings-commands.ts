@@ -1,4 +1,5 @@
 import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
+import type { TemperatureUnit } from '@/types'
 
 /**
  * Settings commands: the one place that owns the `/set` topics and the
@@ -13,12 +14,17 @@ const TOPIC_BRIGHTNESS_SET = 'renewvan/kiosk/display/brightness/set'
 const TOPIC_AUTO_SLEEP_ENABLED_SET = 'renewvan/kiosk/display/auto-sleep-enabled/set'
 const TOPIC_AUTO_SLEEP_TIMEOUT_SET = 'renewvan/kiosk/display/auto-sleep-timeout-minutes/set'
 
+const temperatureSetTopic = (id: string, field: 'name' | 'unit') =>
+  `renewvan/temperature/${id}/${field}/set`
+
 export type Publish = (topic: string, payload: string) => void
 
 export interface SettingsCommands {
   setBrightness: (value: number) => void
   setAutoSleepEnabled: (value: boolean) => void
   setAutoSleepTimeoutMinutes: (value: AutoSleepTimeoutMinutes) => void
+  setTemperatureName: (id: string, name: string) => void
+  setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
 }
 
 /** Binds the settings commands to `publish`. Pure: build once, share everywhere. */
@@ -28,5 +34,10 @@ export function settingsCommands(publish: Publish): SettingsCommands {
     setAutoSleepEnabled: (value) => publish(TOPIC_AUTO_SLEEP_ENABLED_SET, JSON.stringify(value)),
     setAutoSleepTimeoutMinutes: (value) =>
       publish(TOPIC_AUTO_SLEEP_TIMEOUT_SET, JSON.stringify(value)),
+    // A name is a JSON string, so it goes out quoted: `"Galley roof"`.
+    setTemperatureName: (id, name) =>
+      publish(temperatureSetTopic(id, 'name'), JSON.stringify(name)),
+    setTemperatureUnit: (id, unit) =>
+      publish(temperatureSetTopic(id, 'unit'), JSON.stringify(unit)),
   }
 }

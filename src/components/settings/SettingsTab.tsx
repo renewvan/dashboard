@@ -5,8 +5,9 @@ import { DisplayView } from './DisplayView'
 import { GroupRow } from './GroupRow'
 import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
+import { TemperatureView } from './TemperatureView'
 
-type SettingsView = 'list' | 'nodes' | 'general' | 'display' | 'connectivity'
+type SettingsView = 'list' | 'nodes' | 'temperature' | 'general' | 'display' | 'connectivity'
 type SubView = Exclude<SettingsView, 'list'>
 
 const PANEL = 'border-border bg-surface overflow-hidden rounded-2xl border'
@@ -30,7 +31,8 @@ function GeneralView({ onOpen }: { onOpen: (view: SubView) => void }) {
 }
 
 const VIEWS: Record<SubView, { title: string; parent: SettingsView; content: ReactNode }> = {
-  nodes: { title: 'Nodes', parent: 'list', content: <NodesView /> },
+  nodes: { title: 'Nodes', parent: 'list', content: null },
+  temperature: { title: 'Temperature', parent: 'nodes', content: <TemperatureView /> },
   general: { title: 'General', parent: 'list', content: null },
   display: { title: 'Display', parent: 'general', content: <DisplayView /> },
   connectivity: { title: 'Connectivity', parent: 'list', content: <EmptyGroup /> },
@@ -93,7 +95,13 @@ export const SettingsTab = memo(function SettingsTab() {
                   </Breadcrumbs.Item>
                 ))}
               </Breadcrumbs>
-              {view === 'general' ? <GeneralView onOpen={setView} /> : VIEWS[view].content}
+              {view === 'general' ? (
+                <GeneralView onOpen={setView} />
+              ) : view === 'nodes' ? (
+                <NodesView onOpenTemperature={() => setView('temperature')} />
+              ) : (
+                VIEWS[view].content
+              )}
             </>
           )}
         </div>

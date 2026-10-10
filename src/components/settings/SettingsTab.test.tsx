@@ -88,8 +88,11 @@ describe('SettingsTab breadcrumb', () => {
 })
 
 describe('SettingsTab Nodes', () => {
-  it('lists published nodes with their entity counts', async () => {
-    const { user } = renderSettings({ nodes: [tanks, batteries, temperature] })
+  it('lists published nodes with their entity counts, Temperature described by its sensors', async () => {
+    const { user } = renderSettings({
+      nodes: [tanks, batteries, temperature],
+      temperatures: { outdoor: {}, indoor: {} },
+    })
 
     await user.click(screen.getByRole('button', { name: /^Nodes/ }))
 
@@ -98,7 +101,7 @@ describe('SettingsTab Nodes', () => {
       within(list)
         .getAllByRole('listitem')
         .map((row) => row.textContent),
-    ).toEqual(['Tanks1 entity', 'Batteries3 entities', 'Temperature2 entities'])
+    ).toEqual(['Tanks1 entity', 'Batteries3 entities', 'Temperature2 sensors'])
   })
 
   it('says so when no node has reported yet', async () => {
