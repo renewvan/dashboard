@@ -1,6 +1,6 @@
 import { memo, useCallback, useState, type ReactNode } from 'react'
 import { Breadcrumbs, Button, Drawer, ScrollShadow, Separator } from '@heroui/react'
-import { ArrowLeft, Cpu, SlidersHorizontal, Wifi } from 'lucide-react'
+import { ArrowLeft, Workflow, SlidersHorizontal, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
@@ -100,7 +100,7 @@ export const SettingsTab = memo(function SettingsTab() {
       <h1 className="px-1 text-base font-medium">Settings</h1>
       <div className="flex flex-col gap-2">
         <GroupRow
-          icon={<Cpu />}
+          icon={<Workflow />}
           label="Nodes"
           description={nodesSummary(nodes)}
           onOpen={() => setView('nodes')}

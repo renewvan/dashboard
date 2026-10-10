@@ -121,7 +121,7 @@ export function Sidebar({
         <div
           className={cn(
             'h-8 shrink-0 overflow-hidden transition-[width] duration-200 motion-reduce:transition-none',
-            collapsed ? 'w-[30px]' : 'w-[110px]',
+            collapsed ? 'ml-2 w-[30px]' : 'w-[110px]',
           )}
         >
           <img
