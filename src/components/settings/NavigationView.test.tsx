@@ -51,7 +51,7 @@ describe('Settings › General › Display › Navigation', () => {
     expect(screen.getByRole('link', { name: 'Display' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Navigation', current: 'page' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Subpages' })).toBeChecked()
-    expect(screen.getByRole('radio', { name: 'Sheets' })).not.toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Drawers' })).not.toBeChecked()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
@@ -66,9 +66,9 @@ describe('Settings › General › Display › Navigation', () => {
   it('persists the choice across remounts', async () => {
     const first = renderSettings()
     await openNavigation(first.user)
-    await first.user.click(screen.getByRole('radio', { name: 'Sheets' }))
+    await first.user.click(screen.getByRole('radio', { name: 'Drawers' }))
 
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('sheet')
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('drawer')
     first.unmount()
 
     const second = renderSettings()
@@ -78,8 +78,8 @@ describe('Settings › General › Display › Navigation', () => {
     expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument()
   })
 
-  it('goes back to subpages from a sheet', async () => {
-    window.localStorage.setItem(STORAGE_KEY, 'sheet')
+  it('goes back to subpages from a drawer', async () => {
+    window.localStorage.setItem(STORAGE_KEY, 'drawer')
     const { user } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))
     await user.click(
@@ -90,7 +90,7 @@ describe('Settings › General › Display › Navigation', () => {
     )
 
     const navigation = await openDialog('Navigation')
-    expect(within(navigation).getByRole('radio', { name: 'Sheets' })).toBeChecked()
+    expect(within(navigation).getByRole('radio', { name: 'Drawers' })).toBeChecked()
     await user.click(within(navigation).getByRole('radio', { name: 'Subpages' }))
 
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('subpage')
@@ -99,9 +99,9 @@ describe('Settings › General › Display › Navigation', () => {
   })
 })
 
-describe('sheet navigation', () => {
+describe('drawer navigation', () => {
   beforeEach(() => {
-    window.localStorage.setItem(STORAGE_KEY, 'sheet')
+    window.localStorage.setItem(STORAGE_KEY, 'drawer')
   })
 
   it('opens each view in a dialog over the top list, and the list stays on the page', async () => {
@@ -117,12 +117,12 @@ describe('sheet navigation', () => {
         .map((button) => button.textContent)
         .filter((text) => /^(Cellular|Hub|Tailscale)/.test(text ?? '')),
     ).toEqual(['CellularLTE · O2', 'HubConnected', 'Tailscale100.64.0.1'])
-    // The page behind the sheet is still the top list, not a breadcrumbed subpage.
+    // The page behind the drawer is still the top list, not a breadcrumbed subpage.
     expect(screen.getByRole('heading', { name: 'Settings', hidden: true })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument()
   })
 
-  it('renders the pages added by other tickets in their own sheets, replacing the parent in place', async () => {
+  it('renders the pages added by other tickets in their own drawers, replacing the parent in place', async () => {
     const { user } = renderSettings({
       nodes: [{ domain: 'temperatures', label: 'Temperature', count: 1 }],
       temperatures: {
@@ -208,7 +208,7 @@ describe('sheet navigation', () => {
     expect(screen.getByRole('button', { name: /^General/ })).toBeInTheDocument()
   })
 
-  it('describes Display’s Navigation row as Sheets', async () => {
+  it('describes Display’s Navigation row as Drawers', async () => {
     const { user } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))
     await user.click(
@@ -217,11 +217,11 @@ describe('sheet navigation', () => {
 
     const display = await openDialog('Display')
     expect(within(display).getByRole('button', { name: /^Navigation style/ })).toHaveTextContent(
-      'Sheets',
+      'Drawers',
     )
   })
 
-  it('keeps Display’s slider, switch and picker working inside the sheet', async () => {
+  it('keeps Display’s slider, switch and picker working inside the drawer', async () => {
     const { user, value } = renderSettings({ brightness: 70, autoSleepEnabled: true })
     await user.click(screen.getByRole('button', { name: /^General/ }))
     await user.click(
@@ -239,14 +239,14 @@ describe('sheet navigation', () => {
     await user.click(within(display).getByRole('radio', { name: '15m' }))
     expect(value.setAutoSleepTimeoutMinutes).toHaveBeenCalledExactlyOnceWith(15)
 
-    // None of that dismissed the sheet.
+    // None of that dismissed the drawer.
     expect(screen.getByRole('dialog', { name: 'Display' })).toBeInTheDocument()
   })
 })
 
 describe('on a phone', () => {
   it('uses subpages whatever is stored, hides the choice, and leaves the stored value alone', async () => {
-    window.localStorage.setItem(STORAGE_KEY, 'sheet')
+    window.localStorage.setItem(STORAGE_KEY, 'drawer')
     const rendered = renderSettings({}, { width: 390 })
     await openNavigation(rendered.user)
 
@@ -259,11 +259,11 @@ describe('on a phone', () => {
     await rendered.user.click(screen.getByRole('link', { name: 'Display' }))
     expect(screen.getByRole('button', { name: /^Navigation style/ })).toHaveTextContent('Subpages')
 
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('sheet')
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('drawer')
   })
 
-  it('does not overwrite a stored sheet choice when a kiosk shrinks to phone width and back', async () => {
-    window.localStorage.setItem(STORAGE_KEY, 'sheet')
+  it('does not overwrite a stored drawer choice when a kiosk shrinks to phone width and back', async () => {
+    window.localStorage.setItem(STORAGE_KEY, 'drawer')
     const { user, viewport } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))
     expect(await openDialog('General')).toBeInTheDocument()
@@ -271,10 +271,10 @@ describe('on a phone', () => {
     act(() => viewport.setViewportWidth(390))
     await expectNoDialog()
     expect(screen.getByRole('link', { name: 'General', current: 'page' })).toBeInTheDocument()
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('sheet')
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('drawer')
 
     act(() => viewport.setViewportWidth(1024))
     expect(await openDialog('General')).toBeInTheDocument()
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('sheet')
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('drawer')
   })
 })

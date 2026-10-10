@@ -151,7 +151,7 @@ export function DisplayView({ navStyle, onOpen }: DisplayViewProps) {
       )}
       <GroupRow
         label="Navigation style"
-        description={navStyle === 'subpage' ? 'Subpages' : 'Sheets'}
+        description={navStyle === 'subpage' ? 'Subpages' : 'Drawers'}
         onOpen={() => onOpen('navigation')}
       />
     </div>

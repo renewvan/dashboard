@@ -17,12 +17,20 @@ describe('useSettingsNavStyle', () => {
 
   it('persists a choice across remounts, under the key existing kiosks already use', () => {
     const first = renderHook(() => useSettingsNavStyle())
-    act(() => first.result.current[1]('sheet'))
+    act(() => first.result.current[1]('drawer'))
     first.unmount()
 
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('sheet')
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('drawer')
     const second = renderHook(() => useSettingsNavStyle())
-    expect(second.result.current[0]).toBe('sheet')
+    expect(second.result.current[0]).toBe('drawer')
+  })
+
+  it('reads the legacy stored value "sheet" as drawer, so an existing kiosk keeps its choice', () => {
+    window.localStorage.setItem(STORAGE_KEY, 'sheet')
+
+    const { result } = renderHook(() => useSettingsNavStyle())
+
+    expect(result.current[0]).toBe('drawer')
   })
 
   it('falls back to subpage for an unknown stored value', () => {

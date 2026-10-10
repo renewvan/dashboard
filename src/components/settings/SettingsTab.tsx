@@ -44,7 +44,7 @@ function trailTo(view: SettingsSubView): SettingsSubView[] {
 /**
  * Settings as a drill-down tree: the top list, then one group's view per
  * level. The Navigation style opens a view either as a subpage (the view
- * replaces the page under a breadcrumb trail) or as a sheet (the top list
+ * replaces the page under a breadcrumb trail) or as a drawer (the top list
  * stays and the view slides in from the right). Memoised: it takes no props
  * and only re-renders when the Settings context value changes.
  */
@@ -123,7 +123,7 @@ export const SettingsTab = memo(function SettingsTab() {
     >
       <ScrollShadow hideScrollBar className="min-h-0 flex-1">
         <div className="flex w-full min-w-0 flex-col gap-3 p-4">
-          {navStyle === 'sheet' || view === 'list' ? (
+          {navStyle === 'drawer' || view === 'list' ? (
             topList
           ) : (
             <>
@@ -146,11 +146,12 @@ export const SettingsTab = memo(function SettingsTab() {
           )}
         </div>
       </ScrollShadow>
-      {navStyle === 'sheet' &&
+      {navStyle === 'drawer' &&
         SUB_VIEWS.map((id) => (
           // No `Drawer` root: it wraps a React Aria `DialogTrigger`, which warns when nothing
           // pressable registers; the controlled backdrop needs no trigger.
           <Drawer.Backdrop
+            variant="blur"
             key={id}
             isOpen={view === id}
             // Closing (Escape, close control, backdrop) steps back to the parent view.

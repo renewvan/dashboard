@@ -3,7 +3,7 @@ import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 
 const CHOICES: { value: SettingsNavStyle; label: string }[] = [
   { value: 'subpage', label: 'Subpages' },
-  { value: 'sheet', label: 'Sheets' },
+  { value: 'drawer', label: 'Drawers' },
 ]
 
 interface NavigationViewProps {
@@ -14,7 +14,7 @@ interface NavigationViewProps {
   isMobile: boolean
 }
 
-/** Settings › General › Display › Navigation: subpages or right-side sheets. */
+/** Settings › General › Display › Navigation: subpages or right-side drawers. */
 export function NavigationView({ style, onChange, isMobile }: NavigationViewProps) {
   return (
     <div className="border-border bg-surface flex flex-col gap-3 overflow-hidden rounded-2xl border px-3.5 py-3">
@@ -43,7 +43,7 @@ export function NavigationView({ style, onChange, isMobile }: NavigationViewProp
             ))}
           </ToggleButtonGroup>
           <p className="text-muted text-xs">
-            Subpages replace the page with each view. Sheets slide each view in from the right.
+            Subpages replace the page with each view. Drawers slide each view in from the right.
           </p>
         </>
       )}
