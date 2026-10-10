@@ -1,5 +1,5 @@
 import { memo, useCallback, useState, type ReactNode } from 'react'
-import { Breadcrumbs, Button, Drawer, ScrollShadow } from '@heroui/react'
+import { Breadcrumbs, Button, Drawer, ScrollShadow, Separator } from '@heroui/react'
 import { ArrowLeft, Cpu, SlidersHorizontal, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
@@ -105,6 +105,7 @@ export const SettingsTab = memo(function SettingsTab() {
           description={nodesSummary(nodes)}
           onOpen={() => setView('nodes')}
         />
+        <Separator className="my-4" />
         <GroupRow
           icon={<SlidersHorizontal />}
           label="General"
