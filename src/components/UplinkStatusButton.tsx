@@ -76,7 +76,8 @@ function StatusDotRow({ label, tone, text }: { label: string; tone: string; text
  *
  * Its popover is the single connection surface of the header: uplink
  * fields, the kiosk's MQTT bus-link state (dot row), Tailscale, and a CTA
- * that deep-links into Settings → Network where every router field lives.
+ * that opens Settings → Connectivity → Cellular directly, where every
+ * router field lives.
  */
 export function UplinkStatusButton({
   router,
