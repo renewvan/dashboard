@@ -1,5 +1,6 @@
 import { memo, useCallback, type ReactNode } from 'react'
 import { Breadcrumbs, Drawer, ScrollShadow } from '@heroui/react'
+import { Cpu, SlidersHorizontal, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
@@ -93,14 +94,31 @@ export const SettingsTab = memo(function SettingsTab() {
   const topList = (
     <>
       <h1 className="px-1 text-base font-medium">Settings</h1>
-      <div className={`${PANEL} divide-border divide-y`}>
-        <GroupRow label="Nodes" description={nodesSummary(nodes)} onOpen={() => setView('nodes')} />
-        <GroupRow label="General" description="Alerts, display" onOpen={() => setView('general')} />
-        <GroupRow
-          label="Connectivity"
-          description="Cellular, Hub, Tailscale"
-          onOpen={() => setView('connectivity')}
-        />
+      <div className="flex flex-col gap-2">
+        <div className={PANEL}>
+          <GroupRow
+            icon={<Cpu />}
+            label="Nodes"
+            description={nodesSummary(nodes)}
+            onOpen={() => setView('nodes')}
+          />
+        </div>
+        <div className={PANEL}>
+          <GroupRow
+            icon={<SlidersHorizontal />}
+            label="General"
+            description="Alerts, display"
+            onOpen={() => setView('general')}
+          />
+        </div>
+        <div className={PANEL}>
+          <GroupRow
+            icon={<Wifi />}
+            label="Connectivity"
+            description="Cellular, Hub, Tailscale"
+            onOpen={() => setView('connectivity')}
+          />
+        </div>
       </div>
     </>
   )
