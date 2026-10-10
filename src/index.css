@@ -22,4 +22,7 @@
 @import '@heroui/styles/components/toggle-button-group.css';
 @import '@heroui/styles/components/textfield.css';
 @import '@heroui/styles/components/input.css';
+/* close-button first: its `relative` would otherwise beat the drawer's `absolute` close trigger (both unlayered). */
+@import '@heroui/styles/components/close-button.css';
+@import '@heroui/styles/components/drawer.css';
 @import './global.css';
