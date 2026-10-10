@@ -19,8 +19,8 @@ function readStoredTheme(): Theme {
 }
 
 /**
- * Kiosk theme preference — defaults to dark but is user-toggleable from
- * Settings. Applies instantly (no reboot needed); persisted to
+ * Kiosk theme preference — defaults to dark but is user-toggled with
+ * the header's theme toggle. Applies instantly (no reboot needed); persisted to
  * `localStorage` so the choice survives a reload/power cycle.
  */
 export function useTheme(): [Theme, (theme: Theme) => void] {
