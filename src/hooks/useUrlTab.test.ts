@@ -31,12 +31,33 @@ describe('useUrlTab', () => {
     expect(window.history.length).toBe(before + 1)
   })
 
-  it('drops every param the caller does not pass when the tab changes', () => {
+  it('keeps params the caller does not mention when the tab changes', () => {
     const { result } = renderAt('/?tab=settings&view=cellular&other=1')
 
     act(() => result.current[1]('power'))
 
-    expect(window.location.search).toBe('?tab=power')
+    expect(window.location.search).toBe('?tab=power&view=cellular&other=1')
+  })
+
+  it('removes the params the caller passes as null and keeps the rest', () => {
+    const { result } = renderAt('/?tab=settings&view=cellular&other=1')
+    const before = window.history.length
+
+    act(() => result.current[1]('power', { view: null }))
+
+    expect(window.location.search).toBe('?tab=power&other=1')
+    expect(window.history.length).toBe(before + 1)
+  })
+
+  it('pushes nothing when the URL would not change', () => {
+    const { result } = renderAt('/?tab=power&other=1')
+    const before = window.history.length
+
+    act(() => result.current[1]('power'))
+    act(() => result.current[1]('power', { view: null }))
+
+    expect(window.location.search).toBe('?tab=power&other=1')
+    expect(window.history.length).toBe(before)
   })
 
   it('sets the tab and extra params in a single push', () => {

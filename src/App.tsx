@@ -12,6 +12,7 @@ import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { StubPane } from '@/components/StubPane'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsTab } from '@/components/settings/SettingsTab'
+import type { SettingsSubView } from '@/components/settings/views'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
@@ -61,8 +62,10 @@ function App() {
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'start')
+  // A view belongs to the Settings tab: any other tab change leaves it behind (one entry).
+  const goToTab = (id: string) => setActiveTab(id, { view: null })
   // One history entry for tab and view together, so Back returns to the previous tab.
-  const openSettings = (view: string) => setActiveTab('settings', { view })
+  const openSettings = (view: SettingsSubView) => setActiveTab('settings', { view })
   const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
@@ -171,7 +174,7 @@ function App() {
         />
         <Separator orientation="vertical" className="mx-1.5 h-6" />
         <AlertsButton
-          onClick={() => setActiveTab('alerts')}
+          onClick={() => goToTab('alerts')}
           count={unseenAlertCount}
           active={activeTab === 'alerts'}
         />
@@ -211,7 +214,7 @@ function App() {
       {isMobile && header}
       <Tabs
         selectedKey={activeTab}
-        onSelectionChange={(key) => setActiveTab(String(key))}
+        onSelectionChange={(key) => goToTab(String(key))}
         orientation={isMobile ? 'horizontal' : 'vertical'}
         className="min-h-0 flex-1 gap-0!"
       >

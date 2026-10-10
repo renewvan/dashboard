@@ -3,9 +3,10 @@ import { tailscaleStatusText } from '@/lib/tailscale'
 import { useNow } from '@/hooks/useNow'
 import { GroupRow } from './GroupRow'
 import { useSettings } from './SettingsContext'
+import type { SettingsSubView } from './views'
 
 interface ConnectivityViewProps {
-  onOpen: (view: 'cellular' | 'hub' | 'tailscale') => void
+  onOpen: (view: SettingsSubView) => void
 }
 
 /**

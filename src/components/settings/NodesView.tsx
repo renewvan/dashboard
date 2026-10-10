@@ -1,12 +1,13 @@
 import { temperatureSummary } from '@/lib/temperature'
 import { GroupRow } from './GroupRow'
 import { useSettings } from './SettingsContext'
+import type { SettingsSubView } from './views'
 
 /**
  * Every node that has published, with how many entities it exposes. Temperature
  * is the only drill-in (its sensors are editable); the rest are read-only.
  */
-export function NodesView({ onOpen }: { onOpen: (view: 'temperature') => void }) {
+export function NodesView({ onOpen }: { onOpen: (view: SettingsSubView) => void }) {
   const { nodes, temperatures } = useSettings()
 
   if (nodes.length === 0) {
