@@ -11,6 +11,25 @@ function isTimeoutChoice(value: number): value is AutoSleepTimeoutMinutes {
   return TIMEOUT_CHOICES.some((choice) => choice === value)
 }
 
+const TICKS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+/** Decorative 0-100 scale under the slider (the prototype's variant A); the `NN%` readout carries the value. */
+function BrightnessScale() {
+  return (
+    <div
+      aria-hidden="true"
+      className="text-muted mt-1 flex w-full items-center justify-between gap-1 px-3 text-xs font-medium"
+    >
+      {TICKS.map((tick, i) => (
+        <span key={tick} className="flex w-0 flex-col items-center justify-center gap-1">
+          <span className={i % 2 === 0 ? 'bg-muted/70 h-1 w-px' : 'bg-muted/70 h-0.5 w-px'} />
+          <span className={i % 2 === 0 ? '' : 'opacity-0'}>{tick}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
 /** Label, live `NN%` readout (a dash while unknown) and the slider that drives it. */
 function BrightnessRow() {
   const { brightness, setBrightness } = useSettings()
@@ -37,6 +56,7 @@ function BrightnessRow() {
           <Slider.Thumb />
         </Slider.Track>
       </Slider>
+      <BrightnessScale />
     </div>
   )
 }
