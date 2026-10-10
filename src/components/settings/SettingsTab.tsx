@@ -16,24 +16,11 @@ import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
 import { TailscaleView } from './TailscaleView'
 import { TemperatureView } from './TemperatureView'
-
-type SettingsView =
-  | 'list'
-  | 'nodes'
-  | 'temperature'
-  | 'general'
-  | 'alerts'
-  | 'display'
-  | 'navigation'
-  | 'connectivity'
-  | 'cellular'
-  | 'hub'
-  | 'tailscale'
-type SubView = Exclude<SettingsView, 'list'>
+import type { SettingsSubView, SettingsView } from './views'
 
 const PANEL = 'border-border bg-surface overflow-hidden rounded-2xl border'
 
-const VIEWS: Record<SubView, { title: string; parent: SettingsView }> = {
+const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
   nodes: { title: 'Nodes', parent: 'list' },
   temperature: { title: 'Temperature', parent: 'nodes' },
   general: { title: 'General', parent: 'list' },
@@ -46,11 +33,11 @@ const VIEWS: Record<SubView, { title: string; parent: SettingsView }> = {
   tailscale: { title: 'Tailscale', parent: 'connectivity' },
 }
 
-const SUB_VIEWS = Object.keys(VIEWS) as SubView[]
+const SUB_VIEWS = Object.keys(VIEWS) as SettingsSubView[]
 
 /** `list → … → view`, root excluded, outermost first. */
-function trailTo(view: SubView): SubView[] {
-  const trail: SubView[] = []
+function trailTo(view: SettingsSubView): SettingsSubView[] {
+  const trail: SettingsSubView[] = []
   for (let v: SettingsView = view; v !== 'list'; v = VIEWS[v].parent) trail.unshift(v)
   return trail
 }
@@ -76,7 +63,7 @@ export const SettingsTab = memo(function SettingsTab() {
     [setViewParam],
   )
 
-  const content = (id: SubView): ReactNode => {
+  const content = (id: SettingsSubView): ReactNode => {
     switch (id) {
       case 'nodes':
         return <NodesView onOpen={setView} />

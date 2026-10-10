@@ -477,6 +477,46 @@ describe('App shell Settings view in the URL', () => {
     expectTopList()
   })
 
+  it.each([
+    ['kiosk', KIOSK_WIDTH],
+    ['phone', PHONE_WIDTH],
+  ])(
+    're-tapping the selected Settings entry inside a view returns to the top list (%s)',
+    async (_name, width) => {
+      const user = userEvent.setup()
+      await renderAt(width, '/?tab=power')
+      await user.click(screen.getByRole('tab', { name: 'Settings' }))
+      const pane = screen.getByTestId('pane-settings')
+      await user.click(within(pane).getByRole('button', { name: /^Connectivity/ }))
+      await user.click(within(pane).getByRole('button', { name: /^Hub/ }))
+      expect(window.location.search).toBe('?tab=settings&view=hub')
+      const before = window.history.length
+
+      await user.click(screen.getByRole('tab', { name: 'Settings' }))
+
+      expect(window.location.search).toBe('?tab=settings')
+      expect(window.history.length).toBe(before + 1)
+      expectTopList()
+
+      await goBack()
+      expect(currentCrumb()).toHaveAccessibleName('Hub')
+    },
+  )
+
+  it('re-tapping the selected Settings entry on the top list adds no history entry', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?tab=power')
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    expect(window.location.search).toBe('?tab=settings')
+    const before = window.history.length
+
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+
+    expect(window.location.search).toBe('?tab=settings')
+    expect(window.history.length).toBe(before)
+    expectTopList()
+  })
+
   it('opens the view named by ?view= on load, and the top list for an unknown one', async () => {
     await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
     expectInCellular()

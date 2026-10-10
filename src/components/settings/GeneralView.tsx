@@ -1,8 +1,9 @@
 import { GroupRow } from './GroupRow'
 import { useSettings } from './SettingsContext'
+import type { SettingsSubView } from './views'
 
 interface GeneralViewProps {
-  onOpen: (view: 'alerts' | 'display') => void
+  onOpen: (view: SettingsSubView) => void
 }
 
 /** General's rows: each opens its own page under a live summary. */

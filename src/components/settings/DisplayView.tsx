@@ -3,6 +3,7 @@ import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
 import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import { GroupRow } from './GroupRow'
 import { useSettings } from './SettingsContext'
+import type { SettingsSubView } from './views'
 
 const TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 
@@ -100,7 +101,7 @@ function SleepAfterRow() {
 interface DisplayViewProps {
   /** The style Settings is actually using (so the row never claims a style a phone cannot get). */
   navStyle: SettingsNavStyle
-  onOpen: (view: 'navigation') => void
+  onOpen: (view: SettingsSubView) => void
 }
 
 /** Settings › General › Display: brightness, auto-sleep and its timeout, navigation style. */
