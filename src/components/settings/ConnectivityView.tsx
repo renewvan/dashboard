@@ -20,7 +20,7 @@ export function ConnectivityView({ onOpen }: ConnectivityViewProps) {
   const tier = connectionTier(router?.signal_rsrp_dbm, routerHealth, routerUpdatedAt, now)
 
   return (
-    <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-2xl border">
+    <div className="flex flex-col gap-2">
       <GroupRow
         label="Cellular"
         description={uplinkHeadline(router, tier)}

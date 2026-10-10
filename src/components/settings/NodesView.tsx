@@ -19,10 +19,7 @@ export function NodesView({ onOpen }: { onOpen: (view: SettingsSubView) => void 
   }
 
   return (
-    <ul
-      aria-label="Published nodes"
-      className="border-border bg-surface divide-border divide-y overflow-hidden rounded-2xl border"
-    >
+    <ul aria-label="Published nodes" className="flex flex-col gap-2">
       {nodes.map((node) =>
         node.domain === 'temperatures' ? (
           <li key={node.domain}>
@@ -33,7 +30,10 @@ export function NodesView({ onOpen }: { onOpen: (view: SettingsSubView) => void 
             />
           </li>
         ) : (
-          <li key={node.domain} className="flex items-center justify-between gap-3 px-3.5 py-3">
+          <li
+            key={node.domain}
+            className="border-border bg-surface flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-3"
+          >
             <span className="text-sm font-medium">{node.label}</span>
             <span className="text-muted text-xs tabular-nums">
               {node.count === 1 ? '1 entity' : `${node.count} entities`}

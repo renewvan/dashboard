@@ -11,7 +11,7 @@ export function GeneralView({ onOpen }: GeneralViewProps) {
   const { alertsEnabled } = useSettings()
 
   return (
-    <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-2xl border">
+    <div className="flex flex-col gap-2">
       <GroupRow
         label="Alerts"
         description={alertsEnabled ? 'Notifications on' : 'Notifications off'}

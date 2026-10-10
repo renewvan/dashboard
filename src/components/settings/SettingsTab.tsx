@@ -19,8 +19,6 @@ import { TailscaleView } from './TailscaleView'
 import { TemperatureView } from './TemperatureView'
 import type { SettingsSubView, SettingsView } from './views'
 
-const PANEL = 'border-border bg-surface overflow-hidden rounded-2xl border'
-
 const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
   nodes: { title: 'Nodes', parent: 'list' },
   temperature: { title: 'Temperature', parent: 'nodes' },
@@ -95,30 +93,24 @@ export const SettingsTab = memo(function SettingsTab() {
     <>
       <h1 className="px-1 text-base font-medium">Settings</h1>
       <div className="flex flex-col gap-2">
-        <div className={PANEL}>
-          <GroupRow
-            icon={<Cpu />}
-            label="Nodes"
-            description={nodesSummary(nodes)}
-            onOpen={() => setView('nodes')}
-          />
-        </div>
-        <div className={PANEL}>
-          <GroupRow
-            icon={<SlidersHorizontal />}
-            label="General"
-            description="Alerts, display"
-            onOpen={() => setView('general')}
-          />
-        </div>
-        <div className={PANEL}>
-          <GroupRow
-            icon={<Wifi />}
-            label="Connectivity"
-            description="Cellular, Hub, Tailscale"
-            onOpen={() => setView('connectivity')}
-          />
-        </div>
+        <GroupRow
+          icon={<Cpu />}
+          label="Nodes"
+          description={nodesSummary(nodes)}
+          onOpen={() => setView('nodes')}
+        />
+        <GroupRow
+          icon={<SlidersHorizontal />}
+          label="General"
+          description="Alerts, display"
+          onOpen={() => setView('general')}
+        />
+        <GroupRow
+          icon={<Wifi />}
+          label="Connectivity"
+          description="Cellular, Hub, Tailscale"
+          onOpen={() => setView('connectivity')}
+        />
       </div>
     </>
   )

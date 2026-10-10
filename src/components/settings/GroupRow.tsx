@@ -9,28 +9,27 @@ interface GroupRowProps {
   onOpen: () => void
   /** Leading icon (top-level rows). Decorative: the label already names the row. */
   icon?: ReactNode
-  /** Radius for a row that stands alone as its own card; rows inside a shared panel stay square. */
-  className?: string
+  /**
+   * `card` (default) is a bordered, rounded row that stands alone in a spaced stack.
+   * `inline` is a square row for use inside a shared panel with other controls.
+   */
+  variant?: 'card' | 'inline'
 }
+
+const CARD = 'border-border bg-surface overflow-hidden rounded-2xl border'
 
 /**
  * A row that opens a deeper Settings page: optional icon, label, live description, chevron.
  * HeroUI's component CSS is unlayered, so the button's height, justification,
  * wrapping and radius need `!` to give way.
  */
-export function GroupRow({
-  label,
-  description,
-  onOpen,
-  icon,
-  className = 'rounded-none!',
-}: GroupRowProps) {
-  return (
+export function GroupRow({ label, description, onOpen, icon, variant = 'card' }: GroupRowProps) {
+  const button = (
     <Button
       variant="ghost"
       fullWidth
       onPress={onOpen}
-      className={`h-auto! justify-between! gap-3! px-3.5! py-3! whitespace-normal! md:h-auto! ${className}`}
+      className="h-auto! justify-between! gap-3! rounded-none! px-3.5! py-3! whitespace-normal! md:h-auto!"
     >
       {icon !== undefined && (
         <span
@@ -47,4 +46,6 @@ export function GroupRow({
       <ChevronRight aria-hidden="true" className="text-muted size-4 shrink-0" />
     </Button>
   )
+
+  return variant === 'card' ? <div className={CARD}>{button}</div> : button
 }

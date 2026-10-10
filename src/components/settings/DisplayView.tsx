@@ -134,6 +134,7 @@ export function DisplayView({ navStyle, onOpen }: DisplayViewProps) {
       <AutoSleepRow />
       {autoSleepEnabled === true && <SleepAfterRow />}
       <GroupRow
+        variant="inline"
         label="Navigation style"
         description={navStyle === 'subpage' ? 'Subpages' : 'Sheets'}
         onOpen={() => onOpen('navigation')}
