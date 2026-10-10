@@ -19,6 +19,7 @@ import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
 import { connectedNodes } from '@/lib/nodes'
+import { settingsCommands } from '@/lib/settings-commands'
 import { useTheme } from '@/hooks/useTheme'
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed'
 import { SidebarToggle } from '@/components/SidebarToggle'
@@ -91,6 +92,15 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `connected`
   const nodes = useMemo(() => connected, [nodesKey])
 
+  // `publish` is a fresh function every render (it only closes over the bus's stable client
+  // ref), so the commands bind to a forwarder that always calls the latest one.
+  const publishRef = useRef(publish)
+  publishRef.current = publish
+  const commands = useMemo(
+    () => settingsCommands((topic, payload) => publishRef.current(topic, payload)),
+    [],
+  )
+
   const settings = useMemo(
     () => ({
       nodes,
@@ -103,6 +113,7 @@ function App() {
       brightness,
       autoSleepEnabled,
       autoSleepTimeoutMinutes,
+      ...commands,
     }),
     [
       nodes,
@@ -115,6 +126,7 @@ function App() {
       brightness,
       autoSleepEnabled,
       autoSleepTimeoutMinutes,
+      commands,
     ],
   )
 

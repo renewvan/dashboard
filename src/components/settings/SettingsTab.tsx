@@ -1,11 +1,12 @@
 import { memo, useState, type ReactNode } from 'react'
 import { Breadcrumbs, ScrollShadow } from '@heroui/react'
 import { nodesSummary } from '@/lib/nodes'
+import { DisplayView } from './DisplayView'
 import { GroupRow } from './GroupRow'
 import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
 
-type SettingsView = 'list' | 'nodes' | 'general' | 'connectivity'
+type SettingsView = 'list' | 'nodes' | 'general' | 'display' | 'connectivity'
 type SubView = Exclude<SettingsView, 'list'>
 
 const PANEL = 'border-border bg-surface overflow-hidden rounded-2xl border'
@@ -15,9 +16,23 @@ function EmptyGroup() {
   return <p className={`${PANEL} text-muted px-3.5 py-3 text-sm`}>Nothing to configure yet.</p>
 }
 
+/** General's pages. Navigation is added to the Display page by its own ticket. */
+function GeneralView({ onOpen }: { onOpen: (view: SubView) => void }) {
+  return (
+    <div className={`${PANEL} divide-border divide-y`}>
+      <GroupRow
+        label="Display"
+        description="Brightness, auto-sleep, navigation"
+        onOpen={() => onOpen('display')}
+      />
+    </div>
+  )
+}
+
 const VIEWS: Record<SubView, { title: string; parent: SettingsView; content: ReactNode }> = {
   nodes: { title: 'Nodes', parent: 'list', content: <NodesView /> },
-  general: { title: 'General', parent: 'list', content: <EmptyGroup /> },
+  general: { title: 'General', parent: 'list', content: null },
+  display: { title: 'Display', parent: 'general', content: <DisplayView /> },
   connectivity: { title: 'Connectivity', parent: 'list', content: <EmptyGroup /> },
 }
 
@@ -54,11 +69,7 @@ export const SettingsTab = memo(function SettingsTab() {
                   description={nodesSummary(nodes)}
                   onOpen={() => setView('nodes')}
                 />
-                <GroupRow
-                  label="General"
-                  description="Nothing to configure yet"
-                  onOpen={() => setView('general')}
-                />
+                <GroupRow label="General" description="Display" onOpen={() => setView('general')} />
                 <GroupRow
                   label="Connectivity"
                   description="Nothing to configure yet"
@@ -82,7 +93,7 @@ export const SettingsTab = memo(function SettingsTab() {
                   </Breadcrumbs.Item>
                 ))}
               </Breadcrumbs>
-              {VIEWS[view].content}
+              {view === 'general' ? <GeneralView onOpen={setView} /> : VIEWS[view].content}
             </>
           )}
         </div>

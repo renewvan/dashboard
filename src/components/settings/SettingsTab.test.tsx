@@ -20,7 +20,7 @@ describe('SettingsTab top list', () => {
 
     expect(rowNames()).toEqual([
       'Nodes2 nodes',
-      'GeneralNothing to configure yet',
+      'GeneralDisplay',
       'ConnectivityNothing to configure yet',
     ])
   })
@@ -56,7 +56,7 @@ describe('SettingsTab drill-down', () => {
   it('shows no placeholder or "not available" pages in the groups', async () => {
     const { user } = renderSettings()
 
-    await user.click(screen.getByRole('button', { name: /^General/ }))
+    await user.click(screen.getByRole('button', { name: /^Connectivity/ }))
     expect(screen.queryByText(/not available/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })

@@ -24,6 +24,9 @@ export interface SettingsContextValue {
   brightness: number | null
   autoSleepEnabled: boolean | null
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
+  setBrightness: (value: number) => void
+  setAutoSleepEnabled: (value: boolean) => void
+  setAutoSleepTimeoutMinutes: (value: AutoSleepTimeoutMinutes) => void
 }
 
 export const SettingsContext = createContext<SettingsContextValue | null>(null)
