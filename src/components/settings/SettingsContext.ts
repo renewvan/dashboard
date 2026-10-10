@@ -24,6 +24,9 @@ export interface SettingsContextValue {
   brightness: number | null
   autoSleepEnabled: boolean | null
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
+  /** The Alerts toggle: the same instance `useAlertToasts` reads. */
+  alertsEnabled: boolean
+  setAlertsEnabled: (enabled: boolean) => void
 }
 
 export const SettingsContext = createContext<SettingsContextValue | null>(null)

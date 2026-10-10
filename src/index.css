@@ -15,4 +15,6 @@
 @import '@heroui/styles/components/breadcrumbs.css';
 @import '@heroui/styles/components/link.css';
 @import '@heroui/styles/components/scroll-shadow.css';
+@import '@heroui/styles/components/switch.css';
+@import '@heroui/styles/components/label.css';
 @import './global.css';

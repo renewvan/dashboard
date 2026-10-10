@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { NodeSummary } from '@/lib/nodes'
 import { renderSettings } from '@/test/renderSettings'
 
@@ -20,7 +20,7 @@ describe('SettingsTab top list', () => {
 
     expect(rowNames()).toEqual([
       'Nodes2 nodes',
-      'GeneralNothing to configure yet',
+      'GeneralAlerts',
       'ConnectivityNothing to configure yet',
     ])
   })
@@ -58,7 +58,7 @@ describe('SettingsTab drill-down', () => {
 
     await user.click(screen.getByRole('button', { name: /^General/ }))
     expect(screen.queryByText(/not available/i)).not.toBeInTheDocument()
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(rowNames()).toEqual(['AlertsNotifications on'])
   })
 })
 
@@ -108,5 +108,70 @@ describe('SettingsTab Nodes', () => {
 
     expect(screen.getByText(/No nodes connected/)).toBeInTheDocument()
     expect(screen.queryByRole('list', { name: 'Published nodes' })).not.toBeInTheDocument()
+  })
+})
+
+describe('SettingsTab Alerts', () => {
+  async function openAlerts(user: ReturnType<typeof renderSettings>['user']) {
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+    await user.click(screen.getByRole('button', { name: /^Alerts/ }))
+  }
+
+  it.each([
+    [true, 'Notifications on'],
+    [false, 'Notifications off'],
+  ])('describes the Alerts row from the preference (%s)', async (alertsEnabled, text) => {
+    const { user } = renderSettings({ alertsEnabled })
+
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+
+    expect(screen.getByRole('button', { name: /^Alerts/ })).toHaveTextContent(text)
+  })
+
+  it('shows a labelled switch that reflects the preference', async () => {
+    const { user } = renderSettings({ alertsEnabled: true })
+
+    await openAlerts(user)
+
+    expect(screen.getByRole('link', { name: 'Alerts', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Show alert notifications' })).toBeChecked()
+  })
+
+  it('shows the switch off when notifications are off', async () => {
+    const { user } = renderSettings({ alertsEnabled: false })
+
+    await openAlerts(user)
+
+    expect(screen.getByRole('switch', { name: 'Show alert notifications' })).not.toBeChecked()
+  })
+
+  it('reports false when switched off', async () => {
+    const setAlertsEnabled = vi.fn()
+    const { user } = renderSettings({ alertsEnabled: true, setAlertsEnabled })
+    await openAlerts(user)
+
+    await user.click(screen.getByRole('switch', { name: 'Show alert notifications' }))
+
+    expect(setAlertsEnabled).toHaveBeenCalledExactlyOnceWith(false)
+  })
+
+  it('reports true when switched on', async () => {
+    const setAlertsEnabled = vi.fn()
+    const { user } = renderSettings({ alertsEnabled: false, setAlertsEnabled })
+    await openAlerts(user)
+
+    await user.click(screen.getByRole('switch', { name: 'Show alert notifications' }))
+
+    expect(setAlertsEnabled).toHaveBeenCalledExactlyOnceWith(true)
+  })
+
+  it('toggles when the label text is tapped, not only the control', async () => {
+    const setAlertsEnabled = vi.fn()
+    const { user } = renderSettings({ alertsEnabled: true, setAlertsEnabled })
+    await openAlerts(user)
+
+    await user.click(screen.getByText('Show alert notifications'))
+
+    expect(setAlertsEnabled).toHaveBeenCalledExactlyOnceWith(false)
   })
 })

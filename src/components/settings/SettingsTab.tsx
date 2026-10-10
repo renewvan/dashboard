@@ -1,11 +1,13 @@
 import { memo, useState, type ReactNode } from 'react'
 import { Breadcrumbs, ScrollShadow } from '@heroui/react'
 import { nodesSummary } from '@/lib/nodes'
+import { AlertsView } from './AlertsView'
+import { GeneralView } from './GeneralView'
 import { GroupRow } from './GroupRow'
 import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
 
-type SettingsView = 'list' | 'nodes' | 'general' | 'connectivity'
+type SettingsView = 'list' | 'nodes' | 'general' | 'alerts' | 'connectivity'
 type SubView = Exclude<SettingsView, 'list'>
 
 const PANEL = 'border-border bg-surface overflow-hidden rounded-2xl border'
@@ -17,7 +19,8 @@ function EmptyGroup() {
 
 const VIEWS: Record<SubView, { title: string; parent: SettingsView; content: ReactNode }> = {
   nodes: { title: 'Nodes', parent: 'list', content: <NodesView /> },
-  general: { title: 'General', parent: 'list', content: <EmptyGroup /> },
+  general: { title: 'General', parent: 'list', content: null },
+  alerts: { title: 'Alerts', parent: 'general', content: <AlertsView /> },
   connectivity: { title: 'Connectivity', parent: 'list', content: <EmptyGroup /> },
 }
 
@@ -54,11 +57,7 @@ export const SettingsTab = memo(function SettingsTab() {
                   description={nodesSummary(nodes)}
                   onOpen={() => setView('nodes')}
                 />
-                <GroupRow
-                  label="General"
-                  description="Nothing to configure yet"
-                  onOpen={() => setView('general')}
-                />
+                <GroupRow label="General" description="Alerts" onOpen={() => setView('general')} />
                 <GroupRow
                   label="Connectivity"
                   description="Nothing to configure yet"
@@ -82,7 +81,11 @@ export const SettingsTab = memo(function SettingsTab() {
                   </Breadcrumbs.Item>
                 ))}
               </Breadcrumbs>
-              {VIEWS[view].content}
+              {view === 'general' ? (
+                <GeneralView onOpenAlerts={() => setView('alerts')} />
+              ) : (
+                VIEWS[view].content
+              )}
             </>
           )}
         </div>

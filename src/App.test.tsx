@@ -1,9 +1,13 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from '@heroui/react'
 import type { MqttClient } from 'mqtt'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import App from './App'
+
+/** Message handlers of every mocked client, so a test can inject bus messages as the broker would. */
+const mqttMessageHandlers = vi.hoisted(() => new Set<(topic: string, message: Buffer) => void>())
 
 vi.mock('mqtt', () => ({
   default: {
@@ -12,10 +16,17 @@ vi.mock('mqtt', () => ({
       const client = {
         on: (event: string, handler: (...args: unknown[]) => void) => {
           handlers.set(event, handler)
+          if (event === 'message') {
+            mqttMessageHandlers.add(handler as (topic: string, message: Buffer) => void)
+          }
         },
         subscribe: vi.fn(),
         publish: vi.fn(),
-        end: vi.fn(),
+        end: vi.fn(() => {
+          const message = handlers.get('message')
+          if (message)
+            mqttMessageHandlers.delete(message as (topic: string, message: Buffer) => void)
+        }),
       }
       queueMicrotask(() => handlers.get('connect')?.())
       return client as unknown as MqttClient
@@ -64,6 +75,31 @@ async function renderAt(width: number, url = '/') {
   await act(async () => {})
 }
 
+/** Delivers a retained bus message to the app as the broker would. */
+async function receive(topic: string, payload: unknown) {
+  await act(async () => {
+    for (const handler of mqttMessageHandlers) {
+      handler(topic, Buffer.from(JSON.stringify(payload)))
+    }
+  })
+}
+
+/** A tank that has published every property `useAlertToasts` needs, in alarm. */
+async function receiveAlarmingTank() {
+  const properties = {
+    fluid_type: 'fresh_water',
+    capacity_l: 100,
+    level_pct: 5,
+    status: 'ok',
+    volume_since_full_l: 95,
+    volume_since_empty_l: 5,
+    alarm_state: 'alarm',
+  }
+  for (const [property, value] of Object.entries(properties)) {
+    await receive(`renewvan/tank/fresh/${property}`, value)
+  }
+}
+
 /** Crosses a breakpoint and lets React Aria's deferred indicator update settle inside `act`. */
 async function resizeTo(width: number) {
   await act(async () => {
@@ -106,6 +142,7 @@ afterEach(() => {
   Reflect.deleteProperty(Element.prototype, 'getAnimations')
   Reflect.deleteProperty(HTMLElement.prototype, 'offsetHeight')
   resizeCallbacks.clear()
+  mqttMessageHandlers.clear()
   vi.unstubAllGlobals()
   window.history.replaceState(null, '', '/')
 })
@@ -362,5 +399,63 @@ describe('App shell header height', () => {
     await renderAt(KIOSK_WIDTH)
     cleanup()
     expect(document.documentElement.style.getPropertyValue(HEADER_HEIGHT_VAR)).toBe('')
+  })
+})
+
+describe('App Alerts toggle', () => {
+  const SWITCH_NAME = 'Show alert notifications'
+  let danger: MockInstance<typeof toast.danger>
+  let close: MockInstance<typeof toast.close>
+
+  beforeEach(() => {
+    danger = vi.spyOn(toast, 'danger').mockReturnValue('alarm-toast')
+    close = vi.spyOn(toast, 'close').mockImplementation(() => {})
+  })
+
+  async function openAlerts() {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = within(screen.getByTestId('pane-settings'))
+    await user.click(pane.getByRole('button', { name: /^General/ }))
+    await user.click(pane.getByRole('button', { name: /^Alerts/ }))
+    return user
+  }
+
+  it('mutes a live toast when switched off and shows it again when switched on', async () => {
+    const user = await openAlerts()
+    await receiveAlarmingTank()
+    expect(danger).toHaveBeenCalledTimes(1)
+    expect(close).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    expect(close).toHaveBeenCalledExactlyOnceWith('alarm-toast')
+    expect(window.localStorage.getItem('renewvan-dashboard-alerts-enabled')).toBe('false')
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    expect(danger).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows no toast for an alarm that arrives while muted, then shows it when switched on', async () => {
+    window.localStorage.setItem('renewvan-dashboard-alerts-enabled', 'false')
+    const user = await openAlerts()
+    expect(screen.getByRole('switch', { name: SWITCH_NAME })).not.toBeChecked()
+
+    await receiveAlarmingTank()
+    expect(danger).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    expect(danger).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the Alerts row in General in step with the switch', async () => {
+    const user = await openAlerts()
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    await user.click(screen.getByRole('link', { name: 'General' }))
+
+    expect(
+      within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Alerts/ }),
+    ).toHaveTextContent('Notifications off')
   })
 })
