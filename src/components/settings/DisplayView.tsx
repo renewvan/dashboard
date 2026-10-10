@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Label, Slider, Switch, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
 import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
@@ -27,6 +28,13 @@ function BrightnessScale() {
         </span>
       ))}
     </div>
+  )
+}
+
+/** One bordered, rounded card per control, stacked with a gap (like the group rows). */
+function Card({ children }: { children: ReactNode }) {
+  return (
+    <div className="border-border bg-surface overflow-hidden rounded-2xl border">{children}</div>
   )
 }
 
@@ -129,12 +137,19 @@ export function DisplayView({ navStyle, onOpen }: DisplayViewProps) {
   const { autoSleepEnabled } = useSettings()
 
   return (
-    <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-2xl border">
-      <BrightnessRow />
-      <AutoSleepRow />
-      {autoSleepEnabled === true && <SleepAfterRow />}
+    <div className="flex flex-col gap-2">
+      <Card>
+        <BrightnessRow />
+      </Card>
+      <Card>
+        <AutoSleepRow />
+      </Card>
+      {autoSleepEnabled === true && (
+        <Card>
+          <SleepAfterRow />
+        </Card>
+      )}
       <GroupRow
-        variant="inline"
         label="Navigation style"
         description={navStyle === 'subpage' ? 'Subpages' : 'Sheets'}
         onOpen={() => onOpen('navigation')}
