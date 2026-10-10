@@ -27,6 +27,10 @@ The kiosk-local Settings → General → Alerts switch (`useAlertsEnabled`, `loc
 _Avoid_: Disable alerts, alarm off (alarms and history are unaffected)
 _Avoid_: Icon button (ambiguous — could mean an action button)
 
+**Navigation style**:
+The kiosk-local choice, at Settings → General → Display → Navigation, of how Settings opens its deeper views: **subpage** (the view replaces the page, with a breadcrumb trail) or **sheet** (the view slides in from the right over the page). Persisted in `localStorage`, default subpage. On a phone (below 800px) Settings always uses subpage, whatever is stored; the stored choice is kept for the kiosk. Says nothing about the app's primary navigation (the sidebar rail / bottom bar).
+_Avoid_: Navigation (alone — the sidebar is also navigation), layout, view mode
+
 **Tank alarm zones** (TankCard liquid color):
 Three severity bands—based on the per-tank `alarm_direction`/`alarm_threshold_pct`/`alarm_restore_pct` wire fields (hub schema v0.5, published retained/static by node-tank)—visualized by the liquid fill color:
 

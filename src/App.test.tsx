@@ -1,9 +1,21 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from '@heroui/react'
 import type { MqttClient } from 'mqtt'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import App from './App'
+
+type MessageHandler = (topic: string, message: { toString: () => string }) => void
+
+/**
+ * The mocked clients' `message` handlers and the shared `publish` spy, reachable from the tests so
+ * they can inject bus messages as the broker would and assert on what the app publishes.
+ */
+const mqtt = vi.hoisted(() => ({
+  messageHandlers: new Set<MessageHandler>(),
+  publish: vi.fn(),
+}))
 
 vi.mock('mqtt', () => ({
   default: {
@@ -12,16 +24,27 @@ vi.mock('mqtt', () => ({
       const client = {
         on: (event: string, handler: (...args: unknown[]) => void) => {
           handlers.set(event, handler)
+          if (event === 'message') mqtt.messageHandlers.add(handler as MessageHandler)
         },
         subscribe: vi.fn(),
-        publish: vi.fn(),
-        end: vi.fn(),
+        publish: mqtt.publish,
+        end: vi.fn(() => {
+          const message = handlers.get('message')
+          if (message) mqtt.messageHandlers.delete(message as MessageHandler)
+        }),
       }
       queueMicrotask(() => handlers.get('connect')?.())
       return client as unknown as MqttClient
     },
   },
 }))
+
+/** Delivers a retained message to the app as the broker would. */
+async function receive(topic: string, payload: string) {
+  await act(async () => {
+    for (const handler of mqtt.messageHandlers) handler(topic, { toString: () => payload })
+  })
+}
 
 const THEME_KEY = 'renewvan-dashboard-theme'
 const KIOSK_WIDTH = 800
@@ -64,6 +87,22 @@ async function renderAt(width: number, url = '/') {
   await act(async () => {})
 }
 
+/** A tank that has published every property `useAlertToasts` needs, in alarm. */
+async function receiveAlarmingTank() {
+  const properties = {
+    fluid_type: 'fresh_water',
+    capacity_l: 100,
+    level_pct: 5,
+    status: 'ok',
+    volume_since_full_l: 95,
+    volume_since_empty_l: 5,
+    alarm_state: 'alarm',
+  }
+  for (const [property, value] of Object.entries(properties)) {
+    await receive(`renewvan/tank/fresh/${property}`, JSON.stringify(value))
+  }
+}
+
 /** Crosses a breakpoint and lets React Aria's deferred indicator update settle inside `act`. */
 async function resizeTo(width: number) {
   await act(async () => {
@@ -78,6 +117,8 @@ function selectedTab() {
 
 beforeEach(() => {
   headerHeight = 49
+  mqtt.messageHandlers.clear()
+  mqtt.publish.mockClear()
   vi.stubGlobal('ResizeObserver', StubResizeObserver)
   Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
     configurable: true,
@@ -304,6 +345,51 @@ describe('App shell header', () => {
     expect(selectedTab()).toHaveAccessibleName('Settings')
     expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
   })
+
+  it('opens the Settings tree from the rail and walks into a group and back', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+
+    const pane = screen.getByTestId('pane-settings')
+    expect(within(pane).getAllByRole('button')).toHaveLength(3)
+    expect(within(pane).getByRole('button', { name: /^Nodes/ })).toHaveTextContent(
+      'No nodes connected',
+    )
+
+    await user.click(within(pane).getByRole('button', { name: /^General/ }))
+    expect(within(pane).getByRole('link', { name: 'General', current: 'page' })).toBeVisible()
+    await user.click(within(pane).getByRole('link', { name: 'Settings' }))
+    expect(within(pane).getAllByRole('button')).toHaveLength(3)
+  })
+
+  it('publishes a Display change as a JSON payload on the hyphenated /set topic', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await receive('renewvan/kiosk/display/brightness', '70')
+    await receive('renewvan/kiosk/display/auto-sleep-enabled', 'false')
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('button', { name: /^General/ }))
+    await user.click(within(pane).getByRole('button', { name: /^Display/ }))
+    expect(within(pane).getByText('70%')).toBeVisible()
+
+    await user.click(within(pane).getByRole('switch', { name: 'Auto-sleep' }))
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/kiosk/display/auto-sleep-enabled/set',
+      'true',
+      { qos: 1, retain: false },
+    )
+
+    mqtt.publish.mockClear()
+    act(() => within(pane).getByRole('slider', { name: 'Brightness' }).focus())
+    await user.keyboard('{ArrowRight}')
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/kiosk/display/brightness/set',
+      '71',
+      { qos: 1, retain: false },
+    )
+  })
 })
 
 describe('App shell sidebar collapse', () => {
@@ -345,5 +431,63 @@ describe('App shell header height', () => {
     await renderAt(KIOSK_WIDTH)
     cleanup()
     expect(document.documentElement.style.getPropertyValue(HEADER_HEIGHT_VAR)).toBe('')
+  })
+})
+
+describe('App Alerts toggle', () => {
+  const SWITCH_NAME = 'Show alert notifications'
+  let danger: MockInstance<typeof toast.danger>
+  let close: MockInstance<typeof toast.close>
+
+  beforeEach(() => {
+    danger = vi.spyOn(toast, 'danger').mockReturnValue('alarm-toast')
+    close = vi.spyOn(toast, 'close').mockImplementation(() => {})
+  })
+
+  async function openAlerts() {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = within(screen.getByTestId('pane-settings'))
+    await user.click(pane.getByRole('button', { name: /^General/ }))
+    await user.click(pane.getByRole('button', { name: /^Alerts/ }))
+    return user
+  }
+
+  it('mutes a live toast when switched off and shows it again when switched on', async () => {
+    const user = await openAlerts()
+    await receiveAlarmingTank()
+    expect(danger).toHaveBeenCalledTimes(1)
+    expect(close).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    expect(close).toHaveBeenCalledExactlyOnceWith('alarm-toast')
+    expect(window.localStorage.getItem('renewvan-dashboard-alerts-enabled')).toBe('false')
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    expect(danger).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows no toast for an alarm that arrives while muted, then shows it when switched on', async () => {
+    window.localStorage.setItem('renewvan-dashboard-alerts-enabled', 'false')
+    const user = await openAlerts()
+    expect(screen.getByRole('switch', { name: SWITCH_NAME })).not.toBeChecked()
+
+    await receiveAlarmingTank()
+    expect(danger).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    expect(danger).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the Alerts row in General in step with the switch', async () => {
+    const user = await openAlerts()
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    await user.click(screen.getByRole('link', { name: 'General' }))
+
+    expect(
+      within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Alerts/ }),
+    ).toHaveTextContent('Notifications off')
   })
 })
