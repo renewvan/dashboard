@@ -5,6 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import App from './App'
 
+type MessageHandler = (topic: string, message: { toString: () => string }) => void
+
+/** The mocked client's `message` handler and `publish` spy, reachable from the tests. */
+const mqtt = vi.hoisted(() => ({
+  messageHandlers: [] as MessageHandler[],
+  publish: vi.fn(),
+}))
+
 vi.mock('mqtt', () => ({
   default: {
     connect: (): MqttClient => {
@@ -12,9 +20,10 @@ vi.mock('mqtt', () => ({
       const client = {
         on: (event: string, handler: (...args: unknown[]) => void) => {
           handlers.set(event, handler)
+          if (event === 'message') mqtt.messageHandlers.push(handler as MessageHandler)
         },
         subscribe: vi.fn(),
-        publish: vi.fn(),
+        publish: mqtt.publish,
         end: vi.fn(),
       }
       queueMicrotask(() => handlers.get('connect')?.())
@@ -22,6 +31,13 @@ vi.mock('mqtt', () => ({
     },
   },
 }))
+
+/** Delivers a retained message to the app as the broker would. */
+async function receive(topic: string, payload: string) {
+  await act(async () => {
+    for (const handler of mqtt.messageHandlers) handler(topic, { toString: () => payload })
+  })
+}
 
 const THEME_KEY = 'renewvan-dashboard-theme'
 const KIOSK_WIDTH = 800
@@ -78,6 +94,8 @@ function selectedTab() {
 
 beforeEach(() => {
   headerHeight = 49
+  mqtt.messageHandlers.length = 0
+  mqtt.publish.mockClear()
   vi.stubGlobal('ResizeObserver', StubResizeObserver)
   Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
     configurable: true,
@@ -320,6 +338,34 @@ describe('App shell header', () => {
     expect(within(pane).getByRole('link', { name: 'General', current: 'page' })).toBeVisible()
     await user.click(within(pane).getByRole('link', { name: 'Settings' }))
     expect(within(pane).getAllByRole('button')).toHaveLength(3)
+  })
+
+  it('publishes a Display change as a JSON payload on the hyphenated /set topic', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await receive('renewvan/kiosk/display/brightness', '70')
+    await receive('renewvan/kiosk/display/auto-sleep-enabled', 'false')
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('button', { name: /^General/ }))
+    await user.click(within(pane).getByRole('button', { name: /^Display/ }))
+    expect(within(pane).getByText('70%')).toBeVisible()
+
+    await user.click(within(pane).getByRole('switch', { name: 'Auto-sleep' }))
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/kiosk/display/auto-sleep-enabled/set',
+      'true',
+      { qos: 1, retain: false },
+    )
+
+    mqtt.publish.mockClear()
+    act(() => within(pane).getByRole('slider', { name: 'Brightness' }).focus())
+    await user.keyboard('{ArrowRight}')
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/kiosk/display/brightness/set',
+      '71',
+      { qos: 1, retain: false },
+    )
   })
 })
 
