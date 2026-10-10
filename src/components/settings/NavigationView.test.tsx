@@ -136,9 +136,9 @@ describe('drawer navigation', () => {
     )
     const temperature = await openDialog('Temperature')
     expect(within(temperature).getByRole('textbox', { name: 'Name' })).toHaveValue('Outdoor')
-    await user.keyboard('{Escape}')
+    await user.click(within(temperature).getByRole('button', { name: 'Back' }))
     expect(await openDialog('Nodes')).toBeInTheDocument()
-    await user.keyboard('{Escape}')
+    await user.click(within(await openDialog('Nodes')).getByRole('button', { name: 'Close' }))
     await expectNoDialog()
 
     await user.click(screen.getByRole('button', { name: /^General/ }))
@@ -149,8 +149,7 @@ describe('drawer navigation', () => {
     expect(
       within(alerts).getByRole('switch', { name: 'Show alert notifications' }),
     ).toBeInTheDocument()
-    await user.keyboard('{Escape}')
-    await user.keyboard('{Escape}')
+    await user.click(within(alerts).getByRole('button', { name: 'Close' }))
     await expectNoDialog()
 
     await user.click(screen.getByRole('button', { name: /^Connectivity/ }))
@@ -165,12 +164,12 @@ describe('drawer navigation', () => {
         }),
       )
       expect(within(await openDialog(page)).getByText(row)).toBeInTheDocument()
-      await user.keyboard('{Escape}')
+      await user.click(within(await openDialog(page)).getByRole('button', { name: 'Back' }))
     }
     expect(await openDialog('Connectivity')).toBeInTheDocument()
   })
 
-  it('steps back one level on Escape, down to only the top list', async () => {
+  it('closes the whole drawer on Escape, whatever the depth', async () => {
     const { user } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))
     await user.click(
@@ -182,28 +181,51 @@ describe('drawer navigation', () => {
     await openDialog('Navigation')
 
     await user.keyboard('{Escape}')
-    expect(await openDialog('Display')).toBeInTheDocument()
 
-    await user.keyboard('{Escape}')
-    expect(await openDialog('General')).toBeInTheDocument()
-
-    await user.keyboard('{Escape}')
     await expectNoDialog()
     expect(screen.getByRole('button', { name: /^General/ })).toBeInTheDocument()
   })
 
-  it('steps back one level with the close control', async () => {
+  it('closes the whole drawer with the close control, not one level', async () => {
     const { user } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))
     await user.click(
       await within(await openDialog('General')).findByRole('button', { name: /^Display/ }),
     )
 
-    const display = await openDialog('Display')
-    await user.click(within(display).getByRole('button', { name: 'Close' }))
+    await user.click(within(await openDialog('Display')).getByRole('button', { name: 'Close' }))
+
+    await expectNoDialog()
+    expect(screen.getByRole('button', { name: /^General/ })).toBeInTheDocument()
+  })
+
+  it('keeps one drawer open while moving deeper, only swapping its content', async () => {
+    const { user } = renderSettings()
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+    const dialog = await openDialog('General')
+
+    await user.click(await within(dialog).findByRole('button', { name: /^Display/ }))
+
+    // Same dialog element, new content: it did not close and a second one open.
+    expect(await screen.findByRole('dialog', { name: 'Display' })).toBe(dialog)
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+
+    await user.click(within(dialog).getByRole('button', { name: /^Navigation style/ }))
+    expect(await screen.findByRole('dialog', { name: 'Navigation' })).toBe(dialog)
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+  })
+
+  it('has a back arrow that steps up one level and closes the drawer from the first level', async () => {
+    const { user } = renderSettings()
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+    await user.click(
+      await within(await openDialog('General')).findByRole('button', { name: /^Display/ }),
+    )
+
+    await user.click(within(await openDialog('Display')).getByRole('button', { name: 'Back' }))
     expect(await openDialog('General')).toBeInTheDocument()
 
-    await user.click(within(await openDialog('General')).getByRole('button', { name: 'Close' }))
+    await user.click(within(await openDialog('General')).getByRole('button', { name: 'Back' }))
     await expectNoDialog()
     expect(screen.getByRole('button', { name: /^General/ })).toBeInTheDocument()
   })

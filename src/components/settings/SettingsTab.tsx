@@ -1,6 +1,6 @@
-import { memo, useCallback, type ReactNode } from 'react'
-import { Breadcrumbs, Drawer, ScrollShadow } from '@heroui/react'
-import { Cpu, SlidersHorizontal, Wifi } from 'lucide-react'
+import { memo, useCallback, useState, type ReactNode } from 'react'
+import { Breadcrumbs, Button, Drawer, ScrollShadow } from '@heroui/react'
+import { ArrowLeft, Cpu, SlidersHorizontal, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
@@ -57,6 +57,12 @@ export const SettingsTab = memo(function SettingsTab() {
   // The open view lives in `?view=`; no param (or an unknown one) is the top list.
   const [viewParam, setViewParam] = useUrlParam('view', SUB_VIEWS)
   const view: SettingsView = viewParam ?? 'list'
+  // The drawer is one persistent dialog: navigating deeper swaps its content in place instead
+  // of closing one drawer and opening another. Remember the last open view so the content
+  // stays put while the drawer slides out after the final close.
+  const [lastOpenView, setLastOpenView] = useState<SettingsSubView | null>(null)
+  if (view !== 'list' && view !== lastOpenView) setLastOpenView(view)
+  const drawerView = view === 'list' ? lastOpenView : view
   const setView = useCallback(
     (next: SettingsView) => setViewParam(next === 'list' ? null : next),
     [setViewParam],
@@ -146,29 +152,44 @@ export const SettingsTab = memo(function SettingsTab() {
           )}
         </div>
       </ScrollShadow>
-      {navStyle === 'drawer' &&
-        SUB_VIEWS.map((id) => (
-          // No `Drawer` root: it wraps a React Aria `DialogTrigger`, which warns when nothing
-          // pressable registers; the controlled backdrop needs no trigger.
-          <Drawer.Backdrop
-            variant="blur"
-            key={id}
-            isOpen={view === id}
-            // Closing (Escape, close control, backdrop) steps back to the parent view.
-            onOpenChange={(open) => setView(open ? id : VIEWS[id].parent)}
-          >
-            <Drawer.Content placement="right">
-              <Drawer.Dialog>
-                <Drawer.CloseTrigger />
-                <Drawer.Header>
-                  <Drawer.Heading>{VIEWS[id].title}</Drawer.Heading>
-                </Drawer.Header>
-                {/* All view content stays in the body: a Slider outside it can start a drag-to-dismiss. */}
-                <Drawer.Body>{content(id)}</Drawer.Body>
-              </Drawer.Dialog>
-            </Drawer.Content>
-          </Drawer.Backdrop>
-        ))}
+      {navStyle === 'drawer' && drawerView !== null && (
+        // No `Drawer` root: it wraps a React Aria `DialogTrigger`, which warns when nothing
+        // pressable registers; the controlled backdrop needs no trigger.
+        <Drawer.Backdrop
+          variant="opaque"
+          isOpen={view !== 'list'}
+          // Closing (Escape, close control, backdrop) closes the whole drawer; only the back
+          // arrow steps up one level.
+          onOpenChange={(open) => {
+            if (!open) setView('list')
+          }}
+        >
+          <Drawer.Content placement="right">
+            {/* Unlayered HeroUI CSS sets an opaque `bg-overlay`, so the frosted panel needs `!`. */}
+            <Drawer.Dialog className="bg-overlay/60! backdrop-blur-sm!">
+              <Drawer.Header>
+                <div className="flex items-center gap-2">
+                  <Button
+                    isIconOnly
+                    variant="ghost"
+                    aria-label="Back"
+                    onPress={() => setView(VIEWS[drawerView].parent)}
+                  >
+                    <ArrowLeft aria-hidden="true" />
+                  </Button>
+                  <Drawer.Heading className="min-w-0 flex-1 truncate">
+                    {VIEWS[drawerView].title}
+                  </Drawer.Heading>
+                  {/* HeroUI pins the close trigger to the corner (`absolute`); in the row it flows. */}
+                  <Drawer.CloseTrigger className="static!" />
+                </div>
+              </Drawer.Header>
+              {/* All view content stays in the body: a Slider outside it can start a drag-to-dismiss. */}
+              <Drawer.Body>{content(drawerView)}</Drawer.Body>
+            </Drawer.Dialog>
+          </Drawer.Content>
+        </Drawer.Backdrop>
+      )}
     </section>
   )
 })
