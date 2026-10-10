@@ -21,7 +21,7 @@ describe('SettingsTab top list', () => {
     expect(rowNames()).toEqual([
       'Nodes2 nodes',
       'GeneralNothing to configure yet',
-      'ConnectivityNothing to configure yet',
+      'ConnectivityCellular, Hub, Tailscale',
     ])
   })
 

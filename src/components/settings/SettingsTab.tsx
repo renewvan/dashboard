@@ -1,11 +1,15 @@
 import { memo, useState, type ReactNode } from 'react'
 import { Breadcrumbs, ScrollShadow } from '@heroui/react'
 import { nodesSummary } from '@/lib/nodes'
+import { CellularView } from './CellularView'
+import { ConnectivityView } from './ConnectivityView'
 import { GroupRow } from './GroupRow'
+import { HubView } from './HubView'
 import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
+import { TailscaleView } from './TailscaleView'
 
-type SettingsView = 'list' | 'nodes' | 'general' | 'connectivity'
+type SettingsView = 'list' | 'nodes' | 'general' | 'connectivity' | 'cellular' | 'hub' | 'tailscale'
 type SubView = Exclude<SettingsView, 'list'>
 
 const PANEL = 'border-border bg-surface overflow-hidden rounded-2xl border'
@@ -18,7 +22,10 @@ function EmptyGroup() {
 const VIEWS: Record<SubView, { title: string; parent: SettingsView; content: ReactNode }> = {
   nodes: { title: 'Nodes', parent: 'list', content: <NodesView /> },
   general: { title: 'General', parent: 'list', content: <EmptyGroup /> },
-  connectivity: { title: 'Connectivity', parent: 'list', content: <EmptyGroup /> },
+  connectivity: { title: 'Connectivity', parent: 'list', content: null },
+  cellular: { title: 'Cellular', parent: 'connectivity', content: <CellularView /> },
+  hub: { title: 'Hub', parent: 'connectivity', content: <HubView /> },
+  tailscale: { title: 'Tailscale', parent: 'connectivity', content: <TailscaleView /> },
 }
 
 /** `list → … → view`, root excluded, outermost first. */
@@ -61,7 +68,7 @@ export const SettingsTab = memo(function SettingsTab() {
                 />
                 <GroupRow
                   label="Connectivity"
-                  description="Nothing to configure yet"
+                  description="Cellular, Hub, Tailscale"
                   onOpen={() => setView('connectivity')}
                 />
               </div>
@@ -82,7 +89,11 @@ export const SettingsTab = memo(function SettingsTab() {
                   </Breadcrumbs.Item>
                 ))}
               </Breadcrumbs>
-              {VIEWS[view].content}
+              {view === 'connectivity' ? (
+                <ConnectivityView onOpen={setView} />
+              ) : (
+                VIEWS[view].content
+              )}
             </>
           )}
         </div>
