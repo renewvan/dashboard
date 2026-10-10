@@ -12,4 +12,9 @@
 @import '@heroui/styles/components/separator.css';
 @import '@heroui/styles/components/chip.css';
 @import '@heroui/styles/components/badge.css';
+@import '@heroui/styles/components/label.css';
+@import '@heroui/styles/components/slider.css';
+@import '@heroui/styles/components/switch.css';
+@import '@heroui/styles/components/toggle-button.css';
+@import '@heroui/styles/components/toggle-button-group.css';
 @import './global.css';

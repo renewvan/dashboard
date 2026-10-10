@@ -19,6 +19,7 @@ import { useRenewvanBus } from '@/hooks/useRenewvanBus'
 import { useTheme } from '@/hooks/useTheme'
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed'
 import { SidebarToggle } from '@/components/SidebarToggle'
+import { DisplayPrototype } from '@/prototype/DisplayPrototype'
 import { useUrlTab } from '@/hooks/useUrlTab'
 
 const NAV_ITEMS: NavItem[] = [
@@ -118,7 +119,11 @@ function App() {
     <>
       {NAV_ITEMS.map((item) => (
         <Tabs.Panel key={item.id} id={item.id} className={PANEL_CLASS}>
-          <StubPane id={item.id} title={item.label} icon={item.icon} />
+          {item.id === 'settings' ? (
+            <DisplayPrototype />
+          ) : (
+            <StubPane id={item.id} title={item.label} icon={item.icon} />
+          )}
         </Tabs.Panel>
       ))}
       <Tabs.Panel id="alerts" className={PANEL_CLASS}>
