@@ -1,6 +1,7 @@
-import { memo, useState, type ReactNode } from 'react'
+import { memo, useCallback, type ReactNode } from 'react'
 import { Breadcrumbs, Drawer, ScrollShadow } from '@heroui/react'
 import { useIsMobile } from '@/hooks/use-media-query'
+import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import { nodesSummary } from '@/lib/nodes'
 import { AlertsView } from './AlertsView'
@@ -67,7 +68,13 @@ export const SettingsTab = memo(function SettingsTab() {
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
   const navStyle: SettingsNavStyle = isMobile ? 'subpage' : storedNavStyle
-  const [view, setView] = useState<SettingsView>('list')
+  // The open view lives in `?view=`; no param (or an unknown one) is the top list.
+  const [viewParam, setViewParam] = useUrlParam('view', SUB_VIEWS)
+  const view: SettingsView = viewParam ?? 'list'
+  const setView = useCallback(
+    (next: SettingsView) => setViewParam(next === 'list' ? null : next),
+    [setViewParam],
+  )
 
   const content = (id: SubView): ReactNode => {
     switch (id) {
