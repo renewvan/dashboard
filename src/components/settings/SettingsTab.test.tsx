@@ -21,7 +21,7 @@ describe('SettingsTab top list', () => {
     expect(rowNames()).toEqual([
       'Nodes2 nodes',
       'GeneralAlerts, display',
-      'ConnectivityNothing to configure yet',
+      'ConnectivityCellular, Hub, Tailscale',
     ])
   })
 
@@ -66,7 +66,12 @@ describe('SettingsTab drill-down', () => {
     await user.click(screen.getByRole('link', { name: 'Settings' }))
     await user.click(screen.getByRole('button', { name: /^Connectivity/ }))
     expect(screen.queryByText(/not available/i)).not.toBeInTheDocument()
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.queryByText(/nothing to configure/i)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button').map((row) => row.textContent)).toEqual([
+      expect.stringMatching(/^Cellular/),
+      expect.stringMatching(/^Hub/),
+      expect.stringMatching(/^Tailscale/),
+    ])
   })
 })
 

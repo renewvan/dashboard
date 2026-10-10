@@ -2,28 +2,39 @@ import { memo, useState, type ReactNode } from 'react'
 import { Breadcrumbs, ScrollShadow } from '@heroui/react'
 import { nodesSummary } from '@/lib/nodes'
 import { AlertsView } from './AlertsView'
+import { CellularView } from './CellularView'
+import { ConnectivityView } from './ConnectivityView'
 import { DisplayView } from './DisplayView'
 import { GeneralView } from './GeneralView'
 import { GroupRow } from './GroupRow'
+import { HubView } from './HubView'
 import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
+import { TailscaleView } from './TailscaleView'
 
-type SettingsView = 'list' | 'nodes' | 'general' | 'alerts' | 'display' | 'connectivity'
+type SettingsView =
+  | 'list'
+  | 'nodes'
+  | 'general'
+  | 'alerts'
+  | 'display'
+  | 'connectivity'
+  | 'cellular'
+  | 'hub'
+  | 'tailscale'
 type SubView = Exclude<SettingsView, 'list'>
 
 const PANEL = 'border-border bg-surface overflow-hidden rounded-2xl border'
-
-/** A group with nothing to show yet: say so plainly instead of faking rows. */
-function EmptyGroup() {
-  return <p className={`${PANEL} text-muted px-3.5 py-3 text-sm`}>Nothing to configure yet.</p>
-}
 
 const VIEWS: Record<SubView, { title: string; parent: SettingsView; content: ReactNode }> = {
   nodes: { title: 'Nodes', parent: 'list', content: <NodesView /> },
   general: { title: 'General', parent: 'list', content: null },
   alerts: { title: 'Alerts', parent: 'general', content: <AlertsView /> },
   display: { title: 'Display', parent: 'general', content: <DisplayView /> },
-  connectivity: { title: 'Connectivity', parent: 'list', content: <EmptyGroup /> },
+  connectivity: { title: 'Connectivity', parent: 'list', content: null },
+  cellular: { title: 'Cellular', parent: 'connectivity', content: <CellularView /> },
+  hub: { title: 'Hub', parent: 'connectivity', content: <HubView /> },
+  tailscale: { title: 'Tailscale', parent: 'connectivity', content: <TailscaleView /> },
 }
 
 /** `list → … → view`, root excluded, outermost first. */
@@ -66,7 +77,7 @@ export const SettingsTab = memo(function SettingsTab() {
                 />
                 <GroupRow
                   label="Connectivity"
-                  description="Nothing to configure yet"
+                  description="Cellular, Hub, Tailscale"
                   onOpen={() => setView('connectivity')}
                 />
               </div>
@@ -87,7 +98,13 @@ export const SettingsTab = memo(function SettingsTab() {
                   </Breadcrumbs.Item>
                 ))}
               </Breadcrumbs>
-              {view === 'general' ? <GeneralView onOpen={setView} /> : VIEWS[view].content}
+              {view === 'general' ? (
+                <GeneralView onOpen={setView} />
+              ) : view === 'connectivity' ? (
+                <ConnectivityView onOpen={setView} />
+              ) : (
+                VIEWS[view].content
+              )}
             </>
           )}
         </div>
