@@ -112,7 +112,7 @@ export const SettingsTab = memo(function SettingsTab() {
       className="flex min-h-0 flex-1 flex-col"
     >
       <ScrollShadow hideScrollBar className="min-h-0 flex-1">
-        <div className="flex w-full max-w-xl min-w-0 flex-col gap-3 p-4">
+        <div className="flex w-full min-w-0 flex-col gap-3 p-4">
           {navStyle === 'sheet' || view === 'list' ? (
             topList
           ) : (
