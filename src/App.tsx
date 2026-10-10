@@ -58,7 +58,7 @@ function App() {
     routerHealth,
     publish,
   } = useRenewvanBus()
-  const [alertsEnabled] = useAlertsEnabled()
+  const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'start')
   const unseenAlertCount = useUnseenAlertCount(activeTab)
@@ -114,6 +114,8 @@ function App() {
       autoSleepEnabled,
       autoSleepTimeoutMinutes,
       ...commands,
+      alertsEnabled,
+      setAlertsEnabled,
     }),
     [
       nodes,
@@ -127,6 +129,8 @@ function App() {
       autoSleepEnabled,
       autoSleepTimeoutMinutes,
       commands,
+      alertsEnabled,
+      setAlertsEnabled,
     ],
   )
 

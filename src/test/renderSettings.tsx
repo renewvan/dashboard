@@ -74,6 +74,8 @@ export function renderSettings(
     setBrightness: vi.fn(),
     setAutoSleepEnabled: vi.fn(),
     setAutoSleepTimeoutMinutes: vi.fn(),
+    alertsEnabled: true,
+    setAlertsEnabled: vi.fn(),
     ...overrides,
   }
 

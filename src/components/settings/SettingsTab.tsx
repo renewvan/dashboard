@@ -1,12 +1,14 @@
 import { memo, useState, type ReactNode } from 'react'
 import { Breadcrumbs, ScrollShadow } from '@heroui/react'
 import { nodesSummary } from '@/lib/nodes'
+import { AlertsView } from './AlertsView'
 import { DisplayView } from './DisplayView'
+import { GeneralView } from './GeneralView'
 import { GroupRow } from './GroupRow'
 import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
 
-type SettingsView = 'list' | 'nodes' | 'general' | 'display' | 'connectivity'
+type SettingsView = 'list' | 'nodes' | 'general' | 'alerts' | 'display' | 'connectivity'
 type SubView = Exclude<SettingsView, 'list'>
 
 const PANEL = 'border-border bg-surface overflow-hidden rounded-2xl border'
@@ -16,22 +18,10 @@ function EmptyGroup() {
   return <p className={`${PANEL} text-muted px-3.5 py-3 text-sm`}>Nothing to configure yet.</p>
 }
 
-/** General's pages. Navigation is added to the Display page by its own ticket. */
-function GeneralView({ onOpen }: { onOpen: (view: SubView) => void }) {
-  return (
-    <div className={`${PANEL} divide-border divide-y`}>
-      <GroupRow
-        label="Display"
-        description="Brightness, auto-sleep, navigation"
-        onOpen={() => onOpen('display')}
-      />
-    </div>
-  )
-}
-
 const VIEWS: Record<SubView, { title: string; parent: SettingsView; content: ReactNode }> = {
   nodes: { title: 'Nodes', parent: 'list', content: <NodesView /> },
   general: { title: 'General', parent: 'list', content: null },
+  alerts: { title: 'Alerts', parent: 'general', content: <AlertsView /> },
   display: { title: 'Display', parent: 'general', content: <DisplayView /> },
   connectivity: { title: 'Connectivity', parent: 'list', content: <EmptyGroup /> },
 }
@@ -69,7 +59,11 @@ export const SettingsTab = memo(function SettingsTab() {
                   description={nodesSummary(nodes)}
                   onOpen={() => setView('nodes')}
                 />
-                <GroupRow label="General" description="Display" onOpen={() => setView('general')} />
+                <GroupRow
+                  label="General"
+                  description="Alerts, display"
+                  onOpen={() => setView('general')}
+                />
                 <GroupRow
                   label="Connectivity"
                   description="Nothing to configure yet"
