@@ -12,4 +12,7 @@
 @import '@heroui/styles/components/separator.css';
 @import '@heroui/styles/components/chip.css';
 @import '@heroui/styles/components/badge.css';
+@import '@heroui/styles/components/breadcrumbs.css';
+@import '@heroui/styles/components/link.css';
+@import '@heroui/styles/components/scroll-shadow.css';
 @import './global.css';

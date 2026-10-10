@@ -304,6 +304,23 @@ describe('App shell header', () => {
     expect(selectedTab()).toHaveAccessibleName('Settings')
     expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
   })
+
+  it('opens the Settings tree from the rail and walks into a group and back', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+
+    const pane = screen.getByTestId('pane-settings')
+    expect(within(pane).getAllByRole('button')).toHaveLength(3)
+    expect(within(pane).getByRole('button', { name: /^Nodes/ })).toHaveTextContent(
+      'No nodes connected',
+    )
+
+    await user.click(within(pane).getByRole('button', { name: /^General/ }))
+    expect(within(pane).getByRole('link', { name: 'General', current: 'page' })).toBeVisible()
+    await user.click(within(pane).getByRole('link', { name: 'Settings' }))
+    expect(within(pane).getAllByRole('button')).toHaveLength(3)
+  })
 })
 
 describe('App shell sidebar collapse', () => {
