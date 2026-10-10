@@ -6,7 +6,7 @@ import type {
   TailscaleStatus,
 } from '@/hooks/useRenewvanBus'
 import type { NodeSummary } from '@/lib/nodes'
-import type { Router, TemperatureSensor } from '@/types'
+import type { Router, TemperatureSensor, TemperatureUnit } from '@/types'
 
 /**
  * Everything the Settings tab and its views read, built once by `App` from
@@ -30,6 +30,8 @@ export interface SettingsContextValue {
   /** The Alerts toggle: the same instance `useAlertToasts` reads. */
   alertsEnabled: boolean
   setAlertsEnabled: (enabled: boolean) => void
+  setTemperatureName: (id: string, name: string) => void
+  setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
 }
 
 export const SettingsContext = createContext<SettingsContextValue | null>(null)

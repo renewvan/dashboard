@@ -76,6 +76,8 @@ export function renderSettings(
     setAutoSleepTimeoutMinutes: vi.fn(),
     alertsEnabled: true,
     setAlertsEnabled: vi.fn(),
+    setTemperatureName: vi.fn(),
+    setTemperatureUnit: vi.fn(),
     ...overrides,
   }
 

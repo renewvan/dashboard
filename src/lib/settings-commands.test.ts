@@ -44,4 +44,26 @@ describe('settingsCommands', () => {
       '15',
     )
   })
+
+  it("publishes a sensor name as a quoted JSON string on that sensor's topic", () => {
+    const { publish, commands } = setup()
+
+    commands.setTemperatureName('outdoor', 'Galley roof')
+
+    expect(publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/temperature/outdoor/name/set',
+      '"Galley roof"',
+    )
+  })
+
+  it("publishes a sensor unit as a quoted JSON string on that sensor's topic", () => {
+    const { publish, commands } = setup()
+
+    commands.setTemperatureUnit('28-000000259026', 'F')
+
+    expect(publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/temperature/28-000000259026/unit/set',
+      '"F"',
+    )
+  })
 })

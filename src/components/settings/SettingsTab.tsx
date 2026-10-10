@@ -11,10 +11,12 @@ import { HubView } from './HubView'
 import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
 import { TailscaleView } from './TailscaleView'
+import { TemperatureView } from './TemperatureView'
 
 type SettingsView =
   | 'list'
   | 'nodes'
+  | 'temperature'
   | 'general'
   | 'alerts'
   | 'display'
@@ -27,7 +29,8 @@ type SubView = Exclude<SettingsView, 'list'>
 const PANEL = 'border-border bg-surface overflow-hidden rounded-2xl border'
 
 const VIEWS: Record<SubView, { title: string; parent: SettingsView; content: ReactNode }> = {
-  nodes: { title: 'Nodes', parent: 'list', content: <NodesView /> },
+  nodes: { title: 'Nodes', parent: 'list', content: null },
+  temperature: { title: 'Temperature', parent: 'nodes', content: <TemperatureView /> },
   general: { title: 'General', parent: 'list', content: null },
   alerts: { title: 'Alerts', parent: 'general', content: <AlertsView /> },
   display: { title: 'Display', parent: 'general', content: <DisplayView /> },
@@ -102,6 +105,8 @@ export const SettingsTab = memo(function SettingsTab() {
                 <GeneralView onOpen={setView} />
               ) : view === 'connectivity' ? (
                 <ConnectivityView onOpen={setView} />
+              ) : view === 'nodes' ? (
+                <NodesView onOpen={setView} />
               ) : (
                 VIEWS[view].content
               )}
