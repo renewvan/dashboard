@@ -1,5 +1,7 @@
 import { Label, Slider, Switch, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
+import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
+import { GroupRow } from './GroupRow'
 import { useSettings } from './SettingsContext'
 
 const TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
@@ -95,8 +97,14 @@ function SleepAfterRow() {
   )
 }
 
-/** Settings › General › Display: brightness, auto-sleep, and its timeout. */
-export function DisplayView() {
+interface DisplayViewProps {
+  /** The style Settings is actually using (so the row never claims a style a phone cannot get). */
+  navStyle: SettingsNavStyle
+  onOpenNavigation: () => void
+}
+
+/** Settings › General › Display: brightness, auto-sleep and its timeout, navigation style. */
+export function DisplayView({ navStyle, onOpenNavigation }: DisplayViewProps) {
   const { autoSleepEnabled } = useSettings()
 
   return (
@@ -104,6 +112,11 @@ export function DisplayView() {
       <BrightnessRow />
       <AutoSleepRow />
       {autoSleepEnabled === true && <SleepAfterRow />}
+      <GroupRow
+        label="Navigation style"
+        description={navStyle === 'subpage' ? 'Subpages' : 'Sheets'}
+        onOpen={onOpenNavigation}
+      />
     </div>
   )
 }
