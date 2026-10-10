@@ -46,16 +46,19 @@ interface RenderSettingsOptions {
 /**
  * Renders the Settings tab inside a `SettingsProvider` holding a literal
  * value: the defaults below with `overrides` on top. Stubs `matchMedia` and
- * `ResizeObserver` (jsdom has neither) and restores them when the test finishes.
+ * `ResizeObserver` (jsdom has neither) and restores them, and the URL, when the test finishes.
  * Later tickets add their fields to `defaultValue` only.
  */
 export function renderSettings(
   overrides: Partial<SettingsContextValue> = {},
   { width = KIOSK_WIDTH }: RenderSettingsOptions = {},
 ) {
+  // The open view lives in `?view=`: every render starts at the top list.
+  window.history.replaceState(null, '', '/?tab=settings')
   const viewport = stubMatchMedia(width)
   vi.stubGlobal('ResizeObserver', StubResizeObserver)
   onTestFinished(() => {
+    window.history.replaceState(null, '', '/')
     viewport.restore()
     vi.unstubAllGlobals()
   })

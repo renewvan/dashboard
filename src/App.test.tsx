@@ -115,6 +115,43 @@ function selectedTab() {
   return screen.queryByRole('tab', { selected: true })
 }
 
+/** Taps Network settings in the uplink popover. */
+async function openCellularFromUplink(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByTestId('uplink-status-button'))
+  await user.click(await screen.findByRole('button', { name: /network settings/i }))
+}
+
+/** The subpage breadcrumb ends on the open view. */
+function currentCrumb() {
+  const pane = screen.getByTestId('pane-settings')
+  return within(pane).queryByRole('link', { current: 'page' })
+}
+
+function expectInCellular() {
+  expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
+  expect(currentCrumb()).toHaveAccessibleName('Cellular')
+}
+
+function expectTopList() {
+  const pane = screen.getByTestId('pane-settings')
+  expect(within(pane).getAllByRole('button')).toHaveLength(3)
+  expect(within(pane).queryByRole('link')).not.toBeInTheDocument()
+}
+
+/** jsdom delivers `popstate` on a later task: wait for it, then let React settle. */
+async function traverseHistory(go: () => void) {
+  await act(async () => {
+    const popped = new Promise((resolve) =>
+      window.addEventListener('popstate', resolve, { once: true }),
+    )
+    go()
+    await popped
+  })
+}
+
+const goBack = () => traverseHistory(() => window.history.back())
+const goForward = () => traverseHistory(() => window.history.forward())
+
 beforeEach(() => {
   headerHeight = 49
   mqtt.messageHandlers.clear()
@@ -337,13 +374,13 @@ describe('App shell header', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
   })
 
-  it('jumps to Settings from the uplink popover CTA', async () => {
+  it('opens Settings › Connectivity › Cellular from the uplink popover CTA', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
-    await user.click(screen.getByTestId('uplink-status-button'))
-    await user.click(await screen.findByRole('button', { name: /network settings/i }))
+    await openCellularFromUplink(user)
     expect(selectedTab()).toHaveAccessibleName('Settings')
-    expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
+    expectInCellular()
+    expect(window.location.search).toBe('?tab=settings&view=cellular')
   })
 
   it('opens the Settings tree from the rail and walks into a group and back', async () => {
@@ -389,6 +426,129 @@ describe('App shell header', () => {
       '71',
       { qos: 1, retain: false },
     )
+  })
+})
+
+describe('App shell Settings view in the URL', () => {
+  it('Back after the popover CTA returns to the previous tab, not an intermediate ?tab=settings', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Power' }))
+    await openCellularFromUplink(user)
+    expectInCellular()
+
+    await goBack()
+    await waitFor(() => expect(selectedTab()).toHaveAccessibleName('Power'))
+    expect(window.location.search).toBe('?tab=power')
+    expect(screen.queryByTestId('pane-settings')).not.toBeInTheDocument()
+
+    await goForward()
+    await waitFor(() => expectInCellular())
+    expect(window.location.search).toBe('?tab=settings&view=cellular')
+  })
+
+  it.each([
+    ['kiosk', KIOSK_WIDTH],
+    ['phone', PHONE_WIDTH],
+  ])('opens Cellular from the popover CTA on another tab (%s)', async (_name, width) => {
+    const user = userEvent.setup()
+    await renderAt(width, '/?tab=tanks')
+    await openCellularFromUplink(user)
+    expectInCellular()
+    expect(window.location.search).toBe('?tab=settings&view=cellular')
+  })
+
+  it('tapping the Settings rail entry from another tab drops a stale view', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?tab=power&view=cellular')
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    expect(new URLSearchParams(window.location.search).has('view')).toBe(false)
+    expect(window.location.search).toBe('?tab=settings')
+    expectTopList()
+  })
+
+  it('leaving Settings from Cellular and returning by the rail shows the top list', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
+    await user.click(screen.getByRole('tab', { name: 'Power' }))
+    expect(window.location.search).toBe('?tab=power')
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    expect(window.location.search).toBe('?tab=settings')
+    expectTopList()
+  })
+
+  it('opens the view named by ?view= on load, and the top list for an unknown one', async () => {
+    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
+    expectInCellular()
+
+    cleanup()
+    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=bogus')
+    expect(selectedTab()).toHaveAccessibleName('Settings')
+    expectTopList()
+  })
+
+  it('keeps the open view across a reload', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('button', { name: /^Connectivity/ }))
+    await user.click(within(pane).getByRole('button', { name: /^Hub/ }))
+
+    cleanup()
+    await renderAt(KIOSK_WIDTH, `/${window.location.search}`)
+    expect(currentCrumb()).toHaveAccessibleName('Hub')
+  })
+
+  it('Back and Forward step through the views', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('button', { name: /^Connectivity/ }))
+    expect(window.location.search).toBe('?tab=settings&view=connectivity')
+    await user.click(within(pane).getByRole('button', { name: /^Tailscale/ }))
+    expect(window.location.search).toBe('?tab=settings&view=tailscale')
+    expect(currentCrumb()).toHaveAccessibleName('Tailscale')
+
+    await goBack()
+    expect(currentCrumb()).toHaveAccessibleName('Connectivity')
+    await goBack()
+    expectTopList()
+    expect(window.location.search).toBe('?tab=settings')
+
+    await goForward()
+    expect(currentCrumb()).toHaveAccessibleName('Connectivity')
+    await goForward()
+    expect(currentCrumb()).toHaveAccessibleName('Tailscale')
+  })
+
+  it('a breadcrumb step pushes an entry too, so Back returns to the deeper view', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('link', { name: 'Settings' }))
+    expectTopList()
+    expect(window.location.search).toBe('?tab=settings')
+
+    await goBack()
+    expectInCellular()
+  })
+
+  it('the popover CTA while already inside Settings › General changes the view', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('button', { name: /^General/ }))
+    expect(currentCrumb()).toHaveAccessibleName('General')
+
+    await openCellularFromUplink(user)
+    expectInCellular()
+    expect(window.location.search).toBe('?tab=settings&view=cellular')
+
+    await goBack()
+    expect(currentCrumb()).toHaveAccessibleName('General')
   })
 })
 

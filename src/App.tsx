@@ -61,6 +61,8 @@ function App() {
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'start')
+  // One history entry for tab and view together, so Back returns to the previous tab.
+  const openSettings = (view: string) => setActiveTab('settings', { view })
   const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
@@ -165,7 +167,7 @@ function App() {
           lastReceivedAt={state.routerUpdatedAt[routerId]}
           tailscale={tailscale}
           busStatus={status}
-          onOpenSettings={() => setActiveTab('settings')}
+          onOpenSettings={() => openSettings('cellular')}
         />
         <Separator orientation="vertical" className="mx-1.5 h-6" />
         <AlertsButton
