@@ -40,7 +40,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
 
   if (isMobile) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto p-4">
         {ids.map((id) => (
           <TankRow key={id} tank={tanks[id]} now={now} />
         ))}
@@ -50,7 +50,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
 
   return (
     <div
-      className="grid h-full min-h-0 flex-1 gap-2 p-2"
+      className="grid h-full min-h-0 flex-1 gap-3 p-4"
       style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}
     >
       {ids.map((id) => (
