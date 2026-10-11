@@ -48,6 +48,23 @@ describe('AppToasts', () => {
     expect(alert).toHaveTextContent('Fresh water tank alarm')
   })
 
+  it.each([
+    ['danger', () => toast.danger('Fresh water tank alarm', { timeout: 0 })],
+    ['warning', () => toast.warning('Hub connection lost', { timeout: 0 })],
+    ['success', () => toast.success('Saved', { timeout: 0 })],
+    ['accent', () => toast.info('Heads up', { timeout: 0 })],
+  ])('marks a %s toast with its type, so its background can follow it', async (type, fire) => {
+    render(<AppToasts />)
+
+    act(() => {
+      fire()
+    })
+
+    // `role="alert"` sits on the content; the type lives on the toast root around it.
+    const root = (await screen.findByRole('alert')).closest('[data-slot="toast"]')
+    expect(root).toHaveAttribute('data-type', type)
+  })
+
   it('renders at most six toasts when more persistent alerts are queued', async () => {
     render(<AppToasts />)
 

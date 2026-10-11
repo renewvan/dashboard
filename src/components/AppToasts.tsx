@@ -102,6 +102,8 @@ export function AppToasts() {
           <Toast
             toast={queued}
             variant={variant}
+            // The type, for `index.css`: HeroUI puts no variant class on the toast root.
+            data-type={variant ?? 'default'}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={(event: PointerEvent<HTMLElement>) => endSwipe(event, key, false)}

@@ -77,3 +77,45 @@
   --toast-opacity-duration: 0ms;
   user-select: none;
 }
+
+/*
+ * Alerts take their type from the background, as in coss's Alert: a wash of the
+ * type's colour over the (opaque) surface, with the title and icon in the type's
+ * strong colour. `AppToasts` stamps `data-type` because HeroUI puts no variant class
+ * on the toast root. The wash is layered on `--surface` so a floating toast stays
+ * solid; the `-soft` tokens alone are translucent. The type is also in the
+ * indicator and title, so the colour is never the only cue.
+ */
+.toast[data-type='danger'] {
+  --toast-wash: var(--danger-soft);
+  --toast-strong: var(--danger-soft-foreground);
+}
+.toast[data-type='warning'] {
+  --toast-wash: var(--warning-soft);
+  --toast-strong: var(--warning-soft-foreground);
+}
+.toast[data-type='success'] {
+  --toast-wash: var(--success-soft);
+  --toast-strong: var(--success-soft-foreground);
+}
+.toast[data-type='accent'] {
+  --toast-wash: var(--accent-soft);
+  --toast-strong: var(--accent-soft-foreground);
+}
+.toast[data-type='danger'],
+.toast[data-type='warning'],
+.toast[data-type='success'],
+.toast[data-type='accent'] {
+  background-color: var(--surface);
+  background-image: linear-gradient(var(--toast-wash), var(--toast-wash));
+}
+.toast[data-type='danger'] .toast__indicator,
+.toast[data-type='warning'] .toast__indicator,
+.toast[data-type='success'] .toast__indicator,
+.toast[data-type='accent'] .toast__indicator,
+.toast[data-type='danger'] .toast__title,
+.toast[data-type='warning'] .toast__title,
+.toast[data-type='success'] .toast__title,
+.toast[data-type='accent'] .toast__title {
+  color: var(--toast-strong);
+}
