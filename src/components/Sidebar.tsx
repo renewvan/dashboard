@@ -102,7 +102,7 @@ export function Sidebar({
     <aside
       data-state={collapsed ? 'collapsed' : 'expanded'}
       className={cn(
-        'border-border bg-surface flex h-full shrink-0 flex-col gap-2 overflow-hidden border-r p-2 transition-[width] duration-200 motion-reduce:transition-none',
+        'border-border bg-surface ml-0.5 flex h-full shrink-0 flex-col gap-2 overflow-hidden border-r p-2 transition-[width] duration-200 motion-reduce:transition-none',
         collapsed ? 'w-[56px]' : 'w-42',
       )}
     >
