@@ -5,6 +5,7 @@
 @import '@heroui/styles/utilities';
 @import '@heroui/styles/variants';
 @import '@heroui/styles/components/button.css';
+@import '@heroui/styles/components/card.css';
 @import '@heroui/styles/components/tabs.css';
 @import '@heroui/styles/components/popover.css';
 @import '@heroui/styles/components/toast.css';

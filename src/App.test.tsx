@@ -225,10 +225,10 @@ describe('App shell navigation layout', () => {
   it('keeps the selected pane when the layout swaps', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
-    await user.click(screen.getByRole('tab', { name: 'Tanks' }))
+    await user.click(screen.getByRole('tab', { name: 'Power' }))
     await resizeTo(JUST_BELOW_KIOSK_WIDTH)
-    expect(screen.getByRole('tab', { name: 'Tanks' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByTestId('pane-tanks')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Power' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByTestId('pane-power')).toBeInTheDocument()
   })
 
   it('puts the navigation before the panes in the DOM on a phone', async () => {
@@ -317,16 +317,68 @@ describe('App shell URL state', () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('tab', { name: 'Power' }))
-    await user.click(screen.getByRole('tab', { name: 'Tanks' }))
-    expect(screen.getByTestId('pane-tanks')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'GPS' }))
+    expect(screen.getByTestId('pane-gps')).toBeInTheDocument()
 
     act(() => window.history.back())
     await waitFor(() => expect(screen.getByTestId('pane-power')).toBeInTheDocument())
     expect(selectedTab()).toHaveAccessibleName('Power')
 
     act(() => window.history.forward())
-    await waitFor(() => expect(screen.getByTestId('pane-tanks')).toBeInTheDocument())
-    expect(selectedTab()).toHaveAccessibleName('Tanks')
+    await waitFor(() => expect(screen.getByTestId('pane-gps')).toBeInTheDocument())
+    expect(selectedTab()).toHaveAccessibleName('GPS')
+  })
+})
+
+/** Publishes one tank property-by-property over the mocked bus, as the hub does. */
+async function receiveTank(id: string, properties: Record<string, unknown>) {
+  for (const [property, value] of Object.entries(properties)) {
+    await receive(`renewvan/tank/${id}/${property}`, JSON.stringify(value))
+  }
+}
+
+const FRESH_TANK = {
+  fluid_type: 'fresh_water',
+  capacity_l: 100,
+  level_pct: 62,
+  status: 'ok',
+  volume_since_full_l: 0,
+  volume_since_empty_l: 0,
+}
+
+describe('App shell Tanks tab', () => {
+  it('shows a card per reported tank at the kiosk width, with the scale', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await receiveTank('fresh', FRESH_TANK)
+    await receiveTank('grey', { ...FRESH_TANK, fluid_type: 'grey_water', level_pct: 41 })
+    await user.click(screen.getByRole('tab', { name: 'Tanks' }))
+    expect(screen.getByText('Fresh water')).toBeInTheDocument()
+    expect(screen.getByText('Grey water')).toBeInTheDocument()
+    expect(screen.getAllByTestId('tank-scale')).toHaveLength(2)
+  })
+
+  it('shows rows with no scale one pixel below the kiosk width', async () => {
+    const user = userEvent.setup()
+    await renderAt(JUST_BELOW_KIOSK_WIDTH)
+    await receiveTank('fresh', FRESH_TANK)
+    await user.click(screen.getByRole('tab', { name: 'Tanks' }))
+    expect(screen.getByText('Fresh water')).toBeInTheDocument()
+    expect(screen.queryByTestId('tank-scale')).not.toBeInTheDocument()
+  })
+
+  it('swaps card for row when the viewport crosses the breakpoint', async () => {
+    await renderAt(KIOSK_WIDTH, '/?tab=tanks')
+    await receiveTank('fresh', FRESH_TANK)
+    expect(screen.getAllByTestId('tank-scale')).toHaveLength(1)
+    await resizeTo(JUST_BELOW_KIOSK_WIDTH)
+    expect(screen.queryByTestId('tank-scale')).not.toBeInTheDocument()
+    expect(screen.getByText('Fresh water')).toBeInTheDocument()
+  })
+
+  it('shows the empty state when no tank has reported', async () => {
+    await renderAt(KIOSK_WIDTH, '/?tab=tanks')
+    expect(screen.getByText('No tank data yet.')).toBeInTheDocument()
   })
 })
 

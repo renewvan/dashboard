@@ -13,6 +13,7 @@ import { StubPane } from '@/components/StubPane'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsTab } from '@/components/settings/SettingsTab'
 import type { SettingsSubView } from '@/components/settings/views'
+import { TanksTab } from '@/components/tanks/TanksTab'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
@@ -192,6 +193,8 @@ function App() {
             <SettingsProvider value={settings}>
               <SettingsTab />
             </SettingsProvider>
+          ) : item.id === 'tanks' ? (
+            <TanksTab tanks={state.tanks} />
           ) : (
             <StubPane id={item.id} title={item.label} icon={item.icon} />
           )}

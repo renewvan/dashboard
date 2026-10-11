@@ -1,0 +1,152 @@
+import { render, screen, within } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import type { Tank } from '@/types'
+import { TankCard } from './TankCard'
+import { TankRow } from './TankRow'
+
+const NOW = new Date('2026-07-14T12:00:00Z')
+const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000).toISOString()
+
+function tank(overrides: Partial<Tank> = {}): Tank {
+  return {
+    fluid_type: 'fresh_water',
+    capacity_l: 100,
+    level_pct: 62,
+    status: 'ok',
+    volume_since_full_l: 0,
+    volume_since_empty_l: 0,
+    ...overrides,
+  }
+}
+
+const LOW_ALARM = {
+  alarm_direction: 'low' as const,
+  alarm_threshold_pct: 27,
+  alarm_restore_pct: 48,
+}
+
+const layouts = [
+  ['card (kiosk)', TankCard],
+  ['row (phone)', TankRow],
+] as const
+
+describe.each(layouts)('%s', (_name, Layout) => {
+  const show = (t: Tank) => render(<Layout id="t" tank={t} now={NOW} />)
+
+  it('shows the fluid label, a Normal badge, the percentage and the litres', () => {
+    show(tank({ capacity_l: 100, level_pct: 62 }))
+    expect(screen.getByText('Fresh water')).toBeInTheDocument()
+    expect(screen.getByText('Normal')).toBeInTheDocument()
+    expect(screen.getAllByText('62%').length).toBeGreaterThan(0)
+    expect(screen.getByText(/62\s*\/\s*100/)).toBeInTheDocument()
+  })
+
+  it('shows a Fault badge and the fault reason, not a level', () => {
+    show(tank({ fluid_type: 'grey_water', status: 'open_circuit', level_pct: 95 }))
+    expect(screen.getByText('Fault')).toBeInTheDocument()
+    expect(screen.getByText('Open circuit')).toBeInTheDocument()
+    expect(screen.queryByText(/95/)).not.toBeInTheDocument()
+  })
+
+  it('names a short circuit', () => {
+    show(tank({ status: 'short_circuit' }))
+    expect(screen.getByText('Short circuit')).toBeInTheDocument()
+  })
+
+  it('clamps an over-range level to 100%', () => {
+    show(tank({ level_pct: 140 }))
+    expect(screen.getAllByText('100%').length).toBeGreaterThan(0)
+    expect(screen.queryByText('140%')).not.toBeInTheDocument()
+  })
+
+  it('clamps a negative level to 0%', () => {
+    show(tank({ level_pct: -5 }))
+    expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
+    expect(screen.queryByText('-5%')).not.toBeInTheDocument()
+  })
+
+  it('shows Temperature, with a dash when the tank has no sensor', () => {
+    const { unmount } = show(tank())
+    expect(screen.getByText('Temperature')).toBeInTheDocument()
+    expect(screen.getByText('--°C')).toBeInTheDocument()
+    unmount()
+    show(tank({ temperature_c: 18.4 }))
+    expect(screen.getByText('18°C')).toBeInTheDocument()
+  })
+
+  it('shows a Drain Rate in L/h since the last refill for fresh water', () => {
+    show(tank({ volume_since_full_l: 20, last_full_at: hoursAgo(10) }))
+    expect(screen.getByText('Drain Rate')).toBeInTheDocument()
+    expect(screen.queryByText('Fill Rate')).not.toBeInTheDocument()
+    expect(screen.getByText('2.0 L/h')).toBeInTheDocument()
+  })
+
+  it('shows a Fill Rate in L/h since the last empty-out for grey water', () => {
+    show(tank({ fluid_type: 'grey_water', volume_since_empty_l: 15, last_empty_at: hoursAgo(5) }))
+    expect(screen.getByText('Fill Rate')).toBeInTheDocument()
+    expect(screen.queryByText('Drain Rate')).not.toBeInTheDocument()
+    expect(screen.getByText('3.0 L/h')).toBeInTheDocument()
+  })
+
+  it('shows a Status row worded by alarm direction and zone', () => {
+    show(tank({ ...LOW_ALARM, level_pct: 15 }))
+    expect(screen.getByText('Status')).toBeInTheDocument()
+    // Badge and Status row agree: the same word twice.
+    expect(screen.getAllByText('Low')).toHaveLength(2)
+  })
+
+  it('hides the Status row when no alarm is configured', () => {
+    show(tank())
+    expect(screen.queryByText('Status')).not.toBeInTheDocument()
+  })
+
+  it('agrees the badge and the Status row at 100% on a low-direction tank', () => {
+    show(tank({ ...LOW_ALARM, level_pct: 100 }))
+    expect(screen.getAllByText('Full')).toHaveLength(2)
+  })
+
+  it('shows "Last refilled" with the fixed date for fresh water', () => {
+    const local = new Date(2026, 6, 14, 9, 41)
+    show(tank({ last_full_at: local.toISOString() }))
+    expect(screen.getByText(/Last refilled/)).toBeInTheDocument()
+    expect(screen.getByText('14 Jul 2026 09:41')).toBeInTheDocument()
+  })
+
+  it('shows "Last emptied" for the other tanks', () => {
+    const local = new Date(2026, 7, 3, 18, 5)
+    show(tank({ fluid_type: 'grey_water', last_empty_at: local.toISOString() }))
+    expect(screen.getByText(/Last emptied/)).toBeInTheDocument()
+    expect(screen.getByText('3 Aug 2026 18:05')).toBeInTheDocument()
+  })
+
+  it('shows a dash when the tank has never refilled or emptied', () => {
+    show(tank())
+    expect(screen.getByText(/Last refilled/)).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('has a disabled Configure button', () => {
+    show(tank())
+    const button = screen.getByRole('button', { name: 'Configure' })
+    expect(button).toBeDisabled()
+  })
+})
+
+describe('card (kiosk) scale', () => {
+  it('draws the 100/75/50/25/0% scale', () => {
+    // A level of 62% keeps the in-fill label off every mark.
+    render(<TankCard id="t" tank={tank({ level_pct: 62 })} now={NOW} />)
+    const scale = screen.getByTestId('tank-scale')
+    for (const mark of ['100%', '75%', '50%', '25%', '0%']) {
+      expect(within(scale).getByText(mark)).toBeInTheDocument()
+    }
+  })
+})
+
+describe('row (phone) has no tick labels', () => {
+  it('omits the scale', () => {
+    render(<TankRow id="t" tank={tank({ level_pct: 62 })} now={NOW} />)
+    expect(screen.queryByTestId('tank-scale')).not.toBeInTheDocument()
+    expect(screen.queryByText('75%')).not.toBeInTheDocument()
+  })
+})
