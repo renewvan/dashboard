@@ -34,10 +34,10 @@ export function TankCard({ tank, now }: TankCardProps) {
         <div className="min-w-0 truncate text-sm font-semibold">{view.fluidLabel}</div>
         <SeverityChip badge={view.badge} />
       </Card.Header>
-      <Card.Content className="min-h-0 flex-1 flex-row! gap-4 px-3 py-2">
-        <div className="flex min-h-0 items-stretch gap-1 self-stretch">
-          <div className="flex min-h-0 flex-col items-center gap-2">
-            <div className="border-border! bg-surface-secondary relative min-h-0 w-[110px] flex-1 overflow-hidden rounded-xl border-2">
+      <Card.Content className="min-h-0 flex-1 flex-row! gap-4 px-6 py-2">
+        <div className="flex min-h-0 min-w-0 flex-1 items-stretch gap-2 self-stretch">
+          <div className="flex min-h-0 min-w-0 flex-col items-center gap-1">
+            <div className="border-border! bg-surface-secondary relative min-h-0 w-[140px] flex-1 overflow-hidden rounded-xl border-2">
               {GRIDLINES.map((mark) => (
                 <div
                   key={mark}

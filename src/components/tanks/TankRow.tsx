@@ -21,7 +21,7 @@ export function TankRow({ tank, now }: TankCardProps) {
         <div className="min-w-0 truncate text-sm font-semibold">{view.fluidLabel}</div>
         <SeverityChip badge={view.badge} />
       </Card.Header>
-      <Card.Content className="gap-2 px-4 pb-3">
+      <Card.Content className="gap-2 px-4 pb-6">
         {!view.faulted && (
           <div className="flex items-baseline justify-between gap-2">
             <div className="text-4xl leading-none font-semibold">{view.pct.toFixed(0)}%</div>
@@ -43,7 +43,7 @@ export function TankRow({ tank, now }: TankCardProps) {
             style={{ width: `${view.pct}%`, background: FILL_COLOR[view.severity] }}
           />
         </div>
-        <div className="mt-1 grid grid-cols-3 gap-2">
+        <div className="mt-4 grid grid-cols-3 gap-2">
           <TankStats view={view} />
         </div>
       </Card.Content>
