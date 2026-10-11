@@ -4,7 +4,7 @@ Outcome of the HeroUI layout spike (branch `HeroUI`, spec #24): rebuild the dash
 
 ## Outcome
 
-The base layout runs on HeroUI with coss removed. The header controls (clock, display sleep, theme, uplink status, alerts), the rail/bottom-bar navigation and the alert toasts are HeroUI components. Page content is mostly not ported: the panes are `StubPane` placeholders, so nothing here says how HeroUI behaves on the data-dense pages (tanks, power, switches, heater, GPS). The Settings tab has since been ported (see below).
+The base layout runs on HeroUI with coss removed. The header controls (clock, display sleep, theme, uplink status, alerts), the rail/bottom-bar navigation and the alert toasts are HeroUI components. Page content is mostly not ported: the remaining panes are `StubPane` placeholders, so nothing here says how HeroUI behaves on the data-dense pages (power, switches, heater, GPS). The Settings and Tanks tabs have since been ported (see below).
 
 HeroUI's component CSS is imported granularly in `src/index.css`, one line per component, not as the whole stylesheet: the base, theme, utilities and variants layers, the layout shell's components, and the controls, breadcrumbs and drawer the Settings tab added.
 
@@ -24,7 +24,7 @@ The "after" figures also reflect the removed pages, so they say nothing about He
 ### Tests and files
 
 - Test count: 211 on `main`, 184 at the cutover commit, 187 at the branch tip (the review-fix commit added three `AppToasts` tests). The deleted coss components, tabs and tank cards took their tests with them. Two kept files each lost one case on purpose: the "meets the 44x44px minimum touch target" case in `ThemeToggleButton.test.tsx` and `DisplaySleepButton.test.tsx`, because that rule is suspended on this branch. Every other kept test file has the same number of cases or more.
-- The cutover commit (`8b44afb`) deleted 98 files: 54 under `src/components/ui` (the coss primitives), 12 under `src/tabs`, 7 tank cards, plus loose components, hooks, a lib file, a weather widget, two assets and `components.json`. Net against `main` the branch deletes 84 files.
+- The cutover commit (`8b44afb`) deleted 98 files: 54 under `src/components/ui` (the coss primitives), 12 under `src/tabs`, 7 tank cards, plus loose components, hooks, a lib file, a weather widget, two assets and `components.json`. Net against `main` the branch deletes 84 files. (The tank cards were rewritten on HeroUI when the Tanks tab was ported; the old `TankRowCard` and `TankStatCard` variants were dropped for good and stay recoverable from `main`.)
 
 ## What worked
 
@@ -55,8 +55,8 @@ These were decided with the spike and are not regressions to fix:
 
 ## Known items for the page port
 
-- `lib/tank-alarm.ts` and `RadialGauge.css` still reference `var(--bad)`, `var(--warn)`, `var(--ok)`, `var(--bg)` and `var(--kiosk-muted)`, and `TiltWidget.tsx` is unmounted. None of these resolve against HeroUI tokens; they are unmounted orphans that ticket 23 deliberately left for the page port.
-- Comments in `src/types.ts` and `src/lib/tank-alarm.ts` naming `TankCard` describe code that returns when the pages are ported.
+- ~~`lib/tank-alarm.ts` and `RadialGauge.css` still reference `var(--bad)`, `var(--warn)`, `var(--ok)`, `var(--bg)` and `var(--kiosk-muted)`~~ **Ported:** `lib/tank-alarm.ts` now returns a semantic severity key and the Tanks tab maps it to `--danger`, `--warning` and `--accent`; `RadialGauge` and its CSS are deleted. `TiltWidget.tsx` is still unmounted.
+- ~~Comments in `src/types.ts` and `src/lib/tank-alarm.ts` naming `TankCard` describe code that returns when the pages are ported.~~ **Ported:** `TankCard` (kiosk) and `TankRow` (phone) live in `src/components/tanks/`, so those comments are accurate again.
 - Several comments point at pages that are still unported; they should be revisited when those pages return. Settings is **ported** and its comments now describe the live code; the remaining ones are about the Alerts page.
 
 ## Unverified

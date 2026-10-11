@@ -2,7 +2,7 @@
 
 Standing constraints on this dashboard's UI, independent of any single feature. Consult before sizing or spacing interactive controls.
 
-> **Suspended on branch `HeroUI`.** The HeroUI layout spike (map: "HeroUI base layout: rebuild Header and Sidebar on HeroUI, coss removed") deliberately ships HeroUI's default component sizes (Button 36-40px, Tab 32px) and drops the 44×44px minimum below **for that effort only**, by explicit decision. The rule is not retired for the project: it applies again to `main` and to anything that ships from it unless that decision is carried over.
+> **The 44×44px rule applies again on branch `HeroUI`.** The HeroUI layout spike (map: "HeroUI base layout: rebuild Header and Sidebar on HeroUI, coss removed") first shipped HeroUI's default component sizes (Button 36-40px, Tab 32px) and dropped the minimum for that effort only. The surfaces ported since re-adopted it: the sidebar rail items, the toast close button and the Tanks tab's Configure button. Components not yet re-sized still ship HeroUI's defaults until their page is ported. The rule is not retired for the project: `main`'s standard stands.
 
 ## Touch targets: design for fat fingers and gloves
 
