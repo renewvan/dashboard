@@ -35,8 +35,8 @@ export function TankCard({ tank, now }: TankCardProps) {
         <div className="min-w-0 truncate text-sm font-semibold">{view.fluidLabel}</div>
         <SeverityChip badge={view.badge} />
       </Card.Header>
-      <Card.Content className="min-h-0 flex-1 flex-row gap-4 px-3 py-2">
-        <div className="flex min-h-0 items-stretch gap-1">
+      <Card.Content className="min-h-0 flex-1 flex-row! gap-4 px-3 py-2">
+        <div className="flex min-h-0 items-stretch gap-1 self-stretch">
           <div className="flex min-h-0 flex-col items-center gap-2">
             <div className="border-border! bg-surface-secondary relative min-h-0 w-[110px] flex-1 overflow-hidden rounded-xl border-2">
               {GRIDLINES.map((mark) => (
@@ -47,14 +47,16 @@ export function TankCard({ tank, now }: TankCardProps) {
                 />
               ))}
               <div
-                className="absolute inset-x-0 bottom-0 flex items-start justify-center pt-1 text-xs font-semibold transition-[height]"
+                className="absolute inset-x-0 bottom-0 overflow-hidden text-xs font-semibold transition-[height]"
                 style={{
                   height: `${view.pct}%`,
                   background: fill,
                   color: FILL_TEXT_COLOR[view.severity],
                 }}
               >
-                {view.pct >= LABEL_INSIDE_FROM_PCT && `${view.pct.toFixed(0)}%`}
+                {view.pct >= LABEL_INSIDE_FROM_PCT && (
+                  <div className="pt-1 text-center">{view.pct.toFixed(0)}%</div>
+                )}
               </div>
               {view.pct < LABEL_INSIDE_FROM_PCT && (
                 <div className="absolute inset-x-0 top-1 text-center text-xs font-semibold">
