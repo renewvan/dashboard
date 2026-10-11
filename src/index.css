@@ -26,3 +26,53 @@
 @import '@heroui/styles/components/close-button.css';
 @import '@heroui/styles/components/drawer.css';
 @import './global.css';
+
+/*
+ * Toasts on a touchscreen (kiosk): no hover exists, so HeroUI's hover-revealed
+ * close button is never reachable. Keep it visible on the frontmost toast and
+ * size it to the 44px minimum touch target (docs/design-principles.md). Placed
+ * after the HeroUI imports so these win at equal specificity.
+ */
+.toast__close-button {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+}
+.toast[data-frontmost='true']:not([data-exiting='true']) .toast__close-button,
+.toast[data-expanded='true']:not([data-exiting='true']) .toast__close-button {
+  pointer-events: auto;
+  opacity: 1;
+}
+.toast__close-button [data-slot='close-button-icon'] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+/* Keep the title/description clear of the 44px close target. */
+.toast {
+  padding-inline-end: 2.75rem;
+}
+
+/*
+ * Swipe to dismiss: `AppToasts` writes the horizontal drag distance into
+ * `--swipe-x` and the progress into `--swipe-opacity`. HeroUI's own transform
+ * (stack offset + scale) is kept and the drag is composed on top of it.
+ * `touch-action: pan-y` hands vertical gestures to the browser and leaves
+ * horizontal ones to us.
+ */
+.toast {
+  touch-action: pan-y;
+  transform: translateX(var(--swipe-x, 0px))
+    translateY(calc(var(--dir, 1) * (var(--toast-y) + var(--toast-enter))))
+    scale(var(--toast-scale));
+  opacity: var(--swipe-opacity, 1);
+}
+.toast[data-swiping='true'] {
+  --toast-translate-duration: 0ms;
+  --toast-opacity-duration: 0ms;
+  user-select: none;
+}
