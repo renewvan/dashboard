@@ -81,26 +81,31 @@
 /*
  * Alerts take their type from the background, as in coss's Alert: a wash of the
  * type's colour over the (opaque) surface, with the title and icon in the type's
- * strong colour. `AppToasts` stamps `data-type` because HeroUI puts no variant class
- * on the toast root. The wash is layered on `--surface` so a floating toast stays
- * solid; the `-soft` tokens alone are translucent. The type is also in the
- * indicator and title, so the colour is never the only cue.
+ * strong colour and a border in the type's colour. `AppToasts` stamps `data-type`
+ * because HeroUI puts no variant class on the toast root. The wash is layered on
+ * `--surface` so a floating toast stays solid; the `-soft` tokens alone are
+ * translucent. The type is also in the indicator and title, so the colour is
+ * never the only cue.
  */
 .toast[data-type='danger'] {
   --toast-wash: var(--danger-soft);
   --toast-strong: var(--danger-soft-foreground);
+  --toast-border: color-mix(in oklab, var(--danger) 40%, transparent);
 }
 .toast[data-type='warning'] {
   --toast-wash: var(--warning-soft);
   --toast-strong: var(--warning-soft-foreground);
+  --toast-border: color-mix(in oklab, var(--warning) 40%, transparent);
 }
 .toast[data-type='success'] {
   --toast-wash: var(--success-soft);
   --toast-strong: var(--success-soft-foreground);
+  --toast-border: color-mix(in oklab, var(--success) 40%, transparent);
 }
 .toast[data-type='accent'] {
   --toast-wash: var(--accent-soft);
   --toast-strong: var(--accent-soft-foreground);
+  --toast-border: color-mix(in oklab, var(--accent) 40%, transparent);
 }
 .toast[data-type='danger'],
 .toast[data-type='warning'],
@@ -108,6 +113,8 @@
 .toast[data-type='accent'] {
   background-color: var(--surface);
   background-image: linear-gradient(var(--toast-wash), var(--toast-wash));
+  /* HeroUI's base sheet sets an unlayered `* { border-color }`; this rule is unlayered and later. */
+  border: 1px solid var(--toast-border);
 }
 .toast[data-type='danger'] .toast__indicator,
 .toast[data-type='warning'] .toast__indicator,
