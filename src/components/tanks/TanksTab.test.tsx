@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Tank } from '@/types'
 import { TanksTab } from './TanksTab'
@@ -23,12 +24,14 @@ const FRESH = tank()
 const GREY = tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 })
 
 let viewport: MatchMediaStub
+const onConfigure = vi.fn()
 function renderAt(width: number, tanks: Record<string, Partial<Tank>>) {
   viewport = stubMatchMedia(width)
-  return render(<TanksTab tanks={tanks as Record<string, Tank>} />)
+  return render(<TanksTab tanks={tanks as Record<string, Tank>} onConfigure={onConfigure} />)
 }
 
 afterEach(() => {
+  onConfigure.mockClear()
   cleanup()
   viewport.restore()
 })
@@ -48,6 +51,15 @@ describe.each([
     expect(screen.getByText('Fault')).toBeInTheDocument()
     expect(screen.getByText('Short circuit')).toBeInTheDocument()
     expect(screen.queryByText(/\u2113/)).not.toBeInTheDocument()
+  })
+
+  it('opens the settings of the tank whose Configure button is tapped', async () => {
+    renderAt(width, { grey: GREY, fresh: FRESH })
+
+    const buttons = screen.getAllByRole('button', { name: 'Configure' })
+    await userEvent.click(buttons[1])
+
+    expect(onConfigure).toHaveBeenCalledExactlyOnceWith('grey')
   })
 
   it('shows the empty state when no tank has reported', () => {

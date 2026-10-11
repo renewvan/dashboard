@@ -44,3 +44,9 @@ export function sortTankIds(ids: readonly string[]): string[] {
   }
   return [...ids].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
 }
+
+/** Headline for the Settings group row, e.g. `2 tanks`. */
+export function tankSummary(ids: readonly string[]): string {
+  if (ids.length === 0) return 'No tanks found'
+  return ids.length === 1 ? '1 tank' : `${ids.length} tanks`
+}

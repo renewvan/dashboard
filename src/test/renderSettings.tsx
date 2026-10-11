@@ -41,6 +41,8 @@ const KIOSK_WIDTH = 1024
 interface RenderSettingsOptions {
   /** Simulated viewport width for `matchMedia` (default: kiosk). */
   width?: number
+  /** Starting URL, to open on a deep link (default: the Settings top list). */
+  url?: string
 }
 
 /**
@@ -51,10 +53,10 @@ interface RenderSettingsOptions {
  */
 export function renderSettings(
   overrides: Partial<SettingsContextValue> = {},
-  { width = KIOSK_WIDTH }: RenderSettingsOptions = {},
+  { width = KIOSK_WIDTH, url = '/?tab=settings' }: RenderSettingsOptions = {},
 ) {
-  // The open view lives in `?view=`: every render starts at the top list.
-  window.history.replaceState(null, '', '/?tab=settings')
+  // The open view lives in `?view=`: every render starts at the top list unless a `url` is given.
+  window.history.replaceState(null, '', url)
   const viewport = stubMatchMedia(width)
   vi.stubGlobal('ResizeObserver', StubResizeObserver)
   onTestFinished(() => {
@@ -66,6 +68,7 @@ export function renderSettings(
   const value: SettingsContextValue = {
     nodes: [],
     temperatures: {},
+    tanks: {},
     router: liveRouter,
     routerHealth: 'online',
     routerUpdatedAt: Date.now(),

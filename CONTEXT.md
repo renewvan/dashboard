@@ -40,3 +40,7 @@ Three severity zones—based on the per-tank `alarm_direction`/`alarm_threshold_
 
 The `alarm_state` wire field publishes only committed transitions (after hysteresis + delay); the dashboard reads the threshold/restore band straight off the wire to color the danger/caution zones without delay, so a driver sees the full severity story even before the hub's own alert fires. See hub's `docs/adr/0004-tank-alarm-config-published-on-wire.md` for why these are wire fields rather than a dashboard-side hardcoded mirror.
 _Avoid_: Alarm state, alert state, warning state (use alarm/caution/normal zones for the colors)
+
+**Tank settings**:
+The per-tank page at Settings › Nodes › Tanks › _tank_ (`?tab=settings&view=tank&tank=<id>`), opened by the Configure button on a tank's card or row. It is meant to mirror the node's own config (the `[tank.*]` parameters of node-tank, as in [dbus-ads1115's configuration parameters](https://github.com/alexsanzder/dbus-ads1115#configuration-parameters)). Today it shows only **Enabled**, read-only: `enabled` is a node-tank `config.ini` value read at startup, with no wire field or `/set` topic to change it, and a disabled tank stops publishing and so would drop out of the list. Each setting becomes editable once the hub schema and node-tank define a command topic for it.
+_Avoid_: Tank config (the node's `config.ini` is the source; this page is the dashboard's view of it)

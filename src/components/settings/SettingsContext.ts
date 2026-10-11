@@ -6,15 +6,16 @@ import type {
   TailscaleStatus,
 } from '@/hooks/useRenewvanBus'
 import type { NodeSummary } from '@/lib/nodes'
-import type { Router, TemperatureSensor, TemperatureUnit } from '@/types'
+import type { Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
 
 /**
  * Everything the Settings tab and its views read, built once by `App` from
- * its single hook instances. `temperatures` and `router` are `Partial` because
+ * its single hook instances. `tanks`, `temperatures` and `router` are `Partial` because
  * the bus accumulates entities one property per retained message.
  */
 export interface SettingsContextValue {
   nodes: NodeSummary[]
+  tanks: Record<string, Partial<Tank>>
   temperatures: Record<string, Partial<TemperatureSensor>>
   router: Partial<Router> | undefined
   routerHealth: RouterHealth | null

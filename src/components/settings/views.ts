@@ -2,6 +2,8 @@
 export type SettingsView =
   | 'list'
   | 'nodes'
+  | 'tanks'
+  | 'tank'
   | 'temperature'
   | 'general'
   | 'alerts'

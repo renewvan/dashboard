@@ -81,11 +81,11 @@ export function TankStats({ view }: { view: TankView }) {
 }
 
 /**
- * Last refilled/emptied date and the Configure button. HeroUI's component CSS is
- * unlayered, so the border colour (`*` rule) and the button shape need `!`.
- * No tooltip: HeroUI's never opens on a disabled button or on a touch tap.
+ * Last refilled/emptied date and the Configure button, which opens the tank's settings.
+ * HeroUI's component CSS is unlayered, so the border colour (`*` rule) and the button
+ * shape need `!`. No tooltip: HeroUI's never opens on a touch tap.
  */
-export function TankFooter({ view }: { view: TankView }) {
+export function TankFooter({ view, onConfigure }: { view: TankView; onConfigure: () => void }) {
   return (
     <div className="border-border! flex shrink-0 items-center justify-between gap-2 border-t px-5 py-2">
       <div className="flex min-w-0 items-center gap-1 text-xs">
@@ -95,9 +95,9 @@ export function TankFooter({ view }: { view: TankView }) {
       </div>
       <Button
         isIconOnly
-        isDisabled
         variant="outline"
         aria-label="Configure"
+        onPress={onConfigure}
         className="size-11! shrink-0 rounded-full!"
       >
         <Settings aria-hidden="true" className="size-4!" />

@@ -12,7 +12,7 @@ const GRIDLINES = [25, 50, 75]
  * stats as the kiosk card, and the same footer. No tick labels; the 25/50/75%
  * gridlines stay. Same HeroUI `!` caveats as `TankCard`.
  */
-export function TankRow({ tank, now }: TankCardProps) {
+export function TankRow({ id, tank, now, onConfigure }: TankCardProps) {
   const view = tankView(tank, now)
 
   return (
@@ -47,7 +47,7 @@ export function TankRow({ tank, now }: TankCardProps) {
           <TankStats view={view} />
         </div>
       </Card.Content>
-      <TankFooter view={view} />
+      <TankFooter view={view} onConfigure={() => onConfigure(id)} />
     </Card>
   )
 }

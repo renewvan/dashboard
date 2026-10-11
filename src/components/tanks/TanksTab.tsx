@@ -8,6 +8,8 @@ import { TankRow } from './TankRow'
 
 export interface TanksTabProps {
   tanks: Record<string, Tank>
+  /** Opens a tank's settings (its Configure button). */
+  onConfigure: (id: string) => void
 }
 
 /** Drain/fill pace only needs minute resolution. */
@@ -20,7 +22,7 @@ const PACE_REFRESH_MS = 30_000
  * four or more tanks the kiosk cards lose room; revisit if a fourth tank ever
  * publishes (the van publishes fresh and grey only).
  */
-export function TanksTab({ tanks }: TanksTabProps) {
+export function TanksTab({ tanks, onConfigure }: TanksTabProps) {
   const isMobile = useIsMobile()
   const now = new Date(useNow(PACE_REFRESH_MS))
 
@@ -42,7 +44,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto p-4">
         {ids.map((id) => (
-          <TankRow key={id} tank={tanks[id]} now={now} />
+          <TankRow key={id} id={id} tank={tanks[id]} now={now} onConfigure={onConfigure} />
         ))}
       </div>
     )
@@ -54,7 +56,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
       style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}
     >
       {ids.map((id) => (
-        <TankCard key={id} tank={tanks[id]} now={now} />
+        <TankCard key={id} id={id} tank={tanks[id]} now={now} onConfigure={onConfigure} />
       ))}
     </div>
   )

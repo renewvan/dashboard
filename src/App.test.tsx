@@ -376,6 +376,41 @@ describe('App shell Tanks tab', () => {
     expect(screen.getByText('Fresh water')).toBeInTheDocument()
   })
 
+  it.each([
+    ['kiosk', KIOSK_WIDTH],
+    ['phone', PHONE_WIDTH],
+  ])(
+    'opens the tank settings from Configure, and Back returns to Tanks (%s)',
+    async (_name, width) => {
+      const user = userEvent.setup()
+      await renderAt(width)
+      await receiveTank('fresh', FRESH_TANK)
+      await receiveTank('grey', { ...FRESH_TANK, fluid_type: 'grey_water', level_pct: 41 })
+      await user.click(screen.getByRole('tab', { name: 'Tanks' }))
+
+      await user.click(screen.getAllByRole('button', { name: 'Configure' })[1])
+
+      expect(selectedTab()).toHaveAccessibleName('Settings')
+      expect(screen.getByRole('link', { name: 'Grey water', current: 'page' })).toBeInTheDocument()
+      expect(screen.getByRole('switch', { name: 'Enabled' })).toBeDisabled()
+      expect(window.location.search).toBe('?tab=settings&view=tank&tank=grey')
+
+      act(() => window.history.back())
+      await waitFor(() => expect(selectedTab()).toHaveAccessibleName('Tanks'))
+      expect(screen.getByText('Grey water')).toBeInTheDocument()
+    },
+  )
+
+  it('drops the open tank when leaving Settings for another tab', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=tank&tank=fresh')
+    await receiveTank('fresh', FRESH_TANK)
+
+    await user.click(screen.getByRole('tab', { name: 'Power' }))
+
+    expect(window.location.search).toBe('?tab=power')
+  })
+
   it('shows the empty state when no tank has reported', async () => {
     await renderAt(KIOSK_WIDTH, '/?tab=tanks')
     expect(screen.getByText('No tank data yet.')).toBeInTheDocument()

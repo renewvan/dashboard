@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import type { Tank } from '@/types'
 import { TankCard } from './TankCard'
 import { TankRow } from './TankRow'
@@ -31,7 +32,8 @@ const layouts = [
 ] as const
 
 describe.each(layouts)('%s', (_name, Layout) => {
-  const show = (t: Tank) => render(<Layout tank={t} now={NOW} />)
+  const show = (t: Tank, onConfigure = vi.fn()) =>
+    render(<Layout id="t" tank={t} now={NOW} onConfigure={onConfigure} />)
 
   it('shows the fluid label, a Normal badge, the percentage and the litres', () => {
     show(tank({ capacity_l: 100, level_pct: 62 }))
@@ -144,17 +146,20 @@ describe.each(layouts)('%s', (_name, Layout) => {
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
-  it('has a disabled Configure button', () => {
-    show(tank())
-    const button = screen.getByRole('button', { name: 'Configure' })
-    expect(button).toBeDisabled()
+  it("opens this tank's settings from the Configure button", async () => {
+    const onConfigure = vi.fn()
+    show(tank(), onConfigure)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Configure' }))
+
+    expect(onConfigure).toHaveBeenCalledExactlyOnceWith('t')
   })
 })
 
 describe('card (kiosk) scale', () => {
   it('draws the 100/75/50/25/0% scale', () => {
     // A level of 62% keeps the in-fill label off every mark.
-    render(<TankCard tank={tank({ level_pct: 62 })} now={NOW} />)
+    render(<TankCard id="t" onConfigure={vi.fn()} tank={tank({ level_pct: 62 })} now={NOW} />)
     const scale = screen.getByTestId('tank-scale')
     for (const mark of ['100%', '75%', '50%', '25%', '0%']) {
       expect(within(scale).getByText(mark)).toBeInTheDocument()
@@ -164,7 +169,7 @@ describe('card (kiosk) scale', () => {
 
 describe('row (phone) has no tick labels', () => {
   it('omits the scale', () => {
-    render(<TankRow tank={tank({ level_pct: 62 })} now={NOW} />)
+    render(<TankRow id="t" onConfigure={vi.fn()} tank={tank({ level_pct: 62 })} now={NOW} />)
     expect(screen.queryByTestId('tank-scale')).not.toBeInTheDocument()
     expect(screen.queryByText('75%')).not.toBeInTheDocument()
   })

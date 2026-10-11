@@ -63,10 +63,14 @@ function App() {
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'start')
-  // A view belongs to the Settings tab: any other tab change leaves it behind (one entry).
-  const goToTab = (id: string) => setActiveTab(id, { view: null })
+  // A view (and the tank it shows) belongs to the Settings tab: any other tab change leaves
+  // both behind (one entry).
+  const goToTab = (id: string) => setActiveTab(id, { view: null, tank: null })
   // One history entry for tab and view together, so Back returns to the previous tab.
-  const openSettings = (view: SettingsSubView) => setActiveTab('settings', { view })
+  const openSettings = (view: SettingsSubView) => setActiveTab('settings', { view, tank: null })
+  // The tank's Configure button: Settings › Nodes › Tanks › <tank>, tab, view and tank in one entry.
+  const openTankSettings = (tankId: string) =>
+    setActiveTab('settings', { view: 'tank', tank: tankId })
   const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
@@ -110,6 +114,7 @@ function App() {
   const settings = useMemo(
     () => ({
       nodes,
+      tanks: state.tanks,
       temperatures: state.temperatures,
       router,
       routerHealth,
@@ -125,6 +130,7 @@ function App() {
     }),
     [
       nodes,
+      state.tanks,
       state.temperatures,
       router,
       routerHealth,
@@ -194,7 +200,7 @@ function App() {
               <SettingsTab />
             </SettingsProvider>
           ) : item.id === 'tanks' ? (
-            <TanksTab tanks={state.tanks} />
+            <TanksTab tanks={state.tanks} onConfigure={openTankSettings} />
           ) : (
             <StubPane id={item.id} title={item.label} icon={item.icon} />
           )}

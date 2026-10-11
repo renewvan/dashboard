@@ -1,14 +1,17 @@
+import { tankSummary } from '@/lib/tank-display'
 import { temperatureSummary } from '@/lib/temperature'
 import { GroupRow } from './GroupRow'
 import { useSettings } from './SettingsContext'
+import { useReportedTankIds } from './useReportedTankIds'
 import type { SettingsSubView } from './views'
 
 /**
- * Every node that has published, with how many entities it exposes. Temperature
- * is the only drill-in (its sensors are editable); the rest are read-only.
+ * Every node that has published, with how many entities it exposes. Tanks and
+ * Temperature are the drill-ins (their entities have settings); the rest are read-only.
  */
 export function NodesView({ onOpen }: { onOpen: (view: SettingsSubView) => void }) {
   const { nodes, temperatures } = useSettings()
+  const tankIds = useReportedTankIds()
 
   if (nodes.length === 0) {
     return (
@@ -21,7 +24,15 @@ export function NodesView({ onOpen }: { onOpen: (view: SettingsSubView) => void 
   return (
     <ul aria-label="Published nodes" className="flex flex-col gap-2">
       {nodes.map((node) =>
-        node.domain === 'temperatures' ? (
+        node.domain === 'tanks' ? (
+          <li key={node.domain}>
+            <GroupRow
+              label={node.label}
+              description={tankSummary(tankIds)}
+              onOpen={() => onOpen('tanks')}
+            />
+          </li>
+        ) : node.domain === 'temperatures' ? (
           <li key={node.domain}>
             <GroupRow
               label={node.label}

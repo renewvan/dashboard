@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { consumptionRateLph, formatLatchDate, sortTankIds } from './tank-display'
+import { consumptionRateLph, formatLatchDate, sortTankIds, tankSummary } from './tank-display'
 
 const HOUR_MS = 3_600_000
 
@@ -69,5 +69,16 @@ describe('sortTankIds', () => {
     const ids = ['grey', 'fresh']
     sortTankIds(ids)
     expect(ids).toEqual(['grey', 'fresh'])
+  })
+})
+
+describe('tankSummary', () => {
+  it('says so when no tank has reported', () => {
+    expect(tankSummary([])).toBe('No tanks found')
+  })
+
+  it('counts tanks, singular and plural', () => {
+    expect(tankSummary(['fresh'])).toBe('1 tank')
+    expect(tankSummary(['fresh', 'grey'])).toBe('2 tanks')
   })
 })

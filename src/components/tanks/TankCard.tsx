@@ -5,9 +5,13 @@ import { SeverityChip, TankFooter, TankStats } from './TankParts'
 import { tankView } from './tankView'
 
 export interface TankCardProps {
+  /** The tank's bus id, handed back to `onConfigure`. */
+  id: string
   tank: Tank
   /** Injected so the pace is deterministic under test. */
   now: Date
+  /** Opens this tank's settings. */
+  onConfigure: (id: string) => void
 }
 
 const SCALE_MARKS = [100, 75, 50, 25, 0]
@@ -24,7 +28,7 @@ const LABEL_INSIDE_FROM_PCT = 16
  * the card's padding and gap, and every border colour (HeroUI's base sheet sets
  * `* { border-color }` unlayered too).
  */
-export function TankCard({ tank, now }: TankCardProps) {
+export function TankCard({ id, tank, now, onConfigure }: TankCardProps) {
   const view = tankView(tank, now)
   const fill = FILL_COLOR[view.severity]
 
@@ -86,7 +90,7 @@ export function TankCard({ tank, now }: TankCardProps) {
           <TankStats view={view} />
         </div>
       </Card.Content>
-      <TankFooter view={view} />
+      <TankFooter view={view} onConfigure={() => onConfigure(id)} />
     </Card>
   )
 }

@@ -1,10 +1,12 @@
-import { memo, useCallback, useState, type ReactNode } from 'react'
+import { memo, useCallback, useMemo, useState, type ReactNode } from 'react'
 import { Breadcrumbs, Button, Drawer, ScrollShadow, Separator } from '@heroui/react'
 import { ArrowLeft, Workflow, SlidersHorizontal, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import { nodesSummary } from '@/lib/nodes'
+import { pushSearchParams } from '@/lib/urlHistory'
+import { FLUID_LABELS } from '@/lib/tank-labels'
 import { AlertsView } from './AlertsView'
 import { CellularView } from './CellularView'
 import { ConnectivityView } from './ConnectivityView'
@@ -16,11 +18,16 @@ import { NavigationView } from './NavigationView'
 import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
 import { TailscaleView } from './TailscaleView'
+import { TankSettingsView } from './TankSettingsView'
+import { TanksView } from './TanksView'
+import { useReportedTankIds } from './useReportedTankIds'
 import { TemperatureView } from './TemperatureView'
 import type { SettingsSubView, SettingsView } from './views'
 
 const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
   nodes: { title: 'Nodes', parent: 'list' },
+  tanks: { title: 'Tanks', parent: 'nodes' },
+  tank: { title: 'Tank', parent: 'tanks' },
   temperature: { title: 'Temperature', parent: 'nodes' },
   general: { title: 'General', parent: 'list' },
   alerts: { title: 'Alerts', parent: 'general' },
@@ -49,14 +56,28 @@ function trailTo(view: SettingsSubView): SettingsSubView[] {
  * and only re-renders when the Settings context value changes.
  */
 export const SettingsTab = memo(function SettingsTab() {
-  const { nodes } = useSettings()
+  const { nodes, tanks } = useSettings()
   const isMobile = useIsMobile()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
   const navStyle: SettingsNavStyle = isMobile ? 'subpage' : storedNavStyle
   // The open view lives in `?view=`; no param (or an unknown one) is the top list.
   const [viewParam, setViewParam] = useUrlParam('view', SUB_VIEWS)
-  const view: SettingsView = viewParam ?? 'list'
+  // The open tank lives in `?tank=`, valid only while it names a reported tank.
+  const tankIds = useReportedTankIds()
+  // `useUrlParam` needs a stable list: keep the array while the set of tanks is unchanged.
+  const tankIdsKey = tankIds.join('\u0000')
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content
+  const validTankIds = useMemo(() => tankIds, [tankIdsKey])
+  const [tankParam] = useUrlParam('tank', validTankIds)
+  // A tank view without a reported tank has nothing to show: fall back to the tank list.
+  const view: SettingsView =
+    viewParam === 'tank' && tankParam === null ? 'tanks' : (viewParam ?? 'list')
+  // `tank` is titled by the open tank's fluid; every other view has a fixed title.
+  const titleOf = (id: SettingsSubView): string => {
+    const fluid = tankParam === null ? undefined : tanks[tankParam]?.fluid_type
+    return id === 'tank' && fluid ? FLUID_LABELS[fluid] : VIEWS[id].title
+  }
   // The drawer is one persistent dialog: navigating deeper swaps its content in place instead
   // of closing one drawer and opening another. Remember the last open view so the content
   // stays put while the drawer slides out after the final close.
@@ -67,11 +88,22 @@ export const SettingsTab = memo(function SettingsTab() {
     (next: SettingsView) => setViewParam(next === 'list' ? null : next),
     [setViewParam],
   )
+  // `view` and `tank` change together, in one history entry.
+  const openTank = useCallback((tankId: string) => {
+    const params = new URLSearchParams(window.location.search)
+    params.set('view', 'tank')
+    params.set('tank', tankId)
+    pushSearchParams(params)
+  }, [])
 
   const content = (id: SettingsSubView): ReactNode => {
     switch (id) {
       case 'nodes':
         return <NodesView onOpen={setView} />
+      case 'tanks':
+        return <TanksView onOpen={openTank} />
+      case 'tank':
+        return <TankSettingsView />
       case 'temperature':
         return <TemperatureView />
       case 'general':
@@ -144,7 +176,7 @@ export const SettingsTab = memo(function SettingsTab() {
                     id={id}
                     onPress={id === view ? undefined : () => setView(id)}
                   >
-                    {VIEWS[id].title}
+                    {titleOf(id)}
                   </Breadcrumbs.Item>
                 ))}
               </Breadcrumbs>
@@ -179,7 +211,7 @@ export const SettingsTab = memo(function SettingsTab() {
                     <ArrowLeft aria-hidden="true" />
                   </Button>
                   <Drawer.Heading className="min-w-0 flex-1 truncate">
-                    {VIEWS[drawerView].title}
+                    {titleOf(drawerView)}
                   </Drawer.Heading>
                   {/* HeroUI pins the close trigger to the corner (`absolute`); in the row it flows. */}
                   <Drawer.CloseTrigger className="static!" />

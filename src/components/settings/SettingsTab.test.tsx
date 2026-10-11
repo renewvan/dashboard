@@ -2,10 +2,19 @@ import { screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeSummary } from '@/lib/nodes'
 import { renderSettings } from '@/test/renderSettings'
+import type { Tank } from '@/types'
 
 const tanks: NodeSummary = { domain: 'tanks', label: 'Tanks', count: 1 }
 const batteries: NodeSummary = { domain: 'batteries', label: 'Batteries', count: 3 }
 const temperature: NodeSummary = { domain: 'temperatures', label: 'Temperature', count: 2 }
+const completeTank: Tank = {
+  fluid_type: 'fresh_water',
+  capacity_l: 100,
+  level_pct: 62,
+  status: 'ok',
+  volume_since_full_l: 0,
+  volume_since_empty_l: 0,
+}
 
 function rowNames() {
   const pane = screen.getByTestId('pane-settings')
@@ -101,9 +110,10 @@ describe('SettingsTab breadcrumb', () => {
 })
 
 describe('SettingsTab Nodes', () => {
-  it('lists published nodes with their entity counts, Temperature described by its sensors', async () => {
+  it('lists published nodes with their entity counts, Tanks and Temperature described by their entities', async () => {
     const { user } = renderSettings({
       nodes: [tanks, batteries, temperature],
+      tanks: { fresh: completeTank },
       temperatures: { outdoor: {}, indoor: {} },
     })
 
@@ -114,7 +124,7 @@ describe('SettingsTab Nodes', () => {
       within(list)
         .getAllByRole('listitem')
         .map((row) => row.textContent),
-    ).toEqual(['Tanks1 entity', 'Batteries3 entities', 'Temperature2 sensors'])
+    ).toEqual(['Tanks1 tank', 'Batteries3 entities', 'Temperature2 sensors'])
   })
 
   it('says so when no node has reported yet', async () => {

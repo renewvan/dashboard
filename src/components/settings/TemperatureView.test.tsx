@@ -39,7 +39,7 @@ const nameField = (panel: string) =>
   within(screen.getByRole('group', { name: panel })).getByRole('textbox', { name: 'Name' })
 
 describe('Settings › Nodes › Temperature', () => {
-  it('is the only drill-in on Nodes, described by its sensor count', async () => {
+  it('is a drill-in on Nodes next to Tanks, described by its sensor count', async () => {
     const { user } = renderSettings({
       nodes: [{ domain: 'tanks', label: 'Tanks', count: 2 }, temperatureNode],
       temperatures: { outdoor, indoor },
@@ -49,7 +49,7 @@ describe('Settings › Nodes › Temperature', () => {
     expect(screen.getByRole('button', { name: /^Temperature/ })).toHaveTextContent('2 sensors')
     expect(
       within(screen.getByRole('list', { name: 'Published nodes' })).getAllByRole('button'),
-    ).toHaveLength(1)
+    ).toHaveLength(2)
 
     await user.click(screen.getByRole('button', { name: /^Temperature/ }))
 
