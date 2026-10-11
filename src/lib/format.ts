@@ -1,6 +1,6 @@
 /**
  * Presentation formatting shared between the header uplink popover and
- * the Settings page's Network section (not yet ported) — one formatter per
+ * the Settings → Connectivity → Cellular page — one formatter per
  * unit, not two independently-drifting copies (tailscaleStatusText precedent).
  */
 

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import { Bell, LayoutPanelLeft, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
@@ -10,12 +10,17 @@ import { AlertsButton } from '@/components/AlertsButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { StubPane } from '@/components/StubPane'
+import { SettingsProvider } from '@/components/settings/SettingsProvider'
+import { SettingsTab } from '@/components/settings/SettingsTab'
+import type { SettingsSubView } from '@/components/settings/views'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
+import { connectedNodes } from '@/lib/nodes'
+import { settingsCommands } from '@/lib/settings-commands'
 import { useTheme } from '@/hooks/useTheme'
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed'
 import { SidebarToggle } from '@/components/SidebarToggle'
@@ -43,10 +48,24 @@ const HEADER_HEIGHT_VAR = '--app-header-height'
 const PANEL_CLASS = 'm-0! flex min-h-0 min-w-0 flex-1 flex-col p-0!'
 
 function App() {
-  const { state, status, displayPower, tailscale, routerHealth, publish } = useRenewvanBus()
-  const [alertsEnabled] = useAlertsEnabled()
+  const {
+    state,
+    status,
+    displayPower,
+    brightness,
+    autoSleepEnabled,
+    autoSleepTimeoutMinutes,
+    tailscale,
+    routerHealth,
+    publish,
+  } = useRenewvanBus()
+  const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
   const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'start')
+  // A view belongs to the Settings tab: any other tab change leaves it behind (one entry).
+  const goToTab = (id: string) => setActiveTab(id, { view: null })
+  // One history entry for tab and view together, so Back returns to the previous tab.
+  const openSettings = (view: SettingsSubView) => setActiveTab('settings', { view })
   const unseenAlertCount = useUnseenAlertCount(activeTab)
   const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
@@ -68,6 +87,57 @@ function App() {
   }, [])
   // single router per hub (compose ROUTER_ID) — first id decides; none yet → checking
   const routerId = Object.keys(state.routers)[0]
+  const router = state.routers[routerId]
+  const routerUpdatedAt = state.routerUpdatedAt[routerId]
+
+  // `state.tanks` / `state.gps` change on every message, so the derived node list is
+  // kept by its content: the Settings context only changes when a node or its count does.
+  const connected = connectedNodes(state)
+  const nodesKey = connected.map((node) => `${node.domain}:${node.count}`).join()
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `connected`
+  const nodes = useMemo(() => connected, [nodesKey])
+
+  // `publish` is a fresh function every render (it only closes over the bus's stable client
+  // ref), so the commands bind to a forwarder that always calls the latest one.
+  const publishRef = useRef(publish)
+  publishRef.current = publish
+  const commands = useMemo(
+    () => settingsCommands((topic, payload) => publishRef.current(topic, payload)),
+    [],
+  )
+
+  const settings = useMemo(
+    () => ({
+      nodes,
+      temperatures: state.temperatures,
+      router,
+      routerHealth,
+      routerUpdatedAt,
+      busStatus: status,
+      tailscale,
+      brightness,
+      autoSleepEnabled,
+      autoSleepTimeoutMinutes,
+      ...commands,
+      alertsEnabled,
+      setAlertsEnabled,
+    }),
+    [
+      nodes,
+      state.temperatures,
+      router,
+      routerHealth,
+      routerUpdatedAt,
+      status,
+      tailscale,
+      brightness,
+      autoSleepEnabled,
+      autoSleepTimeoutMinutes,
+      commands,
+      alertsEnabled,
+      setAlertsEnabled,
+    ],
+  )
 
   const handleSleep = () => publish('renewvan/kiosk/display/power/set', 'off')
   const handleWake = () => publish('renewvan/kiosk/display/power/set', 'on')
@@ -100,11 +170,11 @@ function App() {
           lastReceivedAt={state.routerUpdatedAt[routerId]}
           tailscale={tailscale}
           busStatus={status}
-          onOpenSettings={() => setActiveTab('settings')}
+          onOpenSettings={() => openSettings('cellular')}
         />
         <Separator orientation="vertical" className="mx-1.5 h-6" />
         <AlertsButton
-          onClick={() => setActiveTab('alerts')}
+          onClick={() => goToTab('alerts')}
           count={unseenAlertCount}
           active={activeTab === 'alerts'}
         />
@@ -118,7 +188,13 @@ function App() {
     <>
       {NAV_ITEMS.map((item) => (
         <Tabs.Panel key={item.id} id={item.id} className={PANEL_CLASS}>
-          <StubPane id={item.id} title={item.label} icon={item.icon} />
+          {item.id === 'settings' ? (
+            <SettingsProvider value={settings}>
+              <SettingsTab />
+            </SettingsProvider>
+          ) : (
+            <StubPane id={item.id} title={item.label} icon={item.icon} />
+          )}
         </Tabs.Panel>
       ))}
       <Tabs.Panel id="alerts" className={PANEL_CLASS}>
@@ -138,7 +214,7 @@ function App() {
       {isMobile && header}
       <Tabs
         selectedKey={activeTab}
-        onSelectionChange={(key) => setActiveTab(String(key))}
+        onSelectionChange={(key) => goToTab(String(key))}
         orientation={isMobile ? 'horizontal' : 'vertical'}
         className="min-h-0 flex-1 gap-0!"
       >

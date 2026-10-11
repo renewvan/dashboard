@@ -1,9 +1,21 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from '@heroui/react'
 import type { MqttClient } from 'mqtt'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import App from './App'
+
+type MessageHandler = (topic: string, message: { toString: () => string }) => void
+
+/**
+ * The mocked clients' `message` handlers and the shared `publish` spy, reachable from the tests so
+ * they can inject bus messages as the broker would and assert on what the app publishes.
+ */
+const mqtt = vi.hoisted(() => ({
+  messageHandlers: new Set<MessageHandler>(),
+  publish: vi.fn(),
+}))
 
 vi.mock('mqtt', () => ({
   default: {
@@ -12,16 +24,27 @@ vi.mock('mqtt', () => ({
       const client = {
         on: (event: string, handler: (...args: unknown[]) => void) => {
           handlers.set(event, handler)
+          if (event === 'message') mqtt.messageHandlers.add(handler as MessageHandler)
         },
         subscribe: vi.fn(),
-        publish: vi.fn(),
-        end: vi.fn(),
+        publish: mqtt.publish,
+        end: vi.fn(() => {
+          const message = handlers.get('message')
+          if (message) mqtt.messageHandlers.delete(message as MessageHandler)
+        }),
       }
       queueMicrotask(() => handlers.get('connect')?.())
       return client as unknown as MqttClient
     },
   },
 }))
+
+/** Delivers a retained message to the app as the broker would. */
+async function receive(topic: string, payload: string) {
+  await act(async () => {
+    for (const handler of mqtt.messageHandlers) handler(topic, { toString: () => payload })
+  })
+}
 
 const THEME_KEY = 'renewvan-dashboard-theme'
 const KIOSK_WIDTH = 800
@@ -64,6 +87,22 @@ async function renderAt(width: number, url = '/') {
   await act(async () => {})
 }
 
+/** A tank that has published every property `useAlertToasts` needs, in alarm. */
+async function receiveAlarmingTank() {
+  const properties = {
+    fluid_type: 'fresh_water',
+    capacity_l: 100,
+    level_pct: 5,
+    status: 'ok',
+    volume_since_full_l: 95,
+    volume_since_empty_l: 5,
+    alarm_state: 'alarm',
+  }
+  for (const [property, value] of Object.entries(properties)) {
+    await receive(`renewvan/tank/fresh/${property}`, JSON.stringify(value))
+  }
+}
+
 /** Crosses a breakpoint and lets React Aria's deferred indicator update settle inside `act`. */
 async function resizeTo(width: number) {
   await act(async () => {
@@ -76,8 +115,47 @@ function selectedTab() {
   return screen.queryByRole('tab', { selected: true })
 }
 
+/** Taps Network settings in the uplink popover. */
+async function openCellularFromUplink(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByTestId('uplink-status-button'))
+  await user.click(await screen.findByRole('button', { name: /network settings/i }))
+}
+
+/** The subpage breadcrumb ends on the open view. */
+function currentCrumb() {
+  const pane = screen.getByTestId('pane-settings')
+  return within(pane).queryByRole('link', { current: 'page' })
+}
+
+function expectInCellular() {
+  expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
+  expect(currentCrumb()).toHaveAccessibleName('Cellular')
+}
+
+function expectTopList() {
+  const pane = screen.getByTestId('pane-settings')
+  expect(within(pane).getAllByRole('button')).toHaveLength(3)
+  expect(within(pane).queryByRole('link')).not.toBeInTheDocument()
+}
+
+/** jsdom delivers `popstate` on a later task: wait for it, then let React settle. */
+async function traverseHistory(go: () => void) {
+  await act(async () => {
+    const popped = new Promise((resolve) =>
+      window.addEventListener('popstate', resolve, { once: true }),
+    )
+    go()
+    await popped
+  })
+}
+
+const goBack = () => traverseHistory(() => window.history.back())
+const goForward = () => traverseHistory(() => window.history.forward())
+
 beforeEach(() => {
   headerHeight = 49
+  mqtt.messageHandlers.clear()
+  mqtt.publish.mockClear()
   vi.stubGlobal('ResizeObserver', StubResizeObserver)
   Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
     configurable: true,
@@ -296,13 +374,221 @@ describe('App shell header', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
   })
 
-  it('jumps to Settings from the uplink popover CTA', async () => {
+  it('opens Settings › Connectivity › Cellular from the uplink popover CTA', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
-    await user.click(screen.getByTestId('uplink-status-button'))
-    await user.click(await screen.findByRole('button', { name: /network settings/i }))
+    await openCellularFromUplink(user)
     expect(selectedTab()).toHaveAccessibleName('Settings')
-    expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
+    expectInCellular()
+    expect(window.location.search).toBe('?tab=settings&view=cellular')
+  })
+
+  it('opens the Settings tree from the rail and walks into a group and back', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+
+    const pane = screen.getByTestId('pane-settings')
+    expect(within(pane).getAllByRole('button')).toHaveLength(3)
+    expect(within(pane).getByRole('button', { name: /^Nodes/ })).toHaveTextContent(
+      'No nodes connected',
+    )
+
+    await user.click(within(pane).getByRole('button', { name: /^General/ }))
+    expect(within(pane).getByRole('link', { name: 'General', current: 'page' })).toBeVisible()
+    await user.click(within(pane).getByRole('link', { name: 'Settings' }))
+    expect(within(pane).getAllByRole('button')).toHaveLength(3)
+  })
+
+  it('publishes a Display change as a JSON payload on the hyphenated /set topic', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await receive('renewvan/kiosk/display/brightness', '70')
+    await receive('renewvan/kiosk/display/auto-sleep-enabled', 'false')
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('button', { name: /^General/ }))
+    await user.click(within(pane).getByRole('button', { name: /^Display/ }))
+    expect(within(pane).getByText('70%')).toBeVisible()
+
+    await user.click(within(pane).getByRole('switch', { name: 'Auto-sleep' }))
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/kiosk/display/auto-sleep-enabled/set',
+      'true',
+      { qos: 1, retain: false },
+    )
+
+    mqtt.publish.mockClear()
+    act(() => within(pane).getByRole('slider', { name: 'Brightness' }).focus())
+    await user.keyboard('{ArrowRight}')
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/kiosk/display/brightness/set',
+      '71',
+      { qos: 1, retain: false },
+    )
+  })
+})
+
+describe('App shell Settings view in the URL', () => {
+  it('Back after the popover CTA returns to the previous tab, not an intermediate ?tab=settings', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Power' }))
+    await openCellularFromUplink(user)
+    expectInCellular()
+
+    await goBack()
+    await waitFor(() => expect(selectedTab()).toHaveAccessibleName('Power'))
+    expect(window.location.search).toBe('?tab=power')
+    expect(screen.queryByTestId('pane-settings')).not.toBeInTheDocument()
+
+    await goForward()
+    await waitFor(() => expectInCellular())
+    expect(window.location.search).toBe('?tab=settings&view=cellular')
+  })
+
+  it.each([
+    ['kiosk', KIOSK_WIDTH],
+    ['phone', PHONE_WIDTH],
+  ])('opens Cellular from the popover CTA on another tab (%s)', async (_name, width) => {
+    const user = userEvent.setup()
+    await renderAt(width, '/?tab=tanks')
+    await openCellularFromUplink(user)
+    expectInCellular()
+    expect(window.location.search).toBe('?tab=settings&view=cellular')
+  })
+
+  it('tapping the Settings rail entry from another tab drops a stale view', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?tab=power&view=cellular')
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    expect(new URLSearchParams(window.location.search).has('view')).toBe(false)
+    expect(window.location.search).toBe('?tab=settings')
+    expectTopList()
+  })
+
+  it('leaving Settings from Cellular and returning by the rail shows the top list', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
+    await user.click(screen.getByRole('tab', { name: 'Power' }))
+    expect(window.location.search).toBe('?tab=power')
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    expect(window.location.search).toBe('?tab=settings')
+    expectTopList()
+  })
+
+  it.each([
+    ['kiosk', KIOSK_WIDTH],
+    ['phone', PHONE_WIDTH],
+  ])(
+    're-tapping the selected Settings entry inside a view returns to the top list (%s)',
+    async (_name, width) => {
+      const user = userEvent.setup()
+      await renderAt(width, '/?tab=power')
+      await user.click(screen.getByRole('tab', { name: 'Settings' }))
+      const pane = screen.getByTestId('pane-settings')
+      await user.click(within(pane).getByRole('button', { name: /^Connectivity/ }))
+      await user.click(within(pane).getByRole('button', { name: /^Hub/ }))
+      expect(window.location.search).toBe('?tab=settings&view=hub')
+      const before = window.history.length
+
+      await user.click(screen.getByRole('tab', { name: 'Settings' }))
+
+      expect(window.location.search).toBe('?tab=settings')
+      expect(window.history.length).toBe(before + 1)
+      expectTopList()
+
+      await goBack()
+      expect(currentCrumb()).toHaveAccessibleName('Hub')
+    },
+  )
+
+  it('re-tapping the selected Settings entry on the top list adds no history entry', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?tab=power')
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    expect(window.location.search).toBe('?tab=settings')
+    const before = window.history.length
+
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+
+    expect(window.location.search).toBe('?tab=settings')
+    expect(window.history.length).toBe(before)
+    expectTopList()
+  })
+
+  it('opens the view named by ?view= on load, and the top list for an unknown one', async () => {
+    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
+    expectInCellular()
+
+    cleanup()
+    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=bogus')
+    expect(selectedTab()).toHaveAccessibleName('Settings')
+    expectTopList()
+  })
+
+  it('keeps the open view across a reload', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('button', { name: /^Connectivity/ }))
+    await user.click(within(pane).getByRole('button', { name: /^Hub/ }))
+
+    cleanup()
+    await renderAt(KIOSK_WIDTH, `/${window.location.search}`)
+    expect(currentCrumb()).toHaveAccessibleName('Hub')
+  })
+
+  it('Back and Forward step through the views', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('button', { name: /^Connectivity/ }))
+    expect(window.location.search).toBe('?tab=settings&view=connectivity')
+    await user.click(within(pane).getByRole('button', { name: /^Tailscale/ }))
+    expect(window.location.search).toBe('?tab=settings&view=tailscale')
+    expect(currentCrumb()).toHaveAccessibleName('Tailscale')
+
+    await goBack()
+    expect(currentCrumb()).toHaveAccessibleName('Connectivity')
+    await goBack()
+    expectTopList()
+    expect(window.location.search).toBe('?tab=settings')
+
+    await goForward()
+    expect(currentCrumb()).toHaveAccessibleName('Connectivity')
+    await goForward()
+    expect(currentCrumb()).toHaveAccessibleName('Tailscale')
+  })
+
+  it('a breadcrumb step pushes an entry too, so Back returns to the deeper view', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('link', { name: 'Settings' }))
+    expectTopList()
+    expect(window.location.search).toBe('?tab=settings')
+
+    await goBack()
+    expectInCellular()
+  })
+
+  it('the popover CTA while already inside Settings › General changes the view', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = screen.getByTestId('pane-settings')
+    await user.click(within(pane).getByRole('button', { name: /^General/ }))
+    expect(currentCrumb()).toHaveAccessibleName('General')
+
+    await openCellularFromUplink(user)
+    expectInCellular()
+    expect(window.location.search).toBe('?tab=settings&view=cellular')
+
+    await goBack()
+    expect(currentCrumb()).toHaveAccessibleName('General')
   })
 })
 
@@ -345,5 +631,63 @@ describe('App shell header height', () => {
     await renderAt(KIOSK_WIDTH)
     cleanup()
     expect(document.documentElement.style.getPropertyValue(HEADER_HEIGHT_VAR)).toBe('')
+  })
+})
+
+describe('App Alerts toggle', () => {
+  const SWITCH_NAME = 'Show alert notifications'
+  let danger: MockInstance<typeof toast.danger>
+  let close: MockInstance<typeof toast.close>
+
+  beforeEach(() => {
+    danger = vi.spyOn(toast, 'danger').mockReturnValue('alarm-toast')
+    close = vi.spyOn(toast, 'close').mockImplementation(() => {})
+  })
+
+  async function openAlerts() {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = within(screen.getByTestId('pane-settings'))
+    await user.click(pane.getByRole('button', { name: /^General/ }))
+    await user.click(pane.getByRole('button', { name: /^Alerts/ }))
+    return user
+  }
+
+  it('mutes a live toast when switched off and shows it again when switched on', async () => {
+    const user = await openAlerts()
+    await receiveAlarmingTank()
+    expect(danger).toHaveBeenCalledTimes(1)
+    expect(close).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    expect(close).toHaveBeenCalledExactlyOnceWith('alarm-toast')
+    expect(window.localStorage.getItem('renewvan-dashboard-alerts-enabled')).toBe('false')
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    expect(danger).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows no toast for an alarm that arrives while muted, then shows it when switched on', async () => {
+    window.localStorage.setItem('renewvan-dashboard-alerts-enabled', 'false')
+    const user = await openAlerts()
+    expect(screen.getByRole('switch', { name: SWITCH_NAME })).not.toBeChecked()
+
+    await receiveAlarmingTank()
+    expect(danger).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    expect(danger).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the Alerts row in General in step with the switch', async () => {
+    const user = await openAlerts()
+
+    await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
+    await user.click(screen.getByRole('link', { name: 'General' }))
+
+    expect(
+      within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Alerts/ }),
+    ).toHaveTextContent('Notifications off')
   })
 })

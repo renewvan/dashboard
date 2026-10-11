@@ -4,9 +4,9 @@ Outcome of the HeroUI layout spike (branch `HeroUI`, spec #24): rebuild the dash
 
 ## Outcome
 
-The base layout runs on HeroUI with coss removed. The header controls (clock, display sleep, theme, uplink status, alerts), the rail/bottom-bar navigation and the alert toasts are HeroUI components. Page content is not ported: the panes are `StubPane` placeholders, so nothing here says how HeroUI behaves on the data-dense pages (tanks, power, switches, heater, GPS, settings).
+The base layout runs on HeroUI with coss removed. The header controls (clock, display sleep, theme, uplink status, alerts), the rail/bottom-bar navigation and the alert toasts are HeroUI components. Page content is mostly not ported: the panes are `StubPane` placeholders, so nothing here says how HeroUI behaves on the data-dense pages (tanks, power, switches, heater, GPS). The Settings tab has since been ported (see below).
 
-HeroUI's component CSS is imported granularly in `src/index.css` (base, theme, utilities, variants, plus button, tabs, popover, toast, tooltip, separator, chip, badge), not as the whole stylesheet.
+HeroUI's component CSS is imported granularly in `src/index.css`, one line per component, not as the whole stylesheet: the base, theme, utilities and variants layers, the layout shell's components, and the controls, breadcrumbs and drawer the Settings tab added.
 
 ## Measured
 
@@ -48,7 +48,7 @@ The "after" figures also reflect the removed pages, so they say nothing about He
 
 These were decided with the spike and are not regressions to fix:
 
-- The Settings page and the Alerts-toggle UI are removed with the other pages (the Settings entry in the sidebar is still a stub pane).
+- ~~The Settings page and the Alerts-toggle UI are removed with the other pages.~~ **Ported:** the Settings tab is now a HeroUI drill-down (Nodes, General, Connectivity), with the Alerts toggle under General → Alerts.
 - System fonts replace Inter.
 - Header buttons have no `title` attribute.
 - Keyboard gap: with the `alerts` tab open, all tabs get `tabindex="-1"`. `alerts` is reachable only through the header button and `?tab=alerts`, not the rail.
@@ -57,7 +57,7 @@ These were decided with the spike and are not regressions to fix:
 
 - `lib/tank-alarm.ts` and `RadialGauge.css` still reference `var(--bad)`, `var(--warn)`, `var(--ok)`, `var(--bg)` and `var(--kiosk-muted)`, and `TiltWidget.tsx` is unmounted. None of these resolve against HeroUI tokens; they are unmounted orphans that ticket 23 deliberately left for the page port.
 - Comments in `src/types.ts` and `src/lib/tank-alarm.ts` naming `TankCard` describe code that returns when the pages are ported.
-- Several comments point at "not yet ported" pages (Settings, Alerts); they should be revisited when those pages return.
+- Several comments point at pages that are still unported; they should be revisited when those pages return. Settings is **ported** and its comments now describe the live code; the remaining ones are about the Alerts page.
 
 ## Unverified
 
@@ -81,6 +81,6 @@ None of the following was tested, so the evidence neither supports nor counts ag
 - Only the shell was built; the dense pages are untested on HeroUI, and they are where the bundle and sizing cost will land.
 - Default control sizes miss the 44×44px touch-target rule for a glove-operated kiosk; adopting HeroUI on `main` means either carrying the suspension over or overriding sizes component by component.
 - Several defects (unlayered CSS beating utilities, the `div role="button"` trigger, tab-list ordering and portal constraints) are recurring friction rather than one-off fixes.
-- Settings, the Alerts toggle, fonts and some keyboard behaviour were given up, and the unverified list above covers real-device behaviour on the primary mobile target.
+- Fonts and some keyboard behaviour were given up (Settings and the Alerts toggle were given up too, and have since been ported), and the unverified list above covers real-device behaviour on the primary mobile target.
 
 The go/no-go is the team's call. The evidence above is what is available to make it; the missing pieces are real-device checks and at least one dense page ported.

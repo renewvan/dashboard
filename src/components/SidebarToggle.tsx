@@ -15,7 +15,7 @@ export function SidebarToggle({ collapsed, onCollapsedChange }: SidebarTogglePro
       aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       aria-expanded={!collapsed}
       onPress={() => onCollapsedChange(!collapsed)}
-      className="size-11 shrink-0 rounded-full"
+      className="size-11 shrink-0"
     >
       {collapsed ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}
     </Button>

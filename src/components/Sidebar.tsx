@@ -81,7 +81,7 @@ export function Sidebar({
         >
           {item.icon}
           {showLabels && <span className="truncate text-sm font-medium">{item.label}</span>}
-          <Tabs.Indicator className={cn(!isMobile && 'bg-accent/15! rounded-full! shadow-none!')} />
+          <Tabs.Indicator className={cn(!isMobile && 'bg-accent/15! rounded-3xl! shadow-none!')} />
         </Tabs.Tab>
       ))}
     </Tabs.List>
@@ -102,7 +102,7 @@ export function Sidebar({
     <aside
       data-state={collapsed ? 'collapsed' : 'expanded'}
       className={cn(
-        'border-border bg-surface flex h-full shrink-0 flex-col gap-2 overflow-hidden border-r p-2 transition-[width] duration-200 motion-reduce:transition-none',
+        'border-border bg-surface ml-0.5 flex h-full shrink-0 flex-col gap-2 overflow-hidden border-r p-2 transition-[width] duration-200 motion-reduce:transition-none',
         collapsed ? 'w-[56px]' : 'w-42',
       )}
     >
@@ -121,7 +121,7 @@ export function Sidebar({
         <div
           className={cn(
             'h-8 shrink-0 overflow-hidden transition-[width] duration-200 motion-reduce:transition-none',
-            collapsed ? 'w-[30px]' : 'w-[110px]',
+            collapsed ? 'ml-2 w-[30px]' : 'w-[110px]',
           )}
         >
           <img

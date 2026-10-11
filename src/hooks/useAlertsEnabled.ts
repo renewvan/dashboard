@@ -16,6 +16,9 @@ function readStoredAlertsEnabled(): boolean {
  * Alerts. Kiosk-local preference with no bus topic, persisted like
  * `useTheme` so the choice survives a reload/power cycle. Mutes toasts
  * only; the Alerts tab's history keeps recording.
+ *
+ * Single instance; call once in `App` (each call owns its own state, so a
+ * second one would drift from the toasts).
  */
 export function useAlertsEnabled(): [boolean, (enabled: boolean) => void] {
   const [enabled, setEnabled] = useState<boolean>(readStoredAlertsEnabled)
