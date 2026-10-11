@@ -53,7 +53,7 @@ describe('tankView', () => {
     })
   })
 
-  it('shows a red Fault badge and the fault reason in the Status row, with an empty gauge', () => {
+  it('shows a danger-severity Fault badge and the fault reason in the Status row, with an empty gauge', () => {
     const view = tankView(tank({ status: 'open_circuit', level_pct: 95 }), NOW)
     expect(view.badge).toEqual({ label: 'Fault', severity: 'danger' })
     expect(view.status).toEqual({ label: 'Open circuit', severity: 'danger' })
@@ -74,7 +74,7 @@ describe('tankView', () => {
   })
 
   it('shows Temperature with a dash when the tank has no sensor, not 0', () => {
-    expect(tankView(tank(), NOW).temperature).toBe('--°C')
+    expect(tankView(tank(), NOW).temperature).toBe('--')
     expect(tankView(tank({ temperature_c: 18.4 }), NOW).temperature).toBe('18°C')
   })
 

@@ -23,6 +23,8 @@ export interface TankView {
   /** Hidden (undefined) with no alarm configured and no fault. */
   status: TankLabel | undefined
   temperature: string
+  /** Fresh water: drains from a refill. Every other tank fills from an empty-out. */
+  isRefill: boolean
   rateLabel: 'Drain Rate' | 'Fill Rate'
   rate: string
   footerLabel: 'Last refilled' | 'Last emptied'
@@ -67,8 +69,8 @@ export function tankView(tank: Tank, now: Date): TankView {
       : levelStatus
         ? badge
         : undefined,
-    temperature:
-      tank.temperature_c != null ? `${tank.temperature_c.toFixed(0)}°C` : `${NO_VALUE}°C`,
+    temperature: tank.temperature_c != null ? `${tank.temperature_c.toFixed(0)}°C` : NO_VALUE,
+    isRefill,
     rateLabel: isRefill ? 'Drain Rate' : 'Fill Rate',
     rate: rateLph !== undefined ? `${rateLph.toFixed(1)} L/h` : NO_VALUE,
     footerLabel: isRefill ? 'Last refilled' : 'Last emptied',

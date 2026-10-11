@@ -67,7 +67,7 @@ export function TankStats({ view }: { view: TankView }) {
       />
       <InfoField
         icon={
-          view.rateLabel === 'Drain Rate' ? (
+          view.isRefill ? (
             <WavesArrowDown className="size-4" />
           ) : (
             <WavesArrowUp className="size-4" />

@@ -42,7 +42,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
         {ids.map((id) => (
-          <TankRow key={id} id={id} tank={tanks[id]} now={now} />
+          <TankRow key={id} tank={tanks[id]} now={now} />
         ))}
       </div>
     )
@@ -54,7 +54,7 @@ export function TanksTab({ tanks }: TanksTabProps) {
       style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}
     >
       {ids.map((id) => (
-        <TankCard key={id} id={id} tank={tanks[id]} now={now} />
+        <TankCard key={id} tank={tanks[id]} now={now} />
       ))}
     </div>
   )

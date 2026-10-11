@@ -34,7 +34,7 @@ export function tankAlarmConfig(tank: Tank): TankAlarmConfig | undefined {
 }
 
 /**
- * Level-band severity for a tank's liquid fill. Boundary comparisons match
+ * Level-band severity for a tank's gauge fill. Boundary comparisons match
  * node-tank's `_crossed` exactly: entering alarm is inclusive of the
  * threshold (low: `<=`, high: `>=`), restoring is inclusive of the
  * restore level, so the caution zone is the open band between them.

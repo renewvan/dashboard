@@ -5,7 +5,6 @@ import { SeverityChip, TankFooter, TankStats } from './TankParts'
 import { tankView } from './tankView'
 
 export interface TankCardProps {
-  id: string
   tank: Tank
   /** Injected so the pace is deterministic under test. */
   now: Date
@@ -54,11 +53,11 @@ export function TankCard({ tank, now }: TankCardProps) {
                   color: FILL_TEXT_COLOR[view.severity],
                 }}
               >
-                {view.pct >= LABEL_INSIDE_FROM_PCT && (
+                {!view.faulted && view.pct >= LABEL_INSIDE_FROM_PCT && (
                   <div className="pt-1 text-center">{view.pct.toFixed(0)}%</div>
                 )}
               </div>
-              {view.pct < LABEL_INSIDE_FROM_PCT && (
+              {!view.faulted && view.pct < LABEL_INSIDE_FROM_PCT && (
                 <div className="absolute inset-x-0 top-1 text-center text-xs font-semibold">
                   {view.pct.toFixed(0)}%
                 </div>

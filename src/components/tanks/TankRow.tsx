@@ -22,14 +22,14 @@ export function TankRow({ tank, now }: TankCardProps) {
         <SeverityChip badge={view.badge} />
       </Card.Header>
       <Card.Content className="gap-2 px-4 pb-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <div className="text-4xl leading-none font-semibold">{view.pct.toFixed(0)}%</div>
-          {!view.faulted && (
+        {!view.faulted && (
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="text-4xl leading-none font-semibold">{view.pct.toFixed(0)}%</div>
             <div className="text-muted text-sm font-semibold">
               {view.litres}/{view.capacityL} {'\u2113'}
             </div>
-          )}
-        </div>
+          </div>
+        )}
         <div className="border-border! bg-surface-secondary relative h-6 overflow-hidden rounded-lg border-2">
           {GRIDLINES.map((mark) => (
             <div

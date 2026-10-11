@@ -31,7 +31,7 @@ const layouts = [
 ] as const
 
 describe.each(layouts)('%s', (_name, Layout) => {
-  const show = (t: Tank) => render(<Layout id="t" tank={t} now={NOW} />)
+  const show = (t: Tank) => render(<Layout tank={t} now={NOW} />)
 
   it('shows the fluid label, a Normal badge, the percentage and the litres', () => {
     show(tank({ capacity_l: 100, level_pct: 62 }))
@@ -48,30 +48,49 @@ describe.each(layouts)('%s', (_name, Layout) => {
     expect(screen.queryByText(/95/)).not.toBeInTheDocument()
   })
 
+  it('does not read a faulted tank as an empty one: no percentage readout', () => {
+    // A mid-level tank shows its own readout; the card's 0% scale tick is the only 0% allowed.
+    const { unmount } = show(tank({ level_pct: 62 }))
+    const ticks = screen.queryAllByText('0%').length
+    unmount()
+    show(tank({ status: 'open_circuit', level_pct: 95 }))
+    expect(screen.queryAllByText('0%')).toHaveLength(ticks)
+  })
+
   it('names a short circuit', () => {
     show(tank({ status: 'short_circuit' }))
     expect(screen.getByText('Short circuit')).toBeInTheDocument()
   })
 
+  // In the card, 100% and 0% are also scale ticks, so the readout is the one extra match
+  // an out-of-range level adds over a mid-level tank.
   it('clamps an over-range level to 100%', () => {
+    const { unmount } = show(tank({ level_pct: 62 }))
+    const ticks = screen.queryAllByText('100%').length
+    unmount()
     show(tank({ level_pct: 140 }))
-    expect(screen.getAllByText('100%').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('100%')).toHaveLength(ticks + 1)
     expect(screen.queryByText('140%')).not.toBeInTheDocument()
   })
 
   it('clamps a negative level to 0%', () => {
+    const { unmount } = show(tank({ level_pct: 62 }))
+    const ticks = screen.queryAllByText('0%').length
+    unmount()
     show(tank({ level_pct: -5 }))
-    expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('0%')).toHaveLength(ticks + 1)
     expect(screen.queryByText('-5%')).not.toBeInTheDocument()
   })
 
   it('shows Temperature, with a dash when the tank has no sensor', () => {
+    // No latch either, so the rate is also a dash: sensor-less shows two, a reading one.
     const { unmount } = show(tank())
     expect(screen.getByText('Temperature')).toBeInTheDocument()
-    expect(screen.getByText('--°C')).toBeInTheDocument()
+    expect(screen.getAllByText('--')).toHaveLength(2)
     unmount()
     show(tank({ temperature_c: 18.4 }))
     expect(screen.getByText('18°C')).toBeInTheDocument()
+    expect(screen.getAllByText('--')).toHaveLength(1)
   })
 
   it('shows a Drain Rate in L/h since the last refill for fresh water', () => {
@@ -135,7 +154,7 @@ describe.each(layouts)('%s', (_name, Layout) => {
 describe('card (kiosk) scale', () => {
   it('draws the 100/75/50/25/0% scale', () => {
     // A level of 62% keeps the in-fill label off every mark.
-    render(<TankCard id="t" tank={tank({ level_pct: 62 })} now={NOW} />)
+    render(<TankCard tank={tank({ level_pct: 62 })} now={NOW} />)
     const scale = screen.getByTestId('tank-scale')
     for (const mark of ['100%', '75%', '50%', '25%', '0%']) {
       expect(within(scale).getByText(mark)).toBeInTheDocument()
@@ -145,7 +164,7 @@ describe('card (kiosk) scale', () => {
 
 describe('row (phone) has no tick labels', () => {
   it('omits the scale', () => {
-    render(<TankRow id="t" tank={tank({ level_pct: 62 })} now={NOW} />)
+    render(<TankRow tank={tank({ level_pct: 62 })} now={NOW} />)
     expect(screen.queryByTestId('tank-scale')).not.toBeInTheDocument()
     expect(screen.queryByText('75%')).not.toBeInTheDocument()
   })

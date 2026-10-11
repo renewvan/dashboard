@@ -22,8 +22,8 @@ export type TankAlarmDirection = 'low' | 'high'
 export interface Tank {
   fluid_type: FluidType
   capacity_l: number
-  /** Raw sender reading. Alarms/thresholds, `tank-alarm.ts`'s liquid-color
-   * banding, and TankCard's displayed fill height/%/liters all key off
+  /** Raw sender reading. Alarms/thresholds, `tank-alarm.ts`'s severity
+   * zones, and TankCard's displayed fill height/%/liters all key off
    * this — the driver-facing number is the sender's actual reading. */
   level_pct: number
   status: TankStatus
