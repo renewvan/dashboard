@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
-import { Bell, LayoutPanelLeft, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
+import { Bell, Gauge, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
 import lockupDark from '../assets/logo/svg/renewvan-lockup-dark.svg'
@@ -14,6 +14,7 @@ import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsTab } from '@/components/settings/SettingsTab'
 import type { SettingsSubView } from '@/components/settings/views'
 import { TanksTab } from '@/components/tanks/TanksTab'
+import { StartTab } from '@/components/start/StartTab'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
@@ -28,7 +29,7 @@ import { SidebarToggle } from '@/components/SidebarToggle'
 import { useUrlTab } from '@/hooks/useUrlTab'
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'start', label: 'Start', icon: <LayoutPanelLeft className="size-5" /> },
+  { id: 'start', label: 'Start', icon: <Gauge className="size-5" /> },
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
   { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
   { id: 'gps', label: 'GPS', icon: <Map className="size-5" /> },
@@ -199,6 +200,8 @@ function App() {
             <SettingsProvider value={settings}>
               <SettingsTab />
             </SettingsProvider>
+          ) : item.id === 'start' ? (
+            <StartTab tanks={state.tanks} batteries={state.batteries} isDark={theme === 'dark'} />
           ) : item.id === 'tanks' ? (
             <TanksTab tanks={state.tanks} onConfigure={openTankSettings} />
           ) : (

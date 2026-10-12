@@ -44,3 +44,11 @@ _Avoid_: Alarm state, alert state, warning state (use alarm/caution/normal zones
 **Tank settings**:
 The per-tank page at Settings › Nodes › Tanks › _tank_ (`?tab=settings&view=tank&tank=<id>`), opened by the Configure button on a tank's card or row. It is meant to mirror the node's own config (the `[tank.*]` parameters of node-tank, as in [dbus-ads1115's configuration parameters](https://github.com/alexsanzder/dbus-ads1115#configuration-parameters)). Today it shows only **Enabled**, read-only: `enabled` is a node-tank `config.ini` value read at startup, with no wire field or `/set` topic to change it, and a disabled tank stops publishing and so would drop out of the list. Each setting becomes editable once the hub schema and node-tank define a command topic for it.
 _Avoid_: Tank config (the node's `config.ini` is the source; this page is the dashboard's view of it)
+
+**Start page**:
+The first tab (`?tab=start`, `src/components/start/`): a **widget row** over a **cockpit row**. The widget row is three equal columns of widgets (today: Weather, which has no data source on the bus yet and so reads "Not connected", and two empty slots); the cockpit row is fresh water, battery (the focus dial, bigger) and grey water, left to right. On a phone (below 800px) it is one card per widget, battery first, with no empty slots. A dial whose record has not fully arrived over MQTT shows "No data yet", never a number.
+_Avoid_: Home, dashboard (the whole app is the dashboard), overview
+
+**Cockpit dial**:
+A 270° arc gauge on the Start page: a thin continuous outer ring, a value band and a wide track, the band and the track cut at the same five angles. Colour is severity and nothing else: a tank dial is painted by the same tank alarm zones as its Tanks-tab card (via `tankView`), so a dial and its card cannot disagree; the battery dial is the accent. All dials share one geometry, so the arc ends sit a fixed share of the dial's height above its bottom edge, and each dial is offset by that share to put every arc end on one baseline whatever its size.
+_Avoid_: Gauge, speedometer, radial gauge (`RadialGauge` was the old Tanks-tab component, since removed)

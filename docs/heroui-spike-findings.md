@@ -4,7 +4,7 @@ Outcome of the HeroUI layout spike (branch `HeroUI`, spec #24): rebuild the dash
 
 ## Outcome
 
-The base layout runs on HeroUI with coss removed. The header controls (clock, display sleep, theme, uplink status, alerts), the rail/bottom-bar navigation and the alert toasts are HeroUI components. Page content is mostly not ported: the remaining panes are `StubPane` placeholders, so nothing here says how HeroUI behaves on the data-dense pages (power, switches, heater, GPS). The Settings and Tanks tabs have since been ported (see below).
+The base layout runs on HeroUI with coss removed. The header controls (clock, display sleep, theme, uplink status, alerts), the rail/bottom-bar navigation and the alert toasts are HeroUI components. Page content is mostly not ported: the remaining panes are `StubPane` placeholders, so nothing here says how HeroUI behaves on the data-dense pages (power, switches, heater, GPS). The Settings, Tanks and Start tabs have since been ported (see below).
 
 HeroUI's component CSS is imported granularly in `src/index.css`, one line per component, not as the whole stylesheet: the base, theme, utilities and variants layers, the layout shell's components, and the controls, breadcrumbs and drawer the Settings tab added.
 
