@@ -25,6 +25,7 @@ const BATTERY: Battery = {
   current_a: -2.6,
   power_w: -35,
   temperature_c: 21,
+  time_to_go_s: 9 * 86_400 + 23 * 3_600 + 30 * 60,
   charge_state: 'float',
 }
 
@@ -42,6 +43,11 @@ afterEach(() => {
   viewport.restore()
 })
 
+/** A dial subline whose unit letters sit in their own span, so match on the whole line's text. */
+function subline(text: string) {
+  return screen.getByText((_, el) => el?.tagName === 'DIV' && el.textContent === text)
+}
+
 describe.each([
   ['kiosk', KIOSK_WIDTH],
   ['phone', JUST_BELOW_KIOSK_WIDTH],
@@ -58,9 +64,10 @@ describe.each([
     expect(screen.getByRole('img', { name: 'Battery 78%' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Fresh water 46%' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Grey water 41%' })).toBeInTheDocument()
-    expect(screen.getByText('13.2V / 35W')).toBeInTheDocument()
-    expect(screen.getByText('46 / 100 \u2113')).toBeInTheDocument()
-    expect(screen.getByText('33 / 80 \u2113')).toBeInTheDocument()
+    expect(subline('13.20V / 35W')).toBeInTheDocument()
+    expect(screen.getByText('9d 23h to go')).toBeInTheDocument()
+    expect(subline('46 / 100 \u2113')).toBeInTheDocument()
+    expect(subline('33 / 80 \u2113')).toBeInTheDocument()
   })
 
   it('shows "No data yet" instead of a number for a dial whose data has not arrived', () => {

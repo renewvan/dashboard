@@ -95,13 +95,13 @@ export function StartTab({ tanks, batteries, isDark }: StartTabProps) {
   }
 
   return (
-    <div data-testid="pane-start" className="flex min-h-0 flex-1 flex-col">
+    <div data-testid="pane-start" className="flex min-h-0 flex-1 flex-col gap-3 p-2">
       <div className="grid h-28 shrink-0 grid-cols-3 gap-2 px-3 pt-3">
         <WeatherWidget />
         <EmptySlot />
         <EmptySlot />
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-[1fr_1.5fr_1fr] items-end gap-1 p-2 pb-16">
+      <div className="grid min-h-0 flex-1 grid-cols-[1fr_1.5fr_1fr] items-end gap-1 p-2 pb-6">
         {slots.map((slot) => (
           <section key={slot.id} className="flex min-h-0 flex-col items-center">
             <DialOrEmpty slot={slot} isDark={isDark} size={slot.size} />

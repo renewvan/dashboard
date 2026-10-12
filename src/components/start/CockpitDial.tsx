@@ -46,21 +46,23 @@ const SIZE_CLASS: Record<DialSize, string> = {
 
 const READOUT: Record<
   DialSize,
-  { icon: string; label: string; value: string; unit: string; sub: string }
+  { icon: string; label: string; value: string; unit: string; sub: string; footer: string }
 > = {
   side: {
     icon: 'mt-6',
     label: 'text-[10px] tracking-[0.2em]',
     value: 'text-5xl',
     unit: 'text-base',
-    sub: 'mt-5 text-base',
+    sub: 'text-sm pt-3.5',
+    footer: 'text-sm',
   },
   focus: {
-    icon: 'mt-6 scale-150',
+    icon: 'scale-120',
     label: 'text-xs tracking-[0.2em]',
-    value: 'text-7xl',
+    value: 'mt-2 text-6xl',
     unit: 'text-xl',
-    sub: 'mt-12 text-base',
+    sub: 'mt-3 text-base',
+    footer: 'text-base',
   },
 }
 
@@ -86,6 +88,24 @@ function segments(r: number) {
 
 const BAND_SEGMENTS = segments(BAND_R)
 const TRACK_SEGMENTS = segments(TRACK_R)
+
+/** The subline; with `unitsStrong`, `V`/`W`/`ℓ` units after a number take the foreground colour. */
+function DialSub({ sub, unitsStrong }: { sub: string; unitsStrong?: boolean }) {
+  if (!unitsStrong) return <>{sub}</>
+  return (
+    <>
+      {sub.split(/(?<=\d\s?)([VW\u2113])/).map((part, i) =>
+        i % 2 === 1 ? (
+          <span key={i} className="text-foreground">
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  )
+}
 
 /**
  * A 270° instrument dial: thin outer ring, a value band, a wide track, the band and the track cut
@@ -182,7 +202,7 @@ export function CockpitDial({ view, icon, size, glow, className }: CockpitDialPr
         <span className={cn('text-muted', text.icon)}>{icon}</span>
         <div className={cn('text-muted uppercase', text.label)}>{view.label}</div>
         {view.faulted ? (
-          <div className="text-danger text-2xl font-semibold">Fault</div>
+          <div className="text-danger py-3 text-xl font-semibold">Fault</div>
         ) : (
           <div
             className={cn('flex items-baseline font-extralight italic tabular-nums', text.value)}
@@ -191,8 +211,27 @@ export function CockpitDial({ view, icon, size, glow, className }: CockpitDialPr
             <span className={cn('text-accent font-semibold', text.unit)}>%</span>
           </div>
         )}
-        <div className={cn('text-muted tracking-widest uppercase', text.sub)}>{view.sub}</div>
+        <div
+          className={cn(
+            'text-muted tracking-widest uppercase',
+            text.sub,
+            view.faulted ? 'text-xs' : 'text:base',
+          )}
+        >
+          <DialSub sub={view.sub} unitsStrong={view.unitsStrong} />
+        </div>
       </div>
+      {view.footer && !view.faulted && (
+        <div
+          className={cn(
+            'text-muted absolute inset-x-0 bottom-[16.8%] text-center tracking-widest',
+            text.footer,
+          )}
+          aria-hidden="true"
+        >
+          {view.footer}
+        </div>
+      )}
     </div>
   )
 }

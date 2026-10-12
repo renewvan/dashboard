@@ -9,9 +9,32 @@ export interface DialView {
   pct: number
   /** The `fill` colour of the arc: severity only, the same keys the Tanks tab paints with. */
   color: string
-  /** Line under the number, e.g. `13.2V / 35W` or `46 / 100 ℓ`; the fault reason when faulted. */
+  /** Line under the number, e.g. `13.20V / 35W` or `46 / 100 ℓ`; the fault reason when faulted. */
   sub: string
+  /** Colour the unit letters (`V`, `W`, `ℓ`) of `sub` stronger than the muted numbers. */
+  unitsStrong?: boolean
+  /** Optional line in the arc's open bottom gap, e.g. `9d 23h to go`. */
+  footer?: string
   faulted: boolean
+}
+
+const DAY_S = 86_400
+const HOUR_S = 3_600
+const MINUTE_S = 60
+
+/**
+ * Remaining runtime as its two largest units, `9d 23h to go` / `5h 12m to go` / `42m to go`.
+ * Under a minute reads `<1m`. Truncates, never rounds up: a runtime estimate should not
+ * overpromise.
+ */
+export function formatTimeToGo(seconds: number): string {
+  const d = Math.floor(seconds / DAY_S)
+  const h = Math.floor((seconds % DAY_S) / HOUR_S)
+  const m = Math.floor((seconds % HOUR_S) / MINUTE_S)
+  if (d > 0) return `${d}d ${h}h to go`
+  if (h > 0) return `${h}h ${m}m to go`
+  if (m > 0) return `${m}m to go`
+  return '<1m to go'
 }
 
 const BATTERY_COLOR = FILL_COLOR.accent
@@ -24,7 +47,9 @@ export function batteryDial(batteries: Record<string, Partial<Battery>>): DialVi
     label: 'Battery',
     pct: Math.min(100, Math.max(0, battery.soc_pct)),
     color: BATTERY_COLOR,
-    sub: `${battery.voltage_v.toFixed(1)}V / ${Math.round(Math.abs(battery.power_w))}W`,
+    sub: `${battery.voltage_v.toFixed(2)}V / ${Math.round(Math.abs(battery.power_w))}W`,
+    unitsStrong: true,
+    footer: battery.time_to_go_s === undefined ? undefined : formatTimeToGo(battery.time_to_go_s),
     faulted: false,
   }
 }
@@ -42,6 +67,7 @@ export function tankDial(tank: Tank, now: Date): DialView {
     sub: view.faulted
       ? (view.status?.label ?? 'Fault')
       : `${view.litres} / ${view.capacityL} \u2113`,
+    unitsStrong: !view.faulted,
     faulted: view.faulted,
   }
 }
