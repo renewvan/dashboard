@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { Battery, CloudSun, Droplet, Plus, Waves } from 'lucide-react'
+import { Battery, CloudSun, Plus } from 'lucide-react'
+import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { Card } from '@heroui/react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useNow } from '@/hooks/useNow'
@@ -45,7 +46,7 @@ export function StartTab({ tanks, batteries, isDark }: StartTabProps) {
     {
       id: 'fresh',
       label: 'Fresh water',
-      icon: <Droplet className="size-4" />,
+      icon: <FLUID_ICONS.fresh_water className="size-4" />,
       size: 'side',
       view: tankDialOf(tanks, 'fresh_water', now),
     },
@@ -59,7 +60,7 @@ export function StartTab({ tanks, batteries, isDark }: StartTabProps) {
     {
       id: 'grey',
       label: 'Grey water',
-      icon: <Waves className="size-4" />,
+      icon: <FLUID_ICONS.grey_water className="size-4" />,
       size: 'side',
       view: tankDialOf(tanks, 'grey_water', now),
     },

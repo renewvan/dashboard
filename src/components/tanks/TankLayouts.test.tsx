@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Tank } from '@/types'
 import { TankCard } from './TankCard'
 import { TankRow } from './TankRow'
+import { FLUID_ICONS } from './fluidIcon'
+import { FLUID_LABELS } from '@/lib/tank-labels'
 
 const NOW = new Date('2026-07-14T12:00:00Z')
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000).toISOString()
@@ -41,6 +43,31 @@ describe.each(layouts)('%s', (_name, Layout) => {
     expect(screen.getByText('Normal')).toBeInTheDocument()
     expect(screen.getAllByText('62%').length).toBeGreaterThan(0)
     expect(screen.getByText(/62\s*\/\s*100/)).toBeInTheDocument()
+  })
+
+  it('puts a decorative icon beside the fluid label, hidden from assistive tech', () => {
+    const { container } = show(tank())
+    const header = screen.getByText('Fresh water').parentElement as HTMLElement
+    const icon = header.querySelector('svg')
+    expect(icon).not.toBeNull()
+    expect(icon).toHaveAttribute('aria-hidden', 'true')
+    // The label stays the accessible name: the icon adds nothing a screen reader would read twice.
+    expect(container.querySelectorAll('svg[role="img"]')).toHaveLength(0)
+  })
+
+  it('gives each fluid its own icon, so a fresh and a grey card are told apart at a glance', () => {
+    const iconOf = (fluid_type: Tank['fluid_type'], label: string) => {
+      const { unmount } = show(tank({ fluid_type }))
+      const svg = (screen.getByText(label).parentElement as HTMLElement).querySelector('svg')
+      const markup = svg?.innerHTML
+      unmount()
+      return markup
+    }
+    const fresh = iconOf('fresh_water', 'Fresh water')
+    const grey = iconOf('grey_water', 'Grey water')
+    expect(fresh).toBeTruthy()
+    expect(grey).toBeTruthy()
+    expect(fresh).not.toBe(grey)
   })
 
   it('shows a Fault badge and the fault reason, not a level', () => {
@@ -172,5 +199,14 @@ describe('row (phone) has no tick labels', () => {
     render(<TankRow id="t" onConfigure={vi.fn()} tank={tank({ level_pct: 62 })} now={NOW} />)
     expect(screen.queryByTestId('tank-scale')).not.toBeInTheDocument()
     expect(screen.queryByText('75%')).not.toBeInTheDocument()
+  })
+})
+
+describe('FLUID_ICONS', () => {
+  it('has an icon for every fluid type, all different, so no fluid falls back to another one', () => {
+    const fluids = Object.keys(FLUID_LABELS) as Tank['fluid_type'][]
+    const icons = fluids.map((fluid) => FLUID_ICONS[fluid])
+    expect(icons.every(Boolean)).toBe(true)
+    expect(new Set(icons).size).toBe(fluids.length)
   })
 })
