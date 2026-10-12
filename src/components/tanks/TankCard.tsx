@@ -39,9 +39,9 @@ export function TankCard({ id, tank, now, onConfigure }: TankCardProps) {
         <SeverityChip badge={view.badge} />
       </Card.Header>
       <Card.Content className="min-h-0 flex-1 flex-row! gap-4 px-6 py-2">
-        <div className="flex min-h-0 min-w-0 flex-1 items-stretch gap-2 self-stretch">
+        <div className="flex min-h-0 min-w-0 flex-1 items-stretch gap-1 self-stretch">
           <div className="flex min-h-0 min-w-0 flex-col items-center gap-1">
-            <div className="border-border! bg-surface-secondary relative min-h-0 w-[140px] flex-1 overflow-hidden rounded-xl border-2">
+            <div className="border-border! bg-surface-secondary relative min-h-0 w-[140px] flex-1 overflow-hidden rounded-3xl border-2">
               {GRIDLINES.map((mark) => (
                 <div
                   key={mark}
@@ -76,7 +76,7 @@ export function TankCard({ id, tank, now, onConfigure }: TankCardProps) {
           {/* Tick-marked scale: one label per 100/75/50/25/0%. */}
           <div
             data-testid="tank-scale"
-            className="flex flex-col justify-between pb-6 text-[10px] leading-none"
+            className="mb-6 flex flex-col justify-between text-[10px] leading-0"
           >
             {SCALE_MARKS.map((mark) => (
               <div key={mark} className="flex items-center gap-1">
