@@ -210,3 +210,40 @@ describe('useRenewvanBus tilt entity', () => {
     await waitFor(() => expect(result.current.state.tilt).toEqual({ tilt: { status: 'ok' } }))
   })
 })
+
+describe('useRenewvanBus driver liveness topics', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  // Every driver publishes `renewvan/<domain>/driver/status` ("online"/"offline") as its LWT
+  // liveness. It matches the entity pattern with id `driver`, so without a guard it becomes a
+  // phantom entity (a `driver · NaN%` tank card, a counted node) in every domain.
+  it('does not turn renewvan/tank/driver/status into a tank entity', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tank/driver/status', { toString: () => '"online"' })
+    messageHandlers[0]('renewvan/tank/fresh/level_pct', { toString: () => '62' })
+    await waitFor(() => expect(result.current.state.tanks).toEqual({ fresh: { level_pct: 62 } }))
+  })
+
+  it('ignores the driver liveness topic in every entity domain', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    for (const domain of ['tank', 'relay', 'battery', 'gps', 'temperature', 'tilt', 'router']) {
+      messageHandlers[0](`renewvan/${domain}/driver/status`, { toString: () => '"offline"' })
+    }
+    // A real message after the liveness ones proves the handler ran past them.
+    messageHandlers[0]('renewvan/tank/fresh/level_pct', { toString: () => '10' })
+    await waitFor(() => expect(result.current.state.tanks).toEqual({ fresh: { level_pct: 10 } }))
+    expect(result.current.state.relays).toEqual({})
+    expect(result.current.state.batteries).toEqual({})
+    expect(result.current.state.gps).toEqual({})
+    expect(result.current.state.temperatures).toEqual({})
+    expect(result.current.state.tilt).toEqual({})
+    expect(result.current.state.routers).toEqual({})
+    expect(result.current.state.routerUpdatedAt).toEqual({})
+  })
+})

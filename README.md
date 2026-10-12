@@ -30,8 +30,8 @@ Three domain tabs, same tabbed interaction at every supported width:
   `renewvan/#`, accumulates retained messages into a `RenewvanBusState`, exposes
   connection status. Not unit-tested (thin wrapper around `mqtt.js`), per
   the v0 spec's Testing Decisions.
-- `src/components/*` — presentational components (`RadialGauge`,
-  `RelayRow`, `Tabs`, `ConnectionBanner`), each unit-tested against fixed
+- `src/components/*` — presentational components (`RelayRow`, `Tabs`,
+  `ConnectionBanner`), each unit-tested against fixed
   props matching the v0.1 schema shapes (`hub/schema/*.schema.json`).
 - `src/tabs/*` — per-domain composition of the presentational components
   over `RenewvanBusState`, also unit-tested against fixture entity maps.

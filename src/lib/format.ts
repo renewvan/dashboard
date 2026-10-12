@@ -1,7 +1,7 @@
 /**
  * Presentation formatting shared between the header uplink popover and
- * SettingsTab's Network subpage — one formatter per unit, not two
- * independently-drifting copies (tailscaleStatusText precedent).
+ * the Settings → Connectivity → Cellular page — one formatter per
+ * unit, not two independently-drifting copies (tailscaleStatusText precedent).
  */
 
 /** 1024-based byte scale, one decimal from KB up — matches the popover's

@@ -1,4 +1,5 @@
 import { Moon, Sun } from 'lucide-react'
+import { Button } from '@heroui/react'
 import type { Theme } from '@/hooks/useTheme'
 
 export interface ThemeToggleButtonProps {
@@ -7,10 +8,8 @@ export interface ThemeToggleButtonProps {
 }
 
 /**
- * Header theme toggle — a plain icon button, not a `Switch`/`IconSwitch`
- * (replaced per explicit request), matching `DisplaySleepButton`'s
- * style exactly (`bg-foreground/10` resting, `hover:bg-foreground/16`,
- * `rounded-full`, real 44×44px touch target).
+ * Header theme toggle — a plain HeroUI icon button, not a `Switch`
+ * (replaced per explicit request), styled like `DisplaySleepButton`.
  *
  * Shows the icon for the *other* theme — the one tapping switches
  * to — not the current one: `Sun` while dark (tap for light), `Moon`
@@ -22,15 +21,14 @@ export function ThemeToggleButton({ theme, onThemeChange }: ThemeToggleButtonPro
   const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark'
   const Icon = theme === 'dark' ? Sun : Moon
   return (
-    <button
-      type="button"
+    <Button
+      isIconOnly
+      variant="tertiary"
       aria-label={`Switch to ${nextTheme} theme`}
-      title={`Switch to ${nextTheme} theme`}
       data-testid="dark-theme-toggle"
-      onClick={() => onThemeChange(nextTheme)}
-      className="bg-foreground/10 hover:bg-foreground/16 flex size-11 shrink-0 items-center justify-center rounded-full"
+      onPress={() => onThemeChange(nextTheme)}
     >
       <Icon className="size-5" />
-    </button>
+    </Button>
   )
 }

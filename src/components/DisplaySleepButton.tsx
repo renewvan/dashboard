@@ -1,4 +1,5 @@
 import type { SVGProps } from 'react'
+import { Button } from '@heroui/react'
 import type { DisplayPower } from '@/hooks/useRenewvanBus'
 
 // lucide-react has no "idle/sleeping display" glyph pair distinct from
@@ -31,40 +32,30 @@ export interface DisplaySleepButtonProps {
  * Sleep/wake the kiosk display — an icon button (not a `Switch`, unlike
  * the header's dark-mode toggle), pinned as the last item in the
  * header's right-side control group so it always sits at the header's
- * far-right edge, separated from the theme toggle/status icon, per
- * explicit layout request.
+ * far-right edge.
  *
  * Named for what it actually does, not the retired "power" framing: this
  * never powers the Raspberry Pi itself off, only the attached display's
  * backlight (`vcgencmd display_power` / `wlopm`) — see
- * `hub/plugins/kiosk/node_kiosk.py`. Was `DisplayPowerButton` with
- * lucide's generic `Power`/`PowerOff`; renamed + re-iconed so the icon and
- * the name both say "sleep", matching what the button is actually for.
+ * `hub/plugins/kiosk/node_kiosk.py`. The icon reflects what tapping does
+ * (sleep while on, wake while off).
  *
- * A real `<button>`, not a decorative glyph — tapping it does something —
- * so it keeps the 44×44px minimum touch target
- * (`size-11`) per docs/design-principles.md.
- *
- * Styled to match the sidebar's circular nav buttons exactly
- * (`bg-foreground/10` resting, `hover:bg-foreground/16`, `rounded-full`
- * — see `Sidebar.tsx`'s `TabsTab` className) per explicit request, so
- * both places read as the same kind of "icon button," not two different
- * control styles.
+ * Disabled until the retained display-power topic arrives
+ * (`displayPower === null`).
  */
 export function DisplaySleepButton({ displayPower, onSleep, onWake }: DisplaySleepButtonProps) {
   const isOn = displayPower !== 'off'
   const Icon = isOn ? SleepIcon : SleepOffIcon
   return (
-    <button
-      type="button"
+    <Button
+      isIconOnly
+      variant="tertiary"
       aria-label={isOn ? 'Sleep display' : 'Wake display'}
-      title={isOn ? 'Sleep display' : 'Wake display'}
       data-testid="display-sleep-button"
-      disabled={displayPower === null}
-      onClick={() => (isOn ? onSleep() : onWake())}
-      className="bg-foreground/10 hover:bg-foreground/16 flex size-11 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-64"
+      isDisabled={displayPower === null}
+      onPress={() => (isOn ? onSleep() : onWake())}
     >
       <Icon className="size-5" />
-    </button>
+    </Button>
   )
 }

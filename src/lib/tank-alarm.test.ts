@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Tank } from '@/types'
-import { tankAlarmConfig, tankAlarmZone, tankLevelStatus, tankLiquidColor } from './tank-alarm'
+import { tankAlarmConfig, tankAlarmZone, tankLevelStatus, tankSeverity } from './tank-alarm'
 
 // Boundary semantics must match node-tank's `_crossed` (driver.py): entry
 // is inclusive of the threshold, restore inclusive of the restore level,
@@ -71,50 +71,57 @@ describe('tankAlarmConfig', () => {
 // level crosses all the way to restore, so while recovering from danger
 // it stays 'alarm' for the whole caution band on the way back up —
 // distinct from falling, where the bit is still 'ok' throughout caution
-// and only flips at the threshold crossing into danger. The zone color
+// and only flips at the threshold crossing into danger. The severity
 // must defer to the more precise zone math, not the coarser bit, or
-// caution never renders while rising (only while falling).
-describe('tankLiquidColor', () => {
+// caution never shows while rising (only while falling).
+describe('tankSeverity', () => {
   const lowConfig = {
     alarm_direction: 'low' as const,
     alarm_threshold_pct: 27,
     alarm_restore_pct: 48,
   }
 
-  it('shows caution amber while falling through the band (alarm_state still ok)', () => {
+  it('is warning while falling through the caution band (alarm_state still ok)', () => {
     const tank = baseTank({ ...lowConfig, alarm_state: 'ok' })
-    expect(tankLiquidColor(tank, 35)).toBe('var(--warn)')
+    expect(tankSeverity(tank, 35)).toBe('warning')
   })
 
-  it('shows caution amber while rising through the band (alarm_state still alarm)', () => {
+  it('is warning while rising through the caution band (alarm_state still alarm)', () => {
     const tank = baseTank({ ...lowConfig, alarm_state: 'alarm' })
-    expect(tankLiquidColor(tank, 35)).toBe('var(--warn)')
+    expect(tankSeverity(tank, 35)).toBe('warning')
   })
 
-  it('still shows red once restored if the bus has not cleared alarm_state yet (no zone info to contradict it)', () => {
+  it('is danger in the danger zone regardless of alarm_state', () => {
+    expect(tankSeverity(baseTank({ ...lowConfig, alarm_state: 'ok' }), 20)).toBe('danger')
+    expect(tankSeverity(baseTank({ ...lowConfig, alarm_state: 'alarm' }), 20)).toBe('danger')
+  })
+
+  it('is danger for a sensor fault even at a level the zone calls normal', () => {
+    const tank = baseTank({ ...lowConfig, status: 'short_circuit' })
+    expect(tankSeverity(tank, 95)).toBe('danger')
+    expect(tankSeverity(baseTank({ status: 'open_circuit' }), 50)).toBe('danger')
+  })
+
+  it('stays danger once restored while the bus has not cleared alarm_state (no zone info to contradict it)', () => {
     const tank = baseTank({ alarm_state: 'alarm' })
-    expect(tankLiquidColor(tank, 62)).toBe('var(--bad)')
+    expect(tankSeverity(tank, 62)).toBe('danger')
   })
 
-  it('shows red in the danger zone regardless of alarm_state', () => {
+  it('is accent in the normal band', () => {
     const tank = baseTank({ ...lowConfig, alarm_state: 'ok' })
-    expect(tankLiquidColor(tank, 20)).toBe('var(--bad)')
+    expect(tankSeverity(tank, 62)).toBe('accent')
   })
 
-  it('colors the normal band by fluid type, not one shared blue', () => {
-    expect(tankLiquidColor(baseTank({ fluid_type: 'fresh_water' }), 50)).toBe('var(--accent)')
-    expect(tankLiquidColor(baseTank({ fluid_type: 'grey_water' }), 50)).toBe('var(--accent)')
-    expect(tankLiquidColor(baseTank({ fluid_type: 'black_water' }), 50)).toBe(
-      'var(--color-stone-800)',
-    )
-    expect(tankLiquidColor(baseTank({ fluid_type: 'fuel' }), 50)).toBe('var(--color-amber-600)')
-    expect(tankLiquidColor(baseTank({ fluid_type: 'lpg' }), 50)).toBe('var(--color-orange-500)')
+  it('is accent for every fluid type when no alarm is configured and none is on the wire', () => {
+    for (const fluid_type of ['fresh_water', 'grey_water', 'black_water', 'fuel', 'lpg'] as const) {
+      expect(tankSeverity(baseTank({ fluid_type }), 50)).toBe('accent')
+    }
   })
 
-  it('overrides the fluid color to warn/bad once outside the normal band, regardless of fluid type', () => {
+  it('lets severity override regardless of fluid type', () => {
     const tank = baseTank({ fluid_type: 'fuel', ...lowConfig, alarm_state: 'ok' })
-    expect(tankLiquidColor(tank, 35)).toBe('var(--warn)')
-    expect(tankLiquidColor(tank, 20)).toBe('var(--bad)')
+    expect(tankSeverity(tank, 35)).toBe('warning')
+    expect(tankSeverity(tank, 20)).toBe('danger')
   })
 })
 
@@ -140,14 +147,14 @@ describe('tankLevelStatus', () => {
     expect(tankLevelStatus(tank, 35)).toEqual({ label: 'Low', color: 'warning' })
   })
 
-  it('colors the danger band destructive', () => {
+  it('colors the danger band danger', () => {
     const tank = baseTank({ ...lowConfig, alarm_state: 'ok' })
-    expect(tankLevelStatus(tank, 20)).toEqual({ label: 'Low', color: 'destructive' })
+    expect(tankLevelStatus(tank, 20)).toEqual({ label: 'Low', color: 'danger' })
   })
 
   it('labels mid-band Normal, not Full/Empty', () => {
     const tank = baseTank({ ...lowConfig, alarm_state: 'ok' })
-    expect(tankLevelStatus(tank, 60)).toEqual({ label: 'Normal', color: 'info' })
+    expect(tankLevelStatus(tank, 60)).toEqual({ label: 'Normal', color: 'accent' })
   })
 
   // Full/Empty at the extremes carry whatever severity the zone math
@@ -156,16 +163,16 @@ describe('tankLevelStatus', () => {
   // reads Full/success; a high-direction tank is the mirror image. This
   // is the same value the header Badge renders -- a tank reading Full
   // must never show green in the badge and red in the Status row.
-  it('low-direction: 0% is Empty/destructive (its danger zone), 100% is Full/success (its normal zone)', () => {
+  it('low-direction: 0% is Empty/danger (its danger zone), 100% is Full/success (its normal zone)', () => {
     const tank = baseTank({ ...lowConfig, alarm_state: 'ok' })
-    expect(tankLevelStatus(tank, 0)).toEqual({ label: 'Empty', color: 'destructive' })
+    expect(tankLevelStatus(tank, 0)).toEqual({ label: 'Empty', color: 'danger' })
     expect(tankLevelStatus(tank, 100)).toEqual({ label: 'Full', color: 'success' })
   })
 
-  it('high-direction: 0% is Empty/success (its normal zone), 100% is Full/destructive (its danger zone)', () => {
+  it('high-direction: 0% is Empty/success (its normal zone), 100% is Full/danger (its danger zone)', () => {
     const tank = baseTank({ ...highConfig, alarm_state: 'ok' })
     expect(tankLevelStatus(tank, 0)).toEqual({ label: 'Empty', color: 'success' })
-    expect(tankLevelStatus(tank, 100)).toEqual({ label: 'Full', color: 'destructive' })
+    expect(tankLevelStatus(tank, 100)).toEqual({ label: 'Full', color: 'danger' })
   })
 
   // Raw sensor readings are rarely exactly 0/100 (e.g. 0.3%, 99.6%), but
@@ -174,7 +181,7 @@ describe('tankLevelStatus', () => {
   // camper sees reading "0%" keeps showing Low instead of Empty.
   it('rounds a near-zero/near-hundred float reading to Empty/Full, matching the displayed percentage', () => {
     const tank = baseTank({ ...lowConfig, alarm_state: 'ok' })
-    expect(tankLevelStatus(tank, 0.3)).toEqual({ label: 'Empty', color: 'destructive' })
+    expect(tankLevelStatus(tank, 0.3)).toEqual({ label: 'Empty', color: 'danger' })
     expect(tankLevelStatus(tank, 99.6)).toEqual({ label: 'Full', color: 'success' })
   })
 })

@@ -40,11 +40,16 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
+          # A pre-release (e.g. a beta cut from a feature branch) publishes only its own
+          # tag, so it can never take `:latest` from the stable line.
           tags: |
             ghcr.io/${{ github.repository_owner }}/dashboard:${{ github.event.release.tag_name }}
-            ghcr.io/${{ github.repository_owner }}/dashboard:latest
+            ${{ !github.event.release.prerelease && format('ghcr.io/{0}/dashboard:latest', github.repository_owner) || '' }}
 
+  # Skipped for pre-releases: it writes the version to `main`, which does not contain a
+  # beta branch's code.
   bump-version:
+    if: ${{ !github.event.release.prerelease }}
     needs: publish-image
     runs-on: ubuntu-latest
     permissions:

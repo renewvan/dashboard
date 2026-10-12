@@ -1,13 +1,13 @@
-import { FLUID_COLORS } from './tank-labels'
 import type { Tank, TankAlarmDirection } from '@/types'
+
 export interface TankAlarmConfig {
   /** `low`: alarm when level drains below the threshold (fresh/fuel).
    *  `high`: alarm when level rises above the threshold (grey/black). */
   direction: TankAlarmDirection
-  /** Level % that trips the alarm (red at/past it). */
+  /** Level % that trips the alarm (the danger zone at/past it). */
   threshold: number
-  /** Level % that clears the alarm (blue at/past it); the band between
-   *  threshold and restore is the amber caution zone. */
+  /** Level % that clears the alarm (the normal zone at/past it); the band
+   *  between threshold and restore is the caution zone. */
   restore: number
 }
 
@@ -34,7 +34,7 @@ export function tankAlarmConfig(tank: Tank): TankAlarmConfig | undefined {
 }
 
 /**
- * Level-band severity for a tank's liquid fill. Boundary comparisons match
+ * Level-band severity for a tank's gauge fill. Boundary comparisons match
  * node-tank's `_crossed` exactly: entering alarm is inclusive of the
  * threshold (low: `<=`, high: `>=`), restoring is inclusive of the
  * restore level, so the caution zone is the open band between them.
@@ -48,40 +48,30 @@ export function tankAlarmZone(levelPct: number, config: TankAlarmConfig): TankAl
   return levelPct > config.restore ? 'caution' : 'normal'
 }
 
-/** Liquid-fill color for a tank card: red while faulted, in the danger
+/** Semantic severity of a tank: the one key both the badge and the fill are
+ *  painted from, so they cannot disagree. `danger`/`warning` are the alarm
+ *  zones, `success` marks a good extreme (see `tankLevelStatus`), `accent`
+ *  is the normal band. The component maps a key to a colour; this module
+ *  never names one. */
+export type TankSeverity = 'danger' | 'warning' | 'success' | 'accent'
+
+/** Severity of a tank's liquid fill: `danger` while faulted, in the danger
  *  zone, or while the bus holds a committed alarm with no zone info to
  *  say otherwise (config absent, so zone always reads 'normal') --
  *  covers the node's delay holding `alarm` past restore. A caution
- *  zone reading is always amber regardless of the committed-alarm bit:
+ *  zone reading is always `warning` regardless of the committed-alarm bit:
  *  the hub only clears `alarm_state` once level crosses all the way to
  *  restore, so while recovering from danger the bit stays set for the
  *  whole caution band -- deferring to the zone math (not the coarser
- *  bit) here is what lets amber show while rising, not just falling.
- *  In the normal band, the fill reads as the fluid's own color
- *  (`FLUID_COLORS`) rather than one shared blue, so tanks are
- *  distinguishable by color at a glance; alarm severity always still
- *  wins over it via the caution/danger/committed-alarm checks above. */
-export function tankLiquidColor(tank: Tank, clampedPct: number): string {
+ *  bit) here is what lets caution show while rising, not just falling.
+ *  Everything else is `accent`, whatever the fluid: colour means severity
+ *  and nothing else. */
+export function tankSeverity(tank: Tank, clampedPct: number): TankSeverity {
   const config = tankAlarmConfig(tank)
   const zone = config ? tankAlarmZone(clampedPct, config) : 'normal'
-  if (tank.status !== 'ok' || zone === 'danger') return 'var(--bad)'
-  if (zone === 'caution') return 'var(--warn)'
-  return tank.alarm_state === 'alarm' ? 'var(--bad)' : FLUID_COLORS[tank.fluid_type]
-}
-
-export type TankLevelSeverity = 'success' | 'warning' | 'error' | 'info' | 'destructive'
-
-/** Maps a `TankLevelSeverity` to the raw CSS color the Status row paints
- *  its text with (an inline style, not a Badge variant class -- see
- *  `TankCard`). Mirrors the same semantic palette `tankLiquidColor`
- *  paints the liquid fill with, so a tank's Status row text and its
- *  gauge color always read as the same severity. */
-export const TANK_SEVERITY_COLOR: Record<TankLevelSeverity, string> = {
-  success: 'var(--ok)',
-  warning: 'var(--warn)',
-  error: 'var(--bad)',
-  info: 'var(--accent)',
-  destructive: 'var(--bad)',
+  if (tank.status !== 'ok' || zone === 'danger') return 'danger'
+  if (zone === 'caution') return 'warning'
+  return tank.alarm_state === 'alarm' ? 'danger' : 'accent'
 }
 
 export interface TankLevelStatus {
@@ -89,15 +79,14 @@ export interface TankLevelStatus {
    *  between marks, else the direction-worded name of whichever band
    *  it's left the normal range into ('Low' for a low-direction tank
    *  draining toward/past threshold, 'High' for a high-direction tank
-   *  filling toward/past it) -- covers both the amber caution band and
-   *  the red danger band under the same word, distinguished only by
-   *  `color`. */
+   *  filling toward/past it) -- covers both the caution band and the
+   *  danger band under the same word, distinguished only by `color`. */
   label: 'Full' | 'Empty' | 'Normal' | 'Low' | 'High'
-  color: TankLevelSeverity
+  color: TankSeverity
 }
 
-/** The tank card's level-zone severity: feeds both the header Badge and
- *  the "Status" telemetry row (same value, same color, by design -- a
+/** The tank card's level-zone severity: feeds both the header badge and
+ *  the "Status" telemetry row (same value, same colour, by design -- a
  *  tank reading Full should never show green in one place and red in
  *  the other). Reuses `tankAlarmZone`'s existing threshold/restore math
  *  rather than publishing a redundant wire field for it (docs/adr/0003's
@@ -106,14 +95,14 @@ export interface TankLevelStatus {
  *  second copy of the same computation risks drift for no new
  *  capability). 'Full'/'Empty' at the 100%/0% marks carry whatever
  *  severity the zone math already assigns there: a low-direction
- *  tank's danger zone sits at the bottom, so 0% reads Empty/error and
+ *  tank's danger zone sits at the bottom, so 0% reads Empty/danger and
  *  100% (deep in its normal zone) reads Full/success; a high-direction
- *  tank is the mirror image (0%=Empty/success, 100%=Full/error).
+ *  tank is the mirror image (0%=Empty/success, 100%=Full/danger).
  *  Compares the *rounded* level, matching the `pct.toFixed(0)` the
  *  card actually displays -- a raw reading like 0.3% still displays as
  *  "0%", so it must read Empty here too, not fall through to Low on an
  *  exact-zero check the sensor will rarely ever hit. A committed
- *  alarm_state holds red past restore (mirrors `tankLiquidColor`'s own
+ *  alarm_state holds danger past restore (mirrors `tankSeverity`'s own
  *  override, for the same node-side delay) but never overrides a
  *  caution reading, which the zone math already places more precisely
  *  than the coarser bit. Returns undefined for a tank with no alarm
@@ -127,15 +116,15 @@ export function tankLevelStatus(tank: Tank, levelPct: number): TankLevelStatus |
   const committedAlarm = tank.alarm_state === 'alarm'
   const base: TankLevelStatus =
     zone === 'normal' && !committedAlarm
-      ? { label: 'Normal', color: 'info' }
+      ? { label: 'Normal', color: 'accent' }
       : {
           label: config.direction === 'low' ? 'Low' : 'High',
-          color: zone === 'caution' ? 'warning' : 'destructive',
+          color: zone === 'caution' ? 'warning' : 'danger',
         }
   const rounded = Math.round(levelPct)
   if (rounded === 0)
-    return { label: 'Empty', color: config.direction === 'low' ? 'destructive' : 'success' }
+    return { label: 'Empty', color: config.direction === 'low' ? 'danger' : 'success' }
   if (rounded === 100)
-    return { label: 'Full', color: config.direction === 'low' ? 'success' : 'destructive' }
+    return { label: 'Full', color: config.direction === 'low' ? 'success' : 'danger' }
   return base
 }

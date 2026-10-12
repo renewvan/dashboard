@@ -42,6 +42,9 @@ export interface RenewvanBus {
 // `<id>/name/set` and `<id>/unit/set` command topics (three) never match.
 const TOPIC_PATTERN =
   /^renewvan\/(tank|relay|battery|router|gps|temperature|tilt)\/([^/]+)\/([^/]+)$/
+// Every driver publishes `renewvan/<domain>/driver/status` ("online"/"offline") as its LWT
+// liveness. It fits the two-segment entity shape with id `driver`, so it is dropped explicitly.
+const DRIVER_LIVENESS_ID = 'driver'
 const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
 const TOPIC_BRIGHTNESS = 'renewvan/kiosk/display/brightness'
 const TOPIC_AUTO_SLEEP_ENABLED = 'renewvan/kiosk/display/auto-sleep-enabled'
@@ -84,6 +87,7 @@ function applyMessage(prev: RenewvanBusState, topic: string, payload: string): R
   const match = TOPIC_PATTERN.exec(topic)
   if (!match) return prev
   const [, domain, id, property] = match
+  if (id === DRIVER_LIVENESS_ID) return prev
   const value = parseValue(payload)
   if (domain === 'router') {
     return {
