@@ -57,6 +57,16 @@ describe('batteryDial', () => {
     const view = batteryDial({ a: { soc_pct: 10 }, b: battery({ soc_pct: 55 }) })
     expect(view?.pct).toBe(55)
   })
+
+  it('shows a battery whose source publishes only the core fields', () => {
+    // A shunt has no temperature probe and no charge stage, so neither optional property is
+    // ever published. Captured from a real SmartShunt via Venus OS.
+    const view = batteryDial({
+      '290': { soc_pct: 99.3, voltage_v: 13.44, current_a: 0.6, power_w: 8.06 },
+    })
+    expect(view?.pct).toBe(99.3)
+    expect(view?.sub).toBe('13.4V / 8W')
+  })
 })
 
 describe('tankDial', () => {

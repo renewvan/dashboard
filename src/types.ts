@@ -89,24 +89,34 @@ export type ChargeState =
   | 'scheduled_recharge'
   | 'unknown'
 
+/**
+ * Battery per hub/schema/battery.schema.json. The four core measurements are
+ * required of every source; the rest are optional because not every source
+ * can supply them (a shunt has no temperature probe or charge stage), so a
+ * consumer must tolerate their absence.
+ */
 export interface Battery {
   soc_pct: number
   voltage_v: number
   current_a: number
   power_w: number
-  temperature_c: number
-  charge_state: ChargeState
+  temperature_c?: number
+  time_to_go_s?: number
+  time_since_full_charge_s?: number
+  charge_state?: ChargeState
 }
 
-/** Same partial-accumulation caveat as {@link isCompleteTank}. */
+/**
+ * Same partial-accumulation caveat as {@link isCompleteTank}. Checks only the
+ * schema's required core: gating on the optional fields would hide a battery
+ * whose source never publishes them (e.g. a SmartShunt).
+ */
 export function isCompleteBattery(battery: Partial<Battery>): battery is Battery {
   return (
     battery.soc_pct !== undefined &&
     battery.voltage_v !== undefined &&
     battery.current_a !== undefined &&
-    battery.power_w !== undefined &&
-    battery.temperature_c !== undefined &&
-    battery.charge_state !== undefined
+    battery.power_w !== undefined
   )
 }
 
