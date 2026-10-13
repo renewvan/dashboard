@@ -23,7 +23,7 @@ const LABEL_INSIDE_FROM_PCT = 16
 /**
  * Kiosk layout ("silhouette"): a vertical liquid-fill gauge with a percentage
  * scale and quartile gridlines beside an info column. Fills its grid cell, so
- * the gauge takes whatever height `TanksTab` leaves.
+ * the gauge takes whatever height `TanksPage` leaves.
  *
  * HeroUI's component CSS is unlayered, so utilities that override it carry `!`:
  * the card's padding and gap, and every border colour (HeroUI's base sheet sets

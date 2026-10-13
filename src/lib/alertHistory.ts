@@ -2,11 +2,11 @@
 // Deliberately separate from HeroUI's live toast stack
 // (`toastQueue`): toasts are ephemeral (dismissible, gone once the
 // backend condition clears, per `useAlertToasts.ts`'s state-driven
-// model) — a driver dismissing a toast, or just visiting the Alerts tab,
-// used to make that row vanish from the tab too, since it read straight
-// off the same live toast array. This module gives the tab its own
+// model) — a driver dismissing a toast, or just visiting the Alerts page,
+// used to make that row vanish from the page too, since it read straight
+// off the same live toast array. This module gives the page its own
 // durable record that a toast add only ever *appends* to, and only
-// removal here (`removeEntry`, an explicit user action in the tab) or a
+// removal here (`removeEntry`, an explicit user action in the page) or a
 // storage-quota failure ever drops a row.
 //
 // `localStorage`-backed (not React state) so the log survives reloads —
@@ -24,7 +24,7 @@ export interface AlertHistoryEntry {
   createdAt: number
   /** Set once the backend condition that raised this alert clears (state-driven, same trigger as the toast's own removal) — `undefined` means still active. */
   resolvedAt?: number
-  /** Set when the driver dismisses the toast early (its own `×`) while the alert is still open — `useAlertToasts.ts`'s `onClose` callback, not a click anywhere in the Alerts tab. Separate from `resolvedAt`: an alert can be acknowledged while still active, or resolved without ever being acknowledged. */
+  /** Set when the driver dismisses the toast early (its own `×`) while the alert is still open — `useAlertToasts.ts`'s `onClose` callback, not a click anywhere in the Alerts page. Separate from `resolvedAt`: an alert can be acknowledged while still active, or resolved without ever being acknowledged. */
   acknowledgedAt?: number
 }
 
@@ -42,7 +42,7 @@ function read(): AlertHistoryEntry[] {
     return raw ? (JSON.parse(raw) as AlertHistoryEntry[]) : []
   } catch {
     // Unavailable (private browsing) or corrupt — treat as empty rather
-    // than crashing the tab.
+    // than crashing the page.
     return []
   }
 }
@@ -86,7 +86,7 @@ export function resolveAlertHistoryEntry(id: string): void {
   write(next)
 }
 
-/** Marks an entry acknowledged — called from `useAlertToasts.ts`'s toast `onClose` when the driver dismisses it early, not from any UI in the Alerts tab. Independent of `resolveAlertHistoryEntry`. */
+/** Marks an entry acknowledged — called from `useAlertToasts.ts`'s toast `onClose` when the driver dismisses it early, not from any UI in the Alerts page. Independent of `resolveAlertHistoryEntry`. */
 export function acknowledgeAlertHistoryEntry(id: string): void {
   const entries = read()
   const index = entries.findIndex((entry) => entry.id === id)
@@ -96,7 +96,7 @@ export function acknowledgeAlertHistoryEntry(id: string): void {
   write(next)
 }
 
-/** Removes one entry — the only user-facing "dismiss" for the Alerts tab's own list. */
+/** Removes one entry — the only user-facing "dismiss" for the Alerts page's own list. */
 export function removeAlertHistoryEntry(id: string): void {
   write(read().filter((entry) => entry.id !== id))
 }

@@ -15,40 +15,40 @@ function renderAt(url: string) {
 
 describe('useUrlParam', () => {
   it('reads a valid value from the URL', () => {
-    const { result } = renderAt('/?tab=settings&view=hub')
+    const { result } = renderAt('/?page=settings&view=hub')
     expect(result.current[0]).toBe('hub')
   })
 
   it.each([
-    ['missing', '/?tab=settings'],
-    ['unknown', '/?tab=settings&view=bogus'],
+    ['missing', '/?page=settings'],
+    ['unknown', '/?page=settings&view=bogus'],
   ])('reads null when the param is %s', (_name, url) => {
     const { result } = renderAt(url)
     expect(result.current[0]).toBeNull()
   })
 
   it('pushes one history entry per write and keeps the other params', () => {
-    const { result } = renderAt('/?tab=settings')
+    const { result } = renderAt('/?page=settings')
     const before = window.history.length
 
     act(() => result.current[1]('cellular'))
 
     expect(result.current[0]).toBe('cellular')
-    expect(window.location.search).toBe('?tab=settings&view=cellular')
+    expect(window.location.search).toBe('?page=settings&view=cellular')
     expect(window.history.length).toBe(before + 1)
   })
 
   it('removes the param when written null', () => {
-    const { result } = renderAt('/?tab=settings&view=hub')
+    const { result } = renderAt('/?page=settings&view=hub')
 
     act(() => result.current[1](null))
 
     expect(result.current[0]).toBeNull()
-    expect(window.location.search).toBe('?tab=settings')
+    expect(window.location.search).toBe('?page=settings')
   })
 
   it('does not push when the value is unchanged', () => {
-    const { result } = renderAt('/?tab=settings&view=hub')
+    const { result } = renderAt('/?page=settings&view=hub')
     const before = window.history.length
 
     act(() => result.current[1]('hub'))
@@ -58,7 +58,7 @@ describe('useUrlParam', () => {
   })
 
   it('follows Back and Forward', async () => {
-    const { result } = renderAt('/?tab=settings')
+    const { result } = renderAt('/?page=settings')
     act(() => result.current[1]('cellular'))
     act(() => result.current[1]('hub'))
 
@@ -70,7 +70,7 @@ describe('useUrlParam', () => {
   })
 
   it('picks up a push made by another writer while mounted', () => {
-    const first = renderAt('/?tab=settings')
+    const first = renderAt('/?page=settings')
     const second = renderHook(() => useUrlParam('view', VALID))
 
     act(() => second.result.current[1]('hub'))

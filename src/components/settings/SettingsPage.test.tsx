@@ -23,7 +23,7 @@ function rowNames() {
     .map((row) => row.textContent)
 }
 
-describe('SettingsTab top list', () => {
+describe('SettingsPage top list', () => {
   it('lists exactly Nodes, General and Connectivity, in that order, with live descriptions', () => {
     renderSettings({ nodes: [tanks, batteries] })
 
@@ -48,7 +48,7 @@ describe('SettingsTab top list', () => {
   })
 })
 
-describe('SettingsTab drill-down', () => {
+describe('SettingsPage drill-down', () => {
   it.each(['General', 'Connectivity', 'Nodes'])(
     'opens %s under a Settings breadcrumb',
     async (label) => {
@@ -84,7 +84,7 @@ describe('SettingsTab drill-down', () => {
   })
 })
 
-describe('SettingsTab breadcrumb', () => {
+describe('SettingsPage breadcrumb', () => {
   it('walks back to the top list from the Settings crumb', async () => {
     const { user } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))
@@ -109,7 +109,7 @@ describe('SettingsTab breadcrumb', () => {
   })
 })
 
-describe('SettingsTab Nodes', () => {
+describe('SettingsPage Nodes', () => {
   it('lists published nodes with their entity counts, Tanks and Temperature described by their entities', async () => {
     const { user } = renderSettings({
       nodes: [tanks, batteries, temperature],
@@ -137,7 +137,7 @@ describe('SettingsTab Nodes', () => {
   })
 })
 
-describe('SettingsTab Alerts', () => {
+describe('SettingsPage Alerts', () => {
   async function openAlerts(user: ReturnType<typeof renderSettings>['user']) {
     await user.click(screen.getByRole('button', { name: /^General/ }))
     await user.click(screen.getByRole('button', { name: /^Alerts/ }))

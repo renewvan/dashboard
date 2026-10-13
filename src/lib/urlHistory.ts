@@ -1,6 +1,6 @@
 /**
  * Dispatched on `window` after every in-app URL write. `pushState` emits no `popstate`, so hooks
- * that mirror the query (`useUrlTab`, `useUrlParam`) listen to this to pick up a push made by
+ * that mirror the query (`useUrlPage`, `useUrlParam`) listen to this to pick up a push made by
  * another hook instance or by `App` while they stay mounted.
  */
 export const URL_CHANGE_EVENT = 'renewvan:urlchange'

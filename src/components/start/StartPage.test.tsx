@@ -2,7 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Battery, Gps, Solar, Tank, TemperatureSensor, Tilt } from '@/types'
-import { StartTab } from './StartTab'
+import { StartPage } from './StartPage'
 
 const KIOSK_WIDTH = 800
 const JUST_BELOW_KIOSK_WIDTH = 799
@@ -43,7 +43,7 @@ function renderAt(
 ) {
   viewport = stubMatchMedia(width)
   return render(
-    <StartTab
+    <StartPage
       tanks={props.tanks ?? {}}
       batteries={props.batteries ?? {}}
       solar={props.solar ?? {}}
@@ -85,7 +85,7 @@ function subline(text: string) {
 describe.each([
   ['kiosk', KIOSK_WIDTH],
   ['phone', JUST_BELOW_KIOSK_WIDTH],
-])('StartTab (%s)', (_name, width) => {
+])('StartPage (%s)', (_name, width) => {
   it('shows each dial with its live reading', () => {
     renderAt(width, {
       tanks: {
@@ -132,7 +132,7 @@ describe.each([
   })
 })
 
-describe('StartTab layout', () => {
+describe('StartPage layout', () => {
   it('puts the battery first on a phone, where order is the reading priority', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {
       tanks: { fresh: tank(), grey: tank({ fluid_type: 'grey_water' }) },
@@ -157,7 +157,7 @@ describe('StartTab layout', () => {
   })
 })
 
-describe('StartTab weather widget', () => {
+describe('StartPage weather widget', () => {
   const probe = (temperature_c: number, status: TemperatureSensor['status'] = 'ok') =>
     ({ temperature_c, status, unit: 'C' }) as Partial<TemperatureSensor>
 
@@ -210,7 +210,7 @@ describe('StartTab weather widget', () => {
 describe.each([
   ['kiosk', KIOSK_WIDTH],
   ['phone', JUST_BELOW_KIOSK_WIDTH],
-])('StartTab tilt widget (%s)', (_name, width) => {
+])('StartPage tilt widget (%s)', (_name, width) => {
   it('shows the van tilt from the node, tinted by the level tolerance', () => {
     renderAt(width, { tilt: { tilt: { roll_deg: 0.7, pitch_deg: -2.3, status: 'ok' } } })
 
@@ -238,7 +238,7 @@ describe.each([
 describe.each([
   ['kiosk', KIOSK_WIDTH],
   ['phone', JUST_BELOW_KIOSK_WIDTH],
-])('StartTab solar widget (%s)', (_name, width) => {
+])('StartPage solar widget (%s)', (_name, width) => {
   const controller = (overrides: Partial<Solar> = {}): Solar => ({
     power_w: 412,
     battery_voltage_v: 13.4,

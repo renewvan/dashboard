@@ -7,7 +7,7 @@ export interface DialView {
   label: string
   /** 0..100, the arc fill. Always 0 while faulted. */
   pct: number
-  /** The `fill` colour of the arc: severity only, the same keys the Tanks tab paints with. */
+  /** The `fill` colour of the arc: severity only, the same keys the Tanks page paints with. */
   color: string
   /** Line under the number, e.g. `13.20V / 35W` or `46 / 100 ℓ`; the fault reason when faulted. */
   sub: string
@@ -56,7 +56,7 @@ export function batteryDial(batteries: Record<string, Partial<Battery>>): DialVi
 
 /**
  * A tank as a dial. Level, litres, fault handling and the severity colour all come from
- * `tankView`, so a dial and its Tanks-tab card cannot disagree.
+ * `tankView`, so a dial and its Tanks-page card cannot disagree.
  */
 export function tankDial(tank: Tank, now: Date): DialView {
   const view = tankView(tank, now)

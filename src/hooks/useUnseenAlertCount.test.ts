@@ -29,20 +29,20 @@ describe('useUnseenAlertCount', () => {
   })
 
   it('does not recount an alert on re-render', () => {
-    const { result, rerender } = renderHook(({ tab }) => useUnseenAlertCount(tab), {
-      initialProps: { tab: 'home' },
+    const { result, rerender } = renderHook(({ page }) => useUnseenAlertCount(page), {
+      initialProps: { page: 'home' },
     })
     act(() => {
       toast.danger('Fresh water tank alarm', { timeout: 0 })
     })
 
-    rerender({ tab: 'tanks' })
-    rerender({ tab: 'home' })
+    rerender({ page: 'tanks' })
+    rerender({ page: 'home' })
 
     expect(result.current).toBe(1)
   })
 
-  it('does not count alerts that arrive while the alerts tab is active', () => {
+  it('does not count alerts that arrive while the alerts page is active', () => {
     const { result } = renderHook(() => useUnseenAlertCount('alerts'))
 
     act(() => {
@@ -52,9 +52,9 @@ describe('useUnseenAlertCount', () => {
     expect(result.current).toBe(0)
   })
 
-  it('resets to zero on visiting the alerts tab', () => {
-    const { result, rerender } = renderHook(({ tab }) => useUnseenAlertCount(tab), {
-      initialProps: { tab: 'home' },
+  it('resets to zero on visiting the alerts page', () => {
+    const { result, rerender } = renderHook(({ page }) => useUnseenAlertCount(page), {
+      initialProps: { page: 'home' },
     })
     act(() => {
       toast.danger('Fresh water tank alarm', { timeout: 0 })
@@ -62,7 +62,7 @@ describe('useUnseenAlertCount', () => {
     })
     expect(result.current).toBe(2)
 
-    rerender({ tab: 'alerts' })
+    rerender({ page: 'alerts' })
 
     expect(result.current).toBe(0)
   })

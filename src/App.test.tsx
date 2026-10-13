@@ -111,7 +111,7 @@ async function resizeTo(width: number) {
   })
 }
 
-function selectedTab() {
+function selectedPage() {
   return screen.queryByRole('tab', { selected: true })
 }
 
@@ -239,27 +239,27 @@ describe('App shell navigation layout', () => {
   })
 })
 
-describe('App shell tab selection', () => {
+describe('App shell page selection', () => {
   it('starts on Start with its pane visible', async () => {
     await renderAt(KIOSK_WIDTH)
-    expect(selectedTab()).toHaveAccessibleName('Start')
+    expect(selectedPage()).toHaveAccessibleName('Start')
     expect(screen.getByTestId('pane-start')).toBeInTheDocument()
   })
 
   it.each([
     ['kiosk', KIOSK_WIDTH],
     ['phone', PHONE_WIDTH],
-  ])('selecting a tab swaps the pane (%s)', async (_name, width) => {
+  ])('selecting a page swaps the pane (%s)', async (_name, width) => {
     const user = userEvent.setup()
     await renderAt(width)
     await user.click(screen.getByRole('tab', { name: 'Power' }))
-    expect(selectedTab()).toHaveAccessibleName('Power')
+    expect(selectedPage()).toHaveAccessibleName('Power')
     expect(screen.getByTestId('pane-power')).toBeInTheDocument()
     expect(screen.queryByTestId('pane-start')).not.toBeInTheDocument()
-    expect(new URLSearchParams(window.location.search).get('tab')).toBe('power')
+    expect(new URLSearchParams(window.location.search).get('page')).toBe('power')
   })
 
-  it('shows the stub pane heading for the selected tab', async () => {
+  it('shows the stub pane heading for the selected page', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('tab', { name: 'Heater' }))
@@ -271,7 +271,7 @@ describe('App shell alerts bell', () => {
   it.each([
     ['kiosk', KIOSK_WIDTH],
     ['phone', PHONE_WIDTH],
-  ])('opens the alerts pane with no tab selected (%s)', async (_name, width) => {
+  ])('opens the alerts pane with no page selected (%s)', async (_name, width) => {
     const user = userEvent.setup()
     await renderAt(width)
     const bell = screen.getByRole('button', { name: /^alerts/i })
@@ -280,36 +280,36 @@ describe('App shell alerts bell', () => {
     expect(screen.getByTestId('pane-alerts')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Alerts' })).toBeInTheDocument()
     expect(bell).toHaveAttribute('aria-current', 'page')
-    expect(selectedTab()).toBeNull()
+    expect(selectedPage()).toBeNull()
   })
 
-  it('selecting a tab afterwards leaves the alerts pane', async () => {
+  it('selecting a page afterwards leaves the alerts pane', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('button', { name: /^alerts/i }))
     await user.click(screen.getByRole('tab', { name: 'Start' }))
     expect(screen.queryByTestId('pane-alerts')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^alerts/i })).not.toHaveAttribute('aria-current')
-    expect(selectedTab()).toHaveAccessibleName('Start')
+    expect(selectedPage()).toHaveAccessibleName('Start')
   })
 
-  it('deep-links to the alerts pane via ?tab=alerts', async () => {
-    await renderAt(KIOSK_WIDTH, '/?tab=alerts')
+  it('deep-links to the alerts pane via ?page=alerts', async () => {
+    await renderAt(KIOSK_WIDTH, '/?page=alerts')
     expect(screen.getByTestId('pane-alerts')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^alerts/i })).toHaveAttribute('aria-current', 'page')
   })
 })
 
 describe('App shell URL state', () => {
-  it('opens the tab named by ?tab= on load', async () => {
-    await renderAt(KIOSK_WIDTH, '/?tab=gps')
-    expect(selectedTab()).toHaveAccessibleName('GPS')
+  it('opens the page named by ?page= on load', async () => {
+    await renderAt(KIOSK_WIDTH, '/?page=gps')
+    expect(selectedPage()).toHaveAccessibleName('GPS')
     expect(screen.getByTestId('pane-gps')).toBeInTheDocument()
   })
 
-  it('falls back to Start for an unknown ?tab=', async () => {
-    await renderAt(KIOSK_WIDTH, '/?tab=bogus')
-    expect(selectedTab()).toHaveAccessibleName('Start')
+  it('falls back to Start for an unknown ?page=', async () => {
+    await renderAt(KIOSK_WIDTH, '/?page=bogus')
+    expect(selectedPage()).toHaveAccessibleName('Start')
     expect(screen.getByTestId('pane-start')).toBeInTheDocument()
   })
 
@@ -322,11 +322,11 @@ describe('App shell URL state', () => {
 
     act(() => window.history.back())
     await waitFor(() => expect(screen.getByTestId('pane-power')).toBeInTheDocument())
-    expect(selectedTab()).toHaveAccessibleName('Power')
+    expect(selectedPage()).toHaveAccessibleName('Power')
 
     act(() => window.history.forward())
     await waitFor(() => expect(screen.getByTestId('pane-gps')).toBeInTheDocument())
-    expect(selectedTab()).toHaveAccessibleName('GPS')
+    expect(selectedPage()).toHaveAccessibleName('GPS')
   })
 })
 
@@ -346,7 +346,7 @@ const FRESH_TANK = {
   volume_since_empty_l: 0,
 }
 
-describe('App shell Tanks tab', () => {
+describe('App shell Tanks page', () => {
   it('shows a card per reported tank at the kiosk width, with the scale', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
@@ -368,7 +368,7 @@ describe('App shell Tanks tab', () => {
   })
 
   it('swaps card for row when the viewport crosses the breakpoint', async () => {
-    await renderAt(KIOSK_WIDTH, '/?tab=tanks')
+    await renderAt(KIOSK_WIDTH, '/?page=tanks')
     await receiveTank('fresh', FRESH_TANK)
     expect(screen.getAllByTestId('tank-scale')).toHaveLength(1)
     await resizeTo(JUST_BELOW_KIOSK_WIDTH)
@@ -390,29 +390,29 @@ describe('App shell Tanks tab', () => {
 
       await user.click(screen.getAllByRole('button', { name: 'Configure' })[1])
 
-      expect(selectedTab()).toHaveAccessibleName('Settings')
+      expect(selectedPage()).toHaveAccessibleName('Settings')
       expect(screen.getByRole('link', { name: 'Grey water', current: 'page' })).toBeInTheDocument()
       expect(screen.getByRole('switch', { name: 'Enabled' })).toBeDisabled()
-      expect(window.location.search).toBe('?tab=settings&view=tank&tank=grey')
+      expect(window.location.search).toBe('?page=settings&view=tank&tank=grey')
 
       act(() => window.history.back())
-      await waitFor(() => expect(selectedTab()).toHaveAccessibleName('Tanks'))
+      await waitFor(() => expect(selectedPage()).toHaveAccessibleName('Tanks'))
       expect(screen.getByText('Grey water')).toBeInTheDocument()
     },
   )
 
-  it('drops the open tank when leaving Settings for another tab', async () => {
+  it('drops the open tank when leaving Settings for another page', async () => {
     const user = userEvent.setup()
-    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=tank&tank=fresh')
+    await renderAt(KIOSK_WIDTH, '/?page=settings&view=tank&tank=fresh')
     await receiveTank('fresh', FRESH_TANK)
 
     await user.click(screen.getByRole('tab', { name: 'Power' }))
 
-    expect(window.location.search).toBe('?tab=power')
+    expect(window.location.search).toBe('?page=power')
   })
 
   it('shows the empty state when no tank has reported', async () => {
-    await renderAt(KIOSK_WIDTH, '/?tab=tanks')
+    await renderAt(KIOSK_WIDTH, '/?page=tanks')
     expect(screen.getByText('No tank data yet.')).toBeInTheDocument()
   })
 })
@@ -465,9 +465,9 @@ describe('App shell header', () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await openCellularFromUplink(user)
-    expect(selectedTab()).toHaveAccessibleName('Settings')
+    expect(selectedPage()).toHaveAccessibleName('Settings')
     expectInCellular()
-    expect(window.location.search).toBe('?tab=settings&view=cellular')
+    expect(window.location.search).toBe('?page=settings&view=cellular')
   })
 
   it('opens the Settings tree from the rail and walks into a group and back', async () => {
@@ -517,7 +517,7 @@ describe('App shell header', () => {
 })
 
 describe('App shell Settings view in the URL', () => {
-  it('Back after the popover CTA returns to the previous tab, not an intermediate ?tab=settings', async () => {
+  it('Back after the popover CTA returns to the previous page, not an intermediate ?page=settings', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('tab', { name: 'Power' }))
@@ -525,42 +525,42 @@ describe('App shell Settings view in the URL', () => {
     expectInCellular()
 
     await goBack()
-    await waitFor(() => expect(selectedTab()).toHaveAccessibleName('Power'))
-    expect(window.location.search).toBe('?tab=power')
+    await waitFor(() => expect(selectedPage()).toHaveAccessibleName('Power'))
+    expect(window.location.search).toBe('?page=power')
     expect(screen.queryByTestId('pane-settings')).not.toBeInTheDocument()
 
     await goForward()
     await waitFor(() => expectInCellular())
-    expect(window.location.search).toBe('?tab=settings&view=cellular')
+    expect(window.location.search).toBe('?page=settings&view=cellular')
   })
 
   it.each([
     ['kiosk', KIOSK_WIDTH],
     ['phone', PHONE_WIDTH],
-  ])('opens Cellular from the popover CTA on another tab (%s)', async (_name, width) => {
+  ])('opens Cellular from the popover CTA on another page (%s)', async (_name, width) => {
     const user = userEvent.setup()
-    await renderAt(width, '/?tab=tanks')
+    await renderAt(width, '/?page=tanks')
     await openCellularFromUplink(user)
     expectInCellular()
-    expect(window.location.search).toBe('?tab=settings&view=cellular')
+    expect(window.location.search).toBe('?page=settings&view=cellular')
   })
 
-  it('tapping the Settings rail entry from another tab drops a stale view', async () => {
+  it('tapping the Settings rail entry from another page drops a stale view', async () => {
     const user = userEvent.setup()
-    await renderAt(KIOSK_WIDTH, '/?tab=power&view=cellular')
+    await renderAt(KIOSK_WIDTH, '/?page=power&view=cellular')
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
     expect(new URLSearchParams(window.location.search).has('view')).toBe(false)
-    expect(window.location.search).toBe('?tab=settings')
+    expect(window.location.search).toBe('?page=settings')
     expectTopList()
   })
 
   it('leaving Settings from Cellular and returning by the rail shows the top list', async () => {
     const user = userEvent.setup()
-    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
+    await renderAt(KIOSK_WIDTH, '/?page=settings&view=cellular')
     await user.click(screen.getByRole('tab', { name: 'Power' }))
-    expect(window.location.search).toBe('?tab=power')
+    expect(window.location.search).toBe('?page=power')
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
-    expect(window.location.search).toBe('?tab=settings')
+    expect(window.location.search).toBe('?page=settings')
     expectTopList()
   })
 
@@ -571,17 +571,17 @@ describe('App shell Settings view in the URL', () => {
     're-tapping the selected Settings entry inside a view returns to the top list (%s)',
     async (_name, width) => {
       const user = userEvent.setup()
-      await renderAt(width, '/?tab=power')
+      await renderAt(width, '/?page=power')
       await user.click(screen.getByRole('tab', { name: 'Settings' }))
       const pane = screen.getByTestId('pane-settings')
       await user.click(within(pane).getByRole('button', { name: /^Connectivity/ }))
       await user.click(within(pane).getByRole('button', { name: /^Hub/ }))
-      expect(window.location.search).toBe('?tab=settings&view=hub')
+      expect(window.location.search).toBe('?page=settings&view=hub')
       const before = window.history.length
 
       await user.click(screen.getByRole('tab', { name: 'Settings' }))
 
-      expect(window.location.search).toBe('?tab=settings')
+      expect(window.location.search).toBe('?page=settings')
       expect(window.history.length).toBe(before + 1)
       expectTopList()
 
@@ -592,25 +592,25 @@ describe('App shell Settings view in the URL', () => {
 
   it('re-tapping the selected Settings entry on the top list adds no history entry', async () => {
     const user = userEvent.setup()
-    await renderAt(KIOSK_WIDTH, '/?tab=power')
+    await renderAt(KIOSK_WIDTH, '/?page=power')
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
-    expect(window.location.search).toBe('?tab=settings')
+    expect(window.location.search).toBe('?page=settings')
     const before = window.history.length
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
 
-    expect(window.location.search).toBe('?tab=settings')
+    expect(window.location.search).toBe('?page=settings')
     expect(window.history.length).toBe(before)
     expectTopList()
   })
 
   it('opens the view named by ?view= on load, and the top list for an unknown one', async () => {
-    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
+    await renderAt(KIOSK_WIDTH, '/?page=settings&view=cellular')
     expectInCellular()
 
     cleanup()
-    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=bogus')
-    expect(selectedTab()).toHaveAccessibleName('Settings')
+    await renderAt(KIOSK_WIDTH, '/?page=settings&view=bogus')
+    expect(selectedPage()).toHaveAccessibleName('Settings')
     expectTopList()
   })
 
@@ -633,16 +633,16 @@ describe('App shell Settings view in the URL', () => {
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
     const pane = screen.getByTestId('pane-settings')
     await user.click(within(pane).getByRole('button', { name: /^Connectivity/ }))
-    expect(window.location.search).toBe('?tab=settings&view=connectivity')
+    expect(window.location.search).toBe('?page=settings&view=connectivity')
     await user.click(within(pane).getByRole('button', { name: /^Tailscale/ }))
-    expect(window.location.search).toBe('?tab=settings&view=tailscale')
+    expect(window.location.search).toBe('?page=settings&view=tailscale')
     expect(currentCrumb()).toHaveAccessibleName('Tailscale')
 
     await goBack()
     expect(currentCrumb()).toHaveAccessibleName('Connectivity')
     await goBack()
     expectTopList()
-    expect(window.location.search).toBe('?tab=settings')
+    expect(window.location.search).toBe('?page=settings')
 
     await goForward()
     expect(currentCrumb()).toHaveAccessibleName('Connectivity')
@@ -652,11 +652,11 @@ describe('App shell Settings view in the URL', () => {
 
   it('a breadcrumb step pushes an entry too, so Back returns to the deeper view', async () => {
     const user = userEvent.setup()
-    await renderAt(KIOSK_WIDTH, '/?tab=settings&view=cellular')
+    await renderAt(KIOSK_WIDTH, '/?page=settings&view=cellular')
     const pane = screen.getByTestId('pane-settings')
     await user.click(within(pane).getByRole('link', { name: 'Settings' }))
     expectTopList()
-    expect(window.location.search).toBe('?tab=settings')
+    expect(window.location.search).toBe('?page=settings')
 
     await goBack()
     expectInCellular()
@@ -672,7 +672,7 @@ describe('App shell Settings view in the URL', () => {
 
     await openCellularFromUplink(user)
     expectInCellular()
-    expect(window.location.search).toBe('?tab=settings&view=cellular')
+    expect(window.location.search).toBe('?page=settings&view=cellular')
 
     await goBack()
     expect(currentCrumb()).toHaveAccessibleName('General')

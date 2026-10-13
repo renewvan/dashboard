@@ -8,7 +8,7 @@ import {
 
 export interface UseAlertHistoryResult {
   entries: AlertHistoryEntry[]
-  /** Removes one entry from the persistent log — the Alerts tab's own explicit dismiss, distinct from a toast's ephemeral close. */
+  /** Removes one entry from the persistent log — the Alerts page's own explicit dismiss, distinct from a toast's ephemeral close. */
   remove: (id: string) => void
 }
 

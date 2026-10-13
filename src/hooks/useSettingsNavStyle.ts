@@ -19,7 +19,7 @@ function readStoredNavStyle(): SettingsNavStyle {
 }
 
 /**
- * How the Settings tab opens its deeper views: `drawer` (each view slides in
+ * How the Settings page opens its deeper views: `drawer` (each view slides in
  * from the right over the page) or `subpage` (each view replaces the page,
  * under a breadcrumb trail). Persisted like `useTheme`, so the kiosk's choice
  * survives a reload.

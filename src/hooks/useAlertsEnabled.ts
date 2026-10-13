@@ -15,7 +15,7 @@ function readStoredAlertsEnabled(): boolean {
  * Whether alert toasts (`useAlertToasts`) are shown — Settings → General →
  * Alerts. Kiosk-local preference with no bus topic, persisted like
  * `useTheme` so the choice survives a reload/power cycle. Mutes toasts
- * only; the Alerts tab's history keeps recording.
+ * only; the Alerts page's history keeps recording.
  *
  * Single instance; call once in `App` (each call owns its own state, so a
  * second one would drift from the toasts).

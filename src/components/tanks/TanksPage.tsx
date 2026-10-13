@@ -6,7 +6,7 @@ import { isCompleteTank, type Tank } from '@/types'
 import { TankCard } from './TankCard'
 import { TankRow } from './TankRow'
 
-export interface TanksTabProps {
+export interface TanksPageProps {
   tanks: Record<string, Tank>
   /** Opens a tank's settings (its Configure button). */
   onConfigure: (id: string) => void
@@ -22,7 +22,7 @@ const PACE_REFRESH_MS = 30_000
  * four or more tanks the kiosk cards lose room; revisit if a fourth tank ever
  * publishes (the van publishes fresh and grey only).
  */
-export function TanksTab({ tanks, onConfigure }: TanksTabProps) {
+export function TanksPage({ tanks, onConfigure }: TanksPageProps) {
   const isMobile = useIsMobile()
   const now = new Date(useNow(PACE_REFRESH_MS))
 
