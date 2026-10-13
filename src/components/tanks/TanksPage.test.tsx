@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Tank } from '@/types'
-import { TanksTab } from './TanksTab'
+import { TanksPage } from './TanksPage'
 
 const KIOSK_WIDTH = 800
 const JUST_BELOW_KIOSK_WIDTH = 799
@@ -27,7 +27,7 @@ let viewport: MatchMediaStub
 const onConfigure = vi.fn()
 function renderAt(width: number, tanks: Record<string, Partial<Tank>>) {
   viewport = stubMatchMedia(width)
-  return render(<TanksTab tanks={tanks as Record<string, Tank>} onConfigure={onConfigure} />)
+  return render(<TanksPage tanks={tanks as Record<string, Tank>} onConfigure={onConfigure} />)
 }
 
 afterEach(() => {
@@ -39,7 +39,7 @@ afterEach(() => {
 describe.each([
   ['kiosk', KIOSK_WIDTH],
   ['phone', JUST_BELOW_KIOSK_WIDTH],
-])('TanksTab (%s)', (_name, width) => {
+])('TanksPage (%s)', (_name, width) => {
   it('renders a card per tank, fresh water before grey, whatever the input order', () => {
     renderAt(width, { grey: GREY, fresh: FRESH })
     const names = screen.getAllByText(/^(Fresh|Grey) water$/).map((el) => el.textContent)
@@ -106,7 +106,7 @@ describe.each([
   })
 })
 
-describe('TanksTab layout switch', () => {
+describe('TanksPage layout switch', () => {
   it('draws the scale (card layout) at 800px', () => {
     renderAt(KIOSK_WIDTH, { fresh: FRESH })
     expect(screen.getAllByTestId('tank-scale')).toHaveLength(1)

@@ -5,7 +5,7 @@ app serving both the 7" in-van kiosk touchscreen (800×480 landscape) and a
 laptop browser. Per
 `hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md`, built
 from the layout decided in `hub`'s throwaway `prototype/dashboard-06`
-branch (variant C: domain tabs + radial gauges).
+branch (variant C: domain pages + radial gauges).
 
 Connects **directly** to the renewvan bus broker over MQTT-over-WebSocket
 (Mosquitto's WS listener) from the browser — no polling backend, not
@@ -16,9 +16,9 @@ immediately, not a blank screen).
 
 ## Layout
 
-Three domain tabs, same tabbed interaction at every supported width:
+Three domain pages, same tabbed navigation at every supported width:
 
-| Tab      | Content                                                                                                                                          |
+| Page     | Content                                                                                                                                          |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Tanks    | Radial gauge per tank (`level_pct`), liters-remaining readout, sensor-fault status in place of the readout when `status != ok`                   |
 | Power    | Radial gauge per battery (`soc_pct`), voltage/current/power/temperature readout, `charge_state` badge                                            |
@@ -33,10 +33,10 @@ Three domain tabs, same tabbed interaction at every supported width:
 - `src/components/*` — presentational components (`RelayRow`, `Tabs`,
   `ConnectionBanner`), each unit-tested against fixed
   props matching the v0.1 schema shapes (`hub/schema/*.schema.json`).
-- `src/tabs/*` — per-domain composition of the presentational components
+- `src/components/*/*Page.tsx` — per-domain composition of the presentational components
   over `RenewvanBusState`, also unit-tested against fixture entity maps.
 - `src/config/relayLabels.ts` — dashboard-side `id → label` map for the
-  Switches tab (label is presentation-only, not a wire field).
+  Switches page (label is presentation-only, not a wire field).
 
 ## Configuration
 
@@ -46,7 +46,7 @@ All config is Vite build-time env vars (`VITE_*`), see `.env.example`:
 | ------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
 | `VITE_MQTT_WS_URL`                          | _(required)_          | Mosquitto's WS listener, browser-reachable, e.g. `ws://<host>:9001`     |
 | `VITE_MQTT_USERNAME` / `VITE_MQTT_PASSWORD` | _(none)_              | Read-scoped credentials; blank while the broker allows anonymous access |
-| `VITE_RELAY_LABELS`                         | _(built-in defaults)_ | JSON `id -> label` override for the Switches tab                        |
+| `VITE_RELAY_LABELS`                         | _(built-in defaults)_ | JSON `id -> label` override for the Switches page                       |
 
 ## Running
 
@@ -63,7 +63,7 @@ npm install
 npx vitest run
 ```
 
-Presentational-component and tab tests run against fixed props/fixture
+Presentational-component and page tests run against fixed props/fixture
 entity maps only — no live MQTT connection required.
 
 ## Building / deploying

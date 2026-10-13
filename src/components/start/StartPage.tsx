@@ -22,7 +22,7 @@ import { useSolarReference } from '@/components/widgets/solar/useSolarReference'
 import { CockpitDial, type DialSize } from './CockpitDial'
 import { batteryDial, tankDialOf, type DialView } from './dialView'
 
-export interface StartTabProps {
+export interface StartPageProps {
   tanks: Record<string, Partial<Tank>>
   batteries: Record<string, Partial<BatteryRecord>>
   solar: Record<string, Partial<Solar>>
@@ -59,7 +59,7 @@ interface DialSlot {
  * Phone (below 800px, the shell's breakpoint): one card per widget, stacked and scrolling; solar
  * sits at the top of the fresh water card.
  */
-export function StartTab({
+export function StartPage({
   tanks,
   batteries,
   solar,
@@ -67,7 +67,7 @@ export function StartTab({
   gps,
   tilt,
   isDark,
-}: StartTabProps) {
+}: StartPageProps) {
   // The first GPS record with a plottable position; the weather is looked up there.
   const fix = Object.values(gps).find((g): g is Gps => isCompleteGps(g) && hasGpsFix(g))
   // One tilt node per van; show the first record.

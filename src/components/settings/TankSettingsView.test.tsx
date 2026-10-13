@@ -104,7 +104,7 @@ describe('Settings › Nodes › Tanks › Fresh water', () => {
   it('opens straight from a deep link', async () => {
     renderSettings(
       { nodes: [tanksNode], tanks: TANKS },
-      { url: '/?tab=settings&view=tank&tank=grey' },
+      { url: '/?page=settings&view=tank&tank=grey' },
     )
     expect(screen.getByRole('link', { name: 'Grey water', current: 'page' })).toBeInTheDocument()
   })
@@ -114,7 +114,7 @@ describe('Settings › Nodes › Tanks › unknown tank', () => {
   it('shows the tank list, not an empty panel, when ?tank= names no reported tank', () => {
     renderSettings(
       { nodes: [tanksNode], tanks: TANKS },
-      { url: '/?tab=settings&view=tank&tank=nope' },
+      { url: '/?page=settings&view=tank&tank=nope' },
     )
 
     expect(screen.getByRole('link', { name: 'Tanks', current: 'page' })).toBeInTheDocument()

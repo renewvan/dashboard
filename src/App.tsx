@@ -11,10 +11,10 @@ import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { StubPane } from '@/components/StubPane'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
-import { SettingsTab } from '@/components/settings/SettingsTab'
+import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { SettingsSubView } from '@/components/settings/views'
-import { TanksTab } from '@/components/tanks/TanksTab'
-import { StartTab } from '@/components/start/StartTab'
+import { TanksPage } from '@/components/tanks/TanksPage'
+import { StartPage } from '@/components/start/StartPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
@@ -26,7 +26,7 @@ import { settingsCommands } from '@/lib/settings-commands'
 import { useTheme } from '@/hooks/useTheme'
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed'
 import { SidebarToggle } from '@/components/SidebarToggle'
-import { useUrlTab } from '@/hooks/useUrlTab'
+import { useUrlPage } from '@/hooks/useUrlPage'
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'start', label: 'Start', icon: <Gauge className="size-5" /> },
@@ -38,10 +38,10 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: <Wrench className="size-5" /> },
 ]
 
-// Reachable via the header's `AlertsButton` + `?tab=alerts` deep link
+// Reachable via the header's `AlertsButton` + `?page=alerts` deep link
 // only — deliberately excluded from `NAV_ITEMS`/`Sidebar` per explicit
-// request, so `useUrlTab` needs its own superset of valid ids.
-const TAB_IDS = [...NAV_ITEMS.map((item) => item.id), 'alerts']
+// request, so `useUrlPage` needs its own superset of valid ids.
+const PAGE_IDS = [...NAV_ITEMS.map((item) => item.id), 'alerts']
 
 /** Custom property the header publishes on `<html>` so the toast region (portaled to `<body>`, see `main.tsx`) can sit below it. */
 const HEADER_HEIGHT_VAR = '--app-header-height'
@@ -63,16 +63,16 @@ function App() {
   } = useRenewvanBus()
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
-  const [activeTab, setActiveTab] = useUrlTab(TAB_IDS, 'start')
-  // A view (and the tank it shows) belongs to the Settings tab: any other tab change leaves
+  const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
+  // A view (and the tank it shows) belongs to the Settings page: any other page change leaves
   // both behind (one entry).
-  const goToTab = (id: string) => setActiveTab(id, { view: null, tank: null })
-  // One history entry for tab and view together, so Back returns to the previous tab.
-  const openSettings = (view: SettingsSubView) => setActiveTab('settings', { view, tank: null })
-  // The tank's Configure button: Settings › Nodes › Tanks › <tank>, tab, view and tank in one entry.
+  const goToPage = (id: string) => setActivePage(id, { view: null, tank: null })
+  // One history entry for page and view together, so Back returns to the previous page.
+  const openSettings = (view: SettingsSubView) => setActivePage('settings', { view, tank: null })
+  // The tank's Configure button: Settings › Nodes › Tanks › <tank>, page, view and tank in one entry.
   const openTankSettings = (tankId: string) =>
-    setActiveTab('settings', { view: 'tank', tank: tankId })
-  const unseenAlertCount = useUnseenAlertCount(activeTab)
+    setActivePage('settings', { view: 'tank', tank: tankId })
+  const unseenAlertCount = useUnseenAlertCount(activePage)
   const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
   const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsed()
@@ -182,9 +182,9 @@ function App() {
         />
         <Separator orientation="vertical" className="mx-1.5 h-6" />
         <AlertsButton
-          onClick={() => goToTab('alerts')}
+          onClick={() => goToPage('alerts')}
           count={unseenAlertCount}
-          active={activeTab === 'alerts'}
+          active={activePage === 'alerts'}
         />
         <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
         <DisplaySleepButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
@@ -198,10 +198,10 @@ function App() {
         <Tabs.Panel key={item.id} id={item.id} className={PANEL_CLASS}>
           {item.id === 'settings' ? (
             <SettingsProvider value={settings}>
-              <SettingsTab />
+              <SettingsPage />
             </SettingsProvider>
           ) : item.id === 'start' ? (
-            <StartTab
+            <StartPage
               tanks={state.tanks}
               batteries={state.batteries}
               solar={state.solar}
@@ -211,7 +211,7 @@ function App() {
               isDark={theme === 'dark'}
             />
           ) : item.id === 'tanks' ? (
-            <TanksTab tanks={state.tanks} onConfigure={openTankSettings} />
+            <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
           ) : (
             <StubPane id={item.id} title={item.label} icon={item.icon} />
           )}
@@ -233,8 +233,8 @@ function App() {
           `order-last` moves the bar below the panes. */}
       {isMobile && header}
       <Tabs
-        selectedKey={activeTab}
-        onSelectionChange={(key) => goToTab(String(key))}
+        selectedKey={activePage}
+        onSelectionChange={(key) => goToPage(String(key))}
         orientation={isMobile ? 'horizontal' : 'vertical'}
         className="min-h-0 flex-1 gap-0!"
       >

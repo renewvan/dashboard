@@ -55,7 +55,7 @@ function trailTo(view: SettingsSubView): SettingsSubView[] {
  * stays and the view slides in from the right). Memoised: it takes no props
  * and only re-renders when the Settings context value changes.
  */
-export const SettingsTab = memo(function SettingsTab() {
+export const SettingsPage = memo(function SettingsPage() {
   const { nodes, tanks } = useSettings()
   const isMobile = useIsMobile()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()

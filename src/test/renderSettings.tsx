@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { onTestFinished, vi } from 'vitest'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import type { SettingsContextValue } from '@/components/settings/SettingsContext'
-import { SettingsTab } from '@/components/settings/SettingsTab'
+import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { TailscaleStatus } from '@/hooks/useRenewvanBus'
 import type { Router } from '@/types'
 import { stubMatchMedia } from './matchMedia'
@@ -46,14 +46,14 @@ interface RenderSettingsOptions {
 }
 
 /**
- * Renders the Settings tab inside a `SettingsProvider` holding a literal
+ * Renders the Settings page inside a `SettingsProvider` holding a literal
  * value: the defaults below with `overrides` on top. Stubs `matchMedia` and
  * `ResizeObserver` (jsdom has neither) and restores them, and the URL, when the test finishes.
  * Later tickets add their fields to `defaultValue` only.
  */
 export function renderSettings(
   overrides: Partial<SettingsContextValue> = {},
-  { width = KIOSK_WIDTH, url = '/?tab=settings' }: RenderSettingsOptions = {},
+  { width = KIOSK_WIDTH, url = '/?page=settings' }: RenderSettingsOptions = {},
 ) {
   // The open view lives in `?view=`: every render starts at the top list unless a `url` is given.
   window.history.replaceState(null, '', url)
@@ -90,7 +90,7 @@ export function renderSettings(
   const user = userEvent.setup()
   const result = render(
     <SettingsProvider value={value}>
-      <SettingsTab />
+      <SettingsPage />
     </SettingsProvider>,
   )
   return { user, viewport, value, ...result }

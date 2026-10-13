@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { NodeSummary } from '@/lib/nodes'
 import { SettingsProvider } from './SettingsProvider'
-import { SettingsTab } from './SettingsTab'
+import { SettingsPage } from './SettingsPage'
 import { renderSettings } from '@/test/renderSettings'
 import type { TemperatureSensor } from '@/types'
 
@@ -125,7 +125,7 @@ describe('Settings › Nodes › Temperature', () => {
         <SettingsProvider
           value={{ ...value, temperatures: { outdoor: { ...outdoor, name: 'Roof' } } }}
         >
-          <SettingsTab />
+          <SettingsPage />
         </SettingsProvider>,
       )
       expect(nameField('28-000000259026')).toHaveValue('Roof')
@@ -154,7 +154,7 @@ describe('Settings › Nodes › Temperature', () => {
         <SettingsProvider
           value={{ ...value, temperatures: { outdoor: { ...outdoor, name: 'Awning' } } }}
         >
-          <SettingsTab />
+          <SettingsPage />
         </SettingsProvider>,
       )
 

@@ -2,7 +2,7 @@ import { Droplet, Flame, Fuel, Toilet, Waves, type LucideIcon } from 'lucide-rea
 import type { Tank } from '@/types'
 
 /**
- * The icon of each fluid. One map for the Tanks tab's cards and the Start page's dials, so a fluid
+ * The icon of each fluid. One map for the Tanks page's cards and the Start page's dials, so a fluid
  * wears the same icon on both and they cannot drift apart.
  */
 export const FLUID_ICONS: Record<Tank['fluid_type'], LucideIcon> = {

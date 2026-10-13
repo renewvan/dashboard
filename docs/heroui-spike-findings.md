@@ -4,9 +4,9 @@ Outcome of the HeroUI layout spike (branch `HeroUI`, spec #24): rebuild the dash
 
 ## Outcome
 
-The base layout runs on HeroUI with coss removed. The header controls (clock, display sleep, theme, uplink status, alerts), the rail/bottom-bar navigation and the alert toasts are HeroUI components. Page content is mostly not ported: the remaining panes are `StubPane` placeholders, so nothing here says how HeroUI behaves on the data-dense pages (power, switches, heater, GPS). The Settings, Tanks and Start tabs have since been ported (see below).
+The base layout runs on HeroUI with coss removed. The header controls (clock, display sleep, theme, uplink status, alerts), the rail/bottom-bar navigation and the alert toasts are HeroUI components. Page content is mostly not ported: the remaining panes are `StubPane` placeholders, so nothing here says how HeroUI behaves on the data-dense pages (power, switches, heater, GPS). The Settings, Tanks and Start pages have since been ported (see below).
 
-HeroUI's component CSS is imported granularly in `src/index.css`, one line per component, not as the whole stylesheet: the base, theme, utilities and variants layers, the layout shell's components, and the controls, breadcrumbs and drawer the Settings tab added.
+HeroUI's component CSS is imported granularly in `src/index.css`, one line per component, not as the whole stylesheet: the base, theme, utilities and variants layers, the layout shell's components, and the controls, breadcrumbs and drawer the Settings page added.
 
 ## Measured
 
@@ -48,14 +48,14 @@ The "after" figures also reflect the removed pages, so they say nothing about He
 
 These were decided with the spike and are not regressions to fix:
 
-- ~~The Settings page and the Alerts-toggle UI are removed with the other pages.~~ **Ported:** the Settings tab is now a HeroUI drill-down (Nodes, General, Connectivity), with the Alerts toggle under General → Alerts.
+- ~~The Settings page and the Alerts-toggle UI are removed with the other pages.~~ **Ported:** the Settings page is now a HeroUI drill-down (Nodes, General, Connectivity), with the Alerts toggle under General → Alerts.
 - System fonts replace Inter.
 - Header buttons have no `title` attribute.
-- Keyboard gap: with the `alerts` tab open, all tabs get `tabindex="-1"`. `alerts` is reachable only through the header button and `?tab=alerts`, not the rail.
+- Keyboard gap: with the `alerts` page open, all tabs get `tabindex="-1"`. `alerts` is reachable only through the header button and `?page=alerts`, not the rail.
 
 ## Known items for the page port
 
-- ~~`lib/tank-alarm.ts` and `RadialGauge.css` still reference `var(--bad)`, `var(--warn)`, `var(--ok)`, `var(--bg)` and `var(--kiosk-muted)`~~ **Ported:** `lib/tank-alarm.ts` now returns a semantic severity key and the Tanks tab maps it to `--danger`, `--warning` and `--accent`; `RadialGauge` and its CSS are deleted. `TiltWidget.tsx` is still unmounted.
+- ~~`lib/tank-alarm.ts` and `RadialGauge.css` still reference `var(--bad)`, `var(--warn)`, `var(--ok)`, `var(--bg)` and `var(--kiosk-muted)`~~ **Ported:** `lib/tank-alarm.ts` now returns a semantic severity key and the Tanks page maps it to `--danger`, `--warning` and `--accent`; `RadialGauge` and its CSS are deleted. `TiltWidget.tsx` is still unmounted.
 - ~~Comments in `src/types.ts` and `src/lib/tank-alarm.ts` naming `TankCard` describe code that returns when the pages are ported.~~ **Ported:** `TankCard` (kiosk) and `TankRow` (phone) live in `src/components/tanks/`, so those comments are accurate again.
 - Several comments point at pages that are still unported; they should be revisited when those pages return. Settings is **ported** and its comments now describe the live code; the remaining ones are about the Alerts page.
 
