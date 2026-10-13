@@ -41,7 +41,7 @@ export interface RenewvanBus {
 // `<id>/<property>` is exactly two segments, so the temperature node's
 // `<id>/name/set` and `<id>/unit/set` command topics (three) never match.
 const TOPIC_PATTERN =
-  /^renewvan\/(tank|relay|battery|router|gps|temperature|tilt)\/([^/]+)\/([^/]+)$/
+  /^renewvan\/(tank|relay|battery|solar|router|gps|temperature|tilt)\/([^/]+)\/([^/]+)$/
 // Every driver publishes `renewvan/<domain>/driver/status` ("online"/"offline") as its LWT
 // liveness. It fits the two-segment entity shape with id `driver`, so it is dropped explicitly.
 const DRIVER_LIVENESS_ID = 'driver'
@@ -105,6 +105,7 @@ function applyMessage(prev: RenewvanBusState, topic: string, payload: string): R
   if (domain === 'battery') {
     return { ...prev, batteries: accumulate(prev.batteries, id, property, value) }
   }
+  if (domain === 'solar') return { ...prev, solar: accumulate(prev.solar, id, property, value) }
   // relay: only `state`, a JSON boolean.
   return {
     ...prev,

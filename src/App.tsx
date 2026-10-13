@@ -201,7 +201,15 @@ function App() {
               <SettingsTab />
             </SettingsProvider>
           ) : item.id === 'start' ? (
-            <StartTab tanks={state.tanks} batteries={state.batteries} isDark={theme === 'dark'} />
+            <StartTab
+              tanks={state.tanks}
+              batteries={state.batteries}
+              solar={state.solar}
+              temperatures={state.temperatures}
+              gps={state.gps}
+              tilt={state.tilt}
+              isDark={theme === 'dark'}
+            />
           ) : item.id === 'tanks' ? (
             <TanksTab tanks={state.tanks} onConfigure={openTankSettings} />
           ) : (
