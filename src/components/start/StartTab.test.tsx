@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
-import type { Battery, Tank } from '@/types'
+import type { Battery, Gps, Tank, TemperatureSensor, Tilt } from '@/types'
 import { StartTab } from './StartTab'
 
 const KIOSK_WIDTH = 800
@@ -32,14 +32,46 @@ const BATTERY: Battery = {
 let viewport: MatchMediaStub
 function renderAt(
   width: number,
-  props: { tanks?: Record<string, Partial<Tank>>; batteries?: Record<string, Partial<Battery>> },
+  props: {
+    tanks?: Record<string, Partial<Tank>>
+    batteries?: Record<string, Partial<Battery>>
+    temperatures?: Record<string, Partial<TemperatureSensor>>
+    gps?: Record<string, Partial<Gps>>
+    tilt?: Record<string, Partial<Tilt>>
+  },
 ) {
   viewport = stubMatchMedia(width)
-  return render(<StartTab tanks={props.tanks ?? {}} batteries={props.batteries ?? {}} isDark />)
+  return render(
+    <StartTab
+      tanks={props.tanks ?? {}}
+      batteries={props.batteries ?? {}}
+      temperatures={props.temperatures ?? {}}
+      gps={props.gps ?? {}}
+      tilt={props.tilt ?? {}}
+      isDark
+    />,
+  )
 }
+
+const FORECAST = {
+  current: { temperature_2m: 14.4, weather_code: 0 },
+  daily: {
+    time: ['2026-10-13', '2026-10-14', '2026-10-15'],
+    weather_code: [0, 3, 61],
+    temperature_2m_max: [18.2, 16.1, 12.7],
+    temperature_2m_min: [9.4, 8.8, 7.1],
+  },
+}
+
+let fetchMock: ReturnType<typeof vi.fn>
+beforeEach(() => {
+  fetchMock = vi.fn(async () => ({ ok: true, json: async () => FORECAST }))
+  vi.stubGlobal('fetch', fetchMock)
+})
 
 afterEach(() => {
   cleanup()
+  vi.unstubAllGlobals()
   viewport.restore()
 })
 
@@ -89,12 +121,6 @@ describe.each([
     expect(screen.getAllByText('No data yet')).toHaveLength(3)
   })
 
-  it('reads an unconnected weather widget as such, never as a reading', () => {
-    renderAt(width, {})
-    expect(screen.getByText('Weather')).toBeInTheDocument()
-    expect(screen.getByText('Not connected')).toBeInTheDocument()
-  })
-
   it('shows a faulted tank as a fault, with its reason, not as a level', () => {
     renderAt(width, { tanks: { fresh: tank({ status: 'short_circuit', level_pct: 62 }) } })
 
@@ -126,5 +152,83 @@ describe('StartTab layout', () => {
       .getAllByRole('img')
       .map((el) => el.getAttribute('aria-label')?.replace(/ \d+%$/, ''))
     expect(titles).toEqual(['Fresh water', 'Battery', 'Grey water'])
+  })
+})
+
+describe('StartTab weather widget', () => {
+  const probe = (temperature_c: number, status: TemperatureSensor['status'] = 'ok') =>
+    ({ temperature_c, status, unit: 'C' }) as Partial<TemperatureSensor>
+
+  it.each([
+    ['kiosk', KIOSK_WIDTH],
+    ['phone', JUST_BELOW_KIOSK_WIDTH],
+  ])('looks the forecast up at the van GPS position (%s)', async (_name, width) => {
+    renderAt(width, {
+      gps: { gps0: { fix_quality: 'gps', satellites_in_use: 7, latitude: 41.39, longitude: 2.17 } },
+    })
+    await screen.findByTestId('weather-outside')
+
+    const url = String(fetchMock.mock.calls[0][0])
+    expect(url).toContain('latitude=41.39')
+    expect(url).toContain('longitude=2.17')
+  })
+
+  it('shows the outdoor probe as Outside and the indoor probe as Inside', async () => {
+    renderAt(KIOSK_WIDTH, { temperatures: { outdoor: probe(7.2), indoor: probe(21.6) } })
+
+    expect(await screen.findByTestId('weather-outside')).toHaveTextContent('7°')
+    expect(screen.getByTestId('weather-outside')).not.toHaveTextContent('forecast')
+    expect(screen.getByTestId('weather-inside')).toHaveTextContent('22°')
+  })
+
+  it('falls back to the forecast air temperature, labelled, when the outdoor probe has no reading', async () => {
+    renderAt(KIOSK_WIDTH, {
+      temperatures: { outdoor: probe(99, 'disconnected'), indoor: probe(21) },
+    })
+
+    const outside = await screen.findByTestId('weather-outside')
+    expect(outside).toHaveTextContent('14°')
+    expect(outside).toHaveTextContent('(forecast)')
+  })
+
+  it('shows today first in the outlook', async () => {
+    renderAt(KIOSK_WIDTH, {})
+    await screen.findByTestId('weather-outside')
+    expect(screen.getByText('Today')).toBeInTheDocument()
+    expect(screen.getByText(/18°/)).toBeInTheDocument()
+  })
+
+  it('says the forecast is unavailable when the request fails', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 503 })
+    renderAt(KIOSK_WIDTH, {})
+    expect(await screen.findByText('Weather unavailable (HTTP 503)')).toBeInTheDocument()
+  })
+})
+
+describe.each([
+  ['kiosk', KIOSK_WIDTH],
+  ['phone', JUST_BELOW_KIOSK_WIDTH],
+])('StartTab tilt widget (%s)', (_name, width) => {
+  it('shows the van tilt from the node, tinted by the level tolerance', () => {
+    renderAt(width, { tilt: { tilt: { roll_deg: 0.7, pitch_deg: -2.3, status: 'ok' } } })
+
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('-2.3°')
+    expect(screen.getByTestId('tilt-pitch')).toHaveClass('text-amber-400')
+    expect(screen.getByTestId('tilt-roll')).toHaveTextContent('+0.7°')
+    expect(screen.getByTestId('tilt-roll')).toHaveClass('text-emerald-400')
+  })
+
+  it('does not show stale tilt angles while the sensor is in error', () => {
+    renderAt(width, { tilt: { tilt: { roll_deg: 4, pitch_deg: 3, status: 'sensor_error' } } })
+
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('—')
+    expect(screen.getByTestId('tilt-roll')).toHaveTextContent('—')
+  })
+
+  it('shows no angle before the node has published anything', () => {
+    renderAt(width, {})
+
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('—')
+    expect(screen.getByTestId('tilt-roll')).toHaveTextContent('—')
   })
 })

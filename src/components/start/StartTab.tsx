@@ -1,16 +1,29 @@
 import type { ReactNode } from 'react'
-import { Battery, CloudSun, Plus } from 'lucide-react'
+import { Battery, Plus } from 'lucide-react'
 import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { Card } from '@heroui/react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useNow } from '@/hooks/useNow'
-import type { Battery as BatteryRecord, Tank } from '@/types'
+import {
+  hasGpsFix,
+  isCompleteGps,
+  type Battery as BatteryRecord,
+  type Gps,
+  type Tank,
+  type TemperatureSensor,
+  type Tilt,
+} from '@/types'
+import { WeatherWidget } from '@/components/widgets/weather/WeatherWidget'
+import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { CockpitDial, type DialSize } from './CockpitDial'
 import { batteryDial, tankDialOf, type DialView } from './dialView'
 
 export interface StartTabProps {
   tanks: Record<string, Partial<Tank>>
   batteries: Record<string, Partial<BatteryRecord>>
+  temperatures: Record<string, Partial<TemperatureSensor>>
+  gps: Record<string, Partial<Gps>>
+  tilt: Record<string, Partial<Tilt>>
   /** Glow behind the dial fill: dark theme only. */
   isDark: boolean
 }
@@ -38,7 +51,11 @@ interface DialSlot {
  *
  * Phone (below 800px, the shell's breakpoint): one card per widget, stacked and scrolling.
  */
-export function StartTab({ tanks, batteries, isDark }: StartTabProps) {
+export function StartTab({ tanks, batteries, temperatures, gps, tilt, isDark }: StartTabProps) {
+  // The first GPS record with a plottable position; the weather is looked up there.
+  const fix = Object.values(gps).find((g): g is Gps => isCompleteGps(g) && hasGpsFix(g))
+  // One tilt node per van; show the first record.
+  const firstTilt = Object.values(tilt)[0]
   const isMobile = useIsMobile()
   const now = new Date(useNow(REFRESH_MS))
 
@@ -75,7 +92,13 @@ export function StartTab({ tanks, batteries, isDark }: StartTabProps) {
         className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto p-4"
       >
         <div className="h-28 shrink-0">
-          <WeatherWidget />
+          <EmptySlot />
+        </div>
+        <div className="h-28 shrink-0">
+          <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />
+        </div>
+        <div className="h-28 shrink-0">
+          <TiltWidget tilt={firstTilt} />
         </div>
         {[battery, fresh, grey].map((slot) => (
           <Card key={slot.id} className="shrink-0 gap-0! p-0!">
@@ -97,9 +120,9 @@ export function StartTab({ tanks, batteries, isDark }: StartTabProps) {
   return (
     <div data-testid="pane-start" className="flex min-h-0 flex-1 flex-col gap-3 p-2">
       <div className="grid h-28 shrink-0 grid-cols-3 gap-2 px-3 pt-3">
-        <WeatherWidget />
         <EmptySlot />
-        <EmptySlot />
+        <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />
+        <TiltWidget tilt={firstTilt} />
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-[1fr_1.5fr_1fr] items-end gap-1 p-2 pb-6">
         {slots.map((slot) => (
@@ -126,21 +149,6 @@ function DialOrEmpty({ slot, isDark, size }: { slot: DialSlot; isDark: boolean; 
     )
   }
   return <CockpitDial view={slot.view} icon={slot.icon} size={size} glow={isDark} />
-}
-
-/** No weather source exists on the bus yet, so the widget is its frame and an honest empty state. */
-function WeatherWidget() {
-  return (
-    <Card className="h-full min-h-0 gap-0! overflow-hidden p-0!">
-      <Card.Content className="text-muted flex h-full flex-row items-center justify-center gap-2 px-3 py-2 text-center text-sm">
-        <CloudSun className="size-6 shrink-0" aria-hidden="true" />
-        <span>
-          <span className="text-foreground block font-semibold">Weather</span>
-          Not connected
-        </span>
-      </Card.Content>
-    </Card>
-  )
 }
 
 /** A place for a widget that does not exist yet. */
