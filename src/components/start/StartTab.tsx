@@ -9,18 +9,23 @@ import {
   isCompleteGps,
   type Battery as BatteryRecord,
   type Gps,
+  type Solar,
   type Tank,
   type TemperatureSensor,
   type Tilt,
 } from '@/types'
 import { WeatherWidget } from '@/components/widgets/weather/WeatherWidget'
 import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
+import { SolarWidget } from '@/components/widgets/solar/SolarWidget'
+import { firstSolar } from '@/components/widgets/solar/solarView'
+import { useSolarReference } from '@/components/widgets/solar/useSolarReference'
 import { CockpitDial, type DialSize } from './CockpitDial'
 import { batteryDial, tankDialOf, type DialView } from './dialView'
 
 export interface StartTabProps {
   tanks: Record<string, Partial<Tank>>
   batteries: Record<string, Partial<BatteryRecord>>
+  solar: Record<string, Partial<Solar>>
   temperatures: Record<string, Partial<TemperatureSensor>>
   gps: Record<string, Partial<Gps>>
   tilt: Record<string, Partial<Tilt>>
@@ -48,14 +53,31 @@ interface DialSlot {
  *
  * Cockpit row (kiosk): fresh water | battery (the focus dial, bigger) | grey water, all three arc
  * ends on one baseline. A dial whose data has not arrived yet shows "No data yet", never a number.
+ * Two compact readouts sit above the side dials, sharing one row line: solar above fresh water,
+ * the van's tilt above grey water. Neither shows anything until its node has published.
  *
- * Phone (below 800px, the shell's breakpoint): one card per widget, stacked and scrolling.
+ * Phone (below 800px, the shell's breakpoint): one card per widget, stacked and scrolling; solar
+ * sits at the top of the fresh water card.
  */
-export function StartTab({ tanks, batteries, temperatures, gps, tilt, isDark }: StartTabProps) {
+export function StartTab({
+  tanks,
+  batteries,
+  solar,
+  temperatures,
+  gps,
+  tilt,
+  isDark,
+}: StartTabProps) {
   // The first GPS record with a plottable position; the weather is looked up there.
   const fix = Object.values(gps).find((g): g is Gps => isCompleteGps(g) && hasGpsFix(g))
   // One tilt node per van; show the first record.
   const firstTilt = Object.values(tilt)[0]
+  // One solar controller per van is the common case; show the first complete record.
+  const firstSolarRecord = firstSolar(solar)
+  const solarReferenceW = useSolarReference(firstSolarRecord?.power_w)
+  const solarWidget = firstSolarRecord && (
+    <SolarWidget solar={firstSolarRecord} referenceW={solarReferenceW} />
+  )
   const isMobile = useIsMobile()
   const now = new Date(useNow(REFRESH_MS))
 
@@ -108,7 +130,8 @@ export function StartTab({ tanks, batteries, temperatures, gps, tilt, isDark }: 
               </span>
               {slot.label}
             </Card.Header>
-            <Card.Content className="items-center px-4 pb-5">
+            <Card.Content className="items-center gap-4 px-4 pb-5">
+              {slot.id === 'fresh' && solarWidget}
               <DialOrEmpty slot={slot} isDark={isDark} size="side" />
             </Card.Content>
           </Card>
@@ -122,11 +145,24 @@ export function StartTab({ tanks, batteries, temperatures, gps, tilt, isDark }: 
       <div className="grid h-28 shrink-0 grid-cols-3 gap-2 px-3 pt-3">
         <EmptySlot />
         <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />
-        <TiltWidget tilt={firstTilt} />
+        <EmptySlot />
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-[1fr_1.5fr_1fr] items-end gap-1 p-2 pb-6">
         {slots.map((slot) => (
-          <section key={slot.id} className="flex min-h-0 flex-col items-center">
+          <section
+            key={slot.id}
+            className="flex h-full min-h-0 flex-col items-center justify-end gap-2"
+          >
+            {slot.id === 'fresh' && (
+              <div className="mt-8 flex min-h-0 w-full flex-1 items-start justify-center">
+                {solarWidget}
+              </div>
+            )}
+            {slot.id === 'grey' && (
+              <div className="mt-8 flex min-h-0 w-full flex-1 items-start justify-center">
+                <TiltWidget tilt={firstTilt} compact />
+              </div>
+            )}
             <DialOrEmpty slot={slot} isDark={isDark} size={slot.size} />
           </section>
         ))}

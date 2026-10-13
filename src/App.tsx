@@ -204,6 +204,7 @@ function App() {
             <StartTab
               tanks={state.tanks}
               batteries={state.batteries}
+              solar={state.solar}
               temperatures={state.temperatures}
               gps={state.gps}
               tilt={state.tilt}

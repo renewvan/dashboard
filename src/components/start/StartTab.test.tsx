@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
-import type { Battery, Gps, Tank, TemperatureSensor, Tilt } from '@/types'
+import type { Battery, Gps, Solar, Tank, TemperatureSensor, Tilt } from '@/types'
 import { StartTab } from './StartTab'
 
 const KIOSK_WIDTH = 800
@@ -35,6 +35,7 @@ function renderAt(
   props: {
     tanks?: Record<string, Partial<Tank>>
     batteries?: Record<string, Partial<Battery>>
+    solar?: Record<string, Partial<Solar>>
     temperatures?: Record<string, Partial<TemperatureSensor>>
     gps?: Record<string, Partial<Gps>>
     tilt?: Record<string, Partial<Tilt>>
@@ -45,6 +46,7 @@ function renderAt(
     <StartTab
       tanks={props.tanks ?? {}}
       batteries={props.batteries ?? {}}
+      solar={props.solar ?? {}}
       temperatures={props.temperatures ?? {}}
       gps={props.gps ?? {}}
       tilt={props.tilt ?? {}}
@@ -230,5 +232,53 @@ describe.each([
 
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('—')
     expect(screen.getByTestId('tilt-roll')).toHaveTextContent('—')
+  })
+})
+
+describe.each([
+  ['kiosk', KIOSK_WIDTH],
+  ['phone', JUST_BELOW_KIOSK_WIDTH],
+])('StartTab solar widget (%s)', (_name, width) => {
+  const controller = (overrides: Partial<Solar> = {}): Solar => ({
+    power_w: 412,
+    battery_voltage_v: 13.4,
+    yield_today_wh: 2140,
+    charge_state: 'bulk',
+    ...overrides,
+  })
+
+  it('shows the live watts and the harvest today from the controller', () => {
+    renderAt(width, { solar: { 291: controller() } })
+
+    expect(screen.getByTestId('solar-watts')).toHaveTextContent('412')
+    expect(screen.getByTestId('solar-yield')).toHaveTextContent('2.1')
+  })
+
+  it('shows nothing before a controller has published its required fields', () => {
+    renderAt(width, { solar: { 291: { power_w: 412 } } })
+
+    expect(screen.queryByTestId('solar-card')).not.toBeInTheDocument()
+  })
+
+  it('shows no harvest figure when the controller does not report one', () => {
+    renderAt(width, { solar: { 291: controller({ yield_today_wh: undefined }) } })
+
+    expect(screen.getByTestId('solar-yield')).toHaveTextContent('—')
+  })
+
+  it('shows a fault instead of the watts', () => {
+    renderAt(width, { solar: { 291: controller({ charge_state: 'fault', power_w: 0 }) } })
+
+    expect(screen.getByText('Fault')).toBeInTheDocument()
+    expect(screen.queryByTestId('solar-watts')).not.toBeInTheDocument()
+  })
+
+  it('reports the reading to assistive tech as a meter, not as a dial', () => {
+    renderAt(width, { solar: { 291: controller() } })
+
+    const meter = screen.getByRole('meter', { name: 'Solar power' })
+    expect(meter).toHaveAttribute('aria-valuenow', '412')
+    expect(meter).toHaveAttribute('aria-valuetext', '412 W')
+    expect(screen.queryAllByRole('img')).toHaveLength(0)
   })
 })

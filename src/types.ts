@@ -120,6 +120,42 @@ export function isCompleteBattery(battery: Partial<Battery>): battery is Battery
   )
 }
 
+/** A solar controller's own charge stage (`solar.schema.json`); a subset of {@link ChargeState}. */
+export type SolarChargeState =
+  | 'off'
+  | 'fault'
+  | 'bulk'
+  | 'absorption'
+  | 'float'
+  | 'storage'
+  | 'equalize'
+  | 'external_control'
+  | 'unknown'
+
+/**
+ * Solar charge controller per hub/schema/solar.schema.json, one record per controller. Only
+ * `power_w` and `battery_voltage_v` are required of every source; cheap controllers omit the rest,
+ * so a consumer must tolerate their absence. There is no array nameplate on the wire.
+ */
+export interface Solar {
+  power_w: number
+  battery_voltage_v: number
+  battery_current_a?: number
+  pv_voltage_v?: number
+  pv_current_a?: number
+  /** Energy harvested since the controller's own day boundary, in watt-hours. */
+  yield_today_wh?: number
+  charge_state?: SolarChargeState
+}
+
+/**
+ * Same partial-accumulation caveat as {@link isCompleteTank}. Checks only the schema's required
+ * core, so a controller that never publishes the optional fields still shows.
+ */
+export function isCompleteSolar(solar: Partial<Solar>): solar is Solar {
+  return solar.power_w !== undefined && solar.battery_voltage_v !== undefined
+}
+
 /**
  * GPS position fix per hub/schema/gps.schema.json. `fix_quality`/
  * `satellites_in_use`/`avg_snr_db` are unconditional (the latter absent
@@ -234,6 +270,7 @@ export interface RenewvanBusState {
   tanks: Record<string, Tank>
   batteries: Record<string, Battery>
   relays: Record<string, Relay>
+  solar: Record<string, Solar>
   routers: Record<string, Router>
   gps: Record<string, Gps>
   temperatures: Record<string, TemperatureSensor>
@@ -248,6 +285,7 @@ export const emptyRenewvanBusState: RenewvanBusState = {
   tanks: {},
   batteries: {},
   relays: {},
+  solar: {},
   routers: {},
   gps: {},
   temperatures: {},

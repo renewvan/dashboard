@@ -211,6 +211,33 @@ describe('useRenewvanBus tilt entity', () => {
   })
 })
 
+describe('useRenewvanBus solar entity', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  it('accumulates solar properties per controller id, strings unquoted', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/solar/291/power_w', { toString: () => '412' })
+    messageHandlers[0]('renewvan/solar/291/battery_voltage_v', { toString: () => '13.44' })
+    messageHandlers[0]('renewvan/solar/291/yield_today_wh', { toString: () => '2140' })
+    messageHandlers[0]('renewvan/solar/291/charge_state', { toString: () => '"bulk"' })
+    await waitFor(() =>
+      expect(result.current.state.solar).toEqual({
+        '291': {
+          power_w: 412,
+          battery_voltage_v: 13.44,
+          yield_today_wh: 2140,
+          charge_state: 'bulk',
+        },
+      }),
+    )
+  })
+})
+
 describe('useRenewvanBus driver liveness topics', () => {
   beforeEach(() => {
     messageHandlers.length = 0
@@ -232,7 +259,16 @@ describe('useRenewvanBus driver liveness topics', () => {
   it('ignores the driver liveness topic in every entity domain', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
-    for (const domain of ['tank', 'relay', 'battery', 'gps', 'temperature', 'tilt', 'router']) {
+    for (const domain of [
+      'tank',
+      'relay',
+      'battery',
+      'solar',
+      'gps',
+      'temperature',
+      'tilt',
+      'router',
+    ]) {
       messageHandlers[0](`renewvan/${domain}/driver/status`, { toString: () => '"offline"' })
     }
     // A real message after the liveness ones proves the handler ran past them.
@@ -240,7 +276,7 @@ describe('useRenewvanBus driver liveness topics', () => {
     await waitFor(() => expect(result.current.state.tanks).toEqual({ fresh: { level_pct: 10 } }))
     expect(result.current.state.relays).toEqual({})
     expect(result.current.state.batteries).toEqual({})
-    expect(result.current.state.gps).toEqual({})
+    expect(result.current.state.solar).toEqual({})
     expect(result.current.state.temperatures).toEqual({})
     expect(result.current.state.tilt).toEqual({})
     expect(result.current.state.routers).toEqual({})

@@ -10,7 +10,7 @@ export interface NodeSummary {
   /** Stable key — the `RenewvanBusState` domain this node publishes. */
   domain: keyof Pick<
     RenewvanBusState,
-    'tanks' | 'batteries' | 'relays' | 'routers' | 'gps' | 'temperatures' | 'tilt'
+    'tanks' | 'batteries' | 'solar' | 'relays' | 'routers' | 'gps' | 'temperatures' | 'tilt'
   >
   label: string
   /** Entity ids currently present on the bus for this node. */
@@ -20,6 +20,7 @@ export interface NodeSummary {
 const NODE_DOMAINS: Array<Pick<NodeSummary, 'domain' | 'label'>> = [
   { domain: 'tanks', label: 'Tanks' },
   { domain: 'batteries', label: 'Batteries' },
+  { domain: 'solar', label: 'Solar' },
   { domain: 'relays', label: 'Relays' },
   { domain: 'routers', label: 'Router' },
   { domain: 'gps', label: 'GPS' },
