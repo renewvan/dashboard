@@ -5,18 +5,10 @@
 // temperature, labelled "(forecast)", when the probe has no valid reading.
 
 import { useEffect, useState } from 'react'
-import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Snowflake, Sun } from 'lucide-react'
 import { Card } from '@heroui/react'
-import { cn } from '@/lib/utils'
+import { WeatherForecast, WeatherIcon, type Day } from './WeatherForecast'
 import { INDOOR_ID, OUTDOOR_ID, formatTemperature, temperatureReading } from '@/lib/temperature'
 import type { TemperatureSensor } from '@/types'
-
-interface Day {
-  date: string
-  code: number
-  max: number
-  min: number
-}
 
 interface Weather {
   temp: number
@@ -26,17 +18,6 @@ interface Weather {
 
 const FALLBACK = { lat: 52.52, lon: 13.41 } // Berlin, used when GPS has no fix
 const REFRESH_MS = 10 * 60 * 1000
-
-function WeatherIcon({ code, className }: { code: number; className?: string }) {
-  if (code === 0) return <Sun className={className} aria-hidden="true" />
-  if (code <= 2) return <CloudSun className={className} aria-hidden="true" />
-  if (code === 3) return <Cloud className={className} aria-hidden="true" />
-  if (code === 45 || code === 48) return <CloudFog className={className} aria-hidden="true" />
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86)
-    return <Snowflake className={className} aria-hidden="true" />
-  if (code >= 95) return <CloudLightning className={className} aria-hidden="true" />
-  return <CloudRain className={className} aria-hidden="true" />
-}
 
 function useWeather(lat: number, lon: number) {
   const [weather, setWeather] = useState<Weather | null>(null)
@@ -80,10 +61,6 @@ function useWeather(lat: number, lon: number) {
 
   return { weather, error }
 }
-
-const dayName = (iso: string) =>
-  new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })
-const deg = (n: number) => `${Math.round(n)}°`
 
 export interface WeatherWidgetProps {
   lat?: number
@@ -159,26 +136,7 @@ function Loaded({
           <span className="text-muted mt-1 text-xs leading-none">{indoor?.name ?? 'Inside'}</span>
         </div>
       </div>
-      <div className="grid min-h-0 grid-cols-4 gap-2">
-        {weather.days.slice(0, 4).map((d, i) => (
-          <div
-            key={d.date}
-            className={cn(
-              'px- flex flex-col items-center rounded-lg py-0.5 text-[10px] leading-tight',
-              i === 0 && 'bg-black/30 ring-1 ring-white/10',
-            )}
-          >
-            <span className={cn(i !== 0 && 'text-muted')}>
-              {i === 0 ? 'Today' : dayName(d.date)}
-            </span>
-            <WeatherIcon code={d.code} className="size-4" />
-            <span className="tabular-nums">
-              {deg(d.max)}
-              <span className="text-muted"> {deg(d.min)}</span>
-            </span>
-          </div>
-        ))}
-      </div>
+      <WeatherForecast days={weather.days} />
       {usingFallbackLocation && (
         <span className="text-muted text-[9px] leading-none">no GPS fix - fallback location</span>
       )}
