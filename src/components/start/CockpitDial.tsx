@@ -204,9 +204,7 @@ export function CockpitDial({ view, icon, size, glow, className }: CockpitDialPr
         {view.faulted ? (
           <div className="text-danger py-3 text-xl font-semibold">Fault</div>
         ) : (
-          <div
-            className={cn('flex items-baseline font-extralight italic tabular-nums', text.value)}
-          >
+          <div className={cn('flex items-baseline font-light italic tabular-nums', text.value)}>
             {Math.round(view.pct)}
             <span className={cn('text-accent font-semibold', text.unit)}>%</span>
           </div>

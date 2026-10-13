@@ -68,13 +68,13 @@ export function SolarWidget({ solar, referenceW }: SolarWidgetProps) {
           )}
         </div>
       </div>
-      <div className="bg-foreground/35 mt-0.5 h-0.5 w-full shrink-0 rounded" />
-      <div className="mt-0.5 flex flex-col items-center gap-0.5" aria-hidden="true">
+      <div className="bg-foreground/25 my-1.5 h-0.5 w-full shrink-0 rounded" />
+      <div className="flex flex-col items-center gap-0.5" aria-hidden="true">
         <span data-testid="solar-yield" className="text-lg leading-none font-bold tabular-nums">
           {view.yieldKwh}
           <span className="text-muted ml-0.5 text-[10px] font-normal">kWh</span>
         </span>
-        <span className="text-muted flex items-center gap-1 text-[10px] leading-none">
+        <span className="text-muted flex items-center gap-1 text-[10px] leading-none capitalize">
           <Sun className="size-2.5" />
           Solar today
         </span>

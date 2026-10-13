@@ -1,7 +1,7 @@
 import { isCompleteSolar, type Solar } from '@/types'
 
 /** Power bars across the widget; each is filled bottom-up by its own share of the reading. */
-export const BAR_COLUMNS = 6
+export const BAR_COLUMNS = 8
 
 /**
  * The hub publishes no array nameplate, so the bars have no fixed 100%. The reference is the

@@ -137,7 +137,7 @@ export const SettingsTab = memo(function SettingsTab() {
           description={nodesSummary(nodes)}
           onOpen={() => setView('nodes')}
         />
-        <Separator className="my-4" />
+        <Separator className="my-1" />
         <GroupRow
           icon={<SlidersHorizontal />}
           label="General"

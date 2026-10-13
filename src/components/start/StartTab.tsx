@@ -154,12 +154,12 @@ export function StartTab({
             className="flex h-full min-h-0 flex-col items-center justify-end gap-2"
           >
             {slot.id === 'fresh' && (
-              <div className="mt-8 flex min-h-0 w-full flex-1 items-start justify-center">
+              <div className="flex min-h-0 w-full flex-1 items-start justify-center">
                 {solarWidget}
               </div>
             )}
             {slot.id === 'grey' && (
-              <div className="mt-8 flex min-h-0 w-full flex-1 items-start justify-center">
+              <div className="flex min-h-0 w-full flex-1 items-start justify-center">
                 <TiltWidget tilt={firstTilt} compact />
               </div>
             )}

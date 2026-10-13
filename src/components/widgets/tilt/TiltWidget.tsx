@@ -34,7 +34,7 @@ export function TiltWidget({ tilt, compact = false }: TiltWidgetProps) {
     return (
       <Card data-testid="tilt-card" variant="transparent" className="gap-0! overflow-visible p-0!">
         <Card.Content className="px-1 py-0">
-          <div className="grid grid-cols-2 items-start gap-2">
+          <div className="grid grid-cols-2 items-start gap-12">
             {(
               [
                 { id: 'tilt-pitch', label: 'Pitch', deg: pitch, Van: VanSide },
@@ -48,7 +48,7 @@ export function TiltWidget({ tilt, compact = false }: TiltWidgetProps) {
                     transform: `rotate(${(id === 'tilt-pitch' ? sideViewRotation : rearViewRotation)(deg)}deg)`,
                   }}
                 />
-                <div className="bg-foreground/40 h-0.5 w-full shrink-0 rounded" />
+                <div className="bg-foreground/25 my-1.5 h-0.5 w-full shrink-0 rounded" />
                 <span
                   data-testid={id}
                   className={`text-lg leading-none font-bold tabular-nums ${tone(deg)}`}
@@ -80,7 +80,7 @@ export function TiltWidget({ tilt, compact = false }: TiltWidgetProps) {
             style={{ transform: `rotate(${rearViewRotation(roll)}deg)` }}
           />
         </div>
-        <div className="bg-foreground/40 my-1 h-0.5 w-full shrink-0 rounded" />
+        <div className="bg-foreground/25 my-1.5 h-0.5 w-full shrink-0 rounded" />
         <div className="grid shrink-0 grid-cols-[1.45fr_1fr] gap-3 text-center">
           <div className="flex flex-col items-center">
             <span
