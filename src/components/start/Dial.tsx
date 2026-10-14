@@ -11,6 +11,8 @@ interface DialProps {
   size: DialSize
   /** Soft glow behind the fill; dark theme only (it vanishes on a light background). */
   glow: boolean
+  /** Content for the arc's open bottom gap (the battery's solar readout); hidden while faulted. */
+  bottom?: ReactNode
   className?: string
 }
 
@@ -46,7 +48,7 @@ const SIZE_CLASS: Record<DialSize, string> = {
 
 const READOUT: Record<
   DialSize,
-  { icon: string; label: string; value: string; unit: string; sub: string; footer: string }
+  { icon: string; label: string; value: string; unit: string; sub: string }
 > = {
   side: {
     icon: 'mt-6',
@@ -54,7 +56,6 @@ const READOUT: Record<
     value: 'text-5xl',
     unit: 'text-base',
     sub: 'text-sm pt-3.5',
-    footer: 'text-sm',
   },
   focus: {
     icon: 'scale-120',
@@ -62,7 +63,6 @@ const READOUT: Record<
     value: 'mt-2 text-6xl',
     unit: 'text-xl',
     sub: 'mt-3 text-base',
-    footer: 'text-base',
   },
 }
 
@@ -114,7 +114,7 @@ function DialSub({ sub, unitsStrong }: { sub: string; unitsStrong?: boolean }) {
  * the whole viewBox because the default (the filled arc's own bounding box) slices the band.
  * The arc ends are offset onto a shared baseline (see `ARC_END_GAP`).
  */
-export function Dial({ view, icon, size, glow, className }: DialProps) {
+export function Dial({ view, icon, size, glow, bottom, className }: DialProps) {
   const uid = useId().replace(/:/g, '')
   const maskId = `cut-${uid}`
   const glowId = `glow-${uid}`
@@ -219,15 +219,12 @@ export function Dial({ view, icon, size, glow, className }: DialProps) {
           <DialSub sub={view.sub} unitsStrong={view.unitsStrong} />
         </div>
       </div>
-      {view.footer && !view.faulted && (
+      {bottom && !view.faulted && (
         <div
-          className={cn(
-            'text-muted absolute inset-x-0 bottom-[16.8%] text-center tracking-widest',
-            text.footer,
-          )}
-          aria-hidden="true"
+          className="absolute inset-x-0 bottom-[14%] flex justify-center"
+          data-testid="dial-bottom"
         >
-          {view.footer}
+          {bottom}
         </div>
       )}
     </div>

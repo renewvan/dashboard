@@ -86,18 +86,9 @@ describe('formatTimeToGo', () => {
     expect(formatTimeToGo(0)).toBe('<1m to go')
     expect(formatTimeToGo(59)).toBe('<1m to go')
   })
-})
-
-describe('batteryDial footer', () => {
-  it('shows time to go when the source publishes it, and nothing otherwise', () => {
-    expect(batteryDial({ house: battery({ time_to_go_s: 90_000 }) })?.footer).toBe('1d 1h to go')
-    expect(batteryDial({ house: battery({ time_to_go_s: undefined }) })?.footer).toBeUndefined()
-  })
 
   it("shows Venus's ten-day cap as 9d 23h, like the Venus screen", () => {
-    expect(batteryDial({ house: battery({ time_to_go_s: 863_999.9375 }) })?.footer).toBe(
-      '9d 23h to go',
-    )
+    expect(formatTimeToGo(863_999.9375)).toBe('9d 23h to go')
   })
 })
 

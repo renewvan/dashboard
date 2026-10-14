@@ -2,6 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Battery, Gps, Solar, Tank, TemperatureSensor, Tilt } from '@/types'
+import { COMPACT_BAR_COLUMNS } from '@/components/widgets/solar/solarView'
 import { StartPage } from './StartPage'
 
 const KIOSK_WIDTH = 800
@@ -99,7 +100,8 @@ describe.each([
     expect(screen.getByRole('img', { name: 'Fresh water 46%' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Grey water 41%' })).toBeInTheDocument()
     expect(subline('13.20V / 35W')).toBeInTheDocument()
-    expect(screen.getByText('9d 23h to go')).toBeInTheDocument()
+    // The runtime estimate is parked: the source publishes it, the dial does not show it.
+    expect(screen.queryByText(/to go/)).not.toBeInTheDocument()
     expect(subline('46 / 100 \u2113')).toBeInTheDocument()
     expect(subline('33 / 80 \u2113')).toBeInTheDocument()
   })
@@ -154,6 +156,32 @@ describe('StartPage layout', () => {
       .getAllByRole('img')
       .map((el) => el.getAttribute('aria-label')?.replace(/ \d+%$/, ''))
     expect(titles).toEqual(['Fresh water', 'Battery', 'Grey water'])
+  })
+})
+
+describe('StartPage solar placement (kiosk)', () => {
+  const solar = { 291: { power_w: 412, battery_voltage_v: 13.4, yield_today_wh: 2140 } }
+
+  it('shows solar inside the battery dial, in its open bottom gap, and nowhere else', () => {
+    renderAt(KIOSK_WIDTH, { solar, batteries: { house: BATTERY } })
+
+    expect(screen.getAllByTestId('solar-card')).toHaveLength(1)
+    expect(within(screen.getByTestId('dial-bottom')).getByTestId('solar-card')).toBeInTheDocument()
+  })
+
+  it('draws fewer bars than the full widget, to fit the dial', () => {
+    renderAt(KIOSK_WIDTH, { solar, batteries: { house: BATTERY } })
+
+    const bars = within(screen.getByRole('meter', { name: 'Solar power' })).getAllByTestId(
+      'solar-bar',
+    )
+    expect(bars).toHaveLength(COMPACT_BAR_COLUMNS)
+  })
+
+  it('has no solar readout without a battery dial to hold it', () => {
+    renderAt(KIOSK_WIDTH, { solar })
+
+    expect(screen.queryByTestId('solar-card')).not.toBeInTheDocument()
   })
 })
 
@@ -240,38 +268,68 @@ describe.each([
     ...overrides,
   })
 
-  it('shows the live watts and the harvest today from the controller', () => {
-    renderAt(width, { solar: { 291: controller() } })
+  it('shows the live watts from the controller', () => {
+    renderAt(width, { solar: { 291: controller() }, batteries: { house: BATTERY } })
 
     expect(screen.getByTestId('solar-watts')).toHaveTextContent('412')
-    expect(screen.getByTestId('solar-yield')).toHaveTextContent('2.1')
   })
 
   it('shows nothing before a controller has published its required fields', () => {
-    renderAt(width, { solar: { 291: { power_w: 412 } } })
+    renderAt(width, { solar: { 291: { power_w: 412 } }, batteries: { house: BATTERY } })
 
     expect(screen.queryByTestId('solar-card')).not.toBeInTheDocument()
   })
 
-  it('shows no harvest figure when the controller does not report one', () => {
-    renderAt(width, { solar: { 291: controller({ yield_today_wh: undefined }) } })
-
-    expect(screen.getByTestId('solar-yield')).toHaveTextContent('—')
-  })
-
   it('shows a fault instead of the watts', () => {
-    renderAt(width, { solar: { 291: controller({ charge_state: 'fault', power_w: 0 }) } })
+    renderAt(width, {
+      solar: { 291: controller({ charge_state: 'fault', power_w: 0 }) },
+      batteries: { house: BATTERY },
+    })
 
     expect(screen.getByText('Fault')).toBeInTheDocument()
     expect(screen.queryByTestId('solar-watts')).not.toBeInTheDocument()
   })
 
   it('reports the reading to assistive tech as a meter, not as a dial', () => {
-    renderAt(width, { solar: { 291: controller() } })
+    renderAt(width, { solar: { 291: controller() }, batteries: { house: BATTERY } })
 
     const meter = screen.getByRole('meter', { name: 'Solar power' })
     expect(meter).toHaveAttribute('aria-valuenow', '412')
     expect(meter).toHaveAttribute('aria-valuetext', '412 W')
-    expect(screen.queryAllByRole('img')).toHaveLength(0)
+    expect(within(screen.getByTestId('solar-card')).queryAllByRole('img')).toHaveLength(0)
+  })
+})
+
+describe('StartPage solar harvest today', () => {
+  const controller = (overrides: Partial<Solar> = {}): Solar => ({
+    power_w: 412,
+    battery_voltage_v: 13.4,
+    yield_today_wh: 2140,
+    charge_state: 'bulk',
+    ...overrides,
+  })
+
+  it('shows the harvest today on a phone, in the fresh water card', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      solar: { 291: controller() },
+      batteries: { house: BATTERY },
+    })
+
+    expect(screen.getByTestId('solar-yield')).toHaveTextContent('2.1')
+  })
+
+  it('shows no harvest figure on a phone when the controller does not report one', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      solar: { 291: controller({ yield_today_wh: undefined }) },
+      batteries: { house: BATTERY },
+    })
+
+    expect(screen.getByTestId('solar-yield')).toHaveTextContent('—')
+  })
+
+  it('leaves the harvest out of the battery dial on the kiosk', () => {
+    renderAt(KIOSK_WIDTH, { solar: { 291: controller() }, batteries: { house: BATTERY } })
+
+    expect(screen.queryByTestId('solar-yield')).not.toBeInTheDocument()
   })
 })

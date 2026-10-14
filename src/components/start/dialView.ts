@@ -13,8 +13,6 @@ export interface DialView {
   sub: string
   /** Colour the unit letters (`V`, `W`, `ℓ`) of `sub` stronger than the muted numbers. */
   unitsStrong?: boolean
-  /** Optional line in the arc's open bottom gap, e.g. `9d 23h to go`. */
-  footer?: string
   faulted: boolean
 }
 
@@ -25,7 +23,8 @@ const MINUTE_S = 60
 /**
  * Remaining runtime as its two largest units, `9d 23h to go` / `5h 12m to go` / `42m to go`.
  * Under a minute reads `<1m`. Truncates, never rounds up: a runtime estimate should not
- * overpromise.
+ * overpromise. Not shown anywhere right now: the battery dial's bottom gap holds the solar
+ * readout instead; this returns to the dial when the estimate has a place again.
  */
 export function formatTimeToGo(seconds: number): string {
   const d = Math.floor(seconds / DAY_S)
@@ -49,7 +48,6 @@ export function batteryDial(batteries: Record<string, Partial<Battery>>): DialVi
     color: BATTERY_COLOR,
     sub: `${battery.voltage_v.toFixed(2)}V / ${Math.round(Math.abs(battery.power_w))}W`,
     unitsStrong: true,
-    footer: battery.time_to_go_s === undefined ? undefined : formatTimeToGo(battery.time_to_go_s),
     faulted: false,
   }
 }

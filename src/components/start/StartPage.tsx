@@ -78,6 +78,10 @@ export function StartPage({
   const solarWidget = firstSolarRecord && (
     <SolarWidget solar={firstSolarRecord} referenceW={solarReferenceW} />
   )
+  // The kiosk's battery dial carries solar in its open bottom gap, in a smaller form.
+  const solarCompact = firstSolarRecord && (
+    <SolarWidget solar={firstSolarRecord} referenceW={solarReferenceW} compact />
+  )
   const isMobile = useIsMobile()
   const now = new Date(useNow(REFRESH_MS))
 
@@ -143,17 +147,23 @@ export function StartPage({
   return (
     <div data-testid="pane-start" className="flex min-h-0 flex-1 flex-col gap-3 p-2">
       <div className="grid shrink-0 grid-cols-3 gap-2 p-3">
-        {solarWidget}
+        {/* Solar moved into the battery dial; this cell stays so weather and tilt keep their columns. */}
+        <div aria-hidden="true" />
         <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />
         <TiltWidget tilt={firstTilt} compact />
       </div>
-      <div className="mb-6 grid min-h-0 flex-1 grid-cols-[1fr_1.4fr_1fr] items-end gap-1 p-2">
+      <div className="mb-3 grid min-h-0 flex-1 grid-cols-[1fr_1.4fr_1fr] items-end gap-1 p-2">
         {slots.map((slot) => (
           <section
             key={slot.id}
             className="flex h-full min-h-0 flex-col items-center justify-end gap-2"
           >
-            <DialOrEmpty slot={slot} isDark={isDark} size={slot.size} />
+            <DialOrEmpty
+              slot={slot}
+              isDark={isDark}
+              size={slot.size}
+              bottom={slot.id === 'battery' ? solarCompact : undefined}
+            />
           </section>
         ))}
       </div>
@@ -161,7 +171,17 @@ export function StartPage({
   )
 }
 
-function DialOrEmpty({ slot, isDark, size }: { slot: DialSlot; isDark: boolean; size: DialSize }) {
+function DialOrEmpty({
+  slot,
+  isDark,
+  size,
+  bottom,
+}: {
+  slot: DialSlot
+  isDark: boolean
+  size: DialSize
+  bottom?: ReactNode
+}) {
   if (!slot.view) {
     return (
       <div
@@ -174,7 +194,7 @@ function DialOrEmpty({ slot, isDark, size }: { slot: DialSlot; isDark: boolean; 
       </div>
     )
   }
-  return <Dial view={slot.view} icon={slot.icon} size={size} glow={isDark} />
+  return <Dial view={slot.view} icon={slot.icon} size={size} glow={isDark} bottom={bottom} />
 }
 
 /** A place for a widget that does not exist yet. */
