@@ -19,8 +19,11 @@ import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { SolarWidget } from '@/components/widgets/solar/SolarWidget'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import { useSolarReference } from '@/components/widgets/solar/useSolarReference'
+import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import { Dial, type DialSize } from './Dial'
 import { batteryDial, tankDialOf, type DialView } from './dialView'
+import { VenusDial } from './venus/VenusDial'
+import { centreKind } from './venus/venusView'
 
 export interface StartPageProps {
   tanks: Record<string, Partial<Tank>>
@@ -29,7 +32,9 @@ export interface StartPageProps {
   temperatures: Record<string, Partial<TemperatureSensor>>
   gps: Record<string, Partial<Gps>>
   tilt: Record<string, Partial<Tilt>>
-  /** Glow behind the dial fill: dark theme only. */
+  /** Where each half-moon reading comes from and which tank or battery each ring shows. */
+  powerSources: StartPowerSources
+  /** Glow behind the ring fill: dark theme only. */
   isDark: boolean
 }
 
@@ -66,6 +71,7 @@ export function StartPage({
   temperatures,
   gps,
   tilt,
+  powerSources,
   isDark,
 }: StartPageProps) {
   // The first GPS record with a plottable position; the weather is looked up there.
@@ -77,10 +83,6 @@ export function StartPage({
   const solarReferenceW = useSolarReference(firstSolarRecord?.power_w)
   const solarWidget = firstSolarRecord && (
     <SolarWidget solar={firstSolarRecord} referenceW={solarReferenceW} />
-  )
-  // The kiosk's battery dial carries solar in its open bottom gap, in a smaller form.
-  const solarCompact = firstSolarRecord && (
-    <SolarWidget solar={firstSolarRecord} referenceW={solarReferenceW} compact />
   )
   const isMobile = useIsMobile()
   const now = new Date(useNow(REFRESH_MS))
@@ -144,44 +146,32 @@ export function StartPage({
     )
   }
 
+  // The row's tilt widget and the dial's centre never both show the tilt: the dial takes it while
+  // the van has a usable reading, and the row keeps it otherwise (a sensor error still shows dashes).
+  const tiltInDial = centreKind(firstTilt) === 'tilt'
+
   return (
     <div data-testid="pane-start" className="flex min-h-0 flex-1 flex-col gap-3 p-2">
       <div className="grid shrink-0 grid-cols-3 gap-2 p-3">
-        {/* Solar moved into the battery dial; this cell stays so weather and tilt keep their columns. */}
+        {/* Solar moved into the half-moons; this cell stays so weather and tilt keep their columns. */}
         <div aria-hidden="true" />
         <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />
-        <TiltWidget tilt={firstTilt} compact />
+        {tiltInDial ? <div aria-hidden="true" /> : <TiltWidget tilt={firstTilt} compact />}
       </div>
-      <div className="mb-3 grid min-h-0 flex-1 grid-cols-[1fr_1.4fr_1fr] items-end gap-1 p-2">
-        {slots.map((slot) => (
-          <section
-            key={slot.id}
-            className="flex h-full min-h-0 flex-col items-center justify-end gap-2"
-          >
-            <DialOrEmpty
-              slot={slot}
-              isDark={isDark}
-              size={slot.size}
-              bottom={slot.id === 'battery' ? solarCompact : undefined}
-            />
-          </section>
-        ))}
-      </div>
+      <VenusDial
+        tanks={tanks}
+        batteries={batteries}
+        solar={solar}
+        tilt={tilt}
+        powerSources={powerSources}
+        isDark={isDark}
+        now={now}
+      />
     </div>
   )
 }
 
-function DialOrEmpty({
-  slot,
-  isDark,
-  size,
-  bottom,
-}: {
-  slot: DialSlot
-  isDark: boolean
-  size: DialSize
-  bottom?: ReactNode
-}) {
+function DialOrEmpty({ slot, isDark, size }: { slot: DialSlot; isDark: boolean; size: DialSize }) {
   if (!slot.view) {
     return (
       <div
@@ -194,7 +184,7 @@ function DialOrEmpty({
       </div>
     )
   }
-  return <Dial view={slot.view} icon={slot.icon} size={size} glow={isDark} bottom={bottom} />
+  return <Dial view={slot.view} icon={slot.icon} size={size} glow={isDark} />
 }
 
 /** A place for a widget that does not exist yet. */

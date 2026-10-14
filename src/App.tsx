@@ -26,6 +26,7 @@ import { settingsCommands } from '@/lib/settings-commands'
 import { useTheme } from '@/hooks/useTheme'
 import { BottomNavBar } from '@/components/BottomNavBar'
 import { useNavbarPosition } from '@/hooks/useNavbarPosition'
+import { useStartPowerSources } from '@/hooks/useStartPowerSources'
 import { useUrlPage } from '@/hooks/useUrlPage'
 
 const NAV_ITEMS: NavItem[] = [
@@ -87,6 +88,7 @@ function App() {
   const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
   const [navbarPosition, setNavbarPosition] = useNavbarPosition()
+  const [startPowerSources, setStartPowerSources] = useStartPowerSources()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
   const isBottomBar = !isMobile && navbarPosition === 'bottom'
   const [navHidden, setNavHidden] = useState(false)
@@ -150,6 +152,8 @@ function App() {
       setAlertsEnabled,
       navbarPosition,
       setNavbarPosition,
+      startPowerSources,
+      setStartPowerSources,
     }),
     [
       nodes,
@@ -168,6 +172,8 @@ function App() {
       setAlertsEnabled,
       navbarPosition,
       setNavbarPosition,
+      startPowerSources,
+      setStartPowerSources,
     ],
   )
 
@@ -226,6 +232,7 @@ function App() {
               temperatures={state.temperatures}
               gps={state.gps}
               tilt={state.tilt}
+              powerSources={startPowerSources}
               isDark={theme === 'dark'}
             />
           ) : item.id === 'tanks' ? (

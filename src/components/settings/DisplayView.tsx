@@ -135,7 +135,7 @@ interface DisplayViewProps {
   onOpen: (view: SettingsSubView) => void
 }
 
-/** Settings › General › Display: brightness, auto-sleep and its timeout, navigation style, navbar. */
+/** Settings › General › Display: brightness, auto-sleep and its timeout, navbar, Start page, navigation style. */
 export function DisplayView({ navStyle, navbarPosition, onOpen }: DisplayViewProps) {
   const { autoSleepEnabled } = useSettings()
 
@@ -156,6 +156,11 @@ export function DisplayView({ navStyle, navbarPosition, onOpen }: DisplayViewPro
         label="Navbar position"
         description={navbarPosition === 'left' ? 'Left' : 'Bottom'}
         onOpen={() => onOpen('navbar')}
+      />
+      <GroupRow
+        label="Start page"
+        description="Power readings and scales"
+        onOpen={() => onOpen('start-page')}
       />
       <GroupRow
         label="Navigation style"
