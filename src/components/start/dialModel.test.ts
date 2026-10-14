@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Tilt } from '@/types'
-import { centreKind, hasTiltReading, legendIndices, powerReading, ringLabel } from './venusView'
+import { centreKind, hasTiltReading, legendIndices, powerReading, ringLabel } from './dialModel'
 
 const OK_TILT: Tilt = { roll_deg: -2.2, pitch_deg: 4, status: 'ok' }
 

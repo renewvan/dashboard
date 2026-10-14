@@ -6,11 +6,7 @@ import { VanRear, VanSide } from './index.tsx'
 export interface TiltWidgetProps {
   /** Latest tilt record; undefined until the node publishes anything. */
   tilt: Partial<Tilt> | undefined
-  /**
-   * Short slots (the kiosk's cockpit row at 468px tall leaves ~70px): each van gets its own
-   * narrow column with a smaller, capped drawing and the angle directly below it, so the vans
-   * keep a visible height instead of being squeezed by the readout row.
-   */
+  /** The small form for the middle of the Dial's rings: a narrow column per van, angle below. */
   compact?: boolean
 }
 
@@ -20,8 +16,12 @@ function tone(deg: number | null): string {
 }
 
 const VAN = 'h-full origin-bottom transition-transform duration-500'
-/** The compact card sizes each van itself: `VAN`'s `h-full` would resolve against a content-sized parent. */
-const VAN_COMPACT = 'h-9 w-auto origin-bottom transition-transform duration-500'
+
+/**
+ * The compact card sizes each van itself: `VAN`'s `h-full` would resolve against a content-sized
+ * parent. It fills the middle of the Dial's rings.
+ */
+const COMPACT = { grid: 'gap-6', van: 'h-10', angle: 'text-lg', label: 'text-xs' }
 
 /**
  * Start-page card showing the van's inclination: a side van (pitch) and a rear
@@ -34,16 +34,16 @@ export function TiltWidget({ tilt, compact = false }: TiltWidgetProps) {
     return (
       <Card data-testid="tilt-card" variant="transparent" className="gap-0! overflow-visible p-0!">
         <Card.Content className="px-1 py-0">
-          <div className="grid grid-cols-2 items-start gap-2 px-4">
+          <div className={`grid grid-cols-2 items-start px-3 ${COMPACT.grid}`}>
             {(
               [
                 { id: 'tilt-pitch', label: 'Pitch', deg: pitch, Van: VanSide },
                 { id: 'tilt-roll', label: 'Roll', deg: roll, Van: VanRear },
               ] as const
             ).map(({ id, label, deg, Van }) => (
-              <div key={id} className="flex flex-col items-center gap-0.5">
+              <div key={id} className="flex flex-col items-center gap-1">
                 <Van
-                  className={`${VAN_COMPACT} ${tone(deg)}`}
+                  className={`${COMPACT.van} w-auto origin-bottom transition-transform duration-500 ${tone(deg)}`}
                   style={{
                     transform: `rotate(${(id === 'tilt-pitch' ? sideViewRotation : rearViewRotation)(deg)}deg)`,
                   }}
@@ -51,11 +51,11 @@ export function TiltWidget({ tilt, compact = false }: TiltWidgetProps) {
                 <div className="bg-foreground/25 my-1.5 h-0.5 w-full shrink-0 rounded" />
                 <span
                   data-testid={id}
-                  className={`text-lg leading-none font-bold tabular-nums ${tone(deg)}`}
+                  className={`leading-none font-bold tabular-nums ${COMPACT.angle} ${tone(deg)}`}
                 >
                   {formatDeg(deg)}
                 </span>
-                <span className="text-muted text-[10px] leading-none">{label}</span>
+                <span className={`text-muted leading-none ${COMPACT.label}`}>{label}</span>
               </div>
             ))}
           </div>

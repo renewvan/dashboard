@@ -3,7 +3,7 @@ import { Battery, Sun, Zap, ZapOff } from 'lucide-react'
 import type { PowerSource } from '@/hooks/useStartPowerSources'
 import { arc } from './arcs'
 import { CutBand } from './CutBand'
-import type { PowerReading } from './venusView'
+import type { PowerReading } from './dialModel'
 
 const POWER_ICONS: Record<PowerSource, ReactNode> = {
   solar: <Sun className="size-4" />,
@@ -17,13 +17,23 @@ const POWER_ICONS: Record<PowerSource, ReactNode> = {
 // under the cockpit's thin outer ring.
 const MOON_R = 200
 const MOON_SPAN = 100
-const MOON_W = 80
-const MOON_H = 2 * MOON_R * Math.sin(((MOON_SPAN / 2) * Math.PI) / 180) + 24
 /** Degrees between two stacked bands. */
 const BAND_GAP = 5
 const BAND_STROKE = 14
 const RING_STROKE = 3
 const SEGMENTS = 3
+
+// The box is cut to the drawing, so its outer edge is the outer ring's outer edge and a parent can
+// align it to a padding line. The outer ring sits 14 units outside the bands.
+const RING_R = MOON_R + 14
+const OUTER_EDGE = RING_R + RING_STROKE / 2
+const HALF_SPAN = ((MOON_SPAN / 2) * Math.PI) / 180
+/** How far the arc reaches from its outermost point back toward the circle's centre. */
+const MOON_DEPTH = OUTER_EDGE - (RING_R - RING_STROKE / 2) * Math.cos(HALF_SPAN)
+/** Round caps and the bands' end faces overhang the arc's ends by about half a stroke. */
+const END_PAD = BAND_STROKE / 2
+const MOON_W = MOON_DEPTH + END_PAD
+const MOON_H = 2 * OUTER_EDGE * Math.sin(HALF_SPAN) + 2 * END_PAD
 
 type Side = 'left' | 'right'
 
@@ -69,14 +79,17 @@ function Readouts({ side, readings }: { side: Side; readings: PowerReading[] }) 
  * dash and an empty band.
  */
 export function HalfMoon({ side, readings }: { side: Side; readings: PowerReading[] }) {
-  // The circle's centre x: the moon's outermost point sits at the box edge facing away from it.
-  const cx = side === 'left' ? MOON_R + 6 : MOON_W - MOON_R - 6
+  // The circle's centre x: the outer ring's outer edge sits exactly on the box edge facing away
+  // from the centre dial.
+  const cx = side === 'left' ? OUTER_EDGE : MOON_W - OUTER_EDGE
   const cy = MOON_H / 2
   const ranges = bandRanges(side, readings.length)
   const [spanTop, spanBottom] = [ranges[0]![0], ranges[ranges.length - 1]![1]]
 
   return (
-    <div className="flex w-full items-center justify-center gap-4">
+    <div
+      className={`flex w-full items-center gap-4 ${side === 'left' ? 'justify-start' : 'justify-end'}`}
+    >
       {side === 'right' && <Readouts side={side} readings={readings} />}
       <svg
         viewBox={`0 0 ${MOON_W} ${MOON_H}`}
@@ -85,7 +98,7 @@ export function HalfMoon({ side, readings }: { side: Side; readings: PowerReadin
         aria-hidden="true"
       >
         <path
-          d={arc(spanTop, spanBottom, MOON_R + 14, cx, cy)}
+          d={arc(spanTop, spanBottom, RING_R, cx, cy)}
           fill="none"
           stroke="currentColor"
           strokeOpacity={0.35}

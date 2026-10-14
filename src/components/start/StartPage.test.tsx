@@ -192,8 +192,8 @@ describe('StartPage kiosk dial', () => {
     const centre = screen.getByTestId('rings-centre')
     expect(within(centre).getByText('78')).toBeInTheDocument()
     expect(subline('13.20V / 35W')).toBeInTheDocument()
-    expect(screen.queryByTestId('tilt-card')).toBeInTheDocument() // the widget row keeps the tilt
-    expect(within(centre).queryByTestId('tilt-card')).not.toBeInTheDocument()
+    // The kiosk has no widget row, so without a usable tilt the tilt shows nowhere.
+    expect(screen.queryByTestId('tilt-card')).not.toBeInTheDocument()
     expect(screen.getByText('Fresh water', { selector: 'span' })).toBeInTheDocument()
     expect(screen.queryAllByText('Battery', { selector: 'span' })).toHaveLength(0)
   })
@@ -232,7 +232,7 @@ describe('StartPage kiosk dial', () => {
       batteries: { house: { ...BATTERY, power_w: -112 } },
     })
 
-    const dial = screen.getByTestId('venus-dial')
+    const dial = screen.getByTestId('start-dial')
     expect(within(dial).getByText('Solar').parentElement).toHaveTextContent('247W')
     expect(within(dial).getByText('Charging').parentElement).toHaveTextContent('0W')
     expect(within(dial).getByText('Load').parentElement).toHaveTextContent('112W')
@@ -241,7 +241,7 @@ describe('StartPage kiosk dial', () => {
   it('shows a dash, never a made-up 0 W, for a reading whose source has not published', () => {
     renderAt(KIOSK_WIDTH, {})
 
-    const dial = screen.getByTestId('venus-dial')
+    const dial = screen.getByTestId('start-dial')
     expect(within(dial).getByText('Solar').parentElement).toHaveTextContent('\u2014')
     expect(within(dial).getByText('Solar').parentElement).not.toHaveTextContent('0W')
   })
@@ -251,22 +251,24 @@ describe('StartPage weather widget', () => {
   const probe = (temperature_c: number, status: TemperatureSensor['status'] = 'ok') =>
     ({ temperature_c, status, unit: 'C' }) as Partial<TemperatureSensor>
 
-  it.each([
-    ['kiosk', KIOSK_WIDTH],
-    ['phone', JUST_BELOW_KIOSK_WIDTH],
-  ])('looks the forecast up at the van GPS position (%s)', async (_name, width) => {
-    renderAt(width, {
-      gps: { gps0: { fix_quality: 'gps', satellites_in_use: 7, latitude: 41.39, longitude: 2.17 } },
-    })
-    await screen.findByTestId('weather-outside')
+  it.each([['phone', JUST_BELOW_KIOSK_WIDTH]])(
+    'looks the forecast up at the van GPS position (%s)',
+    async (_name, width) => {
+      renderAt(width, {
+        gps: {
+          gps0: { fix_quality: 'gps', satellites_in_use: 7, latitude: 41.39, longitude: 2.17 },
+        },
+      })
+      await screen.findByTestId('weather-outside')
 
-    const url = String(fetchMock.mock.calls[0][0])
-    expect(url).toContain('latitude=41.39')
-    expect(url).toContain('longitude=2.17')
-  })
+      const url = String(fetchMock.mock.calls[0][0])
+      expect(url).toContain('latitude=41.39')
+      expect(url).toContain('longitude=2.17')
+    },
+  )
 
   it('shows the outdoor probe as Outside and the indoor probe as Inside', async () => {
-    renderAt(KIOSK_WIDTH, { temperatures: { outdoor: probe(7.2), indoor: probe(21.6) } })
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { temperatures: { outdoor: probe(7.2), indoor: probe(21.6) } })
 
     expect(await screen.findByTestId('weather-outside')).toHaveTextContent('7°')
     expect(screen.getByTestId('weather-outside')).not.toHaveTextContent('forecast')
@@ -274,7 +276,7 @@ describe('StartPage weather widget', () => {
   })
 
   it('falls back to the forecast air temperature, labelled, when the outdoor probe has no reading', async () => {
-    renderAt(KIOSK_WIDTH, {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
       temperatures: { outdoor: probe(99, 'disconnected'), indoor: probe(21) },
     })
 
@@ -285,15 +287,12 @@ describe('StartPage weather widget', () => {
 
   it('says the forecast is unavailable when the request fails', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 503 })
-    renderAt(KIOSK_WIDTH, {})
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
     expect(await screen.findByText('Weather unavailable (HTTP 503)')).toBeInTheDocument()
   })
 })
 
-describe.each([
-  ['kiosk', KIOSK_WIDTH],
-  ['phone', JUST_BELOW_KIOSK_WIDTH],
-])('StartPage tilt widget (%s)', (_name, width) => {
+describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage tilt widget (%s)', (_name, width) => {
   it('shows the van tilt from the node, tinted by the level tolerance', () => {
     renderAt(width, { tilt: { tilt: { roll_deg: 0.7, pitch_deg: -2.3, status: 'ok' } } })
 
