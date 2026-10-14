@@ -211,7 +211,7 @@ function App() {
       <img
         src={theme === 'dark' ? lockupDark : lockupLight}
         alt="renewvan"
-        className="h-8 w-auto justify-self-start"
+        className="h-10 w-auto justify-self-start"
       />
       <Clock />
       <div className="flex items-center justify-end gap-1.5">
