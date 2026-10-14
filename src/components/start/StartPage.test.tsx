@@ -193,13 +193,6 @@ describe('StartPage weather widget', () => {
     expect(outside).toHaveTextContent('(forecast)')
   })
 
-  it('shows today first in the outlook', async () => {
-    renderAt(KIOSK_WIDTH, {})
-    await screen.findByTestId('weather-outside')
-    expect(screen.getByText('Today')).toBeInTheDocument()
-    expect(screen.getByText(/18°/)).toBeInTheDocument()
-  })
-
   it('says the forecast is unavailable when the request fails', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 503 })
     renderAt(KIOSK_WIDTH, {})

@@ -14,6 +14,7 @@ import { DisplayView } from './DisplayView'
 import { GeneralView } from './GeneralView'
 import { GroupRow } from './GroupRow'
 import { HubView } from './HubView'
+import { NavbarView } from './NavbarView'
 import { NavigationView } from './NavigationView'
 import { NodesView } from './NodesView'
 import { useSettings } from './SettingsContext'
@@ -33,6 +34,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   alerts: { title: 'Alerts', parent: 'general' },
   display: { title: 'Display', parent: 'general' },
   navigation: { title: 'Navigation', parent: 'display' },
+  navbar: { title: 'Navbar', parent: 'display' },
   connectivity: { title: 'Connectivity', parent: 'list' },
   cellular: { title: 'Cellular', parent: 'connectivity' },
   hub: { title: 'Hub', parent: 'connectivity' },
@@ -56,7 +58,7 @@ function trailTo(view: SettingsSubView): SettingsSubView[] {
  * and only re-renders when the Settings context value changes.
  */
 export const SettingsPage = memo(function SettingsPage() {
-  const { nodes, tanks } = useSettings()
+  const { nodes, tanks, navbarPosition, setNavbarPosition } = useSettings()
   const isMobile = useIsMobile()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
@@ -111,10 +113,20 @@ export const SettingsPage = memo(function SettingsPage() {
       case 'alerts':
         return <AlertsView />
       case 'display':
-        return <DisplayView navStyle={navStyle} onOpen={setView} />
+        return (
+          <DisplayView
+            navStyle={navStyle}
+            navbarPosition={isMobile ? 'bottom' : navbarPosition}
+            onOpen={setView}
+          />
+        )
       case 'navigation':
         return (
           <NavigationView style={storedNavStyle} onChange={setStoredNavStyle} isMobile={isMobile} />
+        )
+      case 'navbar':
+        return (
+          <NavbarView position={navbarPosition} onChange={setNavbarPosition} isMobile={isMobile} />
         )
       case 'connectivity':
         return <ConnectivityView onOpen={setView} />

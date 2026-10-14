@@ -34,7 +34,7 @@ export function TiltWidget({ tilt, compact = false }: TiltWidgetProps) {
     return (
       <Card data-testid="tilt-card" variant="transparent" className="gap-0! overflow-visible p-0!">
         <Card.Content className="px-1 py-0">
-          <div className="grid grid-cols-2 items-start gap-12">
+          <div className="grid grid-cols-2 items-start gap-2 px-4">
             {(
               [
                 { id: 'tilt-pitch', label: 'Pitch', deg: pitch, Van: VanSide },

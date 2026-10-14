@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Bell, Gauge, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
@@ -8,7 +8,7 @@ import { Clock } from '@/components/Clock'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
-import { Sidebar, type NavItem } from '@/components/Sidebar'
+import { Sidebar, SIDEBAR_PAD_CLASS, type NavItem } from '@/components/Sidebar'
 import { StubPane } from '@/components/StubPane'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsPage } from '@/components/settings/SettingsPage'
@@ -24,8 +24,8 @@ import { useRenewvanBus } from '@/hooks/useRenewvanBus'
 import { connectedNodes } from '@/lib/nodes'
 import { settingsCommands } from '@/lib/settings-commands'
 import { useTheme } from '@/hooks/useTheme'
-import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed'
-import { SidebarToggle } from '@/components/SidebarToggle'
+import { BottomNavBar, BOTTOM_NAV_PAD_CLASS } from '@/components/BottomNavBar'
+import { useNavbarPosition } from '@/hooks/useNavbarPosition'
 import { useUrlPage } from '@/hooks/useUrlPage'
 
 const NAV_ITEMS: NavItem[] = [
@@ -75,7 +75,10 @@ function App() {
   const unseenAlertCount = useUnseenAlertCount(activePage)
   const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
-  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsed()
+  const [navbarPosition, setNavbarPosition] = useNavbarPosition()
+  // Derived at render and never written: the stored kiosk choice survives a phone visit.
+  const isBottomBar = !isMobile && navbarPosition === 'bottom'
+  const [navHidden, setNavHidden] = useState(false)
   const headerRef = useRef<HTMLElement>(null)
   useLayoutEffect(() => {
     const header = headerRef.current
@@ -128,6 +131,8 @@ function App() {
       ...commands,
       alertsEnabled,
       setAlertsEnabled,
+      navbarPosition,
+      setNavbarPosition,
     }),
     [
       nodes,
@@ -144,6 +149,8 @@ function App() {
       commands,
       alertsEnabled,
       setAlertsEnabled,
+      navbarPosition,
+      setNavbarPosition,
     ],
   )
 
@@ -154,21 +161,15 @@ function App() {
     <header
       ref={headerRef}
       className={cn(
-        'bg-surface border-border grid shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b py-1.5 pr-3',
-        isMobile ? 'pl-3' : 'pl-1.5',
+        'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center py-1.5 pr-3 pl-3',
+        isMobile && 'bg-surface border-border border-b',
       )}
     >
-      {isMobile ? (
-        <img
-          src={theme === 'dark' ? lockupDark : lockupLight}
-          alt="renewvan"
-          className="h-8 w-auto justify-self-start"
-        />
-      ) : (
-        <div className="justify-self-start">
-          <SidebarToggle collapsed={sidebarCollapsed} onCollapsedChange={setSidebarCollapsed} />
-        </div>
-      )}
+      <img
+        src={theme === 'dark' ? lockupDark : lockupLight}
+        alt="renewvan"
+        className="h-8 w-auto justify-self-start"
+      />
       <Clock />
       <div className="flex items-center justify-end gap-1.5">
         {/* single router per hub (hub compose's ROUTER_ID) */}
@@ -225,28 +226,35 @@ function App() {
 
   return (
     <div className="bg-background text-foreground flex h-svh flex-col overflow-hidden">
-      {/* Kiosk: the rail owns the full height (brand on top) and the header
-          sits beside it, above the panes — one row `Tabs` root. Mobile: the
-          header spans the top and the nav becomes a bottom bar. Either way
-          the nav precedes the panes in the DOM (React Aria warns when a tab
-          panel renders before its tab list); on mobile the Sidebar's own
-          `order-last` moves the bar below the panes. */}
-      {isMobile && header}
+      {/* The header spans the full width on top; below it the nav and the panes share one
+          `Tabs` root. The nav precedes the panes in the DOM (React Aria warns when a tab
+          panel renders before its tab list). On the kiosk the nav, rail or bar, is an
+          absolutely positioned auto-hiding overlay and the root's padding on its side pushes
+          the panes over by its size, releasing it as it slides away. Phone: `Sidebar`'s own
+          bottom bar, moved below the panes by its `order-last`. */}
+      {header}
+      {/* Keyed by layout: HeroUI's sliding indicator measures its tab once and does not
+          re-measure when the list swaps between the rail and a bar under the same root. */}
       <Tabs
+        key={isMobile ? 'phone' : navbarPosition}
         selectedKey={activePage}
         onSelectionChange={(key) => goToPage(String(key))}
-        orientation={isMobile ? 'horizontal' : 'vertical'}
-        className="min-h-0 flex-1 gap-0!"
-      >
-        <Sidebar items={NAV_ITEMS} isMobile={isMobile} collapsed={sidebarCollapsed} theme={theme} />
-        {isMobile ? (
-          panels
-        ) : (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            {header}
-            {panels}
-          </div>
+        orientation={isMobile || isBottomBar ? 'horizontal' : 'vertical'}
+        className={cn(
+          'min-h-0 flex-1 gap-0!',
+          !isMobile &&
+            cn(
+              'relative overflow-hidden transition-[padding] duration-300 motion-reduce:transition-none',
+              !navHidden && (isBottomBar ? BOTTOM_NAV_PAD_CLASS : SIDEBAR_PAD_CLASS),
+            ),
         )}
+      >
+        {isBottomBar ? (
+          <BottomNavBar items={NAV_ITEMS} onHiddenChange={setNavHidden} />
+        ) : (
+          <Sidebar items={NAV_ITEMS} isMobile={isMobile} onHiddenChange={setNavHidden} />
+        )}
+        {panels}
       </Tabs>
     </div>
   )

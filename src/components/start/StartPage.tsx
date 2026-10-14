@@ -19,7 +19,7 @@ import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { SolarWidget } from '@/components/widgets/solar/SolarWidget'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import { useSolarReference } from '@/components/widgets/solar/useSolarReference'
-import { CockpitDial, type DialSize } from './CockpitDial'
+import { Dial, type DialSize } from './Dial'
 import { batteryDial, tankDialOf, type DialView } from './dialView'
 
 export interface StartPageProps {
@@ -142,27 +142,17 @@ export function StartPage({
 
   return (
     <div data-testid="pane-start" className="flex min-h-0 flex-1 flex-col gap-3 p-2">
-      <div className="grid h-28 shrink-0 grid-cols-3 gap-2 px-3 pt-3">
-        <EmptySlot />
+      <div className="grid shrink-0 grid-cols-3 gap-2 p-3">
+        {solarWidget}
         <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />
-        <EmptySlot />
+        <TiltWidget tilt={firstTilt} compact />
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-[1fr_1.5fr_1fr] items-end gap-1 p-2 pb-6">
+      <div className="mb-6 grid min-h-0 flex-1 grid-cols-[1fr_1.4fr_1fr] items-end gap-1 p-2">
         {slots.map((slot) => (
           <section
             key={slot.id}
             className="flex h-full min-h-0 flex-col items-center justify-end gap-2"
           >
-            {slot.id === 'fresh' && (
-              <div className="flex min-h-0 w-full flex-1 items-start justify-center">
-                {solarWidget}
-              </div>
-            )}
-            {slot.id === 'grey' && (
-              <div className="flex min-h-0 w-full flex-1 items-start justify-center">
-                <TiltWidget tilt={firstTilt} compact />
-              </div>
-            )}
             <DialOrEmpty slot={slot} isDark={isDark} size={slot.size} />
           </section>
         ))}
@@ -184,7 +174,7 @@ function DialOrEmpty({ slot, isDark, size }: { slot: DialSlot; isDark: boolean; 
       </div>
     )
   }
-  return <CockpitDial view={slot.view} icon={slot.icon} size={size} glow={isDark} />
+  return <Dial view={slot.view} icon={slot.icon} size={size} glow={isDark} />
 }
 
 /** A place for a widget that does not exist yet. */

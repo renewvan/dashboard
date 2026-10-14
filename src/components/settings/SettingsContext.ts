@@ -5,6 +5,7 @@ import type {
   RouterHealth,
   TailscaleStatus,
 } from '@/hooks/useRenewvanBus'
+import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { NodeSummary } from '@/lib/nodes'
 import type { Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
 
@@ -31,6 +32,9 @@ export interface SettingsContextValue {
   /** The Alerts toggle: the same instance `useAlertToasts` reads. */
   alertsEnabled: boolean
   setAlertsEnabled: (enabled: boolean) => void
+  /** The Navbar position: the same instance `App` lays the shell out from. */
+  navbarPosition: NavbarPosition
+  setNavbarPosition: (position: NavbarPosition) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
 }

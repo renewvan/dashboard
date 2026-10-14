@@ -4,7 +4,7 @@ import type { DialView } from './dialView'
 
 export type DialSize = 'side' | 'focus'
 
-interface CockpitDialProps {
+interface DialProps {
   view: DialView
   icon: ReactNode
   /** `focus` is the page's headline dial: bigger readout, more room above the subline. */
@@ -114,7 +114,7 @@ function DialSub({ sub, unitsStrong }: { sub: string; unitsStrong?: boolean }) {
  * the whole viewBox because the default (the filled arc's own bounding box) slices the band.
  * The arc ends are offset onto a shared baseline (see `ARC_END_GAP`).
  */
-export function CockpitDial({ view, icon, size, glow, className }: CockpitDialProps) {
+export function Dial({ view, icon, size, glow, className }: DialProps) {
   const uid = useId().replace(/:/g, '')
   const maskId = `cut-${uid}`
   const glowId = `glow-${uid}`

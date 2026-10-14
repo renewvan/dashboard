@@ -82,6 +82,8 @@ export function renderSettings(
     setAutoSleepTimeoutMinutes: vi.fn(),
     alertsEnabled: true,
     setAlertsEnabled: vi.fn(),
+    navbarPosition: 'left',
+    setNavbarPosition: vi.fn(),
     setTemperatureName: vi.fn(),
     setTemperatureUnit: vi.fn(),
     ...overrides,

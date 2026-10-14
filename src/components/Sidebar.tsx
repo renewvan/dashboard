@@ -1,9 +1,8 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Pin, PinOff } from 'lucide-react'
 import { Tabs } from '@heroui/react'
-import lockupLight from '../../assets/logo/svg/renewvan-lockup-light.svg'
-import lockupDark from '../../assets/logo/svg/renewvan-lockup-dark.svg'
 import { cn } from '@/lib/utils'
-import type { Theme } from '@/hooks/useTheme'
+import { useAutoHide } from '@/hooks/useAutoHide'
 
 export interface NavItem {
   id: string
@@ -19,39 +18,34 @@ export interface SidebarProps {
    * and must give the `Tabs` root the matching `orientation`.
    */
   isMobile?: boolean
-  /** Kiosk rail only: icon-only rounded buttons instead of icon + label rows. */
-  collapsed?: boolean
-  /** Picks the lockup variant that reads on the current surface. */
-  theme?: Theme
+  /** Kiosk rail only: called with `true` while the rail is slid away, so the parent can give its space back. */
+  onHiddenChange?: (hidden: boolean) => void
 }
+
+/**
+ * The rail's width (its border is inside the 56px, Tailwind boxes are border-box). The
+ * parent pads the panes by this much while the rail is up.
+ */
+export const SIDEBAR_PAD_CLASS = 'pl-[56px]'
 
 /**
  * Primary navigation: ONE HeroUI `Tabs.List`. The caller owns the `Tabs`
  * root and `selectedKey`, so it can also render the panels.
  *
- * Kiosk: a full-height collapsible rail in an `<aside>`. The brand sits at
- * the top — the same lockup image always; collapsing clips it to the van
- * mark and hides the wordmark (one `img` named "renewvan" either way). Expanded
- * shows icon + label rows; collapsed shows rounded icon-only buttons (the
- * accessible name stays on each tab via `aria-label`). The last item
- * (Settings) is pushed to the bottom with `mt-auto`. The collapse toggle
- * lives in the app header, not here.
+ * Kiosk: a closed icon-only rail in an `<aside>` (the accessible name stays on
+ * each tab via `aria-label`), sitting under the app header, which carries the brand.
+ * The last item (Settings) is pushed to the bottom with `mt-auto`, and a pin button
+ * sits under it. The rail slides away to the left after a few idle seconds and a touch
+ * anywhere brings it back; the pin turns that off.
  *
  * Mobile: the same list inside a bottom `<nav>`, tabs sharing the width
- * equally, icon-only; no collapse, no brand (the header carries it). The
- * `<nav>` MUST precede the panels in the DOM (React Aria warns when a tab
- * panel is rendered before its tab list); `order-last` moves it visually
- * below them inside a flex-column parent, and the bottom padding keeps it
- * clear of the iOS home indicator.
+ * equally, icon-only. The `<nav>` MUST precede the panels in the DOM (React
+ * Aria warns when a tab panel is rendered before its tab list); `order-last`
+ * moves it visually below them inside a flex-column parent, and the bottom
+ * padding keeps it clear of the iOS home indicator.
  */
-export function Sidebar({
-  items,
-  isMobile = false,
-  collapsed = false,
-  theme = 'dark',
-}: SidebarProps) {
+export function Sidebar({ items, isMobile = false, onHiddenChange }: SidebarProps) {
   const lastIndex = items.length - 1
-  const showLabels = !isMobile && !collapsed
 
   const list = (
     <Tabs.List
@@ -73,14 +67,12 @@ export function Sidebar({
             isMobile
               ? 'data-[selected=true]:text-accent min-w-0 flex-1 px-0'
               : cn(
-                  'data-[selected=true]:text-accent h-11! min-w-0! gap-3',
-                  showLabels ? 'justify-start! px-3!' : 'size-11! w-11! px-0!',
+                  'data-[selected=true]:text-accent size-11! w-11! min-w-0! px-0!',
                   index === lastIndex && 'mt-auto',
                 )
           }
         >
           {item.icon}
-          {showLabels && <span className="truncate text-sm font-medium">{item.label}</span>}
           <Tabs.Indicator className={cn(!isMobile && 'bg-accent/15! rounded-3xl! shadow-none!')} />
         </Tabs.Tab>
       ))}
@@ -98,40 +90,48 @@ export function Sidebar({
     )
   }
 
+  return <AutoHidingRail onHiddenChange={onHiddenChange}>{list}</AutoHidingRail>
+}
+
+/**
+ * The kiosk rail. Absolutely positioned over the panes so it can precede them in the DOM
+ * (React Aria); the parent pads the panes by `SIDEBAR_PAD_CLASS` while it is up, so they
+ * stretch and push as it slides away to the left and back. A touch anywhere brings it
+ * back; the pin button, under the last tab, turns auto-hide off.
+ */
+function AutoHidingRail({
+  children,
+  onHiddenChange,
+}: {
+  children: ReactNode
+  onHiddenChange?: (hidden: boolean) => void
+}) {
+  const [autoHide, setAutoHide] = useState(true)
+  const hidden = useAutoHide(autoHide)
+  useEffect(() => onHiddenChange?.(hidden), [hidden, onHiddenChange])
+  // Leaving the rail layout must give the panes their space back.
+  useEffect(() => () => onHiddenChange?.(false), [onHiddenChange])
+
   return (
     <aside
-      data-state={collapsed ? 'collapsed' : 'expanded'}
+      data-state={hidden ? 'hidden' : 'visible'}
+      // `inert` while hidden keeps the off-screen tabs out of the tab order and AT.
+      inert={hidden}
       className={cn(
-        'border-border bg-surface flex h-full shrink-0 flex-col gap-2 overflow-hidden border-r py-2 pl-0.5 transition-[width] duration-200 motion-reduce:transition-none',
-        collapsed ? 'w-[56px]' : 'w-42',
+        'border-border bg-surface absolute inset-y-0 left-0 z-40 flex w-[56px] flex-col gap-2 overflow-hidden border-r py-2 pl-0.5 transition-transform duration-300 motion-reduce:transition-none',
+        hidden && '-translate-x-full',
       )}
     >
-      {/* One lockup, always. The van mark is the left ~27% of the artwork
-          (text starts at x=144 of 480). At `h-8` the image is ~110px wide:
-          mark ≈ 0–30px, wordmark from ≈ 33px. Collapsed, an inner window of
-          exactly the mark's width (`w-[30px]`, centred in the 44px slot so it
-          lines up with the nav icons) clips the wordmark away; expanded, the
-          window grows to the full width and reveals it. */}
-      <div
-        className={cn(
-          'flex shrink-0 items-center overflow-hidden transition-[width,padding] duration-200 motion-reduce:transition-none',
-          collapsed ? 'justify-center' : 'w-full pl-4',
-        )}
+      {children}
+      <button
+        type="button"
+        aria-label={autoHide ? 'Pin navigation bar' : 'Auto-hide navigation bar'}
+        aria-pressed={autoHide}
+        onClick={() => setAutoHide(!autoHide)}
+        className="text-muted active:bg-default mx-auto grid size-11 shrink-0 place-items-center rounded-3xl"
       >
-        <div
-          className={cn(
-            'h-8 shrink-0 overflow-hidden transition-[width] duration-200 motion-reduce:transition-none',
-            collapsed ? 'ml-2 w-[30px]' : 'w-[110px]',
-          )}
-        >
-          <img
-            src={theme === 'dark' ? lockupDark : lockupLight}
-            alt="renewvan"
-            className="h-8 w-auto max-w-none"
-          />
-        </div>
-      </div>
-      {list}
+        {autoHide ? <PinOff className="size-5" /> : <Pin className="size-5" />}
+      </button>
     </aside>
   )
 }
