@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import { Card } from '@heroui/react'
-import { WeatherForecast, WeatherIcon, type Day } from './WeatherForecast'
+import { WeatherIcon, type Day } from './WeatherForecast'
 import { INDOOR_ID, OUTDOOR_ID, formatTemperature, temperatureReading } from '@/lib/temperature'
 import type { TemperatureSensor } from '@/types'
 
@@ -136,7 +136,6 @@ function Loaded({
           <span className="text-muted mt-1 text-xs leading-none">{indoor?.name ?? 'Inside'}</span>
         </div>
       </div>
-      <WeatherForecast days={weather.days} />
       {usingFallbackLocation && (
         <span className="text-muted text-[9px] leading-none">no GPS fix - fallback location</span>
       )}
