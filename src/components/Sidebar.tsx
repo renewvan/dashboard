@@ -23,12 +23,6 @@ export interface SidebarProps {
 }
 
 /**
- * The rail's width (its border is inside the 56px, Tailwind boxes are border-box). The
- * parent pads the panes by this much while the rail is up.
- */
-export const SIDEBAR_PAD_CLASS = 'pl-[56px]'
-
-/**
  * Primary navigation: ONE HeroUI `Tabs.List`. The caller owns the `Tabs`
  * root and `selectedKey`, so it can also render the panels.
  *
@@ -95,9 +89,10 @@ export function Sidebar({ items, isMobile = false, onHiddenChange }: SidebarProp
 
 /**
  * The kiosk rail. Absolutely positioned over the panes so it can precede them in the DOM
- * (React Aria); the parent pads the panes by `SIDEBAR_PAD_CLASS` while it is up, so they
- * stretch and push as it slides away to the left and back. A touch anywhere brings it
- * back; the pin button, under the last tab, turns auto-hide off.
+ * (React Aria); it never pushes them. Translucent and blurred. While it is up the parent
+ * publishes a 56px left inset (`--navbar-inset-left`) that a page may pad itself by, and drops
+ * it to 0 as the rail slides away to the left. A touch anywhere brings it back; the pin
+ * button, under the last tab, turns auto-hide off.
  */
 function AutoHidingRail({
   children,
@@ -118,7 +113,7 @@ function AutoHidingRail({
       // `inert` while hidden keeps the off-screen tabs out of the tab order and AT.
       inert={hidden}
       className={cn(
-        'border-border bg-surface absolute inset-y-0 left-0 z-40 flex w-[56px] flex-col gap-2 overflow-hidden border-r py-2 pl-0.5 transition-transform duration-300 motion-reduce:transition-none',
+        'border-border bg-surface/70 absolute inset-y-0 left-0 z-40 flex w-[56px] flex-col gap-2 overflow-hidden border-r py-2 pl-0.5 backdrop-blur-md transition-transform duration-300 motion-reduce:transition-none',
         hidden && '-translate-x-full',
       )}
     >

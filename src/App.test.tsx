@@ -749,14 +749,15 @@ describe('App shell navbar position', () => {
         await renderAt(KIOSK_WIDTH)
         const navbar = () => screen.getByRole(landmark, { hidden: true })
         const pane = () => screen.getByTestId('pane-start')
-        // The padded root is the nearest ancestor of the pages that also holds the navbar.
-        const panesRoot = () => {
-          let el = pane()
-          while (!el.contains(navbar())) el = el.parentElement as HTMLElement
-          return el
-        }
+        // The navbar overlays the pages and never pushes them. The `Tabs` root publishes how much
+        // of the pages' edge it covers right now (0 when it is away) for a page to pad itself by.
+        const covered = position === 'bottom' ? '--navbar-inset-bottom' : '--navbar-inset-left'
+        const other = position === 'bottom' ? '--navbar-inset-left' : '--navbar-inset-bottom'
+        const insets = () => screen.getByRole('tabpanel').parentElement as HTMLElement
+        const inset = (name: string) => insets().style.getPropertyValue(name)
+        expect(inset(covered)).not.toBe('0px')
+        expect(inset(other)).toBe('0px')
         expect(navbar()).toHaveAttribute('data-state', 'visible')
-        expect(panesRoot().className).toMatch(/\bp[bl]-\[/)
         expect(
           screen.queryByRole('button', { name: /menu|show navigation/i }),
         ).not.toBeInTheDocument()
@@ -766,7 +767,7 @@ describe('App shell navbar position', () => {
         })
         expect(navbar()).toHaveAttribute('data-state', 'hidden')
         // The pages take the space back.
-        expect(panesRoot().className).not.toMatch(/\bp[bl]-\[/)
+        expect(inset(covered)).toBe('0px')
 
         // A pointer merely drifting over the page does not pop it open...
         await user.hover(pane())
@@ -775,7 +776,7 @@ describe('App shell navbar position', () => {
         // ...but a touch anywhere on the screen does, and the pages make room again.
         await user.pointer({ keys: '[MouseLeft]', target: pane() })
         expect(navbar()).toHaveAttribute('data-state', 'visible')
-        expect(panesRoot().className).toMatch(/\bp[bl]-\[/)
+        expect(inset(covered)).not.toBe('0px')
         await act(async () => {
           vi.advanceTimersByTime(4100)
         })

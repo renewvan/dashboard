@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Solar } from '@/types'
 import {
   BAR_COLUMNS,
+  COMPACT_BAR_COLUMNS,
   MIN_REFERENCE_W,
   firstSolar,
   formatYield,
@@ -55,6 +56,11 @@ describe('litColumns', () => {
   it('clamps power above the reference and below zero', () => {
     expect(litColumns(900, 400)).toBe(BAR_COLUMNS)
     expect(litColumns(-5, 400)).toBe(0)
+  })
+
+  it('scales to the column count it is given, so the compact row fills the same way', () => {
+    expect(litColumns(200, 400, COMPACT_BAR_COLUMNS)).toBe(COMPACT_BAR_COLUMNS / 2)
+    expect(litColumns(400, 400, COMPACT_BAR_COLUMNS)).toBe(COMPACT_BAR_COLUMNS)
   })
 })
 

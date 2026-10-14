@@ -10,6 +10,7 @@ export type SettingsView =
   | 'display'
   | 'navigation'
   | 'navbar'
+  | 'start-page'
   | 'connectivity'
   | 'cellular'
   | 'hub'

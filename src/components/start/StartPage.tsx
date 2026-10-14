@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Battery, Plus } from 'lucide-react'
+import { Battery } from 'lucide-react'
 import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { Card } from '@heroui/react'
 import { useIsMobile } from '@/hooks/use-media-query'
@@ -19,8 +19,11 @@ import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { SolarWidget } from '@/components/widgets/solar/SolarWidget'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import { useSolarReference } from '@/components/widgets/solar/useSolarReference'
-import { Dial, type DialSize } from './Dial'
-import { batteryDial, tankDialOf, type DialView } from './dialView'
+import type { StartPowerSources } from '@/hooks/useStartPowerSources'
+import { CockpitDial } from './cockpit/CockpitDial'
+import { batteryDial, tankDialOf, type DialView } from './cockpit/dialView'
+import { Dial } from './Dial'
+import type { DialSize } from './DialReadout'
 
 export interface StartPageProps {
   tanks: Record<string, Partial<Tank>>
@@ -29,7 +32,9 @@ export interface StartPageProps {
   temperatures: Record<string, Partial<TemperatureSensor>>
   gps: Record<string, Partial<Gps>>
   tilt: Record<string, Partial<Tilt>>
-  /** Glow behind the dial fill: dark theme only. */
+  /** Where each half-moon reading comes from and which tank or battery each ring shows. */
+  powerSources: StartPowerSources
+  /** Glow behind the ring fill: dark theme only. */
   isDark: boolean
 }
 
@@ -45,16 +50,12 @@ interface DialSlot {
 }
 
 /**
- * The Start page: a widget row over the cockpit row.
+ * The Start page: the Dial on the kiosk, one card per widget on a phone.
  *
- * Widget row (kiosk): three equal columns. The weather widget has no data source yet, so it is an
- * honest empty state, and the other two are empty slots for widgets to come; the page lays them out
- * as a row so adding one is a change to this row, not to the cockpit.
- *
- * Cockpit row (kiosk): fresh water | battery (the focus dial, bigger) | grey water, all three arc
- * ends on one baseline. A dial whose data has not arrived yet shows "No data yet", never a number.
- * Two compact readouts sit above the side dials, sharing one row line: solar above fresh water,
- * the van's tilt above grey water. Neither shows anything until its node has published.
+ * Kiosk: the Dial, edge to edge: two half-moons of power readings either side of three rings
+ * (battery and tanks), with the van's tilt or the battery in the middle. A reading or ring whose
+ * data has not arrived shows a dash or "No data yet", never a number. There is no widget row on the
+ * kiosk: the weather has no place there and the tilt lives in the Dial.
  *
  * Phone (below 800px, the shell's breakpoint): one card per widget, stacked and scrolling; solar
  * sits at the top of the fresh water card.
@@ -66,6 +67,7 @@ export function StartPage({
   temperatures,
   gps,
   tilt,
+  powerSources,
   isDark,
 }: StartPageProps) {
   // The first GPS record with a plottable position; the weather is looked up there.
@@ -114,9 +116,6 @@ export function StartPage({
         className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto p-4"
       >
         <div className="h-28 shrink-0">
-          <EmptySlot />
-        </div>
-        <div className="h-28 shrink-0">
           <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />
         </div>
         <div className="h-28 shrink-0">
@@ -141,22 +140,16 @@ export function StartPage({
   }
 
   return (
-    <div data-testid="pane-start" className="flex min-h-0 flex-1 flex-col gap-3 p-2">
-      <div className="grid shrink-0 grid-cols-3 gap-2 p-3">
-        {solarWidget}
-        <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />
-        <TiltWidget tilt={firstTilt} compact />
-      </div>
-      <div className="mb-6 grid min-h-0 flex-1 grid-cols-[1fr_1.4fr_1fr] items-end gap-1 p-2">
-        {slots.map((slot) => (
-          <section
-            key={slot.id}
-            className="flex h-full min-h-0 flex-col items-center justify-end gap-2"
-          >
-            <DialOrEmpty slot={slot} isDark={isDark} size={slot.size} />
-          </section>
-        ))}
-      </div>
+    <div data-testid="pane-start" className="flex min-h-0 flex-1 flex-col">
+      <Dial
+        tanks={tanks}
+        batteries={batteries}
+        solar={solar}
+        tilt={tilt}
+        powerSources={powerSources}
+        isDark={isDark}
+        now={now}
+      />
     </div>
   )
 }
@@ -174,17 +167,5 @@ function DialOrEmpty({ slot, isDark, size }: { slot: DialSlot; isDark: boolean; 
       </div>
     )
   }
-  return <Dial view={slot.view} icon={slot.icon} size={size} glow={isDark} />
-}
-
-/** A place for a widget that does not exist yet. */
-function EmptySlot() {
-  return (
-    <div
-      aria-hidden="true"
-      className="border-border text-muted flex h-full min-h-0 items-center justify-center rounded-2xl border-2 border-dashed"
-    >
-      <Plus className="size-5" />
-    </div>
-  )
+  return <CockpitDial view={slot.view} icon={slot.icon} size={size} glow={isDark} />
 }

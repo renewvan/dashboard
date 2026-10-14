@@ -17,6 +17,7 @@ import { HubView } from './HubView'
 import { NavbarView } from './NavbarView'
 import { NavigationView } from './NavigationView'
 import { NodesView } from './NodesView'
+import { StartPageView } from './StartPageView'
 import { useSettings } from './SettingsContext'
 import { TailscaleView } from './TailscaleView'
 import { TankSettingsView } from './TankSettingsView'
@@ -35,6 +36,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   display: { title: 'Display', parent: 'general' },
   navigation: { title: 'Navigation', parent: 'display' },
   navbar: { title: 'Navbar', parent: 'display' },
+  'start-page': { title: 'Start page', parent: 'display' },
   connectivity: { title: 'Connectivity', parent: 'list' },
   cellular: { title: 'Cellular', parent: 'connectivity' },
   hub: { title: 'Hub', parent: 'connectivity' },
@@ -58,7 +60,14 @@ function trailTo(view: SettingsSubView): SettingsSubView[] {
  * and only re-renders when the Settings context value changes.
  */
 export const SettingsPage = memo(function SettingsPage() {
-  const { nodes, tanks, navbarPosition, setNavbarPosition } = useSettings()
+  const {
+    nodes,
+    tanks,
+    navbarPosition,
+    setNavbarPosition,
+    startPowerSources,
+    setStartPowerSources,
+  } = useSettings()
   const isMobile = useIsMobile()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
@@ -128,6 +137,8 @@ export const SettingsPage = memo(function SettingsPage() {
         return (
           <NavbarView position={navbarPosition} onChange={setNavbarPosition} isMobile={isMobile} />
         )
+      case 'start-page':
+        return <StartPageView sources={startPowerSources} onChange={setStartPowerSources} />
       case 'connectivity':
         return <ConnectivityView onOpen={setView} />
       case 'cellular':

@@ -6,6 +6,7 @@ import type {
   TailscaleStatus,
 } from '@/hooks/useRenewvanBus'
 import type { NavbarPosition } from '@/hooks/useNavbarPosition'
+import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { NodeSummary } from '@/lib/nodes'
 import type { Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
 
@@ -35,6 +36,9 @@ export interface SettingsContextValue {
   /** The Navbar position: the same instance `App` lays the shell out from. */
   navbarPosition: NavbarPosition
   setNavbarPosition: (position: NavbarPosition) => void
+  /** The Start page's half-moon sources and scales: the same instance the Start page reads. */
+  startPowerSources: StartPowerSources
+  setStartPowerSources: (sources: StartPowerSources) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
 }

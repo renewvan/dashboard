@@ -5,12 +5,6 @@ import { cn } from '@/lib/utils'
 import { useAutoHide } from '@/hooks/useAutoHide'
 import type { NavItem } from '@/components/Sidebar'
 
-/**
- * Bar = one 44px touch target (docs/design-principles.md) + its 1px top border. The parent
- * pads the panes by this much while the bar is up; the safe-area inset is added on top.
- */
-export const BOTTOM_NAV_PAD_CLASS = 'pb-[calc(45px+env(safe-area-inset-bottom))]'
-
 export interface BottomNavBarProps {
   items: NavItem[]
   /** Called with `true` while the bar is slid away, so the parent can give its space back. */
@@ -22,8 +16,9 @@ export interface BottomNavBarProps {
  * `Tabs` root and the panels). It slides away after `IDLE_MS` of inactivity and a touch
  * anywhere on the screen brings it back; the pin button turns auto-hide off. Absolutely
  * positioned inside the `Tabs` root so it can precede the panels in the DOM (React Aria
- * warns otherwise); the parent pads the panes by `BOTTOM_NAV_PAD_CLASS` so they stretch
- * and push as the bar hides and shows.
+ * warns otherwise); it never pushes the panes. Translucent and blurred. While it is up the
+ * parent publishes a bottom inset (`--navbar-inset-bottom`) that a page may pad itself by,
+ * and drops it to 0 as the bar slides away.
  */
 export function BottomNavBar({ items, onHiddenChange }: BottomNavBarProps) {
   const [autoHide, setAutoHide] = useState(true)
@@ -39,7 +34,7 @@ export function BottomNavBar({ items, onHiddenChange }: BottomNavBarProps) {
       // `inert` while hidden keeps the off-screen tabs out of the tab order and AT.
       inert={hidden}
       className={cn(
-        'border-border bg-surface absolute inset-x-0 bottom-0 z-40 flex items-stretch border-t pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgb(0_0_0/0.18)] transition-transform duration-300 motion-reduce:transition-none',
+        'border-border bg-surface/70 absolute inset-x-0 bottom-0 z-40 flex items-stretch border-t pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgb(0_0_0/0.18)] backdrop-blur-md transition-transform duration-300 motion-reduce:transition-none',
         hidden && 'translate-y-full',
       )}
     >

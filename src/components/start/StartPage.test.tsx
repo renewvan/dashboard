@@ -2,6 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Battery, Gps, Solar, Tank, TemperatureSensor, Tilt } from '@/types'
+import { DEFAULT_START_POWER_SOURCES, type StartPowerSources } from '@/hooks/useStartPowerSources'
 import { StartPage } from './StartPage'
 
 const KIOSK_WIDTH = 800
@@ -39,6 +40,7 @@ function renderAt(
     temperatures?: Record<string, Partial<TemperatureSensor>>
     gps?: Record<string, Partial<Gps>>
     tilt?: Record<string, Partial<Tilt>>
+    powerSources?: StartPowerSources
   },
 ) {
   viewport = stubMatchMedia(width)
@@ -50,6 +52,7 @@ function renderAt(
       temperatures={props.temperatures ?? {}}
       gps={props.gps ?? {}}
       tilt={props.tilt ?? {}}
+      powerSources={props.powerSources ?? DEFAULT_START_POWER_SOURCES}
       isDark
     />,
   )
@@ -82,10 +85,7 @@ function subline(text: string) {
   return screen.getByText((_, el) => el?.tagName === 'DIV' && el.textContent === text)
 }
 
-describe.each([
-  ['kiosk', KIOSK_WIDTH],
-  ['phone', JUST_BELOW_KIOSK_WIDTH],
-])('StartPage (%s)', (_name, width) => {
+describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, width) => {
   it('shows each dial with its live reading', () => {
     renderAt(width, {
       tanks: {
@@ -99,7 +99,8 @@ describe.each([
     expect(screen.getByRole('img', { name: 'Fresh water 46%' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Grey water 41%' })).toBeInTheDocument()
     expect(subline('13.20V / 35W')).toBeInTheDocument()
-    expect(screen.getByText('9d 23h to go')).toBeInTheDocument()
+    // The runtime estimate is parked: the source publishes it, the dial does not show it.
+    expect(screen.queryByText(/to go/)).not.toBeInTheDocument()
     expect(subline('46 / 100 \u2113')).toBeInTheDocument()
     expect(subline('33 / 80 \u2113')).toBeInTheDocument()
   })
@@ -144,16 +145,105 @@ describe('StartPage layout', () => {
       .map((el) => el.getAttribute('aria-label')?.replace(/ \d+%$/, ''))
     expect(titles).toEqual(['Battery', 'Fresh water', 'Grey water'])
   })
+})
 
-  it('puts fresh water, battery, grey water left to right on the kiosk', () => {
+describe('StartPage kiosk dial', () => {
+  const OK_TILT = { tilt: { roll_deg: -2.2, pitch_deg: 4, status: 'ok' as const } }
+  const GREY = tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 })
+
+  /** The rings' aria labels, outermost first. */
+  function rings() {
+    return within(screen.getByRole('group', { name: 'Levels' }))
+      .getAllByRole('img')
+      .map((el) => el.getAttribute('aria-label'))
+  }
+
+  it('draws the battery, fresh and grey water as rings, outermost first', () => {
     renderAt(KIOSK_WIDTH, {
-      tanks: { fresh: tank(), grey: tank({ fluid_type: 'grey_water' }) },
+      tanks: { fresh: tank(), grey: GREY },
       batteries: { house: BATTERY },
     })
-    const titles = screen
-      .getAllByRole('img')
-      .map((el) => el.getAttribute('aria-label')?.replace(/ \d+%$/, ''))
-    expect(titles).toEqual(['Fresh water', 'Battery', 'Grey water'])
+
+    expect(rings()).toEqual(['Battery 78%', 'Fresh water 46%', 'Grey water 41%'])
+  })
+
+  it('draws the rings the user configured, in that order', () => {
+    renderAt(KIOSK_WIDTH, {
+      tanks: { fresh: tank(), fuel: tank({ fluid_type: 'fuel', level_pct: 30 }) },
+      batteries: { house: BATTERY },
+      powerSources: { ...DEFAULT_START_POWER_SOURCES, rings: ['fuel', 'battery', 'fresh_water'] },
+    })
+
+    expect(rings()).toEqual(['Fuel 30%', 'Battery 78%', 'Fresh water 46%'])
+  })
+
+  it('labels a ring whose data has not arrived without a number', () => {
+    renderAt(KIOSK_WIDTH, { tanks: { fresh: tank() } })
+
+    expect(rings()).toEqual(['Battery', 'Fresh water 46%', 'Grey water'])
+  })
+
+  it('shows the battery in the middle, and not again in the legend, without a usable tilt', () => {
+    renderAt(KIOSK_WIDTH, {
+      tanks: { fresh: tank(), grey: GREY },
+      batteries: { house: BATTERY },
+    })
+
+    const centre = screen.getByTestId('rings-centre')
+    expect(within(centre).getByText('78')).toBeInTheDocument()
+    expect(subline('13.20V / 35W')).toBeInTheDocument()
+    // The kiosk has no widget row, so without a usable tilt the tilt shows nowhere.
+    expect(screen.queryByTestId('tilt-card')).not.toBeInTheDocument()
+    expect(screen.getByText('Fresh water', { selector: 'span' })).toBeInTheDocument()
+    expect(screen.queryAllByText('Battery', { selector: 'span' })).toHaveLength(0)
+  })
+
+  it('moves the tilt into the middle once it has a reading, and lists the battery in the legend', () => {
+    renderAt(KIOSK_WIDTH, {
+      tanks: { fresh: tank(), grey: GREY },
+      batteries: { house: BATTERY },
+      tilt: OK_TILT,
+    })
+
+    const centre = screen.getByTestId('rings-centre')
+    expect(within(centre).getByTestId('tilt-pitch')).toHaveTextContent('+4.0°')
+    expect(screen.getAllByTestId('tilt-card')).toHaveLength(1)
+    expect(screen.getByText('Battery', { selector: 'span' })).toBeInTheDocument()
+  })
+
+  it('goes back to the battery when the tilt sensor errors, not to dashes', () => {
+    renderAt(KIOSK_WIDTH, {
+      batteries: { house: BATTERY },
+      tilt: { tilt: { roll_deg: 4, pitch_deg: 3, status: 'sensor_error' } },
+    })
+
+    expect(within(screen.getByTestId('rings-centre')).getByText('78')).toBeInTheDocument()
+  })
+
+  it('says there is no data, not a number, in the middle before the battery arrives', () => {
+    renderAt(KIOSK_WIDTH, {})
+
+    expect(within(screen.getByTestId('rings-centre')).getByText('No data yet')).toBeInTheDocument()
+  })
+
+  it('reads solar, charging and load from the configured sources', () => {
+    renderAt(KIOSK_WIDTH, {
+      solar: { 291: { power_w: 247, battery_voltage_v: 13.4 } },
+      batteries: { house: { ...BATTERY, power_w: -112 } },
+    })
+
+    const dial = screen.getByTestId('start-dial')
+    expect(within(dial).getByText('Solar').parentElement).toHaveTextContent('247W')
+    expect(within(dial).getByText('Charging').parentElement).toHaveTextContent('0W')
+    expect(within(dial).getByText('Load').parentElement).toHaveTextContent('112W')
+  })
+
+  it('shows a dash, never a made-up 0 W, for a reading whose source has not published', () => {
+    renderAt(KIOSK_WIDTH, {})
+
+    const dial = screen.getByTestId('start-dial')
+    expect(within(dial).getByText('Solar').parentElement).toHaveTextContent('\u2014')
+    expect(within(dial).getByText('Solar').parentElement).not.toHaveTextContent('0W')
   })
 })
 
@@ -161,22 +251,24 @@ describe('StartPage weather widget', () => {
   const probe = (temperature_c: number, status: TemperatureSensor['status'] = 'ok') =>
     ({ temperature_c, status, unit: 'C' }) as Partial<TemperatureSensor>
 
-  it.each([
-    ['kiosk', KIOSK_WIDTH],
-    ['phone', JUST_BELOW_KIOSK_WIDTH],
-  ])('looks the forecast up at the van GPS position (%s)', async (_name, width) => {
-    renderAt(width, {
-      gps: { gps0: { fix_quality: 'gps', satellites_in_use: 7, latitude: 41.39, longitude: 2.17 } },
-    })
-    await screen.findByTestId('weather-outside')
+  it.each([['phone', JUST_BELOW_KIOSK_WIDTH]])(
+    'looks the forecast up at the van GPS position (%s)',
+    async (_name, width) => {
+      renderAt(width, {
+        gps: {
+          gps0: { fix_quality: 'gps', satellites_in_use: 7, latitude: 41.39, longitude: 2.17 },
+        },
+      })
+      await screen.findByTestId('weather-outside')
 
-    const url = String(fetchMock.mock.calls[0][0])
-    expect(url).toContain('latitude=41.39')
-    expect(url).toContain('longitude=2.17')
-  })
+      const url = String(fetchMock.mock.calls[0][0])
+      expect(url).toContain('latitude=41.39')
+      expect(url).toContain('longitude=2.17')
+    },
+  )
 
   it('shows the outdoor probe as Outside and the indoor probe as Inside', async () => {
-    renderAt(KIOSK_WIDTH, { temperatures: { outdoor: probe(7.2), indoor: probe(21.6) } })
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { temperatures: { outdoor: probe(7.2), indoor: probe(21.6) } })
 
     expect(await screen.findByTestId('weather-outside')).toHaveTextContent('7°')
     expect(screen.getByTestId('weather-outside')).not.toHaveTextContent('forecast')
@@ -184,7 +276,7 @@ describe('StartPage weather widget', () => {
   })
 
   it('falls back to the forecast air temperature, labelled, when the outdoor probe has no reading', async () => {
-    renderAt(KIOSK_WIDTH, {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
       temperatures: { outdoor: probe(99, 'disconnected'), indoor: probe(21) },
     })
 
@@ -195,15 +287,12 @@ describe('StartPage weather widget', () => {
 
   it('says the forecast is unavailable when the request fails', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 503 })
-    renderAt(KIOSK_WIDTH, {})
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
     expect(await screen.findByText('Weather unavailable (HTTP 503)')).toBeInTheDocument()
   })
 })
 
-describe.each([
-  ['kiosk', KIOSK_WIDTH],
-  ['phone', JUST_BELOW_KIOSK_WIDTH],
-])('StartPage tilt widget (%s)', (_name, width) => {
+describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage tilt widget (%s)', (_name, width) => {
   it('shows the van tilt from the node, tinted by the level tolerance', () => {
     renderAt(width, { tilt: { tilt: { roll_deg: 0.7, pitch_deg: -2.3, status: 'ok' } } })
 
@@ -228,10 +317,51 @@ describe.each([
   })
 })
 
-describe.each([
-  ['kiosk', KIOSK_WIDTH],
-  ['phone', JUST_BELOW_KIOSK_WIDTH],
-])('StartPage solar widget (%s)', (_name, width) => {
+describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])(
+  'StartPage solar widget (%s)',
+  (_name, width) => {
+    const controller = (overrides: Partial<Solar> = {}): Solar => ({
+      power_w: 412,
+      battery_voltage_v: 13.4,
+      yield_today_wh: 2140,
+      charge_state: 'bulk',
+      ...overrides,
+    })
+
+    it('shows the live watts from the controller', () => {
+      renderAt(width, { solar: { 291: controller() }, batteries: { house: BATTERY } })
+
+      expect(screen.getByTestId('solar-watts')).toHaveTextContent('412')
+    })
+
+    it('shows nothing before a controller has published its required fields', () => {
+      renderAt(width, { solar: { 291: { power_w: 412 } }, batteries: { house: BATTERY } })
+
+      expect(screen.queryByTestId('solar-card')).not.toBeInTheDocument()
+    })
+
+    it('shows a fault instead of the watts', () => {
+      renderAt(width, {
+        solar: { 291: controller({ charge_state: 'fault', power_w: 0 }) },
+        batteries: { house: BATTERY },
+      })
+
+      expect(screen.getByText('Fault')).toBeInTheDocument()
+      expect(screen.queryByTestId('solar-watts')).not.toBeInTheDocument()
+    })
+
+    it('reports the reading to assistive tech as a meter, not as a dial', () => {
+      renderAt(width, { solar: { 291: controller() }, batteries: { house: BATTERY } })
+
+      const meter = screen.getByRole('meter', { name: 'Solar power' })
+      expect(meter).toHaveAttribute('aria-valuenow', '412')
+      expect(meter).toHaveAttribute('aria-valuetext', '412 W')
+      expect(within(screen.getByTestId('solar-card')).queryAllByRole('img')).toHaveLength(0)
+    })
+  },
+)
+
+describe('StartPage solar harvest today', () => {
   const controller = (overrides: Partial<Solar> = {}): Solar => ({
     power_w: 412,
     battery_voltage_v: 13.4,
@@ -240,38 +370,27 @@ describe.each([
     ...overrides,
   })
 
-  it('shows the live watts and the harvest today from the controller', () => {
-    renderAt(width, { solar: { 291: controller() } })
+  it('shows the harvest today on a phone, in the fresh water card', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      solar: { 291: controller() },
+      batteries: { house: BATTERY },
+    })
 
-    expect(screen.getByTestId('solar-watts')).toHaveTextContent('412')
     expect(screen.getByTestId('solar-yield')).toHaveTextContent('2.1')
   })
 
-  it('shows nothing before a controller has published its required fields', () => {
-    renderAt(width, { solar: { 291: { power_w: 412 } } })
-
-    expect(screen.queryByTestId('solar-card')).not.toBeInTheDocument()
-  })
-
-  it('shows no harvest figure when the controller does not report one', () => {
-    renderAt(width, { solar: { 291: controller({ yield_today_wh: undefined }) } })
+  it('shows no harvest figure on a phone when the controller does not report one', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      solar: { 291: controller({ yield_today_wh: undefined }) },
+      batteries: { house: BATTERY },
+    })
 
     expect(screen.getByTestId('solar-yield')).toHaveTextContent('—')
   })
 
-  it('shows a fault instead of the watts', () => {
-    renderAt(width, { solar: { 291: controller({ charge_state: 'fault', power_w: 0 }) } })
+  it('leaves the harvest out of the battery dial on the kiosk', () => {
+    renderAt(KIOSK_WIDTH, { solar: { 291: controller() }, batteries: { house: BATTERY } })
 
-    expect(screen.getByText('Fault')).toBeInTheDocument()
-    expect(screen.queryByTestId('solar-watts')).not.toBeInTheDocument()
-  })
-
-  it('reports the reading to assistive tech as a meter, not as a dial', () => {
-    renderAt(width, { solar: { 291: controller() } })
-
-    const meter = screen.getByRole('meter', { name: 'Solar power' })
-    expect(meter).toHaveAttribute('aria-valuenow', '412')
-    expect(meter).toHaveAttribute('aria-valuetext', '412 W')
-    expect(screen.queryAllByRole('img')).toHaveLength(0)
+    expect(screen.queryByTestId('solar-yield')).not.toBeInTheDocument()
   })
 })

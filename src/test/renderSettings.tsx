@@ -5,6 +5,7 @@ import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import type { SettingsContextValue } from '@/components/settings/SettingsContext'
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { TailscaleStatus } from '@/hooks/useRenewvanBus'
+import { DEFAULT_START_POWER_SOURCES } from '@/hooks/useStartPowerSources'
 import type { Router } from '@/types'
 import { stubMatchMedia } from './matchMedia'
 
@@ -84,6 +85,8 @@ export function renderSettings(
     setAlertsEnabled: vi.fn(),
     navbarPosition: 'left',
     setNavbarPosition: vi.fn(),
+    startPowerSources: DEFAULT_START_POWER_SOURCES,
+    setStartPowerSources: vi.fn(),
     setTemperatureName: vi.fn(),
     setTemperatureUnit: vi.fn(),
     ...overrides,

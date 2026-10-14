@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Bell, Gauge, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
@@ -8,7 +8,7 @@ import { Clock } from '@/components/Clock'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
-import { Sidebar, SIDEBAR_PAD_CLASS, type NavItem } from '@/components/Sidebar'
+import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { StubPane } from '@/components/StubPane'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsPage } from '@/components/settings/SettingsPage'
@@ -24,8 +24,9 @@ import { useRenewvanBus } from '@/hooks/useRenewvanBus'
 import { connectedNodes } from '@/lib/nodes'
 import { settingsCommands } from '@/lib/settings-commands'
 import { useTheme } from '@/hooks/useTheme'
-import { BottomNavBar, BOTTOM_NAV_PAD_CLASS } from '@/components/BottomNavBar'
+import { BottomNavBar } from '@/components/BottomNavBar'
 import { useNavbarPosition } from '@/hooks/useNavbarPosition'
+import { useStartPowerSources } from '@/hooks/useStartPowerSources'
 import { useUrlPage } from '@/hooks/useUrlPage'
 
 const NAV_ITEMS: NavItem[] = [
@@ -47,7 +48,18 @@ const PAGE_IDS = [...NAV_ITEMS.map((item) => item.id), 'alerts']
 const HEADER_HEIGHT_VAR = '--app-header-height'
 
 // HeroUI's component CSS is unlayered, so utilities need `!` to override its spacing; the shell sizes panes itself.
-const PANEL_CLASS = 'm-0! flex min-h-0 min-w-0 flex-1 flex-col p-0!'
+// Every panel pads its navbar edge by the inset the `Tabs` root publishes (below), so no page, built
+// or not, runs under the navbar while it is up, and all of them stretch into the space as it slides
+// away.
+const PANEL_CLASS =
+  'm-0! flex min-h-0 min-w-0 flex-1 flex-col p-0! pb-(--navbar-inset-bottom)! pl-(--navbar-inset-left)! transition-[padding] duration-300 motion-reduce:transition-none'
+
+// The kiosk navbar floats over the panes and never pushes them. The `Tabs` root publishes how much
+// of the pane's edge it currently covers as `--navbar-inset-bottom` / `--navbar-inset-left` (0
+// while it is slid away or on the other side). The rail is 56px wide; the bar is one 44px touch
+// target (docs/design-principles.md) plus its 1px border, plus the safe-area inset.
+const RAIL_INSET = '56px'
+const BAR_INSET = 'calc(45px + env(safe-area-inset-bottom))'
 
 function App() {
   const {
@@ -76,9 +88,16 @@ function App() {
   const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
   const [navbarPosition, setNavbarPosition] = useNavbarPosition()
+  const [startPowerSources, setStartPowerSources] = useStartPowerSources()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
   const isBottomBar = !isMobile && navbarPosition === 'bottom'
   const [navHidden, setNavHidden] = useState(false)
+  // The inset the visible kiosk navbar covers; the phone's bottom bar stays in the layout.
+  const navInset = isMobile || navHidden ? '0px' : isBottomBar ? BAR_INSET : RAIL_INSET
+  const navbarInsetStyle = {
+    '--navbar-inset-bottom': isBottomBar ? navInset : '0px',
+    '--navbar-inset-left': isBottomBar ? '0px' : navInset,
+  } as CSSProperties
   const headerRef = useRef<HTMLElement>(null)
   useLayoutEffect(() => {
     const header = headerRef.current
@@ -133,6 +152,8 @@ function App() {
       setAlertsEnabled,
       navbarPosition,
       setNavbarPosition,
+      startPowerSources,
+      setStartPowerSources,
     }),
     [
       nodes,
@@ -151,6 +172,8 @@ function App() {
       setAlertsEnabled,
       navbarPosition,
       setNavbarPosition,
+      startPowerSources,
+      setStartPowerSources,
     ],
   )
 
@@ -161,7 +184,7 @@ function App() {
     <header
       ref={headerRef}
       className={cn(
-        'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center py-1.5 pr-3 pl-3',
+        'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center px-4 py-2',
         isMobile && 'bg-surface border-border border-b',
       )}
     >
@@ -209,6 +232,7 @@ function App() {
               temperatures={state.temperatures}
               gps={state.gps}
               tilt={state.tilt}
+              powerSources={startPowerSources}
               isDark={theme === 'dark'}
             />
           ) : item.id === 'tanks' ? (
@@ -229,9 +253,10 @@ function App() {
       {/* The header spans the full width on top; below it the nav and the panes share one
           `Tabs` root. The nav precedes the panes in the DOM (React Aria warns when a tab
           panel renders before its tab list). On the kiosk the nav, rail or bar, is an
-          absolutely positioned auto-hiding overlay and the root's padding on its side pushes
-          the panes over by its size, releasing it as it slides away. Phone: `Sidebar`'s own
-          bottom bar, moved below the panes by its `order-last`. */}
+          absolutely positioned, translucent, auto-hiding overlay that never pushes the panes;
+          the root publishes how much of their edge it covers (`navbarInsetStyle`) and a page
+          that must not run under it pads itself by that. Phone: `Sidebar`'s own bottom bar,
+          moved below the panes by its `order-last`. */}
       {header}
       {/* Keyed by layout: HeroUI's sliding indicator measures its tab once and does not
           re-measure when the list swaps between the rail and a bar under the same root. */}
@@ -240,14 +265,8 @@ function App() {
         selectedKey={activePage}
         onSelectionChange={(key) => goToPage(String(key))}
         orientation={isMobile || isBottomBar ? 'horizontal' : 'vertical'}
-        className={cn(
-          'min-h-0 flex-1 gap-0!',
-          !isMobile &&
-            cn(
-              'relative overflow-hidden transition-[padding] duration-300 motion-reduce:transition-none',
-              !navHidden && (isBottomBar ? BOTTOM_NAV_PAD_CLASS : SIDEBAR_PAD_CLASS),
-            ),
-        )}
+        style={navbarInsetStyle}
+        className={cn('min-h-0 flex-1 gap-0!', !isMobile && 'relative overflow-hidden')}
       >
         {isBottomBar ? (
           <BottomNavBar items={NAV_ITEMS} onHiddenChange={setNavHidden} />
