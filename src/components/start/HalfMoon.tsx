@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Battery, Sun, Zap, ZapOff } from 'lucide-react'
+import { Battery, Sun, Zap, Plug2 } from 'lucide-react'
 import type { PowerSource } from '@/hooks/useStartPowerSources'
 import { arc } from './arcs'
 import { CutBand } from './CutBand'
@@ -8,7 +8,7 @@ import type { PowerReading } from './dialModel'
 const POWER_ICONS: Record<PowerSource, ReactNode> = {
   solar: <Sun className="size-4" />,
   'battery-in': <Zap className="size-4" />,
-  'battery-out': <ZapOff className="size-4" />,
+  'battery-out': <Plug2 className="size-4" />,
   'battery-net': <Battery className="size-4" />,
 }
 
