@@ -1,7 +1,7 @@
 import { formatBytes, formatUptime } from '@/lib/format'
 import { plmnOperatorName } from '@/lib/plmn'
-import { DetailList, DetailRow } from './DetailList'
-import { useSettings } from './SettingsContext'
+import { DetailList, DetailRow } from '../shared/DetailList'
+import { useSettings } from '../SettingsContext'
 
 /** Every field the router reports. The router fills in one property at a time,
  * so each row degrades to a dash on its own. */

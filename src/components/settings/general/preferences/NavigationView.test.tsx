@@ -37,7 +37,7 @@ async function expectNoDialog() {
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 }
 
-describe('Settings › General › Display › Navigation', () => {
+describe('Settings › General › Display & Appearance › Navigation', () => {
   it('is linked from the end of Display, described as Subpages by default', async () => {
     const { user } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))
@@ -48,7 +48,7 @@ describe('Settings › General › Display › Navigation', () => {
 
     await user.click(screen.getByRole('button', { name: /^Navigation style/ }))
 
-    expect(screen.getByRole('link', { name: 'Display' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Display & Appearance' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Navigation', current: 'page' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Subpages' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'Drawers' })).not.toBeChecked()
@@ -86,7 +86,9 @@ describe('Settings › General › Display › Navigation', () => {
       await within(await openDialog('General')).findByRole('button', { name: /^Display/ }),
     )
     await user.click(
-      await within(await openDialog('Display')).findByRole('button', { name: /^Navigation style/ }),
+      await within(await openDialog('Display & Appearance')).findByRole('button', {
+        name: /^Navigation style/,
+      }),
     )
 
     const navigation = await openDialog('Navigation')
@@ -176,7 +178,9 @@ describe('drawer navigation', () => {
       await within(await openDialog('General')).findByRole('button', { name: /^Display/ }),
     )
     await user.click(
-      await within(await openDialog('Display')).findByRole('button', { name: /^Navigation style/ }),
+      await within(await openDialog('Display & Appearance')).findByRole('button', {
+        name: /^Navigation style/,
+      }),
     )
     await openDialog('Navigation')
 
@@ -193,7 +197,9 @@ describe('drawer navigation', () => {
       await within(await openDialog('General')).findByRole('button', { name: /^Display/ }),
     )
 
-    await user.click(within(await openDialog('Display')).getByRole('button', { name: 'Close' }))
+    await user.click(
+      within(await openDialog('Display & Appearance')).getByRole('button', { name: 'Close' }),
+    )
 
     await expectNoDialog()
     expect(screen.getByRole('button', { name: /^General/ })).toBeInTheDocument()
@@ -207,7 +213,7 @@ describe('drawer navigation', () => {
     await user.click(await within(dialog).findByRole('button', { name: /^Display/ }))
 
     // Same dialog element, new content: it did not close and a second one open.
-    expect(await screen.findByRole('dialog', { name: 'Display' })).toBe(dialog)
+    expect(await screen.findByRole('dialog', { name: 'Display & Appearance' })).toBe(dialog)
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
 
     await user.click(within(dialog).getByRole('button', { name: /^Navigation style/ }))
@@ -222,7 +228,9 @@ describe('drawer navigation', () => {
       await within(await openDialog('General')).findByRole('button', { name: /^Display/ }),
     )
 
-    await user.click(within(await openDialog('Display')).getByRole('button', { name: 'Back' }))
+    await user.click(
+      within(await openDialog('Display & Appearance')).getByRole('button', { name: 'Back' }),
+    )
     expect(await openDialog('General')).toBeInTheDocument()
 
     await user.click(within(await openDialog('General')).getByRole('button', { name: 'Back' }))
@@ -237,7 +245,7 @@ describe('drawer navigation', () => {
       await within(await openDialog('General')).findByRole('button', { name: /^Display/ }),
     )
 
-    const display = await openDialog('Display')
+    const display = await openDialog('Display & Appearance')
     expect(within(display).getByRole('button', { name: /^Navigation style/ })).toHaveTextContent(
       'Drawers',
     )
@@ -249,7 +257,7 @@ describe('drawer navigation', () => {
     await user.click(
       await within(await openDialog('General')).findByRole('button', { name: /^Display/ }),
     )
-    const display = await openDialog('Display')
+    const display = await openDialog('Display & Appearance')
 
     act(() => within(display).getByRole('slider', { name: 'Brightness' }).focus())
     await user.keyboard('{ArrowRight}')
@@ -262,7 +270,7 @@ describe('drawer navigation', () => {
     expect(value.setAutoSleepTimeoutMinutes).toHaveBeenCalledExactlyOnceWith(15)
 
     // None of that dismissed the drawer.
-    expect(screen.getByRole('dialog', { name: 'Display' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Display & Appearance' })).toBeInTheDocument()
   })
 })
 
@@ -278,7 +286,7 @@ describe('on a phone', () => {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument()
     expect(screen.getByText('Settings always uses subpages on a phone.')).toBeInTheDocument()
 
-    await rendered.user.click(screen.getByRole('link', { name: 'Display' }))
+    await rendered.user.click(screen.getByRole('link', { name: 'Display & Appearance' }))
     expect(screen.getByRole('button', { name: /^Navigation style/ })).toHaveTextContent('Subpages')
 
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('drawer')

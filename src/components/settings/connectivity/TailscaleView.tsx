@@ -1,6 +1,6 @@
 import { tailscaleStatusText } from '@/lib/tailscale'
-import { DetailList, StatusRow } from './DetailList'
-import { useSettings } from './SettingsContext'
+import { DetailList, StatusRow } from '../shared/DetailList'
+import { useSettings } from '../SettingsContext'
 
 /** Loading, not authenticated, not installed, or the address when connected. */
 export function TailscaleView() {

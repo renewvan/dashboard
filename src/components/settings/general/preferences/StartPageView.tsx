@@ -148,7 +148,7 @@ interface StartPageViewProps {
 }
 
 /**
- * Settings › General › Display › Start page: where each of the half-moon readings comes from and
+ * Settings › General › Display & Appearance › Start page: where each of the half-moon readings comes from and
  * how many watts fill its band. The bus has no shore or inverter topics, so the choices are the
  * solar controller and the battery's power by direction.
  */

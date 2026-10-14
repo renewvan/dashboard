@@ -6,6 +6,7 @@ import type {
   TailscaleStatus,
 } from '@/hooks/useRenewvanBus'
 import type { NavbarPosition } from '@/hooks/useNavbarPosition'
+import type { Theme } from '@/hooks/useTheme'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { NodeSummary } from '@/lib/nodes'
 import type { Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
@@ -33,6 +34,9 @@ export interface SettingsContextValue {
   /** The Alerts toggle: the same instance `useAlertToasts` reads. */
   alertsEnabled: boolean
   setAlertsEnabled: (enabled: boolean) => void
+  /** The colour theme: the same instance `App` applies to `<html>` and the header toggle drives. */
+  theme: Theme
+  setTheme: (theme: Theme) => void
   /** The Navbar position: the same instance `App` lays the shell out from. */
   navbarPosition: NavbarPosition
   setNavbarPosition: (position: NavbarPosition) => void

@@ -1,6 +1,6 @@
 import { BUS_TONE, busStatusText } from '@/lib/connection'
-import { DetailList, StatusRow } from './DetailList'
-import { useSettings } from './SettingsContext'
+import { DetailList, StatusRow } from '../shared/DetailList'
+import { useSettings } from '../SettingsContext'
 
 /** The kiosk's live link to the van's broker (the Bus link). */
 export function HubView() {

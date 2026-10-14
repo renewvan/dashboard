@@ -6,19 +6,19 @@ import { renderSettings } from '@/test/renderSettings'
 async function openNavbar(user: UserEvent) {
   await user.click(screen.getByRole('button', { name: /^General/ }))
   await user.click(screen.getByRole('button', { name: /^Display/ }))
-  await user.click(screen.getByRole('button', { name: /^Navbar position/ }))
+  await user.click(screen.getByRole('button', { name: /^Navigation position/ }))
 }
 
-describe('Settings › General › Display › Navbar', () => {
+describe('Settings › General › Display & Appearance › Navbar', () => {
   it('is a Display row describing the current position, opening a Left / Bottom choice', async () => {
     const { user } = renderSettings({ navbarPosition: 'bottom' })
     await user.click(screen.getByRole('button', { name: /^General/ }))
     await user.click(screen.getByRole('button', { name: /^Display/ }))
-    expect(screen.getByRole('button', { name: /^Navbar position/ })).toHaveTextContent('Bottom')
+    expect(screen.getByRole('button', { name: /^Navigation position/ })).toHaveTextContent('Bottom')
 
-    await user.click(screen.getByRole('button', { name: /^Navbar position/ }))
+    await user.click(screen.getByRole('button', { name: /^Navigation position/ }))
 
-    expect(screen.getByRole('link', { name: 'Display' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Display & Appearance' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Navbar', current: 'page' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Bottom' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'Left' })).not.toBeChecked()

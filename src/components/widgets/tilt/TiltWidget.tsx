@@ -12,7 +12,7 @@ export interface TiltWidgetProps {
 
 function tone(deg: number | null): string {
   if (deg === null) return 'text-muted'
-  return isLevel(deg) ? 'text-emerald-400' : 'text-amber-400'
+  return isLevel(deg) ? 'text-emerald-400' : 'text-amber-500'
 }
 
 const VAN = 'h-full origin-bottom transition-transform duration-500'
@@ -21,7 +21,7 @@ const VAN = 'h-full origin-bottom transition-transform duration-500'
  * The compact card sizes each van itself: `VAN`'s `h-full` would resolve against a content-sized
  * parent. It fills the middle of the Dial's rings.
  */
-const COMPACT = { grid: 'gap-6', van: 'h-10', angle: 'text-lg', label: 'text-xs' }
+const COMPACT = { grid: 'gap-4', van: 'h-10', angle: 'text-lg', label: 'text-xs' }
 
 /**
  * Start-page card showing the van's inclination: a side van (pitch) and a rear
@@ -32,8 +32,12 @@ export function TiltWidget({ tilt, compact = false }: TiltWidgetProps) {
   const { roll, pitch } = tiltReading(tilt)
   if (compact) {
     return (
-      <Card data-testid="tilt-card" variant="transparent" className="gap-0! overflow-visible p-0!">
-        <Card.Content className="px-1 py-0">
+      <Card
+        data-testid="tilt-card"
+        variant="transparent"
+        className="mb-4 gap-0! overflow-visible p-0!"
+      >
+        <Card.Content className="px-4">
           <div className={`grid grid-cols-2 items-start px-3 ${COMPACT.grid}`}>
             {(
               [
@@ -51,7 +55,7 @@ export function TiltWidget({ tilt, compact = false }: TiltWidgetProps) {
                 <div className="bg-foreground/25 my-1.5 h-0.5 w-full shrink-0 rounded" />
                 <span
                   data-testid={id}
-                  className={`leading-none font-bold tabular-nums ${COMPACT.angle} ${tone(deg)}`}
+                  className={`leading-none font-semibold tabular-nums ${COMPACT.angle} ${tone(deg)}`}
                 >
                   {formatDeg(deg)}
                 </span>

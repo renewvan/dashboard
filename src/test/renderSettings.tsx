@@ -83,6 +83,8 @@ export function renderSettings(
     setAutoSleepTimeoutMinutes: vi.fn(),
     alertsEnabled: true,
     setAlertsEnabled: vi.fn(),
+    theme: 'dark',
+    setTheme: vi.fn(),
     navbarPosition: 'left',
     setNavbarPosition: vi.fn(),
     startPowerSources: DEFAULT_START_POWER_SOURCES,

@@ -1,9 +1,9 @@
 import { connectionTier, busStatusText, uplinkHeadline } from '@/lib/connection'
 import { tailscaleStatusText } from '@/lib/tailscale'
 import { useNow } from '@/hooks/useNow'
-import { GroupRow } from './GroupRow'
-import { useSettings } from './SettingsContext'
-import type { SettingsSubView } from './views'
+import { GroupRow } from '../shared/GroupRow'
+import { useSettings } from '../SettingsContext'
+import type { SettingsSubView } from '../views'
 
 interface ConnectivityViewProps {
   onOpen: (view: SettingsSubView) => void

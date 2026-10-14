@@ -1,8 +1,8 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { NodeSummary } from '@/lib/nodes'
-import { SettingsProvider } from './SettingsProvider'
-import { SettingsPage } from './SettingsPage'
+import { SettingsProvider } from '../SettingsProvider'
+import { SettingsPage } from '../SettingsPage'
 import { renderSettings } from '@/test/renderSettings'
 import type { TemperatureSensor } from '@/types'
 

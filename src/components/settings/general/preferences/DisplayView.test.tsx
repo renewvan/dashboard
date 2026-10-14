@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderSettings } from '@/test/renderSettings'
 
@@ -9,19 +9,21 @@ async function openDisplay(overrides: Parameters<typeof renderSettings>[0] = {})
   return rendered
 }
 
-describe('Settings › General › Display', () => {
-  it('is reached from a General row described as Brightness, auto-sleep, navigation', async () => {
+describe('Settings › General › Display & Appearance', () => {
+  it('is reached from a General row described as Theme, brightness, auto-sleep, layout', async () => {
     const { user } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))
 
     expect(screen.getByRole('button', { name: /^Display/ })).toHaveTextContent(
-      'Brightness, auto-sleep, navigation',
+      'Theme, brightness, auto-sleep, layout',
     )
 
     await user.click(screen.getByRole('button', { name: /^Display/ }))
 
     expect(screen.getByRole('link', { name: 'General' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Display', current: 'page' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Display & Appearance', current: 'page' }),
+    ).toBeInTheDocument()
   })
 
   it('shows the live brightness readout and slider', async () => {
@@ -29,6 +31,71 @@ describe('Settings › General › Display', () => {
 
     expect(screen.getByText('42%')).toBeInTheDocument()
     expect(screen.getByRole('slider', { name: 'Brightness' })).toHaveValue('42')
+  })
+
+  describe('groups', () => {
+    it('puts the screen controls under Display and the layout rows under Appearance', async () => {
+      await openDisplay({ autoSleepEnabled: false })
+
+      expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+        'Display',
+        'Appearance',
+      ])
+      const display = within(screen.getByRole('region', { name: 'Display' }))
+      expect(display.getByRole('radiogroup', { name: 'Theme' })).toBeInTheDocument()
+      expect(display.getByRole('slider', { name: 'Brightness' })).toBeInTheDocument()
+      expect(display.getByRole('switch', { name: 'Auto-sleep' })).toBeInTheDocument()
+
+      const appearance = within(screen.getByRole('region', { name: 'Appearance' }))
+      expect(appearance.getAllByRole('button').map((row) => row.textContent)).toEqual([
+        'Start pagePower readings and scales',
+        'Navigation positionLeft',
+        'Navigation styleSubpages',
+      ])
+    })
+
+    it('separates the Start page row from the two navigation rows', async () => {
+      await openDisplay()
+
+      const appearance = screen.getByRole('region', { name: 'Appearance' })
+      const divider = within(appearance).getByRole('separator')
+      const after = (row: RegExp) =>
+        divider.compareDocumentPosition(within(appearance).getByRole('button', { name: row })) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+      const before = (row: RegExp) =>
+        divider.compareDocumentPosition(within(appearance).getByRole('button', { name: row })) &
+        Node.DOCUMENT_POSITION_PRECEDING
+      expect(before(/^Start page/)).toBeTruthy()
+      expect(after(/^Navigation position/)).toBeTruthy()
+      expect(after(/^Navigation style/)).toBeTruthy()
+    })
+  })
+
+  describe('theme', () => {
+    it.each([
+      ['dark', 'Dark'],
+      ['light', 'Light'],
+    ] as const)('shows the %s theme as the selected choice', async (theme, label) => {
+      await openDisplay({ theme })
+
+      expect(screen.getByRole('radio', { name: label })).toBeChecked()
+    })
+
+    it('sends the other theme when it is picked', async () => {
+      const { user, value } = await openDisplay({ theme: 'dark' })
+
+      await user.click(screen.getByRole('radio', { name: 'Light' }))
+
+      expect(value.setTheme).toHaveBeenCalledExactlyOnceWith('light')
+    })
+
+    it('sends nothing when the selected theme is tapped again', async () => {
+      const { user, value } = await openDisplay({ theme: 'dark' })
+
+      await user.click(screen.getByRole('radio', { name: 'Dark' }))
+
+      expect(value.setTheme).not.toHaveBeenCalled()
+    })
   })
 
   describe('brightness', () => {
@@ -84,12 +151,11 @@ describe('Settings › General › Display', () => {
 
       const group = screen.getByRole('radiogroup', { name: 'Sleep after' })
       expect(group).toBeInTheDocument()
-      expect(screen.getAllByRole('radio').map((radio) => radio.textContent)).toEqual([
-        '1m',
-        '5m',
-        '15m',
-        '30m',
-      ])
+      expect(
+        within(group)
+          .getAllByRole('radio')
+          .map((radio) => radio.textContent),
+      ).toEqual(['1m', '5m', '15m', '30m'])
       expect(screen.getByRole('radio', { name: '15m' })).toBeChecked()
       expect(screen.getByRole('radio', { name: '5m' })).not.toBeChecked()
     })
@@ -134,7 +200,9 @@ describe('Settings › General › Display', () => {
     it('disables the timeout picker when auto-sleep is on but its timeout is unknown', async () => {
       await openDisplay({ autoSleepEnabled: true, autoSleepTimeoutMinutes: null })
 
-      for (const radio of screen.getAllByRole('radio')) {
+      for (const radio of within(
+        screen.getByRole('radiogroup', { name: 'Sleep after' }),
+      ).getAllByRole('radio')) {
         expect(radio).toBeDisabled()
         expect(radio).not.toBeChecked()
       }

@@ -55,6 +55,8 @@ const NAV_LABELS = ['Start', 'Power', 'Tanks', 'GPS', 'Switches', 'Heater', 'Set
 
 const HEADER_HEIGHT_VAR = '--app-header-height'
 
+const POSITION_KEY = 'renewvan-dashboard-navbar-position'
+
 /** jsdom has no layout or ResizeObserver: the stub exposes the observer callbacks, and the header's `offsetHeight` is whatever the test sets. */
 let headerHeight = 0
 const resizeCallbacks = new Set<() => void>()
@@ -298,6 +300,23 @@ describe('App shell alerts bell', () => {
     expect(screen.getByTestId('pane-alerts')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^alerts/i })).toHaveAttribute('aria-current', 'page')
   })
+
+  it('badges the bell with the unseen count until the page is visited', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    expect(screen.queryByTestId('alerts-button-badge')).not.toBeInTheDocument()
+
+    // The real queue: the badge counts toasts as they appear, however they are dismissed.
+    await act(async () => {
+      toast.danger('Fresh water tank alarm', { timeout: 0 })
+    })
+    expect(screen.getByTestId('alerts-button-badge')).toHaveTextContent('1')
+
+    await user.click(screen.getByRole('button', { name: 'Alerts, 1 active' }))
+    expect(screen.queryByTestId('alerts-button-badge')).not.toBeInTheDocument()
+
+    await act(async () => toast.clear())
+  })
 })
 
 describe('App shell URL state', () => {
@@ -439,6 +458,25 @@ describe('App shell theme', () => {
     await user.click(screen.getByRole('button', { name: 'Switch to dark theme' }))
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
     expect(window.localStorage.getItem(THEME_KEY)).toBe('dark')
+  })
+
+  it('is the same theme in Settings and the header toggle, whichever one changes it', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = within(screen.getByTestId('pane-settings'))
+    await user.click(pane.getByRole('button', { name: /^General/ }))
+    await user.click(pane.getByRole('button', { name: /^Display/ }))
+    expect(pane.getByRole('radio', { name: 'Dark' })).toBeChecked()
+
+    await user.click(pane.getByRole('radio', { name: 'Light' }))
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+    expect(window.localStorage.getItem(THEME_KEY)).toBe('light')
+    expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Switch to dark theme' }))
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+    expect(pane.getByRole('radio', { name: 'Dark' })).toBeChecked()
   })
 })
 
@@ -680,23 +718,49 @@ describe('App shell Settings view in the URL', () => {
 })
 
 describe('App shell navbar position', () => {
-  const POSITION_KEY = 'renewvan-dashboard-navbar-position'
-
   async function chooseBottomInSettings(user: UserEvent) {
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
     const pane = within(screen.getByTestId('pane-settings'))
     await user.click(pane.getByRole('button', { name: /^General/ }))
     await user.click(pane.getByRole('button', { name: /^Display/ }))
-    await user.click(pane.getByRole('button', { name: /^Navbar position/ }))
+    await user.click(pane.getByRole('button', { name: /^Navigation position/ }))
     await user.click(pane.getByRole('radio', { name: 'Bottom' }))
   }
 
-  it('shows the full lockup in a header above a closed left rail by default', async () => {
+  it('shows the full lockup in the header beside a closed left rail by default', async () => {
     await renderAt(KIOSK_WIDTH)
     expect(screen.getAllByRole('img', { name: 'renewvan' })).toHaveLength(1)
     expect(within(screen.getByRole('banner')).getByRole('img', { name: 'renewvan' })).toBeVisible()
     expect(screen.getByRole('complementary')).toContainElement(screen.getByRole('tablist'))
     expect(screen.queryByRole('button', { name: /sidebar/i })).not.toBeInTheDocument()
+  })
+
+  it('lays the rail out over the full height: it shares a root with the header, which clears it', async () => {
+    await renderAt(KIOSK_WIDTH)
+    const rail = screen.getByRole('complementary')
+    const header = screen.getByRole('banner')
+    // One container holds the rail and the header, so the rail is not confined below the header.
+    expect(rail.parentElement).toBe(screen.getByRole('tabpanel').parentElement?.parentElement)
+    expect(rail.parentElement).toContainElement(header)
+    expect(rail).toHaveClass('inset-y-0')
+    // The header pads itself by the inset the rail covers, which pushes the logo right.
+    expect(header.className).toContain('pl-[calc(1rem+var(--navbar-inset-left))]')
+    expect(rail.parentElement?.style.getPropertyValue('--navbar-inset-left')).toBe('56px')
+  })
+
+  it('gives the logo its space back when the rail slides away', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      await renderAt(KIOSK_WIDTH)
+      const root = screen.getByRole('complementary').parentElement as HTMLElement
+      expect(root.style.getPropertyValue('--navbar-inset-left')).toBe('56px')
+      await act(async () => {
+        vi.advanceTimersByTime(4100)
+      })
+      expect(root.style.getPropertyValue('--navbar-inset-left')).toBe('0px')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('moves to a bottom bar as soon as Settings says so, and remembers it after a reload', async () => {
@@ -732,7 +796,7 @@ describe('App shell navbar position', () => {
     await user.click(pane.getByRole('button', { name: /^General/ }))
     await user.click(pane.getByRole('button', { name: /^Display/ }))
 
-    expect(pane.getByRole('button', { name: /^Navbar position/ })).toHaveTextContent('Bottom')
+    expect(pane.getByRole('button', { name: /^Navigation position/ })).toHaveTextContent('Bottom')
     expect(window.localStorage.getItem(POSITION_KEY)).toBe('left')
   })
 
@@ -753,7 +817,8 @@ describe('App shell navbar position', () => {
         // of the pages' edge it covers right now (0 when it is away) for a page to pad itself by.
         const covered = position === 'bottom' ? '--navbar-inset-bottom' : '--navbar-inset-left'
         const other = position === 'bottom' ? '--navbar-inset-left' : '--navbar-inset-bottom'
-        const insets = () => screen.getByRole('tabpanel').parentElement as HTMLElement
+        const insets = () =>
+          screen.getByRole(landmark, { hidden: true }).parentElement as HTMLElement
         const inset = (name: string) => insets().style.getPropertyValue(name)
         expect(inset(covered)).not.toBe('0px')
         expect(inset(other)).toBe('0px')
@@ -785,20 +850,64 @@ describe('App shell navbar position', () => {
         await user.pointer({ keys: '[MouseLeft]', target: pane() })
         expect(navbar()).toHaveAttribute('data-state', 'visible')
 
-        // Pinning disarms the timer the pin tap itself armed.
+        // While auto-hiding, the page and header glide as the navbar slides.
+        const header = screen.getByRole('banner')
+        expect(screen.getByRole('tabpanel')).toHaveClass('transition-[padding]')
+        expect(header).toHaveClass('transition-[padding]')
+
+        // Pinning disarms the timer the pin tap itself armed. The navbar stays up, the page
+        // keeps the room it made for it, and nothing animates any more.
         await user.click(screen.getByRole('button', { name: 'Pin navigation bar' }))
         await act(async () => {
           vi.advanceTimersByTime(10_000)
         })
         expect(navbar()).toHaveAttribute('data-state', 'visible')
+        expect(inset(covered)).not.toBe('0px')
+        expect(screen.getByRole('tabpanel')).not.toHaveClass('transition-[padding]')
+        expect(header).not.toHaveClass('transition-[padding]')
 
-        // Turning auto-hide back on starts from a visible navbar, then hides it after idle.
+        // Turning auto-hide back on starts from a visible navbar and restores the motion, then
+        // hides it after idle.
         await user.click(screen.getByRole('button', { name: 'Auto-hide navigation bar' }))
         expect(navbar()).toHaveAttribute('data-state', 'visible')
+        expect(screen.getByRole('tabpanel')).toHaveClass('transition-[padding]')
         await act(async () => {
           vi.advanceTimersByTime(4100)
         })
         expect(navbar()).toHaveAttribute('data-state', 'hidden')
+      } finally {
+        vi.useRealTimers()
+      }
+    },
+  )
+})
+
+describe('App shell pinned navbar', () => {
+  it.each([
+    { position: 'left', landmark: 'complementary' as const, inset: '--navbar-inset-left' },
+    { position: 'bottom', landmark: 'navigation' as const, inset: '--navbar-inset-bottom' },
+  ])(
+    'pinned straight after load, the $position navbar and the page stay put for good',
+    async ({ position, landmark, inset }) => {
+      window.localStorage.setItem(POSITION_KEY, position)
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+        await renderAt(KIOSK_WIDTH)
+        const navbar = screen.getByRole(landmark, { hidden: true })
+        const root = navbar.parentElement as HTMLElement
+        const room = root.style.getPropertyValue(inset)
+        expect(room).not.toBe('0px')
+
+        // No hide/reveal first: the idle timer the load armed must not outlive the pin.
+        await user.click(screen.getByRole('button', { name: 'Pin navigation bar' }))
+        await act(async () => {
+          vi.advanceTimersByTime(30_000)
+        })
+
+        expect(navbar).toHaveAttribute('data-state', 'visible')
+        expect(root.style.getPropertyValue(inset)).toBe(room)
+        expect(screen.getByRole('tabpanel')).not.toHaveClass('transition-[padding]')
       } finally {
         vi.useRealTimers()
       }

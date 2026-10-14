@@ -297,7 +297,7 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage tilt widget (%s)',
     renderAt(width, { tilt: { tilt: { roll_deg: 0.7, pitch_deg: -2.3, status: 'ok' } } })
 
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('-2.3°')
-    expect(screen.getByTestId('tilt-pitch')).toHaveClass('text-amber-400')
+    expect(screen.getByTestId('tilt-pitch')).toHaveClass('text-amber-500')
     expect(screen.getByTestId('tilt-roll')).toHaveTextContent('+0.7°')
     expect(screen.getByTestId('tilt-roll')).toHaveClass('text-emerald-400')
   })
