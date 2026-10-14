@@ -20,13 +20,9 @@ const items: NavItem[] = [
 function renderSidebar({
   isMobile = false,
   selectedKey = 'tanks',
-  collapsed = false,
-  theme,
 }: {
   isMobile?: boolean
   selectedKey?: string
-  collapsed?: boolean
-  theme?: 'light' | 'dark'
 } = {}) {
   return render(
     <Tabs
@@ -34,7 +30,7 @@ function renderSidebar({
       onSelectionChange={() => {}}
       orientation={isMobile ? 'horizontal' : 'vertical'}
     >
-      <Sidebar items={items} isMobile={isMobile} collapsed={collapsed} theme={theme} />
+      <Sidebar items={items} isMobile={isMobile} />
       <Tabs.Panel id="tanks">Tanks panel</Tabs.Panel>
       <Tabs.Panel id="power">Power panel</Tabs.Panel>
       <Tabs.Panel id="settings">Settings panel</Tabs.Panel>
@@ -58,18 +54,9 @@ describe.each([
     }
   })
 
-  it('renders text labels only in the expanded rail', () => {
-    renderSidebar({ isMobile, collapsed: false })
+  it('never renders visible text labels', () => {
+    renderSidebar({ isMobile })
     // Panels carry their own text; match the label spans inside the tabs.
-    for (const item of items) {
-      const label = within(screen.getByTestId(`nav-${item.id}`)).queryByText(item.label)
-      if (isMobile) expect(label).not.toBeInTheDocument()
-      else expect(label).toBeInTheDocument()
-    }
-  })
-
-  it('never renders text labels when collapsed or on the bottom bar', () => {
-    renderSidebar({ isMobile, collapsed: true })
     for (const item of items) {
       expect(within(screen.getByTestId(`nav-${item.id}`)).queryByText(item.label)).toBeNull()
     }
@@ -123,35 +110,17 @@ describe('Sidebar (bottom bar)', () => {
   })
 })
 
-describe('Sidebar (rail brand)', () => {
-  it('renders the same single lockup whether expanded or collapsed', () => {
-    const { unmount } = renderSidebar({ collapsed: false })
-    const expanded = screen.getByRole('img', { name: 'renewvan' }).getAttribute('src')
-    expect(expanded).toMatch(/lockup/)
+describe('Sidebar (brand)', () => {
+  it('renders no brand, rail or bottom bar: the app header carries it', () => {
+    const { unmount } = renderSidebar()
+    expect(screen.queryByRole('img', { name: 'renewvan' })).not.toBeInTheDocument()
     unmount()
-
-    renderSidebar({ collapsed: true })
-    expect(screen.getAllByRole('img', { name: 'renewvan' })).toHaveLength(1)
-    expect(screen.getByRole('img', { name: 'renewvan' }).getAttribute('src')).toBe(expanded)
-  })
-
-  it('picks the lockup variant for the theme', () => {
-    const { unmount } = renderSidebar({ theme: 'dark' })
-    const dark = screen.getByRole('img', { name: 'renewvan' }).getAttribute('src')
-    unmount()
-    renderSidebar({ theme: 'light' })
-    const light = screen.getByRole('img', { name: 'renewvan' }).getAttribute('src')
-    expect(dark).not.toBe(light)
-  })
-
-  it('keeps every nav item as a tab when collapsed', () => {
-    renderSidebar({ collapsed: true })
-    expect(screen.getAllByRole('tab')).toHaveLength(items.length)
-    expect(screen.getByRole('complementary')).toHaveAttribute('data-state', 'collapsed')
-  })
-
-  it('has no brand on the bottom bar (the header carries it)', () => {
     renderSidebar({ isMobile: true })
     expect(screen.queryByRole('img', { name: 'renewvan' })).not.toBeInTheDocument()
+  })
+
+  it('is a closed icon rail in a complementary landmark on the kiosk', () => {
+    renderSidebar()
+    expect(screen.getByRole('complementary')).toContainElement(screen.getByRole('tablist'))
   })
 })

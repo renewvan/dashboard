@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Label, Slider, Switch, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
+import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import { GroupRow } from './GroupRow'
 import { useSettings } from './SettingsContext'
@@ -129,11 +130,13 @@ function SleepAfterRow() {
 interface DisplayViewProps {
   /** The style Settings is actually using (so the row never claims a style a phone cannot get). */
   navStyle: SettingsNavStyle
+  /** Where the navbar actually is (a phone is always at the bottom, whatever is stored). */
+  navbarPosition: NavbarPosition
   onOpen: (view: SettingsSubView) => void
 }
 
-/** Settings › General › Display: brightness, auto-sleep and its timeout, navigation style. */
-export function DisplayView({ navStyle, onOpen }: DisplayViewProps) {
+/** Settings › General › Display: brightness, auto-sleep and its timeout, navigation style, navbar. */
+export function DisplayView({ navStyle, navbarPosition, onOpen }: DisplayViewProps) {
   const { autoSleepEnabled } = useSettings()
 
   return (
@@ -149,6 +152,11 @@ export function DisplayView({ navStyle, onOpen }: DisplayViewProps) {
           <SleepAfterRow />
         </Card>
       )}
+      <GroupRow
+        label="Navbar position"
+        description={navbarPosition === 'left' ? 'Left' : 'Bottom'}
+        onOpen={() => onOpen('navbar')}
+      />
       <GroupRow
         label="Navigation style"
         description={navStyle === 'subpage' ? 'Subpages' : 'Drawers'}

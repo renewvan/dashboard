@@ -9,6 +9,7 @@ export type SettingsView =
   | 'alerts'
   | 'display'
   | 'navigation'
+  | 'navbar'
   | 'connectivity'
   | 'cellular'
   | 'hub'

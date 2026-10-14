@@ -1,5 +1,5 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { toast } from '@heroui/react'
 import type { MqttClient } from 'mqtt'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
@@ -679,29 +679,130 @@ describe('App shell Settings view in the URL', () => {
   })
 })
 
-describe('App shell sidebar collapse', () => {
-  it('collapses to the symbol, persists, and restores on reload', async () => {
+describe('App shell navbar position', () => {
+  const POSITION_KEY = 'renewvan-dashboard-navbar-position'
+
+  async function chooseBottomInSettings(user: UserEvent) {
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = within(screen.getByTestId('pane-settings'))
+    await user.click(pane.getByRole('button', { name: /^General/ }))
+    await user.click(pane.getByRole('button', { name: /^Display/ }))
+    await user.click(pane.getByRole('button', { name: /^Navbar position/ }))
+    await user.click(pane.getByRole('radio', { name: 'Bottom' }))
+  }
+
+  it('shows the full lockup in a header above a closed left rail by default', async () => {
+    await renderAt(KIOSK_WIDTH)
+    expect(screen.getAllByRole('img', { name: 'renewvan' })).toHaveLength(1)
+    expect(within(screen.getByRole('banner')).getByRole('img', { name: 'renewvan' })).toBeVisible()
+    expect(screen.getByRole('complementary')).toContainElement(screen.getByRole('tablist'))
+    expect(screen.queryByRole('button', { name: /sidebar/i })).not.toBeInTheDocument()
+  })
+
+  it('moves to a bottom bar as soon as Settings says so, and remembers it after a reload', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
-    const logo = () => screen.getByRole('img', { name: 'renewvan' })
-    expect(screen.getAllByRole('img', { name: 'renewvan' })).toHaveLength(1)
-    expect(logo().getAttribute('src')).toMatch(/lockup/)
+    await chooseBottomInSettings(user)
 
-    await user.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-    expect(logo().getAttribute('src')).toMatch(/lockup/)
-    expect(screen.getByRole('complementary')).toHaveAttribute('data-state', 'collapsed')
-    expect(window.localStorage.getItem('renewvan-dashboard-sidebar-collapsed')).toBe('true')
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Primary' })).toContainElement(
+      screen.getByRole('tablist'),
+    )
+    expect(screen.getAllByRole('tab').map((tab) => tab.getAttribute('aria-label'))).toEqual(
+      NAV_LABELS,
+    )
+    expect(window.localStorage.getItem(POSITION_KEY)).toBe('bottom')
+    // The remount that swaps the layouts must not lose where the user is.
+    expect(selectedPage()).toHaveAccessibleName('Settings')
+    expect(currentCrumb()).toHaveAccessibleName('Navbar')
+    expect(window.location.search).toBe('?page=settings&view=navbar')
 
     cleanup()
     await renderAt(KIOSK_WIDTH)
-    expect(screen.getByRole('complementary')).toHaveAttribute('data-state', 'collapsed')
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Primary' })).toBeInTheDocument()
   })
 
-  it('keeps the lockup in the header and offers no toggle on a phone', async () => {
+  it('lists the stored position in Display, and a phone always reads Bottom without overwriting it', async () => {
+    window.localStorage.setItem(POSITION_KEY, 'left')
+    const user = userEvent.setup()
     await renderAt(PHONE_WIDTH)
-    expect(screen.getAllByRole('img', { name: 'renewvan' })).toHaveLength(1)
-    expect(screen.queryByRole('button', { name: /sidebar/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    const pane = within(screen.getByTestId('pane-settings'))
+    await user.click(pane.getByRole('button', { name: /^General/ }))
+    await user.click(pane.getByRole('button', { name: /^Display/ }))
+
+    expect(pane.getByRole('button', { name: /^Navbar position/ })).toHaveTextContent('Bottom')
+    expect(window.localStorage.getItem(POSITION_KEY)).toBe('left')
   })
+
+  it.each([
+    { position: 'bottom', landmark: 'navigation' as const },
+    { position: 'left', landmark: 'complementary' as const },
+  ])(
+    'hides the $position navbar after idle, reveals it on a touch anywhere, and stays up when pinned',
+    async ({ position, landmark }) => {
+      window.localStorage.setItem(POSITION_KEY, position)
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+        await renderAt(KIOSK_WIDTH)
+        const navbar = () => screen.getByRole(landmark, { hidden: true })
+        const pane = () => screen.getByTestId('pane-start')
+        // The padded root is the nearest ancestor of the pages that also holds the navbar.
+        const panesRoot = () => {
+          let el = pane()
+          while (!el.contains(navbar())) el = el.parentElement as HTMLElement
+          return el
+        }
+        expect(navbar()).toHaveAttribute('data-state', 'visible')
+        expect(panesRoot().className).toMatch(/\bp[bl]-\[/)
+        expect(
+          screen.queryByRole('button', { name: /menu|show navigation/i }),
+        ).not.toBeInTheDocument()
+
+        await act(async () => {
+          vi.advanceTimersByTime(4100)
+        })
+        expect(navbar()).toHaveAttribute('data-state', 'hidden')
+        // The pages take the space back.
+        expect(panesRoot().className).not.toMatch(/\bp[bl]-\[/)
+
+        // A pointer merely drifting over the page does not pop it open...
+        await user.hover(pane())
+        expect(navbar()).toHaveAttribute('data-state', 'hidden')
+
+        // ...but a touch anywhere on the screen does, and the pages make room again.
+        await user.pointer({ keys: '[MouseLeft]', target: pane() })
+        expect(navbar()).toHaveAttribute('data-state', 'visible')
+        expect(panesRoot().className).toMatch(/\bp[bl]-\[/)
+        await act(async () => {
+          vi.advanceTimersByTime(4100)
+        })
+        expect(navbar()).toHaveAttribute('data-state', 'hidden')
+
+        await user.pointer({ keys: '[MouseLeft]', target: pane() })
+        expect(navbar()).toHaveAttribute('data-state', 'visible')
+
+        // Pinning disarms the timer the pin tap itself armed.
+        await user.click(screen.getByRole('button', { name: 'Pin navigation bar' }))
+        await act(async () => {
+          vi.advanceTimersByTime(10_000)
+        })
+        expect(navbar()).toHaveAttribute('data-state', 'visible')
+
+        // Turning auto-hide back on starts from a visible navbar, then hides it after idle.
+        await user.click(screen.getByRole('button', { name: 'Auto-hide navigation bar' }))
+        expect(navbar()).toHaveAttribute('data-state', 'visible')
+        await act(async () => {
+          vi.advanceTimersByTime(4100)
+        })
+        expect(navbar()).toHaveAttribute('data-state', 'hidden')
+      } finally {
+        vi.useRealTimers()
+      }
+    },
+  )
 })
 
 describe('App shell header height', () => {
