@@ -1,32 +1,30 @@
-import { useEffect, useState } from 'react'
 import { Pin, PinOff } from 'lucide-react'
 import { Tabs } from '@heroui/react'
 import { cn } from '@/lib/utils'
-import { useAutoHide } from '@/hooks/useAutoHide'
 import type { NavItem } from '@/components/Sidebar'
 
 export interface BottomNavBarProps {
   items: NavItem[]
-  /** Called with `true` while the bar is slid away, so the parent can give its space back. */
-  onHiddenChange: (hidden: boolean) => void
+  /** Slid away: the caller drives it from `useAutoHide` (see `App`). */
+  hidden: boolean
+  /** Auto-hide is off: the bar stays up. */
+  pinned: boolean
+  onPinnedChange: (pinned: boolean) => void
 }
 
 /**
  * Kiosk primary navigation as a bottom bar: ONE HeroUI `Tabs.List` (the caller owns the
- * `Tabs` root and the panels). It slides away after `IDLE_MS` of inactivity and a touch
- * anywhere on the screen brings it back; the pin button turns auto-hide off. Absolutely
- * positioned inside the `Tabs` root so it can precede the panels in the DOM (React Aria
- * warns otherwise); it never pushes the panes. Translucent and blurred. While it is up the
- * parent publishes a bottom inset (`--navbar-inset-bottom`) that a page may pad itself by,
- * and drops it to 0 as the bar slides away.
+ * `Tabs` root and the panels). Controlled: `App` owns the auto-hide/pin state and runs
+ * `useAutoHide` once. It must not live in here: React Aria renders everything inside `Tabs`
+ * a second time, hidden, to build its collection, so a hook in this component would run twice
+ * and the hidden copy would keep hiding a pinned bar. The bar slides away when `hidden` and a
+ * touch anywhere brings it back; the pin button toggles `pinned`. Absolutely positioned
+ * inside the `Tabs` root so it can precede the panels in the DOM (React Aria warns
+ * otherwise); it never pushes the panes. Translucent and blurred. While it is up the parent
+ * publishes a bottom inset (`--navbar-inset-bottom`) that a page may pad itself by, and drops
+ * it to 0 as the bar slides away.
  */
-export function BottomNavBar({ items, onHiddenChange }: BottomNavBarProps) {
-  const [autoHide, setAutoHide] = useState(true)
-  const hidden = useAutoHide(autoHide)
-  useEffect(() => onHiddenChange(hidden), [hidden, onHiddenChange])
-  // Leaving the bottom layout must give the panes their space back.
-  useEffect(() => () => onHiddenChange(false), [onHiddenChange])
-
+export function BottomNavBar({ items, hidden, pinned, onPinnedChange }: BottomNavBarProps) {
   return (
     <nav
       aria-label="Primary"
@@ -46,22 +44,24 @@ export function BottomNavBar({ items, onHiddenChange }: BottomNavBarProps) {
             id={item.id}
             aria-label={item.label}
             data-testid={`nav-${item.id}`}
-            className="data-[selected=true]:text-accent h-11! min-w-0 flex-1 flex-row! gap-2 px-0"
+            className="data-[selected=true]:text-accent h-14! min-w-0 flex-1 flex-col! gap-0.5 px-0"
           >
             {item.icon}
-            <span className="truncate text-xs font-medium">{item.label}</span>
+            <span className="max-w-full truncate px-1 text-xs leading-none font-medium">
+              {item.label}
+            </span>
             <Tabs.Indicator className="bg-accent/15! rounded-xl! shadow-none!" />
           </Tabs.Tab>
         ))}
       </Tabs.List>
       <button
         type="button"
-        aria-label={autoHide ? 'Pin navigation bar' : 'Auto-hide navigation bar'}
-        aria-pressed={autoHide}
-        onClick={() => setAutoHide(!autoHide)}
-        className="border-border text-muted active:bg-default grid size-11 shrink-0 place-items-center border-l"
+        aria-label={pinned ? 'Auto-hide navigation bar' : 'Pin navigation bar'}
+        aria-pressed={!pinned}
+        onClick={() => onPinnedChange(!pinned)}
+        className="border-border text-muted active:bg-default grid w-11 shrink-0 place-items-center border-l"
       >
-        {autoHide ? <PinOff className="size-5" /> : <Pin className="size-5" />}
+        {pinned ? <Pin className="size-5" /> : <PinOff className="size-5" />}
       </button>
     </nav>
   )

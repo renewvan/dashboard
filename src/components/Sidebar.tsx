@@ -1,8 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Pin, PinOff } from 'lucide-react'
-import { Tabs } from '@heroui/react'
+import { Separator, Tabs } from '@heroui/react'
 import { cn } from '@/lib/utils'
-import { useAutoHide } from '@/hooks/useAutoHide'
 
 export interface NavItem {
   id: string
@@ -18,8 +17,11 @@ export interface SidebarProps {
    * and must give the `Tabs` root the matching `orientation`.
    */
   isMobile?: boolean
-  /** Kiosk rail only: called with `true` while the rail is slid away, so the parent can give its space back. */
-  onHiddenChange?: (hidden: boolean) => void
+  /** Kiosk rail only: slid away. The caller drives it from `useAutoHide` (see `App`). */
+  hidden?: boolean
+  /** Kiosk rail only: auto-hide is off and the rail stays up. */
+  pinned?: boolean
+  onPinnedChange?: (pinned: boolean) => void
 }
 
 /**
@@ -27,8 +29,9 @@ export interface SidebarProps {
  * root and `selectedKey`, so it can also render the panels.
  *
  * Kiosk: a closed icon-only rail in an `<aside>` (the accessible name stays on
- * each tab via `aria-label`), sitting under the app header, which carries the brand.
- * The last item (Settings) is pushed to the bottom with `mt-auto`, and a pin button
+ * each tab via `aria-label`), spanning the full height of the app: the header sits in the same
+ * container and pads itself clear of the rail, which pushes the brand to the right while the rail
+ * is up. The last item (Settings) is pushed to the bottom with `mt-auto`, and a pin button
  * sits under it. The rail slides away to the left after a few idle seconds and a touch
  * anywhere brings it back; the pin turns that off.
  *
@@ -38,7 +41,13 @@ export interface SidebarProps {
  * moves it visually below them inside a flex-column parent, and the bottom
  * padding keeps it clear of the iOS home indicator.
  */
-export function Sidebar({ items, isMobile = false, onHiddenChange }: SidebarProps) {
+export function Sidebar({
+  items,
+  isMobile = false,
+  hidden = false,
+  pinned = false,
+  onPinnedChange = () => {},
+}: SidebarProps) {
   const lastIndex = items.length - 1
 
   const list = (
@@ -84,48 +93,52 @@ export function Sidebar({ items, isMobile = false, onHiddenChange }: SidebarProp
     )
   }
 
-  return <AutoHidingRail onHiddenChange={onHiddenChange}>{list}</AutoHidingRail>
+  return (
+    <AutoHidingRail hidden={hidden} pinned={pinned} onPinnedChange={onPinnedChange}>
+      {list}
+    </AutoHidingRail>
+  )
 }
 
 /**
- * The kiosk rail. Absolutely positioned over the panes so it can precede them in the DOM
- * (React Aria); it never pushes them. Translucent and blurred. While it is up the parent
- * publishes a 56px left inset (`--navbar-inset-left`) that a page may pad itself by, and drops
- * it to 0 as the rail slides away to the left. A touch anywhere brings it back; the pin
- * button, under the last tab, turns auto-hide off.
+ * The kiosk rail. Absolutely positioned over the whole app (header included) so it can precede
+ * the panes in the DOM (React Aria); it never pushes them. Translucent and blurred. Controlled:
+ * `App` owns the auto-hide state (see `BottomNavBar` for why it cannot live in here). While it is
+ * up the parent publishes a 56px left inset (`--navbar-inset-left`) that the header and a page
+ * may pad themselves by, and drops it to 0 as the rail slides away to the left. A touch anywhere
+ * brings it back; the pin button, under the last tab, toggles `pinned`.
  */
 function AutoHidingRail({
   children,
-  onHiddenChange,
+  hidden,
+  pinned,
+  onPinnedChange,
 }: {
   children: ReactNode
-  onHiddenChange?: (hidden: boolean) => void
+  hidden: boolean
+  pinned: boolean
+  onPinnedChange: (pinned: boolean) => void
 }) {
-  const [autoHide, setAutoHide] = useState(true)
-  const hidden = useAutoHide(autoHide)
-  useEffect(() => onHiddenChange?.(hidden), [hidden, onHiddenChange])
-  // Leaving the rail layout must give the panes their space back.
-  useEffect(() => () => onHiddenChange?.(false), [onHiddenChange])
-
   return (
     <aside
       data-state={hidden ? 'hidden' : 'visible'}
       // `inert` while hidden keeps the off-screen tabs out of the tab order and AT.
       inert={hidden}
       className={cn(
-        'border-border bg-surface/70 absolute inset-y-0 left-0 z-40 flex w-[56px] flex-col gap-2 overflow-hidden border-r py-2 pl-0.5 backdrop-blur-md transition-transform duration-300 motion-reduce:transition-none',
+        'border-border bg-surface/70 absolute inset-y-0 left-0 z-40 flex w-[56px] flex-col gap-2 overflow-hidden border-r pt-2 pb-1 pl-0.5 backdrop-blur-md transition-transform duration-300 motion-reduce:transition-none',
         hidden && '-translate-x-full',
       )}
     >
       {children}
+      <Separator className="-m-px" />
       <button
         type="button"
-        aria-label={autoHide ? 'Pin navigation bar' : 'Auto-hide navigation bar'}
-        aria-pressed={autoHide}
-        onClick={() => setAutoHide(!autoHide)}
-        className="text-muted active:bg-default mx-auto grid size-11 shrink-0 place-items-center rounded-3xl"
+        aria-label={pinned ? 'Auto-hide navigation bar' : 'Pin navigation bar'}
+        aria-pressed={!pinned}
+        onClick={() => onPinnedChange(!pinned)}
+        className="text-muted active:bg-default mx-auto grid size-8 shrink-0 place-items-center rounded-3xl"
       >
-        {autoHide ? <PinOff className="size-5" /> : <Pin className="size-5" />}
+        {pinned ? <Pin className="size-5" /> : <PinOff className="size-5" />}
       </button>
     </aside>
   )

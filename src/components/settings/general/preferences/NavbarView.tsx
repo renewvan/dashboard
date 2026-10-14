@@ -1,38 +1,38 @@
 import { ToggleButton, ToggleButtonGroup } from '@heroui/react'
-import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
+import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 
-const CHOICES: { value: SettingsNavStyle; label: string }[] = [
-  { value: 'subpage', label: 'Subpages' },
-  { value: 'drawer', label: 'Drawers' },
+const CHOICES: { value: NavbarPosition; label: string }[] = [
+  { value: 'left', label: 'Left' },
+  { value: 'bottom', label: 'Bottom' },
 ]
 
-interface NavigationViewProps {
+interface NavbarViewProps {
   /** The stored choice (not the phone override). */
-  style: SettingsNavStyle
-  onChange: (style: SettingsNavStyle) => void
-  /** On a phone Settings always uses subpages, so there is nothing to choose. */
+  position: NavbarPosition
+  onChange: (position: NavbarPosition) => void
+  /** On a phone the navbar is always at the bottom, so there is nothing to choose. */
   isMobile: boolean
 }
 
-/** Settings › General › Display › Navigation: subpages or right-side drawers. */
-export function NavigationView({ style, onChange, isMobile }: NavigationViewProps) {
+/** Settings › General › Display & Appearance › Navigation position: a left rail or an auto-hiding bottom bar. */
+export function NavbarView({ position, onChange, isMobile }: NavbarViewProps) {
   return (
     <div className="border-border bg-surface flex flex-col gap-3 overflow-hidden rounded-2xl border px-3.5 py-3">
       {isMobile ? (
-        <p className="text-muted text-sm">Settings always uses subpages on a phone.</p>
+        <p className="text-muted text-sm">The navbar is always at the bottom on a phone.</p>
       ) : (
         <>
           <ToggleButtonGroup
-            aria-label="Navigation style"
+            aria-label="Navigation position"
             selectionMode="single"
             disallowEmptySelection
             fullWidth
-            selectedKeys={new Set([style])}
+            selectedKeys={new Set([position])}
             onSelectionChange={(keys) => {
               const key = [...keys][0]
               // HeroUI re-fires the selection on a re-tap of the selected item.
               const next = CHOICES.find((choice) => choice.value === key)
-              if (next !== undefined && next.value !== style) onChange(next.value)
+              if (next !== undefined && next.value !== position) onChange(next.value)
             }}
           >
             {CHOICES.map((choice, index) => (
@@ -43,7 +43,8 @@ export function NavigationView({ style, onChange, isMobile }: NavigationViewProp
             ))}
           </ToggleButtonGroup>
           <p className="text-muted text-xs">
-            Subpages replace the page with each view. Drawers slide each view in from the right.
+            Left keeps a closed icon rail beside the pages. Bottom puts the navigation under them
+            and hides it after a few idle seconds; touch the screen to bring it back.
           </p>
         </>
       )}

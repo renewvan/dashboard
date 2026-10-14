@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
-import { Label, Slider, Switch, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { Label, Separator, Slider, Switch, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
 import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
-import { GroupRow } from './GroupRow'
-import { useSettings } from './SettingsContext'
-import type { SettingsSubView } from './views'
+import type { Theme } from '@/hooks/useTheme'
+import { Group } from '../../shared/Group'
+import { GroupRow } from '../../shared/GroupRow'
+import { useSettings } from '../../SettingsContext'
+import type { SettingsSubView } from '../../views'
 
 const TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 
@@ -127,6 +129,41 @@ function SleepAfterRow() {
   )
 }
 
+const THEME_CHOICES: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
+
+/** Light or dark: the same choice as the header toggle, applied at once. Re-tapping the selected one sends nothing. */
+function ThemeRow() {
+  const { theme, setTheme } = useSettings()
+
+  return (
+    <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+      <span className="text-sm font-medium">Theme</span>
+      <ToggleButtonGroup
+        aria-label="Theme"
+        selectionMode="single"
+        disallowEmptySelection
+        selectedKeys={new Set([theme])}
+        onSelectionChange={(keys) => {
+          const key = [...keys][0]
+          // HeroUI re-fires the selection on a re-tap of the selected item.
+          const next = THEME_CHOICES.find((choice) => choice.value === key)
+          if (next !== undefined && next.value !== theme) setTheme(next.value)
+        }}
+      >
+        {THEME_CHOICES.map((choice, index) => (
+          <ToggleButton key={choice.value} id={choice.value}>
+            {index > 0 && <ToggleButtonGroup.Separator />}
+            {choice.label}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </div>
+  )
+}
+
 interface DisplayViewProps {
   /** The style Settings is actually using (so the row never claims a style a phone cannot get). */
   navStyle: SettingsNavStyle
@@ -135,38 +172,50 @@ interface DisplayViewProps {
   onOpen: (view: SettingsSubView) => void
 }
 
-/** Settings › General › Display: brightness, auto-sleep and its timeout, navbar, Start page, navigation style. */
+/**
+ * Settings › General › Display & Appearance, in two groups: Display (the screen: theme,
+ * brightness, auto-sleep and its timeout) and Appearance (what the app shows and how it is
+ * laid out: Start page, then, below a divider, where the navbar sits and how Settings opens).
+ */
 export function DisplayView({ navStyle, navbarPosition, onOpen }: DisplayViewProps) {
   const { autoSleepEnabled } = useSettings()
 
   return (
-    <div className="flex flex-col gap-2">
-      <Card>
-        <BrightnessRow />
-      </Card>
-      <Card>
-        <AutoSleepRow />
-      </Card>
-      {autoSleepEnabled === true && (
+    <div className="flex flex-col gap-4">
+      <Group title="Display">
         <Card>
-          <SleepAfterRow />
+          <ThemeRow />
         </Card>
-      )}
-      <GroupRow
-        label="Navbar position"
-        description={navbarPosition === 'left' ? 'Left' : 'Bottom'}
-        onOpen={() => onOpen('navbar')}
-      />
-      <GroupRow
-        label="Start page"
-        description="Power readings and scales"
-        onOpen={() => onOpen('start-page')}
-      />
-      <GroupRow
-        label="Navigation style"
-        description={navStyle === 'subpage' ? 'Subpages' : 'Drawers'}
-        onOpen={() => onOpen('navigation')}
-      />
+        <Card>
+          <BrightnessRow />
+        </Card>
+        <Card>
+          <AutoSleepRow />
+        </Card>
+        {autoSleepEnabled === true && (
+          <Card>
+            <SleepAfterRow />
+          </Card>
+        )}
+      </Group>
+      <Group title="Appearance">
+        <GroupRow
+          label="Start page"
+          description="Power readings and scales"
+          onOpen={() => onOpen('start-page')}
+        />
+        <Separator className="my-1" />
+        <GroupRow
+          label="Navigation position"
+          description={navbarPosition === 'left' ? 'Left' : 'Bottom'}
+          onOpen={() => onOpen('navbar')}
+        />
+        <GroupRow
+          label="Navigation style"
+          description={navStyle === 'subpage' ? 'Subpages' : 'Drawers'}
+          onOpen={() => onOpen('navigation')}
+        />
+      </Group>
     </div>
   )
 }

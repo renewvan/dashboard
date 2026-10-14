@@ -23,6 +23,7 @@ import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
 import { connectedNodes } from '@/lib/nodes'
 import { settingsCommands } from '@/lib/settings-commands'
+import { useAutoHide } from '@/hooks/useAutoHide'
 import { useTheme } from '@/hooks/useTheme'
 import { BottomNavBar } from '@/components/BottomNavBar'
 import { useNavbarPosition } from '@/hooks/useNavbarPosition'
@@ -52,14 +53,15 @@ const HEADER_HEIGHT_VAR = '--app-header-height'
 // or not, runs under the navbar while it is up, and all of them stretch into the space as it slides
 // away.
 const PANEL_CLASS =
-  'm-0! flex min-h-0 min-w-0 flex-1 flex-col p-0! pb-(--navbar-inset-bottom)! pl-(--navbar-inset-left)! transition-[padding] duration-300 motion-reduce:transition-none'
+  'm-0! flex min-h-0 min-w-0 flex-1 flex-col p-0! pb-(--navbar-inset-bottom)! pl-(--navbar-inset-left)!'
 
 // The kiosk navbar floats over the panes and never pushes them. The `Tabs` root publishes how much
 // of the pane's edge it currently covers as `--navbar-inset-bottom` / `--navbar-inset-left` (0
-// while it is slid away or on the other side). The rail is 56px wide; the bar is one 44px touch
-// target (docs/design-principles.md) plus its 1px border, plus the safe-area inset.
+// while it is slid away or on the other side). The rail is 56px wide; the bar is one 56px touch
+// target (an icon over its label; docs/design-principles.md asks for 44px) plus its 1px border,
+// plus the safe-area inset.
 const RAIL_INSET = '56px'
-const BAR_INSET = 'calc(45px + env(safe-area-inset-bottom))'
+const BAR_INSET = 'calc(57px + env(safe-area-inset-bottom))'
 
 function App() {
   const {
@@ -91,9 +93,20 @@ function App() {
   const [startPowerSources, setStartPowerSources] = useStartPowerSources()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
   const isBottomBar = !isMobile && navbarPosition === 'bottom'
-  const [navHidden, setNavHidden] = useState(false)
+  // The kiosk navbar's auto-hide lives here, not in the navbar: React Aria renders everything
+  // inside `Tabs` a second time, hidden, to build its collection, so a hook in the navbar would
+  // run twice and the hidden copy would keep hiding a pinned navbar (and shifting the page).
+  // The pin resets on reload and the phone's bottom bar never hides.
+  const [navPinned, setNavPinned] = useState(false)
+  const navHidden = useAutoHide(!isMobile && !navPinned)
   // The inset the visible kiosk navbar covers; the phone's bottom bar stays in the layout.
   const navInset = isMobile || navHidden ? '0px' : isBottomBar ? BAR_INSET : RAIL_INSET
+  // The page and header glide as the navbar slides away or back; a pinned navbar never moves, so
+  // neither do they (pinning leaves them exactly where they are, un-pinning does not animate).
+  const insetMotion = navPinned
+    ? ''
+    : 'transition-[padding] duration-300 motion-reduce:transition-none'
+  const panelClass = cn(PANEL_CLASS, insetMotion)
   const navbarInsetStyle = {
     '--navbar-inset-bottom': isBottomBar ? navInset : '0px',
     '--navbar-inset-left': isBottomBar ? '0px' : navInset,
@@ -150,6 +163,8 @@ function App() {
       ...commands,
       alertsEnabled,
       setAlertsEnabled,
+      theme,
+      setTheme,
       navbarPosition,
       setNavbarPosition,
       startPowerSources,
@@ -170,6 +185,8 @@ function App() {
       commands,
       alertsEnabled,
       setAlertsEnabled,
+      theme,
+      setTheme,
       navbarPosition,
       setNavbarPosition,
       startPowerSources,
@@ -180,18 +197,21 @@ function App() {
   const handleSleep = () => publish('renewvan/kiosk/display/power/set', 'off')
   const handleWake = () => publish('renewvan/kiosk/display/power/set', 'on')
 
+  // The rail spans the full height of the app (header included), so while it is up the header pads
+  // itself clear of it, which pushes the logo to the right; the pages do the same for their edge.
   const header = (
     <header
       ref={headerRef}
       className={cn(
-        'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center px-4 py-2',
+        'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center py-2 pr-4 pl-[calc(1rem+var(--navbar-inset-left))]',
+        insetMotion,
         isMobile && 'bg-surface border-border border-b',
       )}
     >
       <img
         src={theme === 'dark' ? lockupDark : lockupLight}
         alt="renewvan"
-        className="h-8 w-auto justify-self-start"
+        className="h-10 w-auto justify-self-start"
       />
       <Clock />
       <div className="flex items-center justify-end gap-1.5">
@@ -204,7 +224,7 @@ function App() {
           busStatus={status}
           onOpenSettings={() => openSettings('cellular')}
         />
-        <Separator orientation="vertical" className="mx-1.5 h-6" />
+        <Separator orientation="vertical" className="mx-0.5 h-6" />
         <AlertsButton
           onClick={() => goToPage('alerts')}
           count={unseenAlertCount}
@@ -219,7 +239,7 @@ function App() {
   const panels = (
     <>
       {NAV_ITEMS.map((item) => (
-        <Tabs.Panel key={item.id} id={item.id} className={PANEL_CLASS}>
+        <Tabs.Panel key={item.id} id={item.id} className={panelClass}>
           {item.id === 'settings' ? (
             <SettingsProvider value={settings}>
               <SettingsPage />
@@ -242,7 +262,7 @@ function App() {
           )}
         </Tabs.Panel>
       ))}
-      <Tabs.Panel id="alerts" className={PANEL_CLASS}>
+      <Tabs.Panel id="alerts" className={panelClass}>
         <StubPane id="alerts" title="Alerts" icon={<Bell className="size-5" />} />
       </Tabs.Panel>
     </>
@@ -250,16 +270,15 @@ function App() {
 
   return (
     <div className="bg-background text-foreground flex h-svh flex-col overflow-hidden">
-      {/* The header spans the full width on top; below it the nav and the panes share one
-          `Tabs` root. The nav precedes the panes in the DOM (React Aria warns when a tab
-          panel renders before its tab list). On the kiosk the nav, rail or bar, is an
+      {/* One `Tabs` root holds the header, the nav and the panes, so the left rail can span the
+          full height of the app. The nav precedes the panes in the DOM (React Aria warns when a
+          tab panel renders before its tab list). On the kiosk the nav, rail or bar, is an
           absolutely positioned, translucent, auto-hiding overlay that never pushes the panes;
-          the root publishes how much of their edge it covers (`navbarInsetStyle`) and a page
-          that must not run under it pads itself by that. Phone: `Sidebar`'s own bottom bar,
-          moved below the panes by its `order-last`. */}
-      {header}
-      {/* Keyed by layout: HeroUI's sliding indicator measures its tab once and does not
-          re-measure when the list swaps between the rail and a bar under the same root. */}
+          the root publishes how much of their edge it covers (`navbarInsetStyle`) and the header
+          and any page that must not run under it pad themselves by that. Phone: `Sidebar`'s own
+          bottom bar, moved below the panes by its `order-last`. Keyed by layout: HeroUI's sliding
+          indicator measures its tab once and does not re-measure when the list swaps between the
+          rail and a bar under the same root. */}
       <Tabs
         key={isMobile ? 'phone' : navbarPosition}
         selectedKey={activePage}
@@ -269,11 +288,25 @@ function App() {
         className={cn('min-h-0 flex-1 gap-0!', !isMobile && 'relative overflow-hidden')}
       >
         {isBottomBar ? (
-          <BottomNavBar items={NAV_ITEMS} onHiddenChange={setNavHidden} />
+          <BottomNavBar
+            items={NAV_ITEMS}
+            hidden={navHidden}
+            pinned={navPinned}
+            onPinnedChange={setNavPinned}
+          />
         ) : (
-          <Sidebar items={NAV_ITEMS} isMobile={isMobile} onHiddenChange={setNavHidden} />
+          <Sidebar
+            items={NAV_ITEMS}
+            isMobile={isMobile}
+            hidden={navHidden}
+            pinned={navPinned}
+            onPinnedChange={setNavPinned}
+          />
         )}
-        {panels}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {header}
+          {panels}
+        </div>
       </Tabs>
     </div>
   )

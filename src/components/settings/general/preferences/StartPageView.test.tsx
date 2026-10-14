@@ -10,7 +10,7 @@ async function openStartPage(user: UserEvent) {
   await user.click(screen.getByRole('button', { name: /^Start page/ }))
 }
 
-describe('Settings › General › Display › Start page', () => {
+describe('Settings › General › Display & Appearance › Start page', () => {
   it('is a Display row that opens one source and scale card per half-moon reading', async () => {
     const { user } = renderSettings()
     await openStartPage(user)

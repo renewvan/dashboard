@@ -7,23 +7,24 @@ import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsN
 import { nodesSummary } from '@/lib/nodes'
 import { pushSearchParams } from '@/lib/urlHistory'
 import { FLUID_LABELS } from '@/lib/tank-labels'
-import { AlertsView } from './AlertsView'
-import { CellularView } from './CellularView'
-import { ConnectivityView } from './ConnectivityView'
-import { DisplayView } from './DisplayView'
-import { GeneralView } from './GeneralView'
-import { GroupRow } from './GroupRow'
-import { HubView } from './HubView'
-import { NavbarView } from './NavbarView'
-import { NavigationView } from './NavigationView'
-import { NodesView } from './NodesView'
-import { StartPageView } from './StartPageView'
+import { AlertsView } from './general/preferences/AlertsView'
+import { CellularView } from './connectivity/CellularView'
+import { ConnectivityView } from './connectivity/ConnectivityView'
+import { DisplayView } from './general/preferences/DisplayView'
+import { FirmwareView } from './general/system/FirmwareView'
+import { GeneralView } from './general/GeneralView'
+import { GroupRow } from './shared/GroupRow'
+import { HubView } from './connectivity/HubView'
+import { NavbarView } from './general/preferences/NavbarView'
+import { NavigationView } from './general/preferences/NavigationView'
+import { NodesView } from './nodes/NodesView'
+import { StartPageView } from './general/preferences/StartPageView'
 import { useSettings } from './SettingsContext'
-import { TailscaleView } from './TailscaleView'
-import { TankSettingsView } from './TankSettingsView'
-import { TanksView } from './TanksView'
-import { useReportedTankIds } from './useReportedTankIds'
-import { TemperatureView } from './TemperatureView'
+import { TailscaleView } from './connectivity/TailscaleView'
+import { TankSettingsView } from './nodes/TankSettingsView'
+import { TanksView } from './nodes/TanksView'
+import { useReportedTankIds } from './nodes/useReportedTankIds'
+import { TemperatureView } from './nodes/TemperatureView'
 import type { SettingsSubView, SettingsView } from './views'
 
 const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
@@ -32,8 +33,9 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   tank: { title: 'Tank', parent: 'tanks' },
   temperature: { title: 'Temperature', parent: 'nodes' },
   general: { title: 'General', parent: 'list' },
+  firmware: { title: 'Firmware', parent: 'general' },
   alerts: { title: 'Alerts', parent: 'general' },
-  display: { title: 'Display', parent: 'general' },
+  display: { title: 'Display & Appearance', parent: 'general' },
   navigation: { title: 'Navigation', parent: 'display' },
   navbar: { title: 'Navbar', parent: 'display' },
   'start-page': { title: 'Start page', parent: 'display' },
@@ -119,6 +121,8 @@ export const SettingsPage = memo(function SettingsPage() {
         return <TemperatureView />
       case 'general':
         return <GeneralView onOpen={setView} />
+      case 'firmware':
+        return <FirmwareView />
       case 'alerts':
         return <AlertsView />
       case 'display':
@@ -164,7 +168,7 @@ export const SettingsPage = memo(function SettingsPage() {
         <GroupRow
           icon={<SlidersHorizontal />}
           label="General"
-          description="Alerts, display"
+          description="Firmware, display, alerts"
           onOpen={() => setView('general')}
         />
         <GroupRow
@@ -184,7 +188,7 @@ export const SettingsPage = memo(function SettingsPage() {
       className="flex min-h-0 flex-1 flex-col"
     >
       <ScrollShadow hideScrollBar className="min-h-0 flex-1">
-        <div className="flex w-full min-w-0 flex-col gap-3 p-4">
+        <div className="flex w-full min-w-0 flex-col gap-3 px-4 pb-4">
           {navStyle === 'drawer' || view === 'list' ? (
             topList
           ) : (

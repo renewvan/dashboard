@@ -1,9 +1,9 @@
 import { tankSummary } from '@/lib/tank-display'
 import { temperatureSummary } from '@/lib/temperature'
-import { GroupRow } from './GroupRow'
-import { useSettings } from './SettingsContext'
+import { GroupRow } from '../shared/GroupRow'
+import { useSettings } from '../SettingsContext'
 import { useReportedTankIds } from './useReportedTankIds'
-import type { SettingsSubView } from './views'
+import type { SettingsSubView } from '../views'
 
 /**
  * Every node that has published, with how many entities it exposes. Tanks and

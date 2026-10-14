@@ -1,6 +1,6 @@
 import { FLUID_LABELS } from '@/lib/tank-labels'
-import { GroupRow } from './GroupRow'
-import { useSettings } from './SettingsContext'
+import { GroupRow } from '../shared/GroupRow'
+import { useSettings } from '../SettingsContext'
 import { useReportedTankIds } from './useReportedTankIds'
 
 /** Settings › Nodes › Tanks: one drill-in per reported tank. */

@@ -1,5 +1,5 @@
 import { Label, Switch } from '@heroui/react'
-import { useSettings } from './SettingsContext'
+import { useSettings } from '../../SettingsContext'
 
 /**
  * The Alerts toggle: show or hide live alert toasts. Muting only suppresses

@@ -2,7 +2,7 @@ import { useId, useRef, useState } from 'react'
 import { Input, Label, TextField, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { formatTemperature, sortedSensorIds } from '@/lib/temperature'
 import type { TemperatureSensor, TemperatureUnit } from '@/types'
-import { useSettings } from './SettingsContext'
+import { useSettings } from '../SettingsContext'
 
 const UNITS: TemperatureUnit[] = ['C', 'F']
 

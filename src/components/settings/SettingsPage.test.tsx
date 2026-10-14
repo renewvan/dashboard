@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeSummary } from '@/lib/nodes'
+import { version } from '../../../package.json'
 import { renderSettings } from '@/test/renderSettings'
 import type { Tank } from '@/types'
 
@@ -29,7 +30,7 @@ describe('SettingsPage top list', () => {
 
     expect(rowNames()).toEqual([
       'Nodes2 nodes',
-      'GeneralAlerts, display',
+      'GeneralFirmware, display, alerts',
       'ConnectivityCellular, Hub, Tailscale',
     ])
   })
@@ -68,8 +69,9 @@ describe('SettingsPage drill-down', () => {
     await user.click(screen.getByRole('button', { name: /^General/ }))
     expect(screen.queryByText(/not available/i)).not.toBeInTheDocument()
     expect(rowNames()).toEqual([
+      'FirmwareDashboard version',
+      'Display & AppearanceTheme, brightness, auto-sleep, layout',
       'AlertsNotifications on',
-      'DisplayBrightness, auto-sleep, navigation',
     ])
 
     await user.click(screen.getByRole('link', { name: 'Settings' }))
@@ -134,6 +136,41 @@ describe('SettingsPage Nodes', () => {
 
     expect(screen.getByText(/No nodes connected/)).toBeInTheDocument()
     expect(screen.queryByRole('list', { name: 'Published nodes' })).not.toBeInTheDocument()
+  })
+})
+
+describe('SettingsPage General groups', () => {
+  async function openGeneral() {
+    const rendered = renderSettings()
+    await rendered.user.click(screen.getByRole('button', { name: /^General/ }))
+    return rendered
+  }
+
+  it('puts Firmware under System, and Display & Appearance then Alerts under Preferences', async () => {
+    await openGeneral()
+
+    const rowsIn = (name: string) =>
+      within(screen.getByRole('region', { name }))
+        .getAllByRole('button')
+        .map((row) => row.textContent)
+    expect(rowsIn('System')).toEqual(['FirmwareDashboard version'])
+    expect(rowsIn('Preferences')).toEqual([
+      'Display & AppearanceTheme, brightness, auto-sleep, layout',
+      'AlertsNotifications on',
+    ])
+    // System comes first.
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(headings).toEqual(['System', 'Preferences'])
+  })
+
+  it('opens Firmware under General with the dashboard version', async () => {
+    const { user } = await openGeneral()
+
+    await user.click(screen.getByRole('button', { name: /^Firmware/ }))
+
+    expect(screen.getByRole('link', { name: 'General' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Firmware', current: 'page' })).toBeInTheDocument()
+    expect(within(screen.getByLabelText('Firmware')).getByText(version)).toBeVisible()
   })
 })
 
