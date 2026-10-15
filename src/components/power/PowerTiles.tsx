@@ -36,8 +36,8 @@ import {
   type PowerSnapshot,
 } from './flowModel'
 import { formatTimeToGo } from '@/lib/time-to-go'
-import { SolarBars } from '@/components/widgets/solar/SolarWidget'
-import { BAR_COLUMNS, solarView } from '@/components/widgets/solar/solarView'
+import { SolarHistory } from '@/components/widgets/solar/SolarHistory'
+import { yieldHistoryView } from '@/components/widgets/solar/solarView'
 import type { Solar } from '@/types'
 
 /** Tweens a number so a 640 -> 1850 W jump rolls instead of snapping. */
@@ -185,7 +185,7 @@ function Tile({
   watts,
   active,
   sub,
-  bars,
+  history,
   className = '',
 }: {
   id: NodeId
@@ -195,8 +195,8 @@ function Tile({
   watts: number | undefined
   active: boolean
   sub?: string
-  /** Drawn at the very bottom of the tile, under the sub line (the Solar tile's power bars). */
-  bars?: ReactNode
+  /** Drawn at the very bottom of the tile, under the sub line (the Solar tile's week of harvest). */
+  history?: ReactNode
   className?: string
 }) {
   const { unit } = formatPower(watts)
@@ -222,11 +222,11 @@ function Tile({
         <Value value={<RollingNumber value={watts} />} unit={unit} />
       </div>
       {/* Everything under the value is pinned to the bottom, as in Venus: the sub line, then
-          the bars. The bars take the room left over, up to a ceiling, and give it all back on a
-          short tile, so they can never push the value out or make the tile taller. */}
+          the history strip. The strip takes the room left over, up to a ceiling, and gives it
+          all back on a short tile, so it can never push the value out or make the tile taller. */}
       <div className="flex min-h-0 flex-col gap-1">
         {sub ? <span className="text-muted text-sm capitalize">{sub}</span> : null}
-        {bars ? <div className="flex h-12 min-h-0 shrink overflow-hidden">{bars}</div> : null}
+        {history ? <div className="flex h-14 min-h-0 shrink overflow-hidden">{history}</div> : null}
       </div>
     </motion.div>
   )
@@ -389,19 +389,17 @@ const TITLES: Partial<Record<NodeId, string>> = {
   dcLoads: 'DC loads',
 }
 
-/** What the Solar tile draws its bars from: the controller and the power that fills every bar. */
-export interface SolarBarsData {
-  solar: Solar
-  referenceW: number
-}
-
+/**
+ * What the Solar tile draws from: the controller's daily harvest history. The Start page's solar
+ * widget owns the live power bars; this tile shows the live watts in its value and the week below.
+ */
 export function PowerTiles({
   flow,
-  solarBars,
+  solar,
 }: {
   flow: PowerSnapshot
-  /** Absent until a solar controller has published its required fields: then no bars are drawn. */
-  solarBars?: SolarBarsData
+  /** Absent until a solar controller has published its required fields: then no history is drawn. */
+  solar?: Solar
 }) {
   const container = useRef<HTMLDivElement>(null)
   const { boxes, register } = useBoxes(container)
@@ -409,6 +407,8 @@ export function PowerTiles({
 
   const sources = (['solar', 'alternator', 'shore'] as const).filter((id) => n[id].present)
   const hasInverter = n.inverter.present
+
+  const solarHistory = yieldHistoryView(solar?.yield_history_wh)
 
   const tile = (id: NodeId) => (
     <Tile
@@ -420,16 +420,7 @@ export function PowerTiles({
       watts={n[id].watts}
       active={(n[id].watts ?? 0) > IDLE_W}
       sub={n[id].sub}
-      bars={
-        id === 'solar' && solarBars ? (
-          <SolarBars
-            solar={solarBars.solar}
-            view={solarView(solarBars.solar, solarBars.referenceW, BAR_COLUMNS)}
-            referenceW={solarBars.referenceW}
-            columns={BAR_COLUMNS}
-          />
-        ) : undefined
-      }
+      history={id === 'solar' && solarHistory ? <SolarHistory view={solarHistory} /> : undefined}
     />
   )
 

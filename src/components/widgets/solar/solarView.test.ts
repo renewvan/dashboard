@@ -9,6 +9,8 @@ import {
   litColumns,
   nextReference,
   solarView,
+  yieldHistoryView,
+  MIN_HISTORY_REFERENCE_WH,
 } from './solarView'
 
 function solar(overrides: Partial<Solar> = {}): Solar {
@@ -91,5 +93,59 @@ describe('solarView', () => {
 
   it('lights bars against the reference it is given', () => {
     expect(solarView(solar({ power_w: 240 }), 480).lit).toBe(BAR_COLUMNS / 2)
+  })
+})
+
+// The Pi's real payload: 31 days, newest first, index 0 = today (matches yield_today_wh).
+const PI_HISTORY = [
+  210, 180, 190, 140, 160, 130, 10, 0, 0, 0, 40, 300, 270, 220, 200, 290, 260, 260, 170, 10, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0,
+]
+
+describe('yieldHistoryView', () => {
+  it('charts the last ten days of the controller log, oldest first so today is rightmost', () => {
+    const view = yieldHistoryView(PI_HISTORY)
+
+    expect(view?.days.map((d) => d.wh)).toEqual([0, 0, 0, 10, 130, 160, 140, 190, 180, 210])
+    expect(view?.days.map((d) => d.daysAgo)).toEqual([9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+  })
+
+  it('scales every bar against the best day in the window, not the whole log', () => {
+    // The 300 Wh day is 11 days back: outside the window, so it must not shrink these bars.
+    const view = yieldHistoryView(PI_HISTORY)
+
+    expect(view?.referenceWh).toBe(210)
+    expect(view?.days.at(-1)?.share).toBe(1)
+    expect(view?.days[3].share).toBeCloseTo(10 / 210)
+  })
+
+  it('ignores a better day just outside the window when scaling', () => {
+    const history = [...Array<number>(10).fill(120), 900]
+
+    expect(yieldHistoryView(history)?.referenceWh).toBe(120)
+  })
+
+  it('keeps a null day as a gap with no height, distinct from a real zero', () => {
+    const view = yieldHistoryView([210, null, 0, 150])
+
+    const byAge = Object.fromEntries(view!.days.map((d) => [d.daysAgo, d]))
+    expect(byAge[1].wh).toBeNull()
+    expect(byAge[2].wh).toBe(0)
+  })
+
+  it('does not pad a young controller out to ten days', () => {
+    expect(yieldHistoryView([210, 180])?.days).toHaveLength(2)
+  })
+
+  it('holds the scale at the floor so a week of overcast days cannot look like a good week', () => {
+    const view = yieldHistoryView([20, 10, 30])
+
+    expect(view?.referenceWh).toBe(MIN_HISTORY_REFERENCE_WH)
+    expect(view?.days.at(-1)?.share).toBeCloseTo(0.2)
+  })
+
+  it('has nothing to draw when the controller publishes no history', () => {
+    expect(yieldHistoryView(undefined)).toBeUndefined()
+    expect(yieldHistoryView([])).toBeUndefined()
   })
 })

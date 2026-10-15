@@ -131,49 +131,53 @@ describe('PowerPage', () => {
       <PowerPage batteries={{ house: battery }} solar={solar} chargers={none} layout="tiles" />
     )
 
-    it("draws the Start page's solar bars inside the Solar tile, reading the live power", () => {
-      render(page({ roof: { power_w: 412, battery_voltage_v: 13.4 } }))
+    describe('the harvest history', () => {
+      const roof = (history?: (number | null)[]): Record<string, Partial<Solar>> => ({
+        roof: { power_w: 412, battery_voltage_v: 13.4, yield_history_wh: history },
+      })
 
-      const meter = screen.getByRole('meter', { name: 'Solar power' })
-      expect(meter).toHaveAttribute('aria-valuetext', '412 W')
-      expect(meter.closest('[data-testid="power-tiles"]')).not.toBeNull()
-      expect(screen.getAllByTestId('solar-bar').length).toBeGreaterThan(0)
-    })
+      it('charts the last ten days of the controller log inside the Solar tile', () => {
+        render(page(roof([210, 180, 190, 140, 160, 130, 10, 0, 0, 0, 40, 300])))
 
-    it('scales the bars against the highest reading seen, like the Start page, not against the current one', () => {
-      const { rerender } = render(page({ roof: { power_w: 800, battery_voltage_v: 13.4 } }))
-      rerender(page({ roof: { power_w: 200, battery_voltage_v: 13.4 } }))
+        const chart = screen.getByRole('img', { name: 'Solar harvest, last 10 days' })
+        expect(chart.closest('[data-testid="power-tiles"]')).not.toBeNull()
+        expect(screen.getAllByTestId('solar-history-day')).toHaveLength(10)
+      })
 
-      const meter = screen.getByRole('meter', { name: 'Solar power' })
-      expect(meter).toHaveAttribute('aria-valuenow', '200')
-      expect(meter).toHaveAttribute('aria-valuemax', '800')
-    })
+      it('reads back each day for assistive tech, newest first, in kWh', () => {
+        render(page(roof([210, 1840, null])))
 
-    it('draws no bars until a controller has published its required fields', () => {
-      render(page({ roof: { power_w: 412 } }))
+        expect(screen.getByRole('img', { name: 'Solar harvest, last 3 days' })).toHaveAttribute(
+          'aria-description',
+          'today: 0.2 kWh, yesterday: 1.8 kWh, 2 days ago: no data',
+        )
+      })
 
-      expect(screen.queryByRole('meter', { name: 'Solar power' })).not.toBeInTheDocument()
-    })
+      it('marks a day the controller has no data for as a gap, not as a zero', () => {
+        render(page(roof([210, null, 0])))
 
-    it('draws no bars when there is no solar controller at all', () => {
-      render(page({}))
+        const days = screen.getAllByTestId('solar-history-day')
+        // Oldest first: [0 Wh two days ago, null yesterday, 210 Wh today].
+        expect(days.map((d) => d.dataset.gap)).toEqual([undefined, 'true', undefined])
+      })
 
-      expect(screen.queryByRole('meter', { name: 'Solar power' })).not.toBeInTheDocument()
-    })
+      it('draws no chart while the controller has published no history', () => {
+        render(page(roof(undefined)))
 
-    it('draws the bars in the Solar tile only, not in the battery or the loads', () => {
-      render(page({ roof: { power_w: 412, battery_voltage_v: 13.4 } }))
+        expect(screen.queryByRole('img', { name: /Solar harvest/ })).not.toBeInTheDocument()
+      })
 
-      expect(screen.getAllByRole('meter')).toHaveLength(1)
-    })
+      it('draws no chart until the controller has published its required fields', () => {
+        render(page({ roof: { power_w: 412, yield_history_wh: [210, 180] } }))
 
-    it('lights nothing on a faulted controller', () => {
-      render(page({ roof: { power_w: 412, battery_voltage_v: 13.4, charge_state: 'fault' } }))
+        expect(screen.queryByRole('img', { name: /Solar harvest/ })).not.toBeInTheDocument()
+      })
 
-      expect(screen.getByRole('meter', { name: 'Solar power' })).toHaveAttribute(
-        'aria-valuetext',
-        'Fault',
-      )
+      it('draws no chart when there is no solar controller at all', () => {
+        render(page({}))
+
+        expect(screen.queryByRole('img', { name: /Solar harvest/ })).not.toBeInTheDocument()
+      })
     })
   })
 })
