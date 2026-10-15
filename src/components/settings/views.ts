@@ -9,8 +9,6 @@ export type SettingsView =
   | 'firmware'
   | 'alerts'
   | 'display'
-  | 'navigation'
-  | 'navbar'
   | 'start-page'
   | 'connectivity'
   | 'cellular'

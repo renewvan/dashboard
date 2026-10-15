@@ -481,9 +481,35 @@ describe('App shell theme', () => {
 })
 
 describe('App shell header', () => {
+  it('takes the logo to the Start page from anywhere, dropping the Settings view, in one history entry', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=settings&view=display')
+    expect(selectedPage()).toHaveAccessibleName('Settings')
+    const entries = window.history.length
+
+    const logo = within(screen.getByRole('banner')).getByRole('link', { name: 'renewvan' })
+    expect(logo).toHaveAttribute('href', '?page=start')
+    await user.click(logo)
+
+    expect(selectedPage()).toHaveAccessibleName('Start')
+    expect(window.location.search).toBe('?page=start')
+    expect(window.history.length).toBe(entries + 1)
+  })
+
+  it('leaves the URL alone when the logo is tapped on the Start page already', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=start')
+    const entries = window.history.length
+
+    await user.click(within(screen.getByRole('banner')).getByRole('link', { name: 'renewvan' }))
+
+    expect(selectedPage()).toHaveAccessibleName('Start')
+    expect(window.history.length).toBe(entries)
+  })
+
   it('shows every header control at phone width', async () => {
     await renderAt(PHONE_WIDTH)
-    expect(screen.getByRole('img', { name: 'renewvan' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'renewvan' })).toBeInTheDocument()
     expect(screen.getByTestId('clock')).toBeInTheDocument()
     expect(screen.getByTestId('uplink-status-button')).toBeInTheDocument()
     expect(screen.getByRole('separator')).toBeInTheDocument()
@@ -723,14 +749,13 @@ describe('App shell navbar position', () => {
     const pane = within(screen.getByTestId('pane-settings'))
     await user.click(pane.getByRole('button', { name: /^General/ }))
     await user.click(pane.getByRole('button', { name: /^Display/ }))
-    await user.click(pane.getByRole('button', { name: /^Navigation position/ }))
     await user.click(pane.getByRole('radio', { name: 'Bottom' }))
   }
 
   it('shows the full lockup in the header beside a closed left rail by default', async () => {
     await renderAt(KIOSK_WIDTH)
-    expect(screen.getAllByRole('img', { name: 'renewvan' })).toHaveLength(1)
-    expect(within(screen.getByRole('banner')).getByRole('img', { name: 'renewvan' })).toBeVisible()
+    expect(screen.getAllByRole('link', { name: 'renewvan' })).toHaveLength(1)
+    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'renewvan' })).toBeVisible()
     expect(screen.getByRole('complementary')).toContainElement(screen.getByRole('tablist'))
     expect(screen.queryByRole('button', { name: /sidebar/i })).not.toBeInTheDocument()
   })
@@ -778,8 +803,8 @@ describe('App shell navbar position', () => {
     expect(window.localStorage.getItem(POSITION_KEY)).toBe('bottom')
     // The remount that swaps the layouts must not lose where the user is.
     expect(selectedPage()).toHaveAccessibleName('Settings')
-    expect(currentCrumb()).toHaveAccessibleName('Navbar')
-    expect(window.location.search).toBe('?page=settings&view=navbar')
+    expect(currentCrumb()).toHaveAccessibleName('Display & Appearance')
+    expect(window.location.search).toBe('?page=settings&view=display')
 
     cleanup()
     await renderAt(KIOSK_WIDTH)
@@ -796,7 +821,8 @@ describe('App shell navbar position', () => {
     await user.click(pane.getByRole('button', { name: /^General/ }))
     await user.click(pane.getByRole('button', { name: /^Display/ }))
 
-    expect(pane.getByRole('button', { name: /^Navigation position/ })).toHaveTextContent('Bottom')
+    expect(pane.getByRole('radio', { name: 'Bottom' })).toBeChecked()
+    expect(pane.getByRole('radio', { name: 'Left' })).toBeDisabled()
     expect(window.localStorage.getItem(POSITION_KEY)).toBe('left')
   })
 

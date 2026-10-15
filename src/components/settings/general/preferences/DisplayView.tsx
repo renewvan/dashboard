@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react'
 import { Label, Separator, Slider, Switch, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
 import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import type { Theme } from '@/hooks/useTheme'
+import { Card, ChoiceRow } from '../../shared/ChoiceRow'
 import { Group } from '../../shared/Group'
 import { GroupRow } from '../../shared/GroupRow'
 import { useSettings } from '../../SettingsContext'
@@ -31,13 +31,6 @@ function BrightnessScale() {
         </span>
       ))}
     </div>
-  )
-}
-
-/** One bordered, rounded card per control, stacked with a gap (like the group rows). */
-function Card({ children }: { children: ReactNode }) {
-  return (
-    <div className="border-border bg-surface overflow-hidden rounded-2xl border">{children}</div>
   )
 }
 
@@ -83,8 +76,13 @@ function AutoSleepRow() {
       isDisabled={autoSleepEnabled === null}
       onChange={setAutoSleepEnabled}
     >
-      <Switch.Content className="w-full justify-between px-3.5 py-3">
-        <Label className="text-sm font-medium">Auto-sleep</Label>
+      <Switch.Content className="w-full items-start justify-between px-3.5 py-3">
+        <Label className="flex flex-col text-sm font-medium">
+          Auto-sleep
+          {autoSleepEnabled === true && (
+            <span className="text-muted absolute top-11 text-xs">Sleep after</span>
+          )}
+        </Label>
         <Switch.Control>
           <Switch.Thumb />
         </Switch.Control>
@@ -98,8 +96,7 @@ function SleepAfterRow() {
   const { autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes } = useSettings()
 
   return (
-    <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-      <span className="text-muted text-xs">Sleep after</span>
+    <div className="flex items-center justify-end gap-3 px-3.5 pb-3">
       <ToggleButtonGroup
         aria-label="Sleep after"
         selectionMode="single"
@@ -134,50 +131,48 @@ const THEME_CHOICES: { value: Theme; label: string }[] = [
   { value: 'dark', label: 'Dark' },
 ]
 
-/** Light or dark: the same choice as the header toggle, applied at once. Re-tapping the selected one sends nothing. */
+const NAVBAR_POSITION_CHOICES: { value: NavbarPosition; label: string }[] = [
+  { value: 'left', label: 'Left' },
+  { value: 'bottom', label: 'Bottom' },
+]
+
+const NAV_STYLE_CHOICES: { value: SettingsNavStyle; label: string }[] = [
+  { value: 'subpage', label: 'Subpages' },
+  { value: 'drawer', label: 'Drawers' },
+]
+
+/** Light or dark: the same choice as the header toggle, applied at once. */
 function ThemeRow() {
   const { theme, setTheme } = useSettings()
-
-  return (
-    <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-      <span className="text-sm font-medium">Theme</span>
-      <ToggleButtonGroup
-        aria-label="Theme"
-        selectionMode="single"
-        disallowEmptySelection
-        selectedKeys={new Set([theme])}
-        onSelectionChange={(keys) => {
-          const key = [...keys][0]
-          // HeroUI re-fires the selection on a re-tap of the selected item.
-          const next = THEME_CHOICES.find((choice) => choice.value === key)
-          if (next !== undefined && next.value !== theme) setTheme(next.value)
-        }}
-      >
-        {THEME_CHOICES.map((choice, index) => (
-          <ToggleButton key={choice.value} id={choice.value}>
-            {index > 0 && <ToggleButtonGroup.Separator />}
-            {choice.label}
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
-    </div>
-  )
+  return <ChoiceRow label="Theme" choices={THEME_CHOICES} value={theme} onChange={setTheme} />
 }
 
 interface DisplayViewProps {
-  /** The style Settings is actually using (so the row never claims a style a phone cannot get). */
+  /** The style Settings is actually using (a phone is always subpage, whatever is stored). */
   navStyle: SettingsNavStyle
+  onNavStyleChange: (style: SettingsNavStyle) => void
   /** Where the navbar actually is (a phone is always at the bottom, whatever is stored). */
   navbarPosition: NavbarPosition
+  onNavbarPositionChange: (position: NavbarPosition) => void
+  /** On a phone both navigation choices are fixed, so their toggles are shown but disabled. */
+  isMobile: boolean
   onOpen: (view: SettingsSubView) => void
 }
 
 /**
  * Settings › General › Display & Appearance, in two groups: Display (the screen: theme,
  * brightness, auto-sleep and its timeout) and Appearance (what the app shows and how it is
- * laid out: Start page, then, below a divider, where the navbar sits and how Settings opens).
+ * laid out: Start page, then, below a divider, where the navbar sits and how Settings opens,
+ * both chosen inline).
  */
-export function DisplayView({ navStyle, navbarPosition, onOpen }: DisplayViewProps) {
+export function DisplayView({
+  navStyle,
+  onNavStyleChange,
+  navbarPosition,
+  onNavbarPositionChange,
+  isMobile,
+  onOpen,
+}: DisplayViewProps) {
   const { autoSleepEnabled } = useSettings()
 
   return (
@@ -191,12 +186,8 @@ export function DisplayView({ navStyle, navbarPosition, onOpen }: DisplayViewPro
         </Card>
         <Card>
           <AutoSleepRow />
+          {autoSleepEnabled === true && <SleepAfterRow />}
         </Card>
-        {autoSleepEnabled === true && (
-          <Card>
-            <SleepAfterRow />
-          </Card>
-        )}
       </Group>
       <Group title="Appearance">
         <GroupRow
@@ -205,16 +196,24 @@ export function DisplayView({ navStyle, navbarPosition, onOpen }: DisplayViewPro
           onOpen={() => onOpen('start-page')}
         />
         <Separator className="my-1" />
-        <GroupRow
-          label="Navigation position"
-          description={navbarPosition === 'left' ? 'Left' : 'Bottom'}
-          onOpen={() => onOpen('navbar')}
-        />
-        <GroupRow
-          label="Navigation style"
-          description={navStyle === 'subpage' ? 'Subpages' : 'Drawers'}
-          onOpen={() => onOpen('navigation')}
-        />
+        <Card>
+          <ChoiceRow
+            label="Navigation position"
+            choices={NAVBAR_POSITION_CHOICES}
+            value={navbarPosition}
+            onChange={onNavbarPositionChange}
+            isDisabled={isMobile}
+          />
+        </Card>
+        <Card>
+          <ChoiceRow
+            label="Navigation style"
+            choices={NAV_STYLE_CHOICES}
+            value={navStyle}
+            onChange={onNavStyleChange}
+            isDisabled={isMobile}
+          />
+        </Card>
       </Group>
     </div>
   )
