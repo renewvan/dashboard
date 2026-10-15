@@ -146,6 +146,7 @@ export function StartPage({
         batteries={batteries}
         solar={solar}
         tilt={tilt}
+        temperatures={temperatures}
         powerSources={powerSources}
         isDark={isDark}
         now={now}

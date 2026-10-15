@@ -265,6 +265,66 @@ describe('StartPage kiosk dial', () => {
     expect(within(dial).getByText('Solar').parentElement).toHaveTextContent('\u2014')
     expect(within(dial).getByText('Solar').parentElement).not.toHaveTextContent('0W')
   })
+
+  describe('temperatures above the half-moons', () => {
+    const probe = (over: Partial<TemperatureSensor> = {}): Partial<TemperatureSensor> => ({
+      temperature_c: 7.2,
+      status: 'ok',
+      unit: 'C',
+      ...over,
+    })
+
+    it('shows the outdoor probe over the left half-moon and the indoor probe over the right', () => {
+      renderAt(KIOSK_WIDTH, {
+        temperatures: {
+          outdoor: probe({ temperature_c: 7.2 }),
+          indoor: probe({ temperature_c: 21.6 }),
+        },
+      })
+
+      expect(screen.getByTestId('temp-outdoor')).toHaveTextContent('7°C')
+      expect(screen.getByTestId('temp-indoor')).toHaveTextContent('22°C')
+      expect(screen.getByTestId('temp-outdoor').parentElement).toContainElement(
+        screen.getByText('Solar'),
+      )
+      expect(screen.getByTestId('temp-indoor').parentElement).toContainElement(
+        screen.getByText('Load'),
+      )
+    })
+
+    it('labels a probe with its configured name, else Outside / Inside', () => {
+      renderAt(KIOSK_WIDTH, {
+        temperatures: { outdoor: probe({ name: 'Awning' }), indoor: probe() },
+      })
+
+      expect(screen.getByTestId('temp-outdoor')).toHaveTextContent('Awning')
+      expect(screen.getByTestId('temp-indoor')).toHaveTextContent('Inside')
+    })
+
+    it("shows the sensor's own unit, converted from the wire's Celsius", () => {
+      renderAt(KIOSK_WIDTH, {
+        temperatures: { indoor: probe({ temperature_c: 21.6, unit: 'F' }) },
+      })
+
+      expect(screen.getByTestId('temp-indoor')).toHaveTextContent('71°F')
+    })
+
+    it('never shows the retained value of a probe that is not ok', () => {
+      renderAt(KIOSK_WIDTH, {
+        temperatures: { outdoor: probe({ temperature_c: 99, status: 'disconnected' }) },
+      })
+
+      expect(screen.getByTestId('temp-outdoor')).toHaveTextContent('--°C')
+      expect(screen.getByTestId('temp-outdoor')).not.toHaveTextContent('99')
+    })
+
+    it('shows dashes, not a number, before either probe has published', () => {
+      renderAt(KIOSK_WIDTH, {})
+
+      expect(screen.getByTestId('temp-outdoor')).toHaveTextContent('--°C')
+      expect(screen.getByTestId('temp-indoor')).toHaveTextContent('--°C')
+    })
+  })
 })
 
 describe('StartPage weather widget', () => {

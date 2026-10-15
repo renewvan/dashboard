@@ -4,14 +4,17 @@ import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import type { RingSource, RingUnit, StartPowerSources } from '@/hooks/useStartPowerSources'
+import { INDOOR_ID, OUTDOOR_ID } from '@/lib/temperature'
 import {
   isCompleteBattery,
   type Battery as BatteryRecord,
   type Solar,
   type Tank,
   type Tilt,
+  type TemperatureSensor,
 } from '@/types'
 import { DialReadout } from './DialReadout'
+import { DialTemperature } from './DialTemperature'
 import { batteryDial, tankDialOf, type DialView } from './cockpit/dialView'
 import { HalfMoon } from './HalfMoon'
 import { Rings, type RingModel } from './Rings'
@@ -22,6 +25,8 @@ export interface DialProps {
   batteries: Record<string, Partial<BatteryRecord>>
   solar: Record<string, Partial<Solar>>
   tilt: Record<string, Partial<Tilt>>
+  /** Probes by id; `outdoor` and `indoor` (lib/temperature.ts) are shown above the half-moons. */
+  temperatures: Record<string, Partial<TemperatureSensor>>
   powerSources: StartPowerSources
   /** Glow behind the ring fill: dark theme only. */
   isDark: boolean
@@ -55,9 +60,19 @@ function ringModel(source: RingSource, view: DialView | undefined, unit: RingUni
  * The Start page's kiosk cockpit: a half-moon of two incoming power readings on the left, three
  * concentric rings (each the battery or a kind of tank, as configured) in the middle, and a
  * half-moon of the outgoing power on the right. The middle of the rings shows the van's tilt while
- * it has a usable reading and the battery otherwise.
+ * it has a usable reading and the battery otherwise. The outdoor temperature floats above the left
+ * half-moon and the indoor one above the right.
  */
-export function Dial({ tanks, batteries, solar, tilt, powerSources, isDark, now }: DialProps) {
+export function Dial({
+  tanks,
+  batteries,
+  solar,
+  tilt,
+  temperatures,
+  powerSources,
+  isDark,
+  now,
+}: DialProps) {
   const battery = Object.values(batteries).find(isCompleteBattery)
   const solarW = firstSolar(solar)?.power_w
   const batteryW = battery?.power_w
@@ -79,13 +94,16 @@ export function Dial({ tanks, batteries, solar, tilt, powerSources, isDark, now 
     // left and the header buttons on the right.
     <div data-testid="start-dial" className="flex min-h-0 flex-1 items-center justify-center px-8">
       <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center pb-5">
-        <HalfMoon
-          side="left"
-          readings={[
-            powerReading(powerSources.leftTop, solarW, batteryW),
-            powerReading(powerSources.leftBottom, solarW, batteryW),
-          ]}
-        />
+        <div className="relative">
+          <DialTemperature kind="outdoor" sensor={temperatures[OUTDOOR_ID]} side="left" />
+          <HalfMoon
+            side="left"
+            readings={[
+              powerReading(powerSources.leftTop, solarW, batteryW),
+              powerReading(powerSources.leftBottom, solarW, batteryW),
+            ]}
+          />
+        </div>
         <div className="flex justify-center">
           <Rings
             rings={rings}
@@ -110,7 +128,10 @@ export function Dial({ tanks, batteries, solar, tilt, powerSources, isDark, now 
             }
           />
         </div>
-        <HalfMoon side="right" readings={[powerReading(powerSources.right, solarW, batteryW)]} />
+        <div className="relative">
+          <DialTemperature kind="indoor" sensor={temperatures[INDOOR_ID]} side="right" />
+          <HalfMoon side="right" readings={[powerReading(powerSources.right, solarW, batteryW)]} />
+        </div>
       </div>
     </div>
   )
