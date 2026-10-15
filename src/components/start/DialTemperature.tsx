@@ -23,7 +23,7 @@ export function DialTemperature({
   return (
     <div
       data-testid={`temp-${kind}`}
-      className={`pointer-events-none absolute -top-6 flex flex-col ${
+      className={`pointer-events-none absolute -top-4 flex flex-col ${
         side === 'left' ? 'left-26 items-start' : 'right-26 items-end'
       }`}
     >
