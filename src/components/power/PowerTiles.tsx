@@ -445,7 +445,7 @@ export function PowerTiles({
   })
 
   return (
-    <div className="flex min-h-0 w-full flex-1 px-8 py-2" data-testid="power-tiles">
+    <div className="flex min-h-0 w-full flex-1" data-testid="power-tiles">
       <div
         ref={container}
         className={`relative mx-auto grid min-h-0 w-full max-w-6xl flex-1 ${

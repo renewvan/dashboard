@@ -182,10 +182,10 @@ export const SettingsPage = memo(function SettingsPage() {
     <section
       aria-label="Settings"
       data-testid="pane-settings"
-      className="flex min-h-0 flex-1 flex-col"
+      className="flex min-h-0 flex-1 flex-col px-4 pb-4"
     >
       <ScrollShadow hideScrollBar className="min-h-0 flex-1">
-        <div className="flex w-full min-w-0 flex-col gap-3 px-4 pb-4">
+        <div className="flex w-full min-w-0 flex-col gap-3">
           {navStyle === 'drawer' || view === 'list' ? (
             topList
           ) : (

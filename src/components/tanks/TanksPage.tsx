@@ -51,13 +51,13 @@ export function TanksPage({ tanks, onConfigure }: TanksPageProps) {
   }
 
   return (
-    <div
-      className="grid h-full min-h-0 flex-1 gap-3 p-4"
+    <section
+      className="grid h-full min-h-0 flex-1 gap-3 px-4 pb-4"
       style={{ gridTemplateColumns: `repeat(${ids.length}, minmax(0, 1fr))` }}
     >
       {ids.map((id) => (
         <TankCard key={id} id={id} tank={tanks[id]} now={now} onConfigure={onConfigure} />
       ))}
-    </div>
+    </section>
   )
 }

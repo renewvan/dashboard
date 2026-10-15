@@ -36,7 +36,7 @@ export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps
     <section
       aria-label="Power"
       data-testid="pane-power"
-      className="relative mb-4 flex min-h-0 flex-1 flex-col"
+      className="relative flex min-h-0 flex-1 flex-col px-8 pb-4"
     >
       {hasBattery ? (
         layout === 'flow' ? (

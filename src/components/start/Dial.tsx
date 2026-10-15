@@ -95,10 +95,8 @@ export function Dial({
   const centre = centreKind(firstTilt)
 
   return (
-    // `px-4` is the header's own padding, so the half-moons' outer edges line up with the logo on the
-    // left and the header buttons on the right.
-    <div data-testid="start-dial" className="flex min-h-0 flex-1 items-center justify-center px-8">
-      <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center pb-4">
+    <div data-testid="start-dial" className="flex min-h-0 flex-1 items-center justify-center">
+      <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center">
         <div className="relative">
           <DialTemperature kind="outdoor" sensor={temperatures[OUTDOOR_ID]} side="left" />
           <HalfMoon
