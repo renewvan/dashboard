@@ -18,11 +18,11 @@ immediately, not a blank screen).
 
 Three domain pages, same tabbed navigation at every supported width:
 
-| Page     | Content                                                                                                                                          |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Tanks    | Radial gauge per tank (`level_pct`), liters-remaining readout, sensor-fault status in place of the readout when `status != ok`                   |
-| Power    | Radial gauge per battery (`soc_pct`), voltage/current/power/temperature readout, `charge_state` badge                                            |
-| Switches | One row per relay: dashboard-side `id → label` mapping + on/off indicator — **read-only**, no tap-to-toggle (`relay` has no command topic in v0) |
+| Page     | Content                                                                                                                                                                                               |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tanks    | Radial gauge per tank (`level_pct`), liters-remaining readout, sensor-fault status in place of the readout when `status != ok`                                                                        |
+| Power    | Tiles or Flow diagram (Settings › Display & Appearance › Power page): solar, alternator and shore charger into the battery (`soc_pct`, voltage, current, power, time to go), out to the derived loads |
+| Switches | One row per relay: dashboard-side `id → label` mapping + on/off indicator — **read-only**, no tap-to-toggle (`relay` has no command topic in v0)                                                      |
 
 ## Architecture
 

@@ -195,6 +195,11 @@ export function DisplayView({
           description="Power readings and scales"
           onOpen={() => onOpen('start-page')}
         />
+        <GroupRow
+          label="Power page"
+          description="Tiles or flow layout"
+          onOpen={() => onOpen('power-page')}
+        />
         <Separator className="my-1" />
         <Card>
           <ChoiceRow

@@ -89,6 +89,8 @@ export function renderSettings(
     setNavbarPosition: vi.fn(),
     startPowerSources: DEFAULT_START_POWER_SOURCES,
     setStartPowerSources: vi.fn(),
+    powerLayout: 'tiles',
+    setPowerLayout: vi.fn(),
     setTemperatureName: vi.fn(),
     setTemperatureUnit: vi.fn(),
     ...overrides,

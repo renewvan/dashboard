@@ -17,6 +17,7 @@ import { GroupRow } from './shared/GroupRow'
 import { HubView } from './connectivity/HubView'
 import { NodesView } from './nodes/NodesView'
 import { StartPageView } from './general/preferences/StartPageView'
+import { PowerPageView } from './general/preferences/PowerPageView'
 import { useSettings } from './SettingsContext'
 import { TailscaleView } from './connectivity/TailscaleView'
 import { TankSettingsView } from './nodes/TankSettingsView'
@@ -35,6 +36,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   alerts: { title: 'Alerts', parent: 'general' },
   display: { title: 'Display & Appearance', parent: 'general' },
   'start-page': { title: 'Start page', parent: 'display' },
+  'power-page': { title: 'Power page', parent: 'display' },
   connectivity: { title: 'Connectivity', parent: 'list' },
   cellular: { title: 'Cellular', parent: 'connectivity' },
   hub: { title: 'Hub', parent: 'connectivity' },
@@ -65,6 +67,8 @@ export const SettingsPage = memo(function SettingsPage() {
     setNavbarPosition,
     startPowerSources,
     setStartPowerSources,
+    powerLayout,
+    setPowerLayout,
   } = useSettings()
   const isMobile = useIsMobile()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
@@ -134,6 +138,8 @@ export const SettingsPage = memo(function SettingsPage() {
         )
       case 'start-page':
         return <StartPageView sources={startPowerSources} onChange={setStartPowerSources} />
+      case 'power-page':
+        return <PowerPageView layout={powerLayout} onChange={setPowerLayout} />
       case 'connectivity':
         return <ConnectivityView onOpen={setView} />
       case 'cellular':

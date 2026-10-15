@@ -15,6 +15,7 @@ import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { SettingsSubView } from '@/components/settings/views'
 import { TanksPage } from '@/components/tanks/TanksPage'
 import { StartPage } from '@/components/start/StartPage'
+import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
@@ -28,6 +29,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { BottomNavBar } from '@/components/BottomNavBar'
 import { useNavbarPosition } from '@/hooks/useNavbarPosition'
 import { useStartPowerSources } from '@/hooks/useStartPowerSources'
+import { usePowerLayout } from '@/hooks/usePowerLayout'
 import { useUrlPage } from '@/hooks/useUrlPage'
 
 const NAV_ITEMS: NavItem[] = [
@@ -91,6 +93,7 @@ function App() {
   const isMobile = useIsMobile()
   const [navbarPosition, setNavbarPosition] = useNavbarPosition()
   const [startPowerSources, setStartPowerSources] = useStartPowerSources()
+  const [powerLayout, setPowerLayout] = usePowerLayout()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
   const isBottomBar = !isMobile && navbarPosition === 'bottom'
   // The kiosk navbar's auto-hide lives here, not in the navbar: React Aria renders everything
@@ -169,6 +172,8 @@ function App() {
       setNavbarPosition,
       startPowerSources,
       setStartPowerSources,
+      powerLayout,
+      setPowerLayout,
     }),
     [
       nodes,
@@ -191,6 +196,8 @@ function App() {
       setNavbarPosition,
       startPowerSources,
       setStartPowerSources,
+      powerLayout,
+      setPowerLayout,
     ],
   )
 
@@ -265,6 +272,13 @@ function App() {
               tilt={state.tilt}
               powerSources={startPowerSources}
               isDark={theme === 'dark'}
+            />
+          ) : item.id === 'power' ? (
+            <PowerPage
+              batteries={state.batteries}
+              solar={state.solar}
+              chargers={state.chargers}
+              layout={powerLayout}
             />
           ) : item.id === 'tanks' ? (
             <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />

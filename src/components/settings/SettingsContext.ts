@@ -8,6 +8,7 @@ import type {
 import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { Theme } from '@/hooks/useTheme'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
+import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { NodeSummary } from '@/lib/nodes'
 import type { Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
 
@@ -43,6 +44,9 @@ export interface SettingsContextValue {
   /** The Start page's half-moon sources and scales: the same instance the Start page reads. */
   startPowerSources: StartPowerSources
   setStartPowerSources: (sources: StartPowerSources) => void
+  /** How the Power page is drawn, Tiles or Flow: the same instance the Power page reads. */
+  powerLayout: PowerLayout
+  setPowerLayout: (layout: PowerLayout) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
 }

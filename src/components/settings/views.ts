@@ -10,6 +10,7 @@ export type SettingsView =
   | 'alerts'
   | 'display'
   | 'start-page'
+  | 'power-page'
   | 'connectivity'
   | 'cellular'
   | 'hub'
