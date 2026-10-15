@@ -95,6 +95,48 @@ describe('Settings › General › Display & Appearance › Start page', () => {
     })
   })
 
+  it('reads tank rings in % by default and offers Liters (\u2113) as the other choice', async () => {
+    const { user } = renderSettings()
+    await openStartPage(user)
+
+    const unit = screen.getByRole('radiogroup', { name: 'Unit' })
+    expect(
+      within(unit)
+        .getAllByRole('radio')
+        .map((r) => r.textContent),
+    ).toEqual(['%', 'Liters (\u2113)'])
+    expect(within(unit).getByRole('radio', { name: '%' })).toBeChecked()
+  })
+
+  it('changes only the unit, keeping the rings and every power reading', async () => {
+    const { user, value } = renderSettings()
+    await openStartPage(user)
+
+    await user.click(
+      within(screen.getByRole('radiogroup', { name: 'Unit' })).getByRole('radio', {
+        name: 'Liters (\u2113)',
+      }),
+    )
+
+    expect(value.setStartPowerSources).toHaveBeenCalledExactlyOnceWith({
+      ...DEFAULT_START_POWER_SOURCES,
+      ringUnit: 'litres',
+    })
+  })
+
+  it('does nothing on a re-tap of the selected unit', async () => {
+    const { user, value } = renderSettings()
+    await openStartPage(user)
+
+    await user.click(
+      within(screen.getByRole('radiogroup', { name: 'Unit' })).getByRole('radio', {
+        name: '%',
+      }),
+    )
+
+    expect(value.setStartPowerSources).not.toHaveBeenCalled()
+  })
+
   it('stops stepping at the ends of the range', async () => {
     const { user } = renderSettings({
       startPowerSources: {

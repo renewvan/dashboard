@@ -15,6 +15,7 @@ describe('parseStartPowerSources', () => {
       leftBottom: { source: 'solar', fullScaleW: 250 },
       right: { source: 'battery-out', fullScaleW: 3000 },
       rings: ['fuel', 'battery', 'black_water'],
+      ringUnit: 'litres',
     }
     expect(parseStartPowerSources(JSON.stringify(stored))).toEqual(stored)
   })
@@ -37,6 +38,7 @@ describe('parseStartPowerSources', () => {
       leftBottom: { source: 'solar', fullScaleW: 250 },
       right: DEFAULT_START_POWER_SOURCES.right,
       rings: DEFAULT_START_POWER_SOURCES.rings,
+      ringUnit: DEFAULT_START_POWER_SOURCES.ringUnit,
     })
   })
 
@@ -58,6 +60,13 @@ describe('parseStartPowerSources', () => {
       DEFAULT_START_POWER_SOURCES.rings[1],
       DEFAULT_START_POWER_SOURCES.rings[2],
     ])
+  })
+
+  it('reads a stored litres unit, and falls back to % for nothing, an unknown value or an older save', () => {
+    expect(parseStartPowerSources(JSON.stringify({ ringUnit: 'litres' })).ringUnit).toBe('litres')
+    expect(parseStartPowerSources(JSON.stringify({ ringUnit: 'gallons' })).ringUnit).toBe('pct')
+    expect(parseStartPowerSources(JSON.stringify({ ringUnit: 3 })).ringUnit).toBe('pct')
+    expect(parseStartPowerSources(JSON.stringify({ rings: ['fuel'] })).ringUnit).toBe('pct')
   })
 
   it('clamps a stored scale into the allowed range, so a band can never be zero-width', () => {

@@ -7,6 +7,8 @@ export interface DialView {
   label: string
   /** 0..100, the arc fill. Always 0 while faulted. */
   pct: number
+  /** Litres in the tank (0 while faulted, like `pct`); `undefined` for the battery, which has no volume. */
+  litres?: number
   /** The `fill` colour of the arc: severity only, the same keys the Tanks page paints with. */
   color: string
   /** Line under the number, e.g. `13.20V / 35W` or `46 / 100 ℓ`; the fault reason when faulted. */
@@ -61,6 +63,7 @@ export function tankDial(tank: Tank, now: Date): DialView {
   return {
     label: view.fluidLabel,
     pct: view.pct,
+    litres: view.faulted ? 0 : view.litres,
     color: FILL_COLOR[view.severity],
     sub: view.faulted
       ? (view.status?.label ?? 'Fault')

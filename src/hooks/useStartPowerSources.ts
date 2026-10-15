@@ -41,6 +41,11 @@ export const RING_SOURCES: readonly RingSource[] = [
   'lpg',
 ]
 
+/** A tank ring's value as a percentage of its capacity, or as the litres in it. */
+export type RingUnit = 'pct' | 'litres'
+
+export const RING_UNITS: readonly RingUnit[] = ['pct', 'litres']
+
 /** The three readings of the half-moons: two incoming on the left, one outgoing on the right. */
 export interface StartPowerSources {
   leftTop: PowerSlot
@@ -48,6 +53,8 @@ export interface StartPowerSources {
   right: PowerSlot
   /** The three centre rings, outermost first. */
   rings: [RingSource, RingSource, RingSource]
+  /** How a tank ring's value reads. The battery has no volume, so it is always a percentage. */
+  ringUnit: RingUnit
 }
 
 export const MIN_FULL_SCALE_W = 50
@@ -58,6 +65,7 @@ export const DEFAULT_START_POWER_SOURCES: StartPowerSources = {
   leftBottom: { source: 'battery-in', fullScaleW: 1000 },
   right: { source: 'battery-out', fullScaleW: 1000 },
   rings: ['battery', 'fresh_water', 'grey_water'],
+  ringUnit: 'pct',
 }
 
 const STORAGE_KEY = 'renewvan-dashboard-start-power-sources'
@@ -70,6 +78,10 @@ function isPowerSource(value: unknown): value is PowerSource {
 
 function isRingSource(value: unknown): value is RingSource {
   return RING_SOURCES.some((source) => source === value)
+}
+
+function isRingUnit(value: unknown): value is RingUnit {
+  return RING_UNITS.some((unit) => unit === value)
 }
 
 /** Clamps into the allowed range; a scale is a whole number of watts. */
@@ -118,6 +130,7 @@ export function parseStartPowerSources(raw: string | null): StartPowerSources {
     leftBottom: slot('leftBottom'),
     right: slot('right'),
     rings: [ring(0), ring(1), ring(2)],
+    ringUnit: isRingUnit(record.ringUnit) ? record.ringUnit : defaults.ringUnit,
   }
 }
 

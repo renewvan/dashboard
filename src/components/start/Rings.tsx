@@ -6,8 +6,12 @@ import { CutBand } from './CutBand'
 export interface RingModel {
   label: string
   icon: ReactNode
-  /** 0..100; 0 with no `view`. */
+  /** 0..100: the arc fill, whatever unit the value is shown in; 0 with no `view`. */
   pct: number
+  /** The number shown for the level: a whole percentage, or whole litres (`unit` says which). */
+  value: number
+  /** `%` or `ℓ`, set apart from the number in the legend. */
+  unit: '%' | '\u2113'
   /** Severity colour from the same view the Tanks page paints with; dim when there is no data. */
   color: string
   hasData: boolean
@@ -78,7 +82,7 @@ export function Rings({ rings, legend, centre, glow }: RingsProps) {
             <g
               key={i}
               role="img"
-              aria-label={ring.hasData ? `${ring.label} ${Math.round(ring.pct)}%` : ring.label}
+              aria-label={ring.hasData ? `${ring.label} ${ring.value}${ring.unit}` : ring.label}
             >
               <CutBand
                 from={FROM}
@@ -125,8 +129,8 @@ export function Rings({ rings, legend, centre, glow }: RingsProps) {
               <span className="text-muted">{ring.icon}</span>
               <span className="text-muted">{ring.label}</span>
               <span className="font-semibold">
-                {ring.hasData ? Math.round(ring.pct) : '\u2013'}
-                <span className="text-accent text-xs">%</span>
+                {ring.hasData ? ring.value : '\u2013'}
+                <span className="text-accent text-xs">{ring.unit}</span>
               </span>
             </div>
           )

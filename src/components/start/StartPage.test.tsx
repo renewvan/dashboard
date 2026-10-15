@@ -177,6 +177,26 @@ describe('StartPage kiosk dial', () => {
     expect(rings()).toEqual(['Fuel 30%', 'Battery 78%', 'Fresh water 46%'])
   })
 
+  it('reads every tank ring in litres when asked, and the battery stays in %', () => {
+    renderAt(KIOSK_WIDTH, {
+      tanks: { fresh: tank(), grey: GREY },
+      batteries: { house: BATTERY },
+      powerSources: { ...DEFAULT_START_POWER_SOURCES, ringUnit: 'litres' },
+    })
+
+    // 46% of 100 l, 41% of 80 l.
+    expect(rings()).toEqual(['Battery 78%', 'Fresh water 46\u2113', 'Grey water 33\u2113'])
+  })
+
+  it('reads a faulted tank as 0 litres like its empty arc, never a stale count, with the other tanks still in litres', () => {
+    renderAt(KIOSK_WIDTH, {
+      tanks: { fresh: tank(), grey: { ...GREY, status: 'short_circuit', level_pct: 62 } },
+      powerSources: { ...DEFAULT_START_POWER_SOURCES, ringUnit: 'litres' },
+    })
+
+    expect(rings()).toEqual(['Battery', 'Fresh water 46\u2113', 'Grey water 0\u2113'])
+  })
+
   it('labels a ring whose data has not arrived without a number', () => {
     renderAt(KIOSK_WIDTH, { tanks: { fresh: tank() } })
 
