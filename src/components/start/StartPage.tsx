@@ -143,7 +143,7 @@ export function StartPage({
   }
 
   return (
-    <div data-testid="pane-start" className="flex min-h-0 flex-1 flex-col">
+    <section data-testid="pane-start" className="flex min-h-0 flex-1 flex-col px-8 pb-4">
       <Dial
         tanks={tanks}
         batteries={batteries}
@@ -155,7 +155,7 @@ export function StartPage({
         isDark={isDark}
         now={now}
       />
-    </div>
+    </section>
   )
 }
 

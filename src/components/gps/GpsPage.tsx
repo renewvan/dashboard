@@ -64,31 +64,30 @@ export function GpsPage({ gps }: GpsPageProps) {
     // otherwise competes directly with unrelated page UI (the toast region) in
     // the root stacking context. Isolation caps every Leaflet z-index to this
     // subtree so the map can never paint over anything outside it.
-    <section
-      data-testid="pane-gps"
-      className="relative isolate min-h-0 flex-1 overflow-hidden rounded-2xl"
-    >
-      <MapContainer center={position} zoom={15} scrollWheelZoom={false} className="h-full w-full">
-        <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} />
-        <Marker position={position} />
-      </MapContainer>
-      {/* Above Leaflet's controls (z 1000) within this stacking context. */}
-      <div
-        data-testid="gps-readout"
-        className="absolute bottom-4 left-4 z-1001 flex items-center gap-3 rounded-xl border border-white/10 bg-black/60 px-4 py-2.5 text-white backdrop-blur-md"
-      >
-        <Chip size="sm" variant="primary" color="success">
-          {record.fix_quality.toUpperCase()}
-        </Chip>
-        <span className="flex items-center gap-1 text-sm">
-          <Satellite aria-hidden="true" className="size-4" />
-          <span aria-label="Satellites in use">{record.satellites_in_use}</span>
-        </span>
-        {record.speed_kmh !== undefined && (
-          <span className="text-sm font-semibold tabular-nums">
-            {record.speed_kmh.toFixed(0)} km/h
+    <section data-testid="pane-gps" className="flex min-h-0 flex-1 flex-col px-4 pb-4">
+      <div className="relative isolate min-h-0 flex-1 overflow-hidden rounded-2xl">
+        <MapContainer center={position} zoom={15} scrollWheelZoom={false} className="h-full w-full">
+          <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_URL} />
+          <Marker position={position} />
+        </MapContainer>
+        {/* Above Leaflet's controls (z 1000) within this stacking context. */}
+        <div
+          data-testid="gps-readout"
+          className="absolute bottom-4 left-4 z-1001 flex items-center gap-3 rounded-xl border border-white/10 bg-black/60 px-4 py-2.5 text-white backdrop-blur-md"
+        >
+          <Chip size="sm" variant="primary" color="success">
+            {record.fix_quality.toUpperCase()}
+          </Chip>
+          <span className="flex items-center gap-1 text-sm">
+            <Satellite aria-hidden="true" className="size-4" />
+            <span aria-label="Satellites in use">{record.satellites_in_use}</span>
           </span>
-        )}
+          {record.speed_kmh !== undefined && (
+            <span className="text-sm font-semibold tabular-nums">
+              {record.speed_kmh.toFixed(0)} km/h
+            </span>
+          )}
+        </div>
       </div>
     </section>
   )
