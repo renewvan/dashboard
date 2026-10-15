@@ -145,6 +145,13 @@ export interface Solar {
   pv_current_a?: number
   /** Energy harvested since the controller's own day boundary, in watt-hours. */
   yield_today_wh?: number
+  /**
+   * The controller's own daily energy log in watt-hours, newest first: index 0 is the current day
+   * (equal to `yield_today_wh`), index 1 the previous day. Never padded, so it may be shorter than
+   * the controller's maximum. `null` is a day with no data, distinct from `0` (a real day that
+   * harvested nothing). See hub/schema/solar.schema.json.
+   */
+  yield_history_wh?: (number | null)[]
   charge_state?: SolarChargeState
 }
 
