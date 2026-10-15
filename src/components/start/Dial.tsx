@@ -3,7 +3,7 @@ import { Battery } from 'lucide-react'
 import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { firstSolar } from '@/components/widgets/solar/solarView'
-import type { RingSource, StartPowerSources } from '@/hooks/useStartPowerSources'
+import type { RingSource, RingUnit, StartPowerSources } from '@/hooks/useStartPowerSources'
 import {
   isCompleteBattery,
   type Battery as BatteryRecord,
@@ -31,17 +31,21 @@ export interface DialProps {
 /** Colour while a ring has no data: not a severity, so the band just stays dim. */
 const NO_DATA_COLOR = 'currentColor'
 
-function ringModel(source: RingSource, view: DialView | undefined): RingModel {
+function ringModel(source: RingSource, view: DialView | undefined, unit: RingUnit): RingModel {
   const icon =
     source === 'battery' ? (
       <Battery className="size-4" />
     ) : (
       createElement(FLUID_ICONS[source], { className: 'size-4' })
     )
+  // Only a tank has litres; the battery has no volume and always reads as a percentage.
+  const litres = unit === 'litres' ? view?.litres : undefined
   return {
     label: ringLabel(source),
     icon,
     pct: view?.pct ?? 0,
+    value: litres ?? Math.round(view?.pct ?? 0),
+    unit: litres === undefined ? '%' : '\u2113',
     color: view?.color ?? NO_DATA_COLOR,
     hasData: view !== undefined,
   }
@@ -60,7 +64,11 @@ export function Dial({ tanks, batteries, solar, tilt, powerSources, isDark, now 
 
   const batteryView = batteryDial(batteries)
   const rings = powerSources.rings.map((source) =>
-    ringModel(source, source === 'battery' ? batteryView : tankDialOf(tanks, source, now)),
+    ringModel(
+      source,
+      source === 'battery' ? batteryView : tankDialOf(tanks, source, now),
+      powerSources.ringUnit,
+    ),
   )
 
   const firstTilt = Object.values(tilt)[0]

@@ -1,6 +1,7 @@
 import { Minus, Plus } from 'lucide-react'
 import { Button, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { FLUID_LABELS } from '@/lib/tank-labels'
+import { Card, ChoiceRow } from '../../shared/ChoiceRow'
 import {
   MAX_FULL_SCALE_W,
   MIN_FULL_SCALE_W,
@@ -11,6 +12,7 @@ import {
   type PowerSlot,
   type PowerSource,
   type RingSource,
+  type RingUnit,
   type StartPowerSources,
 } from '@/hooks/useStartPowerSources'
 
@@ -142,6 +144,12 @@ function RingCard({ label, source, onChange }: RingCardProps) {
   )
 }
 
+/** How a tank ring's value reads; the battery ring has no volume and always reads in %. */
+const RING_UNIT_CHOICES: { value: RingUnit; label: string }[] = [
+  { value: 'pct', label: '%' },
+  { value: 'litres', label: 'Liters (\u2113)' },
+]
+
 interface StartPageViewProps {
   sources: StartPowerSources
   onChange: (sources: StartPowerSources) => void
@@ -168,7 +176,18 @@ export function StartPageView({ sources, onChange }: StartPageViewProps) {
         Charging and Load are the battery&apos;s power going in and out. Full band is the wattage
         that fills a reading&apos;s arc.
       </p>
-      <h2 className="mt-2 px-1 text-sm font-medium">Rings</h2>
+      <h2 className="mt-2 px-1 text-sm font-medium">Level Rings</h2>
+      <Card>
+        <ChoiceRow
+          label="Unit"
+          choices={RING_UNIT_CHOICES}
+          value={sources.ringUnit}
+          onChange={(ringUnit) => onChange({ ...sources, ringUnit })}
+        />
+      </Card>
+      <p className="text-muted px-1 text-xs">
+        Applies to every tank ring. The battery ring always shows %.
+      </p>
       {RING_POSITIONS.map((label, index) => (
         <RingCard
           key={label}

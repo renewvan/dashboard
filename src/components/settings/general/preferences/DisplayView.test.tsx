@@ -1,9 +1,14 @@
 import { act, screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { renderSettings } from '@/test/renderSettings'
 
-async function openDisplay(overrides: Parameters<typeof renderSettings>[0] = {}) {
-  const rendered = renderSettings(overrides)
+const NAV_STYLE_KEY = 'renewvan-dashboard-settings-nav-style'
+
+async function openDisplay(
+  overrides: Parameters<typeof renderSettings>[0] = {},
+  options: Parameters<typeof renderSettings>[1] = {},
+) {
+  const rendered = renderSettings(overrides, options)
   await rendered.user.click(screen.getByRole('button', { name: /^General/ }))
   await rendered.user.click(screen.getByRole('button', { name: /^Display/ }))
   return rendered
@@ -47,27 +52,105 @@ describe('Settings › General › Display & Appearance', () => {
       expect(display.getByRole('switch', { name: 'Auto-sleep' })).toBeInTheDocument()
 
       const appearance = within(screen.getByRole('region', { name: 'Appearance' }))
-      expect(appearance.getAllByRole('button').map((row) => row.textContent)).toEqual([
+      expect(appearance.getAllByRole('button').map((row) => row.textContent)).toContain(
         'Start pagePower readings and scales',
-        'Navigation positionLeft',
-        'Navigation styleSubpages',
-      ])
+      )
+      expect(
+        appearance.getByRole('radiogroup', { name: 'Navigation position' }),
+      ).toBeInTheDocument()
+      expect(appearance.getByRole('radiogroup', { name: 'Navigation style' })).toBeInTheDocument()
     })
 
-    it('separates the Start page row from the two navigation rows', async () => {
+    it('separates the Start page row from the two navigation toggles', async () => {
       await openDisplay()
 
       const appearance = screen.getByRole('region', { name: 'Appearance' })
       const divider = within(appearance).getByRole('separator')
-      const after = (row: RegExp) =>
-        divider.compareDocumentPosition(within(appearance).getByRole('button', { name: row })) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-      const before = (row: RegExp) =>
-        divider.compareDocumentPosition(within(appearance).getByRole('button', { name: row })) &
-        Node.DOCUMENT_POSITION_PRECEDING
-      expect(before(/^Start page/)).toBeTruthy()
-      expect(after(/^Navigation position/)).toBeTruthy()
-      expect(after(/^Navigation style/)).toBeTruthy()
+      expect(
+        divider.compareDocumentPosition(
+          within(appearance).getByRole('button', { name: /^Start page/ }),
+        ) & Node.DOCUMENT_POSITION_PRECEDING,
+      ).toBeTruthy()
+      for (const name of ['Navigation position', 'Navigation style']) {
+        expect(
+          divider.compareDocumentPosition(within(appearance).getByRole('radiogroup', { name })) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy()
+      }
+    })
+  })
+
+  describe('navigation position', () => {
+    it.each([
+      ['left', 'Left'],
+      ['bottom', 'Bottom'],
+    ] as const)('shows the %s position as the selected choice', async (navbarPosition, label) => {
+      await openDisplay({ navbarPosition })
+
+      expect(screen.getByRole('radio', { name: label })).toBeChecked()
+    })
+
+    it('asks for the other position exactly once, and nothing on a re-tap of the current one', async () => {
+      const { user, value } = await openDisplay({ navbarPosition: 'left' })
+
+      await user.click(screen.getByRole('radio', { name: 'Left' }))
+      expect(value.setNavbarPosition).not.toHaveBeenCalled()
+
+      await user.click(screen.getByRole('radio', { name: 'Bottom' }))
+      expect(value.setNavbarPosition).toHaveBeenCalledExactlyOnceWith('bottom')
+    })
+
+    it('is fixed at Bottom and disabled on a phone, leaving the stored choice alone', async () => {
+      const { value } = await openDisplay({ navbarPosition: 'left' }, { width: 390 })
+
+      expect(screen.getByRole('radio', { name: 'Bottom' })).toBeChecked()
+      expect(screen.getByRole('radio', { name: 'Left' })).toBeDisabled()
+      expect(screen.getByRole('radio', { name: 'Bottom' })).toBeDisabled()
+      expect(value.setNavbarPosition).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('navigation style', () => {
+    beforeEach(() => {
+      window.localStorage.clear()
+    })
+
+    it('defaults to subpages', async () => {
+      await openDisplay()
+
+      expect(screen.getByRole('radio', { name: 'Subpages' })).toBeChecked()
+      expect(screen.getByRole('radio', { name: 'Drawers' })).not.toBeChecked()
+    })
+
+    it('keeps the default when the stored value is not a known style', async () => {
+      window.localStorage.setItem(NAV_STYLE_KEY, 'carousel')
+      await openDisplay()
+
+      expect(screen.getByRole('radio', { name: 'Subpages' })).toBeChecked()
+    })
+
+    it('persists the choice across remounts', async () => {
+      const first = await openDisplay()
+      await first.user.click(screen.getByRole('radio', { name: 'Drawers' }))
+
+      expect(window.localStorage.getItem(NAV_STYLE_KEY)).toBe('drawer')
+      first.unmount()
+
+      const second = renderSettings()
+      await second.user.click(screen.getByRole('button', { name: /^General/ }))
+
+      expect(await screen.findByRole('dialog', { name: 'General' })).toBeInTheDocument()
+    })
+
+    it('is fixed at Subpages and disabled on a phone, leaving the stored choice alone', async () => {
+      window.localStorage.setItem(NAV_STYLE_KEY, 'drawer')
+      await openDisplay({}, { width: 390 })
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByRole('radio', { name: 'Subpages' })).toBeChecked()
+      expect(screen.getByRole('radio', { name: 'Subpages' })).toBeDisabled()
+      expect(screen.getByRole('radio', { name: 'Drawers' })).toBeDisabled()
+      expect(window.localStorage.getItem(NAV_STYLE_KEY)).toBe('drawer')
     })
   })
 
@@ -133,7 +216,7 @@ describe('Settings › General › Display & Appearance', () => {
     it('sends false when turned off', async () => {
       const { user, value } = await openDisplay({ autoSleepEnabled: true })
 
-      await user.click(screen.getByRole('switch', { name: 'Auto-sleep' }))
+      await user.click(screen.getByRole('switch', { name: /^Auto-sleep/ }))
 
       expect(value.setAutoSleepEnabled).toHaveBeenCalledExactlyOnceWith(false)
     })

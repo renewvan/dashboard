@@ -208,11 +208,21 @@ function App() {
         isMobile && 'bg-surface border-border border-b',
       )}
     >
-      <img
-        src={theme === 'dark' ? lockupDark : lockupLight}
-        alt="renewvan"
-        className="h-10 w-auto justify-self-start"
-      />
+      {/* A real link (so long-press/middle-click behave), but a plain tap is a one-entry SPA
+          transition to Start, the same as its nav tab. 44px tall: the touch-target minimum. */}
+      <a
+        href="?page=start"
+        aria-label="renewvan"
+        className="flex h-11 items-center justify-self-start"
+        onClick={(event) => {
+          if (event.defaultPrevented || event.button !== 0) return
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+          event.preventDefault()
+          goToPage('start')
+        }}
+      >
+        <img src={theme === 'dark' ? lockupDark : lockupLight} alt="" className="h-10 w-auto" />
+      </a>
       <Clock />
       <div className="flex items-center justify-end gap-1.5">
         {/* single router per hub (hub compose's ROUTER_ID) */}

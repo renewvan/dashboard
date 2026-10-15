@@ -15,8 +15,6 @@ import { FirmwareView } from './general/system/FirmwareView'
 import { GeneralView } from './general/GeneralView'
 import { GroupRow } from './shared/GroupRow'
 import { HubView } from './connectivity/HubView'
-import { NavbarView } from './general/preferences/NavbarView'
-import { NavigationView } from './general/preferences/NavigationView'
 import { NodesView } from './nodes/NodesView'
 import { StartPageView } from './general/preferences/StartPageView'
 import { useSettings } from './SettingsContext'
@@ -36,8 +34,6 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   firmware: { title: 'Firmware', parent: 'general' },
   alerts: { title: 'Alerts', parent: 'general' },
   display: { title: 'Display & Appearance', parent: 'general' },
-  navigation: { title: 'Navigation', parent: 'display' },
-  navbar: { title: 'Navbar', parent: 'display' },
   'start-page': { title: 'Start page', parent: 'display' },
   connectivity: { title: 'Connectivity', parent: 'list' },
   cellular: { title: 'Cellular', parent: 'connectivity' },
@@ -56,7 +52,7 @@ function trailTo(view: SettingsSubView): SettingsSubView[] {
 
 /**
  * Settings as a drill-down tree: the top list, then one group's view per
- * level. The Navigation style opens a view either as a subpage (the view
+ * level. The Navigation style (a toggle in Display & Appearance) opens a view either as a subpage (the view
  * replaces the page under a breadcrumb trail) or as a drawer (the top list
  * stays and the view slides in from the right). Memoised: it takes no props
  * and only re-renders when the Settings context value changes.
@@ -129,17 +125,12 @@ export const SettingsPage = memo(function SettingsPage() {
         return (
           <DisplayView
             navStyle={navStyle}
+            onNavStyleChange={setStoredNavStyle}
             navbarPosition={isMobile ? 'bottom' : navbarPosition}
+            onNavbarPositionChange={setNavbarPosition}
+            isMobile={isMobile}
             onOpen={setView}
           />
-        )
-      case 'navigation':
-        return (
-          <NavigationView style={storedNavStyle} onChange={setStoredNavStyle} isMobile={isMobile} />
-        )
-      case 'navbar':
-        return (
-          <NavbarView position={navbarPosition} onChange={setNavbarPosition} isMobile={isMobile} />
         )
       case 'start-page':
         return <StartPageView sources={startPowerSources} onChange={setStartPowerSources} />
