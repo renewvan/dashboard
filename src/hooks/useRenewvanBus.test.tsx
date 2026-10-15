@@ -236,6 +236,17 @@ describe('useRenewvanBus solar entity', () => {
       }),
     )
   })
+
+  it('keeps yield_history_wh as an array, newest first, with null slots left as null', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/solar/291/yield_history_wh', {
+      toString: () => '[210,1840,null,0]',
+    })
+    await waitFor(() =>
+      expect(result.current.state.solar['291']?.yield_history_wh).toEqual([210, 1840, null, 0]),
+    )
+  })
 })
 
 describe('useRenewvanBus charger entity', () => {

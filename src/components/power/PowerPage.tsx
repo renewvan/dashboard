@@ -3,7 +3,6 @@ import { Zap } from 'lucide-react'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import { isCompleteBattery, type Battery, type Charger, type Solar } from '@/types'
 import { firstSolar } from '@/components/widgets/solar/solarView'
-import { useSolarReference } from '@/components/widgets/solar/useSolarReference'
 import { flowFromBus } from './flowModel'
 import { PowerFlow } from './PowerFlow'
 import { PowerTiles } from './PowerTiles'
@@ -26,11 +25,6 @@ interface PowerPageProps {
 export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps) {
   const hasBattery = Object.values(batteries).some(isCompleteBattery)
   const flow = useMemo(() => flowFromBus(batteries, solar, chargers), [batteries, solar, chargers])
-  // The Solar tile's bars are the Start page's solar readout: the same controller and the same
-  // session-peak reference, so the bars fill the same way on both pages.
-  const solarRecord = firstSolar(solar)
-  const solarReferenceW = useSolarReference(solarRecord?.power_w)
-  const solarBars = solarRecord && { solar: solarRecord, referenceW: solarReferenceW }
 
   return (
     <section
@@ -42,7 +36,7 @@ export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps
         layout === 'flow' ? (
           <PowerFlow flow={flow} />
         ) : (
-          <PowerTiles flow={flow} solarBars={solarBars} />
+          <PowerTiles flow={flow} solar={firstSolar(solar)} />
         )
       ) : (
         <div
