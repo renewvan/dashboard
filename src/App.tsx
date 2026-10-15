@@ -14,6 +14,7 @@ import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { SettingsSubView } from '@/components/settings/views'
 import { TanksPage } from '@/components/tanks/TanksPage'
+import { GpsPage } from '@/components/gps/GpsPage'
 import { StartPage } from '@/components/start/StartPage'
 import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
@@ -282,6 +283,8 @@ function App() {
             />
           ) : item.id === 'tanks' ? (
             <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
+          ) : item.id === 'gps' ? (
+            <GpsPage gps={state.gps} />
           ) : (
             <StubPane id={item.id} title={item.label} icon={item.icon} />
           )}
