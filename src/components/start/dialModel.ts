@@ -1,8 +1,10 @@
 import { tiltReading } from '@/lib/tilt'
 import { FLUID_LABELS } from '@/lib/tank-labels'
+import { CHARGING_LABELS, type Charging, type ChargingKind } from '@/lib/charging'
 import {
   POWER_SOURCE_LABELS,
   powerOf,
+  type ChargerSlot,
   type PowerSlot,
   type PowerSource,
   type RingSource,
@@ -11,12 +13,27 @@ import type { Tilt } from '@/types'
 
 /** One half-moon reading as drawn: a dash and an empty band until its source has published. */
 export interface PowerReading {
-  source: PowerSource
+  /** What the reading is, and so its icon: a configured power source or the charger present. */
+  source: PowerSource | ChargingKind
   label: string
   /** Whole watts; `undefined` while the source has not published (never a made-up 0). */
   watts: number | undefined
   /** 0..100: the band's fill, 0 while there is no reading. */
   pct: number
+}
+
+function reading(
+  source: PowerReading['source'],
+  label: string,
+  watts: number | undefined,
+  fullScaleW: number,
+): PowerReading {
+  return {
+    source,
+    label,
+    watts: watts === undefined ? undefined : Math.round(watts),
+    pct: watts === undefined ? 0 : Math.min(100, (watts / fullScaleW) * 100),
+  }
 }
 
 /** `slot`'s reading from the live solar and battery watts. */
@@ -25,13 +42,17 @@ export function powerReading(
   solarW: number | undefined,
   batteryW: number | undefined,
 ): PowerReading {
-  const watts = powerOf(slot.source, solarW, batteryW)
-  return {
-    source: slot.source,
-    label: POWER_SOURCE_LABELS[slot.source],
-    watts: watts === undefined ? undefined : Math.round(watts),
-    pct: watts === undefined ? 0 : Math.min(100, (watts / slot.fullScaleW) * 100),
-  }
+  return reading(
+    slot.source,
+    POWER_SOURCE_LABELS[slot.source],
+    powerOf(slot.source, solarW, batteryW),
+    slot.fullScaleW,
+  )
+}
+
+/** The charging reading (alternator or shore charger), named for the charger that is present. */
+export function chargingReading(slot: ChargerSlot, present: Charging): PowerReading {
+  return reading(present.kind, CHARGING_LABELS[present.kind], present.watts, slot.fullScaleW)
 }
 
 /** The label a ring wears: the battery, or the tank's full name (`Fresh water`). */

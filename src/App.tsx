@@ -259,6 +259,7 @@ function App() {
               tanks={state.tanks}
               batteries={state.batteries}
               solar={state.solar}
+              chargers={state.chargers}
               temperatures={state.temperatures}
               gps={state.gps}
               tilt={state.tilt}

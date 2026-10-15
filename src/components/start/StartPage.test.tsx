@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
-import type { Battery, Gps, Solar, Tank, TemperatureSensor, Tilt } from '@/types'
+import type { Battery, Charger, Gps, Solar, Tank, TemperatureSensor, Tilt } from '@/types'
 import { DEFAULT_START_POWER_SOURCES, type StartPowerSources } from '@/hooks/useStartPowerSources'
 import { StartPage } from './StartPage'
 
@@ -37,6 +37,7 @@ function renderAt(
     tanks?: Record<string, Partial<Tank>>
     batteries?: Record<string, Partial<Battery>>
     solar?: Record<string, Partial<Solar>>
+    chargers?: Record<string, Partial<Charger>>
     temperatures?: Record<string, Partial<TemperatureSensor>>
     gps?: Record<string, Partial<Gps>>
     tilt?: Record<string, Partial<Tilt>>
@@ -49,6 +50,7 @@ function renderAt(
       tanks={props.tanks ?? {}}
       batteries={props.batteries ?? {}}
       solar={props.solar ?? {}}
+      chargers={props.chargers ?? {}}
       temperatures={props.temperatures ?? {}}
       gps={props.gps ?? {}}
       tilt={props.tilt ?? {}}
@@ -246,7 +248,7 @@ describe('StartPage kiosk dial', () => {
     expect(within(screen.getByTestId('rings-centre')).getByText('No data yet')).toBeInTheDocument()
   })
 
-  it('reads solar, charging and load from the configured sources', () => {
+  it('reads solar and load from the configured sources', () => {
     renderAt(KIOSK_WIDTH, {
       solar: { 291: { power_w: 247, battery_voltage_v: 13.4 } },
       batteries: { house: { ...BATTERY, power_w: -112 } },
@@ -254,8 +256,57 @@ describe('StartPage kiosk dial', () => {
 
     const dial = screen.getByTestId('start-dial')
     expect(within(dial).getByText('Solar').parentElement).toHaveTextContent('247W')
-    expect(within(dial).getByText('Charging').parentElement).toHaveTextContent('0W')
     expect(within(dial).getByText('Load').parentElement).toHaveTextContent('112W')
+  })
+
+  describe('charging reading', () => {
+    it('is not shown while neither an alternator nor a shore charger is on the bus', () => {
+      renderAt(KIOSK_WIDTH, { batteries: { house: { ...BATTERY, power_w: 300 } } })
+
+      const dial = screen.getByTestId('start-dial')
+      expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
+      expect(within(dial).queryByText('Shore Charger')).not.toBeInTheDocument()
+      expect(within(dial).queryByText('Charging')).not.toBeInTheDocument()
+    })
+
+    it('shows the alternator from its published power', () => {
+      renderAt(KIOSK_WIDTH, {
+        chargers: { 1: { voltage_v: 13.4, power_w: 243, source: 'alternator' } },
+      })
+
+      const dial = screen.getByTestId('start-dial')
+      expect(within(dial).getByText('Alternator').parentElement).toHaveTextContent('243W')
+    })
+
+    it('shows the shore charger, with watts derived from voltage and current', () => {
+      renderAt(KIOSK_WIDTH, {
+        chargers: { 2: { voltage_v: 14.4, current_a: 10, source: 'ac' } },
+      })
+
+      const dial = screen.getByTestId('start-dial')
+      expect(within(dial).getByText('Shore Charger').parentElement).toHaveTextContent('144W')
+    })
+
+    it('prefers the alternator when both are present', () => {
+      renderAt(KIOSK_WIDTH, {
+        chargers: {
+          1: { voltage_v: 14.4, current_a: 10, source: 'ac' },
+          2: { voltage_v: 13.4, power_w: 243, source: 'alternator' },
+        },
+      })
+
+      const dial = screen.getByTestId('start-dial')
+      expect(within(dial).getByText('Alternator')).toBeInTheDocument()
+      expect(within(dial).queryByText('Shore Charger')).not.toBeInTheDocument()
+    })
+
+    it('waits for the charger to say what it is, rather than guessing a source', () => {
+      renderAt(KIOSK_WIDTH, { chargers: { 1: { voltage_v: 13.4, current_a: 5 } } })
+
+      const dial = screen.getByTestId('start-dial')
+      expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
+      expect(within(dial).queryByText('Shore Charger')).not.toBeInTheDocument()
+    })
   })
 
   it('shows a dash, never a made-up 0 W, for a reading whose source has not published', () => {

@@ -156,6 +156,27 @@ export function isCompleteSolar(solar: Partial<Solar>): solar is Solar {
   return solar.power_w !== undefined && solar.battery_voltage_v !== undefined
 }
 
+export type ChargerSource = 'ac' | 'alternator' | 'dc' | 'unknown'
+
+/**
+ * Non-solar battery charger per hub/schema/charger.schema.json: an AC mains charger (Victron Blue
+ * Smart IP22) or a DC-DC charger fed by the alternator. Only `voltage_v` is required of every
+ * source. node-venus publishes no `power_w`, so a consumer derives watts from voltage × current.
+ */
+export interface Charger {
+  voltage_v: number
+  current_a?: number
+  power_w?: number
+  input_voltage_v?: number
+  source?: ChargerSource
+  charge_state?: SolarChargeState
+}
+
+/** Same partial-accumulation caveat as {@link isCompleteTank}: only the required `voltage_v`. */
+export function isCompleteCharger(charger: Partial<Charger>): charger is Charger {
+  return charger.voltage_v !== undefined
+}
+
 /**
  * GPS position fix per hub/schema/gps.schema.json. `fix_quality`/
  * `satellites_in_use`/`avg_snr_db` are unconditional (the latter absent
@@ -271,6 +292,7 @@ export interface RenewvanBusState {
   batteries: Record<string, Battery>
   relays: Record<string, Relay>
   solar: Record<string, Solar>
+  chargers: Record<string, Charger>
   routers: Record<string, Router>
   gps: Record<string, Gps>
   temperatures: Record<string, TemperatureSensor>
@@ -286,6 +308,7 @@ export const emptyRenewvanBusState: RenewvanBusState = {
   batteries: {},
   relays: {},
   solar: {},
+  chargers: {},
   routers: {},
   gps: {},
   temperatures: {},

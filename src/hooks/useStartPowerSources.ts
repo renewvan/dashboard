@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import type { FluidType } from '@/types'
 
 /**
- * What a power reading on the Start page is taken from. The bus carries no shore, alternator,
- * inverter or AC-load topics, so these are the only flows that exist: the solar controller's
- * power, and the battery's signed power split by direction.
+ * What a configurable power reading on the Start page is taken from. The left-bottom reading is
+ * not one of these: it follows the charger that is present (see {@link ChargerSlot}).
  */
 export type PowerSource = 'solar' | 'battery-in' | 'battery-out' | 'battery-net'
 
@@ -29,6 +28,15 @@ export interface PowerSlot {
   fullScaleW: number
 }
 
+/**
+ * The charging reading's configuration. Its source is not chosen: it is the alternator or the shore
+ * charger, whichever the bus reports (`lib/charging.ts`), so only the band's full scale is kept.
+ */
+export interface ChargerSlot {
+  /** Watts that fill the band. */
+  fullScaleW: number
+}
+
 /** What a centre ring shows: the battery's charge, or the level of one kind of tank. */
 export type RingSource = 'battery' | FluidType
 
@@ -46,10 +54,11 @@ export type RingUnit = 'pct' | 'litres'
 
 export const RING_UNITS: readonly RingUnit[] = ['pct', 'litres']
 
-/** The three readings of the half-moons: two incoming on the left, one outgoing on the right. */
+/** The readings of the half-moons: solar and the charger on the left, the outgoing power on the right. */
 export interface StartPowerSources {
   leftTop: PowerSlot
-  leftBottom: PowerSlot
+  /** Alternator or shore charger; the reading is absent while neither is on the bus. */
+  leftBottom: ChargerSlot
   right: PowerSlot
   /** The three centre rings, outermost first. */
   rings: [RingSource, RingSource, RingSource]
@@ -62,7 +71,7 @@ export const MAX_FULL_SCALE_W = 20_000
 
 export const DEFAULT_START_POWER_SOURCES: StartPowerSources = {
   leftTop: { source: 'solar', fullScaleW: 400 },
-  leftBottom: { source: 'battery-in', fullScaleW: 1000 },
+  leftBottom: { fullScaleW: 1000 },
   right: { source: 'battery-out', fullScaleW: 1000 },
   rings: ['battery', 'fresh_water', 'grey_water'],
   ringUnit: 'pct',
@@ -70,7 +79,7 @@ export const DEFAULT_START_POWER_SOURCES: StartPowerSources = {
 
 const STORAGE_KEY = 'renewvan-dashboard-start-power-sources'
 
-const SLOT_KEYS = ['leftTop', 'leftBottom', 'right'] as const
+const POWER_SLOT_KEYS = ['leftTop', 'right'] as const
 
 function isPowerSource(value: unknown): value is PowerSource {
   return POWER_SOURCES.some((source) => source === value)
@@ -106,17 +115,26 @@ export function parseStartPowerSources(raw: string | null): StartPowerSources {
   if (typeof parsed !== 'object' || parsed === null) return defaults
   const record = parsed as Record<string, unknown>
 
-  const slot = (key: (typeof SLOT_KEYS)[number]): PowerSlot => {
+  const fullScale = (stored: unknown, fallback: number): number =>
+    typeof stored === 'number' && Number.isFinite(stored) ? clampFullScale(stored) : fallback
+
+  const slot = (key: (typeof POWER_SLOT_KEYS)[number]): PowerSlot => {
     const stored = record[key]
     if (typeof stored !== 'object' || stored === null) return defaults[key]
     const { source, fullScaleW } = stored as Record<string, unknown>
     return {
       source: isPowerSource(source) ? source : defaults[key].source,
-      fullScaleW:
-        typeof fullScaleW === 'number' && Number.isFinite(fullScaleW)
-          ? clampFullScale(fullScaleW)
-          : defaults[key].fullScaleW,
+      fullScaleW: fullScale(fullScaleW, defaults[key].fullScaleW),
     }
+  }
+  // An older save also kept a `source` here; it is ignored, only the band's scale carries over.
+  const chargerSlot = (): ChargerSlot => {
+    const stored = record.leftBottom
+    const fullScaleW =
+      typeof stored === 'object' && stored !== null
+        ? (stored as Record<string, unknown>).fullScaleW
+        : undefined
+    return { fullScaleW: fullScale(fullScaleW, defaults.leftBottom.fullScaleW) }
   }
   // Ring by ring, like the slots: one unknown fluid does not reset the other two rings.
   const storedRings = Array.isArray(record.rings) ? (record.rings as unknown[]) : []
@@ -127,7 +145,7 @@ export function parseStartPowerSources(raw: string | null): StartPowerSources {
 
   return {
     leftTop: slot('leftTop'),
-    leftBottom: slot('leftBottom'),
+    leftBottom: chargerSlot(),
     right: slot('right'),
     rings: [ring(0), ring(1), ring(2)],
     ringUnit: isRingUnit(record.ringUnit) ? record.ringUnit : defaults.ringUnit,

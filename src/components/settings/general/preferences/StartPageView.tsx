@@ -9,7 +9,6 @@ import {
   POWER_SOURCE_LABELS,
   RING_SOURCES,
   clampFullScale,
-  type PowerSlot,
   type PowerSource,
   type RingSource,
   type RingUnit,
@@ -27,15 +26,21 @@ type SlotKey = 'leftTop' | 'leftBottom' | 'right'
 
 const SLOTS: { key: SlotKey; label: string; hint: string }[] = [
   { key: 'leftTop', label: 'Left, top', hint: 'Incoming power' },
-  { key: 'leftBottom', label: 'Left, bottom', hint: 'Incoming power' },
+  { key: 'leftBottom', label: 'Left, bottom', hint: 'Alternator or shore charger' },
   { key: 'right', label: 'Right', hint: 'Outgoing power' },
 ]
+
+/** What a card edits: the band's scale, and the source unless the reading follows the charger present. */
+interface SlotValue {
+  fullScaleW: number
+  source?: PowerSource
+}
 
 interface SlotCardProps {
   label: string
   hint: string
-  slot: PowerSlot
-  onChange: (slot: PowerSlot) => void
+  slot: SlotValue
+  onChange: (slot: SlotValue) => void
 }
 
 function SlotCard({ label, hint, slot, onChange }: SlotCardProps) {
@@ -49,26 +54,28 @@ function SlotCard({ label, hint, slot, onChange }: SlotCardProps) {
         <span className="text-muted text-xs">{hint}</span>
       </div>
 
-      <ToggleButtonGroup
-        aria-label={`${label} source`}
-        selectionMode="single"
-        disallowEmptySelection
-        fullWidth
-        selectedKeys={new Set([slot.source])}
-        onSelectionChange={(keys) => {
-          const key = [...keys][0]
-          // HeroUI re-fires the selection on a re-tap of the selected item.
-          const next = POWER_SOURCES.find((source: PowerSource) => source === key)
-          if (next !== undefined && next !== slot.source) onChange({ ...slot, source: next })
-        }}
-      >
-        {POWER_SOURCES.map((source, index) => (
-          <ToggleButton key={source} id={source} className="min-h-11">
-            {index > 0 && <ToggleButtonGroup.Separator />}
-            {POWER_SOURCE_LABELS[source]}
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
+      {slot.source !== undefined && (
+        <ToggleButtonGroup
+          aria-label={`${label} source`}
+          selectionMode="single"
+          disallowEmptySelection
+          fullWidth
+          selectedKeys={new Set([slot.source])}
+          onSelectionChange={(keys) => {
+            const key = [...keys][0]
+            // HeroUI re-fires the selection on a re-tap of the selected item.
+            const next = POWER_SOURCES.find((source: PowerSource) => source === key)
+            if (next !== undefined && next !== slot.source) onChange({ ...slot, source: next })
+          }}
+        >
+          {POWER_SOURCES.map((source, index) => (
+            <ToggleButton key={source} id={source} className="min-h-11">
+              {index > 0 && <ToggleButtonGroup.Separator />}
+              {POWER_SOURCE_LABELS[source]}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      )}
 
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm">Full band</span>
@@ -156,9 +163,9 @@ interface StartPageViewProps {
 }
 
 /**
- * Settings › General › Display & Appearance › Start page: where each of the half-moon readings comes from and
- * how many watts fill its band. The bus has no shore or inverter topics, so the choices are the
- * solar controller and the battery's power by direction.
+ * Settings › General › Display & Appearance › Start page: where the half-moon readings come from and
+ * how many watts fill each band. The left-bottom reading is not chosen: it follows the alternator or
+ * the shore charger, whichever the bus reports, so only its band is set here.
  */
 export function StartPageView({ sources, onChange }: StartPageViewProps) {
   return (
@@ -173,8 +180,9 @@ export function StartPageView({ sources, onChange }: StartPageViewProps) {
         />
       ))}
       <p className="text-muted px-1 text-xs">
-        Charging and Load are the battery&apos;s power going in and out. Full band is the wattage
-        that fills a reading&apos;s arc.
+        Load is the battery&apos;s power going out. The left-bottom reading shows the alternator, or
+        the shore charger when there is none, and is hidden while neither is connected. Full band is
+        the wattage that fills a reading&apos;s arc.
       </p>
       <h2 className="mt-2 px-1 text-sm font-medium">Level Rings</h2>
       <Card>

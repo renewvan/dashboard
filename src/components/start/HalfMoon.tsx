@@ -1,15 +1,16 @@
 import type { ReactNode } from 'react'
-import { Battery, Sun, Zap, Plug2 } from 'lucide-react'
-import type { PowerSource } from '@/hooks/useStartPowerSources'
+import { Battery, Engine, Plug2, PlugZap, Sun, Zap } from 'lucide-react'
+import type { PowerReading } from './dialModel'
 import { arc } from './arcs'
 import { CutBand } from './CutBand'
-import type { PowerReading } from './dialModel'
 
-const POWER_ICONS: Record<PowerSource, ReactNode> = {
+const POWER_ICONS: Record<PowerReading['source'], ReactNode> = {
   solar: <Sun className="size-4" />,
   'battery-in': <Zap className="size-4" />,
   'battery-out': <Plug2 className="size-4" />,
   'battery-net': <Battery className="size-4" />,
+  alternator: <Engine className="size-4" />,
+  shore: <PlugZap className="size-4" />,
 }
 
 // A half-moon is a 100° slice of a big circle whose centre sits off to the centre-dial side, so it
@@ -88,7 +89,7 @@ export function HalfMoon({ side, readings }: { side: Side; readings: PowerReadin
 
   return (
     <div
-      className={`flex w-full items-center gap-4 ${side === 'left' ? 'justify-start' : 'justify-end'}`}
+      className={`flex w-full items-center ${side === 'left' ? 'justify-start' : 'justify-end'}`}
     >
       {side === 'right' && <Readouts side={side} readings={readings} />}
       <svg

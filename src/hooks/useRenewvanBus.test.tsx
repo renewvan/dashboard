@@ -238,6 +238,27 @@ describe('useRenewvanBus solar entity', () => {
   })
 })
 
+describe('useRenewvanBus charger entity', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  it('accumulates charger properties per id, with the source as a plain string', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/charger/1/voltage_v', { toString: () => '13.39' })
+    messageHandlers[0]('renewvan/charger/1/current_a', { toString: () => '18.2' })
+    messageHandlers[0]('renewvan/charger/1/source', { toString: () => '"alternator"' })
+    await waitFor(() =>
+      expect(result.current.state.chargers).toEqual({
+        '1': { voltage_v: 13.39, current_a: 18.2, source: 'alternator' },
+      }),
+    )
+  })
+})
+
 describe('useRenewvanBus driver liveness topics', () => {
   beforeEach(() => {
     messageHandlers.length = 0
@@ -264,6 +285,7 @@ describe('useRenewvanBus driver liveness topics', () => {
       'relay',
       'battery',
       'solar',
+      'charger',
       'gps',
       'temperature',
       'tilt',
@@ -277,6 +299,7 @@ describe('useRenewvanBus driver liveness topics', () => {
     expect(result.current.state.relays).toEqual({})
     expect(result.current.state.batteries).toEqual({})
     expect(result.current.state.solar).toEqual({})
+    expect(result.current.state.chargers).toEqual({})
     expect(result.current.state.temperatures).toEqual({})
     expect(result.current.state.tilt).toEqual({})
     expect(result.current.state.routers).toEqual({})

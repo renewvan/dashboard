@@ -12,7 +12,7 @@ describe('parseStartPowerSources', () => {
   it('reads a valid stored value back exactly', () => {
     const stored = {
       leftTop: { source: 'battery-net', fullScaleW: 800 },
-      leftBottom: { source: 'solar', fullScaleW: 250 },
+      leftBottom: { fullScaleW: 250 },
       right: { source: 'battery-out', fullScaleW: 3000 },
       rings: ['fuel', 'battery', 'black_water'],
       ringUnit: 'litres',
@@ -30,16 +30,21 @@ describe('parseStartPowerSources', () => {
   it('repairs one bad slot without resetting the others', () => {
     const stored = {
       leftTop: { source: 'shore', fullScaleW: 'lots' },
-      leftBottom: { source: 'solar', fullScaleW: 250 },
+      leftBottom: { fullScaleW: 250 },
       right: 'nonsense',
     }
     expect(parseStartPowerSources(JSON.stringify(stored))).toEqual({
       leftTop: DEFAULT_START_POWER_SOURCES.leftTop,
-      leftBottom: { source: 'solar', fullScaleW: 250 },
+      leftBottom: { fullScaleW: 250 },
       right: DEFAULT_START_POWER_SOURCES.right,
       rings: DEFAULT_START_POWER_SOURCES.rings,
       ringUnit: DEFAULT_START_POWER_SOURCES.ringUnit,
     })
+  })
+
+  it('keeps only the scale of a charging slot saved when it still had a source', () => {
+    const stored = { leftBottom: { source: 'battery-in', fullScaleW: 600 } }
+    expect(parseStartPowerSources(JSON.stringify(stored)).leftBottom).toEqual({ fullScaleW: 600 })
   })
 
   it('repairs one bad ring without resetting the other two', () => {

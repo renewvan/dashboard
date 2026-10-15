@@ -8,6 +8,7 @@ import {
   hasGpsFix,
   isCompleteGps,
   type Battery as BatteryRecord,
+  type Charger,
   type Gps,
   type Solar,
   type Tank,
@@ -29,10 +30,11 @@ export interface StartPageProps {
   tanks: Record<string, Partial<Tank>>
   batteries: Record<string, Partial<BatteryRecord>>
   solar: Record<string, Partial<Solar>>
+  chargers: Record<string, Partial<Charger>>
   temperatures: Record<string, Partial<TemperatureSensor>>
   gps: Record<string, Partial<Gps>>
   tilt: Record<string, Partial<Tilt>>
-  /** Where each half-moon reading comes from and which tank or battery each ring shows. */
+  /** Which tank or battery each ring shows, and how full each half-moon band reads. */
   powerSources: StartPowerSources
   /** Glow behind the ring fill: dark theme only. */
   isDark: boolean
@@ -64,6 +66,7 @@ export function StartPage({
   tanks,
   batteries,
   solar,
+  chargers,
   temperatures,
   gps,
   tilt,
@@ -145,6 +148,7 @@ export function StartPage({
         tanks={tanks}
         batteries={batteries}
         solar={solar}
+        chargers={chargers}
         tilt={tilt}
         temperatures={temperatures}
         powerSources={powerSources}

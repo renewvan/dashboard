@@ -11,15 +11,21 @@ async function openStartPage(user: UserEvent) {
 }
 
 describe('Settings › General › Display & Appearance › Start page', () => {
-  it('is a Display row that opens one source and scale card per half-moon reading', async () => {
+  it('is a Display row that opens a card per half-moon reading, the charger one without a source', async () => {
     const { user } = renderSettings()
     await openStartPage(user)
 
     expect(screen.getByRole('link', { name: 'Start page', current: 'page' })).toBeInTheDocument()
-    for (const label of ['Left, top', 'Left, bottom', 'Right']) {
+    for (const label of ['Left, top', 'Right']) {
       expect(screen.getByRole('radiogroup', { name: `${label} source` })).toBeInTheDocument()
     }
+    expect(
+      screen.queryByRole('radiogroup', { name: 'Left, bottom source' }),
+    ).not.toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Left, top full band' })).toHaveTextContent('400 W')
+    expect(screen.getByRole('status', { name: 'Left, bottom full band' })).toHaveTextContent(
+      '1000 W',
+    )
     expect(screen.getByRole('status', { name: 'Right full band' })).toHaveTextContent('1000 W')
   })
 

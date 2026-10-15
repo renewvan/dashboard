@@ -4,10 +4,12 @@ import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import type { RingSource, RingUnit, StartPowerSources } from '@/hooks/useStartPowerSources'
+import { charging } from '@/lib/charging'
 import { INDOOR_ID, OUTDOOR_ID } from '@/lib/temperature'
 import {
   isCompleteBattery,
   type Battery as BatteryRecord,
+  type Charger,
   type Solar,
   type Tank,
   type Tilt,
@@ -18,12 +20,13 @@ import { DialTemperature } from './DialTemperature'
 import { batteryDial, tankDialOf, type DialView } from './cockpit/dialView'
 import { HalfMoon } from './HalfMoon'
 import { Rings, type RingModel } from './Rings'
-import { centreKind, legendIndices, powerReading, ringLabel } from './dialModel'
+import { centreKind, chargingReading, legendIndices, powerReading, ringLabel } from './dialModel'
 
 export interface DialProps {
   tanks: Record<string, Partial<Tank>>
   batteries: Record<string, Partial<BatteryRecord>>
   solar: Record<string, Partial<Solar>>
+  chargers: Record<string, Partial<Charger>>
   tilt: Record<string, Partial<Tilt>>
   /** Probes by id; `outdoor` and `indoor` (lib/temperature.ts) are shown above the half-moons. */
   temperatures: Record<string, Partial<TemperatureSensor>>
@@ -67,6 +70,7 @@ export function Dial({
   tanks,
   batteries,
   solar,
+  chargers,
   tilt,
   temperatures,
   powerSources,
@@ -76,6 +80,7 @@ export function Dial({
   const battery = Object.values(batteries).find(isCompleteBattery)
   const solarW = firstSolar(solar)?.power_w
   const batteryW = battery?.power_w
+  const present = charging(chargers)
 
   const batteryView = batteryDial(batteries)
   const rings = powerSources.rings.map((source) =>
@@ -93,14 +98,14 @@ export function Dial({
     // `px-4` is the header's own padding, so the half-moons' outer edges line up with the logo on the
     // left and the header buttons on the right.
     <div data-testid="start-dial" className="flex min-h-0 flex-1 items-center justify-center px-8">
-      <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center pb-5">
+      <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center pb-4">
         <div className="relative">
           <DialTemperature kind="outdoor" sensor={temperatures[OUTDOOR_ID]} side="left" />
           <HalfMoon
             side="left"
             readings={[
               powerReading(powerSources.leftTop, solarW, batteryW),
-              powerReading(powerSources.leftBottom, solarW, batteryW),
+              ...(present ? [chargingReading(powerSources.leftBottom, present)] : []),
             ]}
           />
         </div>
