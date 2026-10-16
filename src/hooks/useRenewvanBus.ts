@@ -35,6 +35,10 @@ export interface RenewvanBus {
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
   tailscale: TailscaleStatus | null
   routerHealth: RouterHealth | null
+  /** The shared Demo mode flag (`renewvan-demo/enabled`): true while every client reads the simulated van. */
+  demoMode: boolean
+  /** Asks `node-demo` to switch demo mode; the view only changes when the bus reports it did. */
+  setDemoMode: (demo: boolean) => void
   publish: (topic: string, payload: string) => void
 }
 
@@ -42,6 +46,11 @@ export interface RenewvanBus {
 const REAL_ROOT = 'renewvan'
 /** The simulated van's topic root (hub `docs/demo-mode.md`): same shapes as the real root. */
 const DEMO_ROOT = 'renewvan-demo'
+/** The shared switch: retained state, plus its `/set` command (same convention as the kiosk settings). */
+const TOPIC_DEMO_ENABLED = `${DEMO_ROOT}/enabled`
+const TOPIC_DEMO_ENABLED_SET = `${TOPIC_DEMO_ENABLED}/set`
+const TOPIC_REAL_ROUTER_HEALTH = `${REAL_ROOT}/router/health`
+const TOPIC_DEMO_ROUTER_HEALTH = `${DEMO_ROOT}/router/health`
 
 // `<id>/<property>` is exactly two segments, so the temperature node's
 // `<id>/name/set` and `<id>/unit/set` command topics (three) never match.
@@ -125,7 +134,12 @@ function applyMessage(
   if (domain === 'charger') {
     return { ...prev, chargers: accumulate(prev.chargers, id, property, value) }
   }
-  // relay: only `state`, a JSON boolean.
+  // relay: only `state`, a JSON boolean. An empty payload is a retained-topic clear (ADR 0008):
+  // the relay is gone, which is not the same as switched off.
+  if (value === undefined) {
+    const { [id]: _removed, ...rest } = prev.relays
+    return { ...prev, relays: rest }
+  }
   return {
     ...prev,
     relays: { ...prev.relays, [id]: { state: Boolean(value) } },
@@ -133,24 +147,25 @@ function applyMessage(
 }
 
 /**
- * Subscribes to `renewvan/#` over MQTT-over-WebSocket and exposes the
+ * Subscribes to `renewvan/#` and `renewvan-demo/#` over MQTT-over-WebSocket and exposes the
  * accumulated retained state plus connection status. Env-configured via
  * `VITE_MQTT_WS_URL` (required), `VITE_MQTT_USERNAME`/`VITE_MQTT_PASSWORD`
  * (read-scoped credentials, optional while the broker allows anonymous
  * access) -- resolved at runtime first, build-time as fallback; see
  * `../config/runtimeEnv`.
  *
- * `demo` (default off, see `useDemoMode`) reads the simulated van instead
- * (hub `docs/demo-mode.md`): entity topics and `router/health` come from
- * `renewvan-demo/` only, while the kiosk and tailscale host plugins stay on
- * the real `renewvan/` root (no demo node simulates them). Real entity topics
- * are ignored in demo mode and vice versa, and flipping the flag drops the
- * client and every accumulated value before reconnecting, so real and fake
- * data never mix. Demo state is read-only: `publish` sends only kiosk
- * commands in demo mode.
+ * Demo mode is one shared switch on the bus (hub `docs/demo-mode.md`), not a per-client
+ * preference: `renewvan-demo/enabled` is retained, `node-demo` publishes the simulated van while
+ * it is `true`, and every client follows it, so toggling in one dashboard shows the demo in all.
+ * Each root's entities are accumulated separately and the flag picks which one is exposed, so
+ * switching is instant (no reconnect) and real and simulated values can never mix. The kiosk and
+ * tailscale host plugins stay on the real root: no demo node simulates them. Demo state is
+ * read-only: while the switch is on, `publish` sends only kiosk commands.
  */
-export function useRenewvanBus({ demo = false }: { demo?: boolean } = {}): RenewvanBus {
-  const [state, setState] = useState<RenewvanBusState>(emptyRenewvanBusState)
+export function useRenewvanBus(): RenewvanBus {
+  const [real, setReal] = useState<RenewvanBusState>(emptyRenewvanBusState)
+  const [demo, setDemo] = useState<RenewvanBusState>(emptyRenewvanBusState)
+  const [demoMode, setDemoModeState] = useState(false)
   const [status, setStatus] = useState<ConnectionStatus>('connecting')
   const [displayPower, setDisplayPower] = useState<DisplayPower>(null)
   const [brightness, setBrightness] = useState<number | null>(null)
@@ -158,12 +173,24 @@ export function useRenewvanBus({ demo = false }: { demo?: boolean } = {}): Renew
   const [autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes] =
     useState<AutoSleepTimeoutMinutes | null>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
-  const [routerHealth, setRouterHealth] = useState<RouterHealth | null>(null)
+  const [realRouterHealth, setRealRouterHealth] = useState<RouterHealth | null>(null)
+  const [demoRouterHealth, setDemoRouterHealth] = useState<RouterHealth | null>(null)
   const clientRef = useRef<MqttClient | null>(null)
+  // The message handler lives in a mount-once effect, so it reads the flag through a ref.
+  const demoModeRef = useRef(false)
+  demoModeRef.current = demoMode
 
   const publish = (topic: string, payload: string) => {
-    if (demo && !topic.startsWith(KIOSK_PREFIX)) return
+    if (demoModeRef.current && !topic.startsWith(KIOSK_PREFIX)) return
     clientRef.current?.publish(topic, payload, { qos: 1, retain: false })
+  }
+
+  // Not routed through `publish`: the switch itself is the one non-kiosk command demo mode allows.
+  const setDemoMode = (next: boolean) => {
+    clientRef.current?.publish(TOPIC_DEMO_ENABLED_SET, JSON.stringify(next), {
+      qos: 1,
+      retain: false,
+    })
   }
 
   useEffect(() => {
@@ -173,8 +200,6 @@ export function useRenewvanBus({ demo = false }: { demo?: boolean } = {}): Renew
       return
     }
 
-    const pattern = demo ? ENTITY_PATTERN.demo : ENTITY_PATTERN.real
-    const topicRouterHealth = `${demo ? DEMO_ROOT : REAL_ROOT}/router/health`
     let disposed = false
 
     const client = mqtt.connect(url, {
@@ -192,9 +217,7 @@ export function useRenewvanBus({ demo = false }: { demo?: boolean } = {}): Renew
     client.on('connect', () => {
       if (disposed) return
       setStatus('connected')
-      client.subscribe(
-        demo ? [`${DEMO_ROOT}/#`, `${KIOSK_PREFIX}#`, TOPIC_TAILSCALE] : `${REAL_ROOT}/#`,
-      )
+      client.subscribe([`${REAL_ROOT}/#`, `${DEMO_ROOT}/#`])
     })
     client.on('reconnect', onStatus('connecting'))
     client.on('close', onStatus('disconnected'))
@@ -203,6 +226,11 @@ export function useRenewvanBus({ demo = false }: { demo?: boolean } = {}): Renew
     client.on('message', (topic, message) => {
       if (disposed) return
       const payload = message.toString()
+      if (topic === TOPIC_DEMO_ENABLED) {
+        // A JSON boolean, like every bus payload; anything else is not a state.
+        if (payload === 'true' || payload === 'false') setDemoModeState(payload === 'true')
+        return
+      }
       if (topic === TOPIC_DISPLAY_POWER) {
         if (payload === 'on' || payload === 'off') setDisplayPower(payload)
         return
@@ -231,38 +259,49 @@ export function useRenewvanBus({ demo = false }: { demo?: boolean } = {}): Renew
         }
         return
       }
-      if (topic === topicRouterHealth) {
-        if (payload === 'online' || payload === 'offline') setRouterHealth(payload)
+      if (topic === TOPIC_REAL_ROUTER_HEALTH || topic === TOPIC_DEMO_ROUTER_HEALTH) {
+        // An empty payload clears the retained topic (node-demo going idle): no health, not offline.
+        const health = payload === 'online' || payload === 'offline' ? payload : null
+        if (topic === TOPIC_REAL_ROUTER_HEALTH) {
+          if (health) setRealRouterHealth(health)
+        } else {
+          setDemoRouterHealth(health)
+        }
         return
       }
-      setState((prev) => applyMessage(prev, topic, payload, pattern))
+      setReal((prev) => applyMessage(prev, topic, payload, ENTITY_PATTERN.real))
+      setDemo((prev) => applyMessage(prev, topic, payload, ENTITY_PATTERN.demo))
     })
 
     return () => {
       disposed = true
       client.end(true)
       clientRef.current = null
-      // Nothing read from this root may outlive it: a flip must never show the other van's values.
-      setState(emptyRenewvanBusState)
+      setReal(emptyRenewvanBusState)
+      setDemo(emptyRenewvanBusState)
+      setDemoModeState(false)
       setStatus('connecting')
       setDisplayPower(null)
       setBrightness(null)
       setAutoSleepEnabled(null)
       setAutoSleepTimeoutMinutes(null)
       setTailscale(null)
-      setRouterHealth(null)
+      setRealRouterHealth(null)
+      setDemoRouterHealth(null)
     }
-  }, [demo])
+  }, [])
 
   return {
-    state,
+    state: demoMode ? demo : real,
     status,
     displayPower,
     brightness,
     autoSleepEnabled,
     autoSleepTimeoutMinutes,
     tailscale,
-    routerHealth,
+    routerHealth: demoMode ? demoRouterHealth : realRouterHealth,
+    demoMode,
+    setDemoMode,
     publish,
   }
 }

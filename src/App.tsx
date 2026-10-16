@@ -20,7 +20,6 @@ import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
-import { useDemoMode } from '@/hooks/useDemoMode'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
@@ -68,8 +67,6 @@ const RAIL_INSET = '56px'
 const BAR_INSET = 'calc(57px + env(safe-area-inset-bottom))'
 
 function App() {
-  // Before the bus: the flag picks which van (real or simulated) the bus reads.
-  const [demoMode, setDemoMode] = useDemoMode()
   const {
     state,
     status,
@@ -79,8 +76,10 @@ function App() {
     autoSleepTimeoutMinutes,
     tailscale,
     routerHealth,
+    demoMode,
+    setDemoMode,
     publish,
-  } = useRenewvanBus({ demo: demoMode })
+  } = useRenewvanBus()
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
