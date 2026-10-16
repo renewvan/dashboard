@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from 'react'
 import { BatteryPulse } from './BatteryPulse'
-import { CUT, RINGS_SIZE, arc } from './arcs'
+import { CUT, RINGS_CORNER_R, RINGS_SIZE, arc } from './arcs'
 import { CutBand } from './CutBand'
 
 /** One ring as drawn. `view` is undefined while its source has not fully arrived over MQTT. */
@@ -125,6 +125,7 @@ export function Rings({ rings, legend, centre, glow }: RingsProps) {
                 color={ring.color}
                 segments={SEGMENTS}
                 stroke={BAND}
+                cornerR={RINGS_CORNER_R}
               />
               {glow && ring.pct > 0 && (
                 <path

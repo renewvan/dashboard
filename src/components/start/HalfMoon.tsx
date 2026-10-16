@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Battery, Engine, Plug2, PlugZap, Sun, Zap } from 'lucide-react'
 import type { PowerReading } from './dialModel'
-import { arc } from './arcs'
+import { arc, bandRanges, cornerRadius } from './arcs'
 import { CutBand } from './CutBand'
 
 const POWER_ICONS: Record<PowerReading['source'], ReactNode> = {
@@ -18,8 +18,8 @@ const POWER_ICONS: Record<PowerReading['source'], ReactNode> = {
 // under the cockpit's thin outer ring.
 const MOON_R = 200
 const MOON_SPAN = 100
-/** Degrees between two stacked bands. */
-const BAND_GAP = 5
+/** Degrees between two stacked bands: clearly wider than a cut (1.6°) so two readings never read as one. */
+const BAND_GAP = 2.5
 const BAND_STROKE = 14
 const RING_STROKE = 3
 const SEGMENTS = 3
@@ -35,20 +35,10 @@ const MOON_DEPTH = OUTER_EDGE - (RING_R - RING_STROKE / 2) * Math.cos(HALF_SPAN)
 const END_PAD = BAND_STROKE / 2
 const MOON_W = MOON_DEPTH + END_PAD
 const MOON_H = 2 * OUTER_EDGE * Math.sin(HALF_SPAN) + 2 * END_PAD
+/** The theme's `--radius` in this drawing's units, at its tallest render (`h-[min(60vh,360px)]`). */
+const MOON_CORNER_R = cornerRadius(MOON_H, 360)
 
 type Side = 'left' | 'right'
-
-/** One band's angle range, top first. Angles run clockwise from 12 o'clock. */
-function bandRanges(side: Side, count: number): [number, number][] {
-  const mid = side === 'left' ? 270 : 90
-  const top = side === 'left' ? mid + MOON_SPAN / 2 : mid - MOON_SPAN / 2
-  const bottom = side === 'left' ? mid - MOON_SPAN / 2 : mid + MOON_SPAN / 2
-  const step = (bottom - top) / count
-  return Array.from({ length: count }, (_, i) => [
-    top + i * step + (i > 0 ? BAND_GAP / 2 : 0),
-    top + (i + 1) * step - (i < count - 1 ? BAND_GAP / 2 : 0),
-  ])
-}
 
 function Readouts({ side, readings }: { side: Side; readings: PowerReading[] }) {
   const end = side === 'right'
@@ -84,7 +74,7 @@ export function HalfMoon({ side, readings }: { side: Side; readings: PowerReadin
   // from the centre dial.
   const cx = side === 'left' ? OUTER_EDGE : MOON_W - OUTER_EDGE
   const cy = MOON_H / 2
-  const ranges = bandRanges(side, readings.length)
+  const ranges = bandRanges(side, readings.length, MOON_SPAN, BAND_GAP)
   const [spanTop, spanBottom] = [ranges[0]![0], ranges[ranges.length - 1]![1]]
 
   return (
@@ -119,6 +109,7 @@ export function HalfMoon({ side, readings }: { side: Side; readings: PowerReadin
               color="var(--accent)"
               segments={SEGMENTS}
               stroke={BAND_STROKE}
+              cornerR={MOON_CORNER_R}
               cx={cx}
               cy={cy}
             />
