@@ -1,7 +1,7 @@
 // The Power page's Tiles layout: a boxed tile per source, the battery, the inverter and the loads,
-// joined by elbow links along which dashes crawl in the direction of power. The diagram fills its
-// panel, so it grows and shrinks as the bottom navbar slides (the panel pads itself by the
-// navbar's inset).
+// joined by links (see PowerLinks) along which dashes crawl in the direction of power. The diagram
+// fills its panel, so it grows and shrinks as the bottom navbar slides (the panel pads itself by
+// the navbar's inset).
 //
 // Columns: sources | the middle (inverter over battery, or just the battery) | loads. Link geometry
 // is MEASURED from the rendered tiles (ResizeObserver), so it stays glued to tile edges at any
@@ -9,14 +9,13 @@
 
 import {
   useCallback,
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
   type RefObject,
 } from 'react'
-import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import {
   Battery as BatteryIcon,
   Engine,
@@ -27,12 +26,10 @@ import {
   CircuitBoard,
 } from 'lucide-react'
 import {
-  flowSeconds,
   formatPower,
   IDLE_W,
   PULSE_PAUSE_S,
   pulseSeconds,
-  type FlowEdge,
   type NodeId,
   type PowerSnapshot,
 } from './flowModel'
@@ -40,53 +37,8 @@ import { formatTimeToGo } from '@/lib/time-to-go'
 import { SolarHistory } from '@/components/widgets/solar/SolarHistory'
 import { yieldHistoryView } from '@/components/widgets/solar/solarView'
 import type { Solar } from '@/types'
-
-/** Tweens a number so a 640 -> 1850 W jump rolls instead of snapping. */
-function RollingNumber({ value }: { value: number | undefined }) {
-  const mv = useMotionValue(value ?? 0)
-  const reduce = useReducedMotion()
-  useEffect(() => {
-    if (value === undefined) return
-    if (reduce) mv.set(value)
-    else animate(mv, value, { duration: 0.8, ease: 'easeOut' })
-  }, [value, mv, reduce])
-  const text = useTransform(mv, (v) => formatPower(Math.round(v)).value)
-  if (value === undefined) return <span>—</span>
-  return <motion.span>{text}</motion.span>
-}
-
-/**
- * A reading in the Start page's style (as in its half-moons): a light italic number with a bold,
- * upright accent unit. `size` is the number's size; the unit is a fixed step smaller. `fluid`
- * sizes the number by the viewport's height (a short kiosk with the navbar open leaves the tile
- * little room), so it shrinks with the screen instead of being clipped by the tile. It is not
- * sized by the tile's own height: block-axis container units need size containment, which would
- * let a flex row collapse the tile, so they never resolved against the inline-size container.
- */
-function Value({
-  value,
-  unit,
-  fluid = false,
-}: {
-  value: ReactNode
-  unit: string
-  fluid?: boolean
-}) {
-  return (
-    <div className="flex items-baseline font-light italic tabular-nums">
-      <span
-        className={fluid ? 'text-[clamp(2rem,9vh,3.75rem)] leading-none' : 'text-5xl leading-none'}
-      >
-        {value}
-      </span>
-      <span
-        className={`text-accent ml-1 font-semibold not-italic ${fluid ? 'text-[clamp(1rem,4vh,1.5rem)]' : 'text-xl'}`}
-      >
-        {unit}
-      </span>
-    </div>
-  )
-}
+import { PowerLinks } from './PowerLinks'
+import { RollingNumber, Value } from './PowerValue'
 
 interface Box {
   left: number
@@ -211,7 +163,7 @@ function Tile({
         borderColor: active ? 'var(--accent)' : 'var(--border)',
       }}
       transition={{ duration: 0.6 }}
-      className={`bg-surface relative flex max-h-56 min-h-0 flex-1 flex-col justify-between rounded-3xl border-2 p-4 ${className}`}
+      className={`bg-surface @container-[size] relative flex max-h-56 min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-3xl border-2 p-4 ${className}`}
     >
       {/* The title and its value are one block at the top, touching, as in Venus; only the
           sub line is pushed to the bottom. */}
@@ -223,11 +175,17 @@ function Tile({
         <Value value={<RollingNumber value={watts} />} unit={unit} />
       </div>
       {/* Everything under the value is pinned to the bottom, as in Venus: the sub line, then
-          the history strip. The strip takes the room left over, up to a ceiling, and gives it
-          all back on a short tile, so it can never push the value out or make the tile taller. */}
-      <div className="flex min-h-0 flex-col gap-1">
+          the history strip. Each only appears when the tile's content box is tall enough to hold
+          it beside the value (the bottom navbar eats height on short screens); otherwise it is
+          dropped rather than overflowing the border. Thresholds: value block 73px + sub 20px +
+          gap 4px ≈ 6rem; plus the 56px strip + gap ≈ 10rem. */}
+      <div className="hidden min-h-0 flex-col gap-1 [@container(min-height:6rem)]:flex">
         {sub ? <span className="text-muted text-sm capitalize">{sub}</span> : null}
-        {history ? <div className="flex h-14 min-h-0 shrink overflow-hidden">{history}</div> : null}
+        {history ? (
+          <div className="hidden h-14 min-h-0 shrink overflow-hidden [@container(min-height:10rem)]:flex">
+            {history}
+          </div>
+        ) : null}
       </div>
     </motion.div>
   )
@@ -331,54 +289,6 @@ function BatteryTile({
   )
 }
 
-/** One link: a faint rail plus crawling dashes in the direction of power, speed from watts. */
-function Link({ d, edge, peakW }: { d: string; edge: FlowEdge; peakW: number }) {
-  const reduce = useReducedMotion()
-  const on = edge.watts > IDLE_W
-  // One dash step is 20px; a lap of the whole pattern takes flowSeconds / 6.
-  const duration = flowSeconds(edge.watts, peakW) / 6
-  return (
-    <g>
-      <path d={d} fill="none" stroke="var(--border)" strokeWidth={3} strokeLinecap="round" />
-      {on ? (
-        <motion.path
-          d={d}
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth={4}
-          strokeLinecap="round"
-          strokeDasharray="2 18"
-          style={{ filter: 'drop-shadow(0 0 4px var(--accent))' }}
-          animate={reduce ? undefined : { strokeDashoffset: [0, -20] }}
-          transition={{ duration, repeat: Infinity, ease: 'linear' }}
-        />
-      ) : null}
-    </g>
-  )
-}
-
-/**
- * Orthogonal path from `a` to `b`, drawn in the direction of power (so the dashes crawl from the
- * source to the sink). Tiles stacked in one column (inverter over battery) get a straight vertical
- * link through the middle of their overlap; side-by-side tiles elbow inside the gap between them,
- * at `lane` (0 = hugging `a`, 1 = hugging `b`) so edges sharing a gap but heading to different
- * tiles run in separate vertical channels instead of drawing over each other.
- */
-function pathBetween(a: Box, b: Box, lane = 0.5): string {
-  const overlapsHorizontally = a.left < b.right && b.left < a.right
-  if (overlapsHorizontally) {
-    const x = (Math.max(a.left, b.left) + Math.min(a.right, b.right)) / 2
-    return b.top >= a.bottom ? `M ${x} ${a.bottom} V ${b.top}` : `M ${x} ${a.top} V ${b.bottom}`
-  }
-  if (b.left >= a.right) {
-    const mx = a.right + (b.left - a.right) * lane
-    return `M ${a.right} ${a.cy} H ${mx} V ${b.cy} H ${b.left}`
-  }
-  // b sits left of a: same wire, drawn the other way.
-  const mx = a.left - (a.left - b.right) * lane
-  return `M ${a.left} ${a.cy} H ${mx} V ${b.cy} H ${b.right}`
-}
-
 const ICONS: Partial<Record<NodeId, ReactNode>> = {
   solar: <Sun className="size-5" />,
   alternator: <Engine className="size-5" />,
@@ -390,7 +300,7 @@ const ICONS: Partial<Record<NodeId, ReactNode>> = {
 }
 
 const TITLES: Partial<Record<NodeId, string>> = {
-  solar: 'Solar yield',
+  solar: 'Solar',
   alternator: 'Alternator',
   shore: 'Shore',
   inverter: 'Inverter / Charger',
@@ -434,17 +344,6 @@ export function PowerTiles({
     />
   )
 
-  // Edges to draw, each from tile a to tile b in the direction of power. The battery <-> inverter
-  // pair is two edges (one per direction) on the same short vertical link; only the live one is
-  // > 0, the other stays a quiet rail.
-  const drawn = flow.edges.flatMap((edge) => {
-    const a = boxes[edge.from]
-    const b = boxes[edge.to]
-    if (!a || !b || !n[edge.from].present || !n[edge.to].present) return []
-    const lane = edge.from === 'shore' && edge.to === 'inverter' ? 0.25 : 0.5
-    return [{ edge, d: pathBetween(a, b, lane) }]
-  })
-
   return (
     <div className="flex min-h-0 w-full flex-1" data-testid="power-tiles">
       <div
@@ -460,9 +359,12 @@ export function PowerTiles({
           className="pointer-events-none absolute inset-0 size-full overflow-visible"
           aria-hidden
         >
-          {drawn.map(({ edge, d }) => (
-            <Link key={`${edge.from}-${edge.to}`} d={d} edge={edge} peakW={flow.peakW} />
-          ))}
+          <PowerLinks
+            edges={flow.edges}
+            boxes={boxes}
+            present={(id) => n[id].present}
+            peakW={flow.peakW}
+          />
         </svg>
 
         {hasInverter ? (
