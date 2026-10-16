@@ -1,11 +1,15 @@
 import { isCompleteCharger, type Charger } from '@/types'
 
-/** Which charger feeds the Start page's charging reading; the alternator wins when both are present. */
-export type ChargingKind = 'alternator' | 'shore'
+/**
+ * What feeds the Start page's charging reading: the alternator or the shore charger when only one is
+ * charging, `chargers` (both, summed) when both are.
+ */
+export type ChargingKind = 'alternator' | 'shore' | 'chargers'
 
 export const CHARGING_LABELS: Record<ChargingKind, string> = {
   alternator: 'Alternator',
-  shore: 'Shore Charger',
+  shore: 'Shore',
+  chargers: 'Chargers',
 }
 
 export interface Charging {
@@ -21,21 +25,39 @@ export function chargerWatts(charger: Charger): number | undefined {
   return Math.max(0, charger.voltage_v * charger.current_a)
 }
 
-function kindOf(charger: Charger): ChargingKind | undefined {
+type SingleKind = Exclude<ChargingKind, 'chargers'>
+
+function kindOf(charger: Charger): SingleKind | undefined {
   if (charger.source === 'alternator') return 'alternator'
   if (charger.source === 'ac') return 'shore'
   return undefined
 }
 
 /**
- * The charger the charging reading follows: the first alternator, else the first shore charger. A
- * `dc`/`unknown`/not-yet-published source is neither, so it shows nothing (MQTT builds a record up
+ * The charging reading: what the van's chargers put into the battery. With one charger above
+ * `activeW` it is that charger, named (so you can tell driving from plugged in); with both above it,
+ * their sum as `chargers`, so a charging shore charger is never hidden behind the alternator or the
+ * other way round. With neither above it (both idle, or no watts published) the alternator is named,
+ * or the shore charger when it is the only one: the reading stays, and never changes name while the
+ * van is quiet. A charger that has published no watts counts as inactive and adds nothing to the sum.
+ * A `dc`/`unknown`/not-yet-published source is neither, so it shows nothing (MQTT builds a record up
  * one property at a time, so `source` can lag `voltage_v`).
  */
-export function charging(chargers: Record<string, Partial<Charger>>): Charging | undefined {
-  const present = Object.values(chargers).filter(isCompleteCharger)
-  const alternator = present.find((c) => kindOf(c) === 'alternator')
-  const charger = alternator ?? present.find((c) => kindOf(c) === 'shore')
-  if (!charger) return undefined
-  return { kind: kindOf(charger)!, watts: chargerWatts(charger) }
+export function charging(
+  chargers: Record<string, Partial<Charger>>,
+  activeW: number,
+): Charging | undefined {
+  const found = Object.values(chargers)
+    .filter(isCompleteCharger)
+    .flatMap((charger) => {
+      const kind = kindOf(charger)
+      return kind ? [{ kind, watts: chargerWatts(charger) }] : []
+    })
+  const alternator = found.find((c) => c.kind === 'alternator')
+  const shore = found.find((c) => c.kind === 'shore')
+  const active = found.filter((c) => (c.watts ?? 0) > activeW)
+  if (active.length > 1) {
+    return { kind: 'chargers', watts: active.reduce((sum, c) => sum + (c.watts ?? 0), 0) }
+  }
+  return active[0] ?? alternator ?? shore
 }

@@ -11,6 +11,7 @@ const POWER_ICONS: Record<PowerReading['source'], ReactNode> = {
   'battery-net': <Battery className="size-4" />,
   alternator: <Engine className="size-4" />,
   shore: <PlugZap className="size-4" />,
+  chargers: <Zap className="size-4" />,
 }
 
 // A half-moon is a 100° slice of a big circle whose centre sits off to the centre-dial side, so it
