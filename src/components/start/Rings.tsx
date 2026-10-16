@@ -16,7 +16,7 @@ export interface RingModel {
   /** Severity colour from the same view the Tanks page paints with; dim when there is no data. */
   color: string
   hasData: boolean
-  /** The battery ring: a soft band always travels along its fill. */
+  /** The battery ring while it charges: a soft band travels along its fill. */
   pulse?: boolean
 }
 

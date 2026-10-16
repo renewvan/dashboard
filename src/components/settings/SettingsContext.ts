@@ -47,7 +47,7 @@ export interface SettingsContextValue {
   /** The Start page's half-moon sources and scales: the same instance the Start page reads. */
   startPowerSources: StartPowerSources
   setStartPowerSources: (sources: StartPowerSources) => void
-  /** How the Power page is drawn, Tiles or Flow: the same instance the Power page reads. */
+  /** How the Power page is drawn, Tiles or Orbs: the same instance the Power page reads. */
   powerLayout: PowerLayout
   setPowerLayout: (layout: PowerLayout) => void
   setTemperatureName: (id: string, name: string) => void

@@ -1,4 +1,4 @@
-// How the Power page writes a reading, shared by the Tiles and Flow layouts so they look alike: a
+// How the Power page writes a reading, shared by the Tiles and Orbs layouts so they look alike: a
 // light italic number beside a bold, upright accent unit (as in the Start page's half-moons).
 
 import { useEffect, type ReactNode } from 'react'
@@ -25,7 +25,7 @@ export function RollingNumber({ value }: { value: number | undefined }) {
  * short kiosk with the navbar open leaves the tile little room, so it shrinks with the screen
  * instead of being clipped; not by the tile's own height, since block-axis container units need
  * size containment, which would let a flex row collapse the tile). `sizeClass` overrides both for
- * a drawing in its own units, as the Flow orbs are: `[number, unit]` Tailwind text classes.
+ * a drawing in its own units, as the Orbs layout's nodes are: `[number, unit]` Tailwind text classes.
  */
 export function Value({
   value,

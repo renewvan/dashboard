@@ -4,20 +4,20 @@ import type { PowerLayout } from '@/hooks/usePowerLayout'
 import { isCompleteBattery, type Battery, type Charger, type Solar } from '@/types'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import { flowFromBus } from './flowModel'
-import { PowerFlow } from './PowerFlow'
-import { PowerTiles } from './PowerTiles'
+import { OrbsLayout } from './OrbsLayout'
+import { TilesLayout } from './TilesLayout'
 
 interface PowerPageProps {
   batteries: Record<string, Partial<Battery>>
   solar: Record<string, Partial<Solar>>
   chargers: Record<string, Partial<Charger>>
-  /** Tiles or Flow: Settings › General › Display & Appearance › Power page. */
+  /** Tiles or Orbs: Settings › General › Display & Appearance › Power page. */
   layout: PowerLayout
 }
 
 /**
  * The Power page: where the van's power comes from, goes to, and what the battery is doing. One
- * snapshot is built from the bus and drawn by the chosen layout, so Tiles and Flow always show
+ * snapshot is built from the bus and drawn by the chosen layout, so Tiles and Orbs always show
  * the same numbers. The battery is the page's anchor: until it has published, there is nothing
  * to place the sources and loads around, so the page says so instead of drawing numbers it does
  * not have.
@@ -33,10 +33,10 @@ export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps
       className="relative flex min-h-0 flex-1 flex-col px-8 pb-4"
     >
       {hasBattery ? (
-        layout === 'flow' ? (
-          <PowerFlow flow={flow} />
+        layout === 'orbs' ? (
+          <OrbsLayout flow={flow} />
         ) : (
-          <PowerTiles flow={flow} solar={firstSolar(solar)} />
+          <TilesLayout flow={flow} solar={firstSolar(solar)} />
         )
       ) : (
         <div

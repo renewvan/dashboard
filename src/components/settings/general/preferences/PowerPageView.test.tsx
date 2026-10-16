@@ -26,21 +26,21 @@ describe('Settings › General › Display & Appearance › Power page', () => {
   })
 
   it('shows the stored layout as selected and says what it draws', async () => {
-    const { user } = renderSettings({ powerLayout: 'flow' })
+    const { user } = renderSettings({ powerLayout: 'orbs' })
     await openPowerPage(user)
 
-    expect(screen.getByRole('radio', { name: 'Flow' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Orbs' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'Tiles' })).not.toBeChecked()
     expect(screen.getByText(/dots travelling along the wires/)).toBeInTheDocument()
   })
 
-  it('switches from Tiles to Flow', async () => {
+  it('switches from Tiles to Orbs', async () => {
     const { user, value } = renderSettings({ powerLayout: 'tiles' })
     await openPowerPage(user)
 
-    await user.click(screen.getByRole('radio', { name: 'Flow' }))
+    await user.click(screen.getByRole('radio', { name: 'Orbs' }))
 
-    expect(value.setPowerLayout).toHaveBeenCalledExactlyOnceWith('flow')
+    expect(value.setPowerLayout).toHaveBeenCalledExactlyOnceWith('orbs')
   })
 
   it('does nothing on a re-tap of the selected layout', async () => {

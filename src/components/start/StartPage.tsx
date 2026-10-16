@@ -178,7 +178,7 @@ function DialOrEmpty({ slot, isDark, size }: { slot: DialSlot; isDark: boolean; 
       icon={slot.icon}
       size={size}
       glow={isDark}
-      pulse={slot.id === 'battery'}
+      pulse={slot.view.charging}
     />
   )
 }

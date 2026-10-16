@@ -1,3 +1,4 @@
+import { IDLE_W } from '@/components/power/flowModel'
 import { FILL_COLOR } from '@/components/tanks/severity'
 import { tankView } from '@/components/tanks/tankView'
 import type { TankSeverity } from '@/lib/tank-alarm'
@@ -16,6 +17,8 @@ export interface DialView {
   sub: string
   /** Colour the unit letters (`V`, `W`, `ℓ`) of `sub` stronger than the muted numbers. */
   unitsStrong?: boolean
+  /** The battery is taking charge (above `IDLE_W`, as on the Power page): its dial then shows the travelling band. */
+  charging?: boolean
   faulted: boolean
 }
 
@@ -67,6 +70,7 @@ export function batteryDial(batteries: Record<string, Partial<Battery>>): DialVi
     color: batteryColor(pct),
     sub: `${battery.voltage_v.toFixed(2)}V / ${Math.round(Math.abs(battery.power_w))}W`,
     unitsStrong: true,
+    charging: battery.power_w > IDLE_W,
     faulted: false,
   }
 }

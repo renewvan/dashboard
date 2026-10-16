@@ -56,7 +56,7 @@ function ringModel(source: RingSource, view: DialView | undefined, unit: RingUni
     unit: litres === undefined ? '%' : '\u2113',
     color: view?.color ?? NO_DATA_COLOR,
     hasData: view !== undefined,
-    pulse: source === 'battery',
+    pulse: view?.charging,
   }
 }
 
