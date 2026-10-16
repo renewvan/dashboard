@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import type { MqttClient } from 'mqtt'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { useRenewvanBus } from './useRenewvanBus'
 
 type MessageHandler = (topic: string, message: { toString: () => string }) => void

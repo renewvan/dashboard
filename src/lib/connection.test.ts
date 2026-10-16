@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { connectionTier } from './connection'
 
 const NOW = 1_791_288_000_000 // 2026-10-03T12:00:00Z

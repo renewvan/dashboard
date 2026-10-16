@@ -52,16 +52,16 @@ All config is Vite build-time env vars (`VITE_*`), see `.env.example`:
 ## Running
 
 ```bash
-npm install
+vp install
 cp .env.example .env   # set VITE_MQTT_WS_URL at minimum
-npm run dev
+vp dev
 ```
 
 ## Testing
 
 ```bash
-npm install
-npx vitest run
+vp install
+vp test
 ```
 
 Presentational-component and page tests run against fixed props/fixture
@@ -70,14 +70,14 @@ entity maps only — no live MQTT connection required.
 ## Building / deploying
 
 ```bash
-npm run build   # static output in dist/
+vp run build   # type-checks (`vp check`), then bundles to dist/ (`vp build`)
 docker build -t dashboard .
 docker run -p 8080:80 dashboard
 ```
 
 The Dockerfile builds the static bundle and serves it via nginx
 (`nginx.conf`). `VITE_*` vars are build-time — bake them into the image
-(or run `npm run build` with them set) rather than expecting a
+(or run `vp run build` with them set) rather than expecting a
 container-runtime override.
 
 ## Releasing

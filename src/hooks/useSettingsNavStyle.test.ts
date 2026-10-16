@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vite-plus/test'
 import { useSettingsNavStyle } from './useSettingsNavStyle'
 
 const STORAGE_KEY = 'renewvan-dashboard-settings-nav-style'

@@ -1,6 +1,6 @@
 import { toast, toastQueue } from '@heroui/react'
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vite-plus/test'
 import { useUnseenAlertCount } from './useUnseenAlertCount'
 
 // Uses the real HeroUI queue (no provider mounted: the queue is module-level

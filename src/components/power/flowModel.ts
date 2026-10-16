@@ -12,7 +12,14 @@ import { firstSolar } from '@/components/widgets/solar/solarView'
 import { isCompleteBattery, type Battery, type Charger, type Solar } from '@/types'
 
 export type NodeId =
-  'solar' | 'alternator' | 'shore' | 'inverter' | 'battery' | 'loads' | 'acLoads' | 'dcLoads'
+  | 'solar'
+  | 'alternator'
+  | 'shore'
+  | 'inverter'
+  | 'battery'
+  | 'loads'
+  | 'acLoads'
+  | 'dcLoads'
 
 export interface FlowNode {
   id: NodeId

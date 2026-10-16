@@ -1,5 +1,5 @@
 import { act, screen, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vite-plus/test'
 import { renderSettings } from '@/test/renderSettings'
 
 const NAV_STYLE_KEY = 'renewvan-dashboard-settings-nav-style'

@@ -1,5 +1,5 @@
 import { act, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 import { connectedTailscale, liveRouter, renderSettings } from '@/test/renderSettings'
 
 afterEach(() => {

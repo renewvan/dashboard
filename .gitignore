@@ -26,3 +26,4 @@ dist-ssr
 
 # Local env overrides (VITE_MQTT_WS_URL/credentials)
 .env
+.vitest/

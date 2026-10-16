@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { MqttClient } from 'mqtt'
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vite-plus/test'
 import { useRenewvanBus } from './useRenewvanBus'
 
 type Handler = (...args: unknown[]) => void
