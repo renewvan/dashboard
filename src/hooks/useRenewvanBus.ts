@@ -35,7 +35,7 @@ export interface RenewvanBus {
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
   tailscale: TailscaleStatus | null
   routerHealth: RouterHealth | null
-  /** The shared Demo mode flag (`renewvan-demo/enabled`): true while every client reads the simulated van. */
+  /** The shared Demo mode flag (`renewvan/demo/enabled`): true while every client reads the simulated van. */
   demoMode: boolean
   /** Asks `node-demo` to switch demo mode; the view only changes when the bus reports it did. */
   setDemoMode: (demo: boolean) => void
@@ -44,8 +44,12 @@ export interface RenewvanBus {
 
 /** The real van's topic root; every host plugin (kiosk, tailscale) lives here, always. */
 const REAL_ROOT = 'renewvan'
-/** The simulated van's topic root (hub `docs/demo-mode.md`): same shapes as the real root. */
-const DEMO_ROOT = 'renewvan-demo'
+/**
+ * The simulated van's namespace (hub `docs/demo-mode.md`), under the real root: same shapes as the
+ * real topics, one level down. `demo` is not an entity domain, so the real pattern can never match
+ * it, and the logger (exactly four segments, entity domains only) drops all of it.
+ */
+const DEMO_ROOT = `${REAL_ROOT}/demo`
 /** The shared switch: retained state, plus its `/set` command (same convention as the kiosk settings). */
 const TOPIC_DEMO_ENABLED = `${DEMO_ROOT}/enabled`
 const TOPIC_DEMO_ENABLED_SET = `${TOPIC_DEMO_ENABLED}/set`
@@ -147,7 +151,7 @@ function applyMessage(
 }
 
 /**
- * Subscribes to `renewvan/#` and `renewvan-demo/#` over MQTT-over-WebSocket and exposes the
+ * Subscribes to `renewvan/#` (which includes the `renewvan/demo/` namespace) over MQTT-over-WebSocket and exposes the
  * accumulated retained state plus connection status. Env-configured via
  * `VITE_MQTT_WS_URL` (required), `VITE_MQTT_USERNAME`/`VITE_MQTT_PASSWORD`
  * (read-scoped credentials, optional while the broker allows anonymous
@@ -155,7 +159,7 @@ function applyMessage(
  * `../config/runtimeEnv`.
  *
  * Demo mode is one shared switch on the bus (hub `docs/demo-mode.md`), not a per-client
- * preference: `renewvan-demo/enabled` is retained, `node-demo` publishes the simulated van while
+ * preference: `renewvan/demo/enabled` is retained, `node-demo` publishes the simulated van while
  * it is `true`, and every client follows it, so toggling in one dashboard shows the demo in all.
  * Each root's entities are accumulated separately and the flag picks which one is exposed, so
  * switching is instant (no reconnect) and real and simulated values can never mix. The kiosk and
@@ -217,7 +221,9 @@ export function useRenewvanBus(): RenewvanBus {
     client.on('connect', () => {
       if (disposed) return
       setStatus('connected')
-      client.subscribe([`${REAL_ROOT}/#`, `${DEMO_ROOT}/#`])
+      // One wildcard: `renewvan/#` already covers `renewvan/demo/#`, and a second subscription
+      // would make the broker deliver every demo message twice.
+      client.subscribe(`${REAL_ROOT}/#`)
     })
     client.on('reconnect', onStatus('connecting'))
     client.on('close', onStatus('disconnected'))

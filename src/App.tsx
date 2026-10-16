@@ -81,7 +81,7 @@ function App() {
     publish,
   } = useRenewvanBus()
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
-  useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
+  useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled, demo: demoMode })
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
   // A view (and the tank it shows) belongs to the Settings page: any other page change leaves
   // both behind (one entry).
