@@ -12,7 +12,7 @@ interface FakeClient {
   end: Mock
 }
 
-// One entry per `mqtt.connect`, so a test can see the client a flip tore down and the one it made.
+// One entry per `mqtt.connect`: demo mode is a shared bus flag now, so a toggle must NOT make a new one.
 const clients: FakeClient[] = []
 
 vi.mock('mqtt', () => ({
@@ -52,127 +52,135 @@ beforeEach(() => {
   vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
 })
 
-async function renderBus(demo: boolean) {
-  const hook = renderHook(({ demo: flag }) => useRenewvanBus({ demo: flag }), {
-    initialProps: { demo },
-  })
+async function renderBus() {
+  const hook = renderHook(() => useRenewvanBus())
   await waitFor(() => expect(latest().subscribe).toHaveBeenCalled())
   return hook
 }
 
-describe('useRenewvanBus demo flag', () => {
-  it('reads entities from renewvan-demo/ and ignores the real root while on', async () => {
-    const { result } = await renderBus(true)
-    send(latest(), 'renewvan-demo/battery/x/soc_pct', '78')
-    send(latest(), 'renewvan/battery/y/soc_pct', '12')
-    await waitFor(() => expect(result.current.state.batteries).toEqual({ x: { soc_pct: 78 } }))
-  })
-
-  it('reads entities from renewvan/ and ignores the demo root while off', async () => {
-    const { result } = await renderBus(false)
+describe('shared demo mode flag', () => {
+  it('shows the real van until the bus says demo mode is on', async () => {
+    const { result } = await renderBus()
+    expect(result.current.demoMode).toBe(false)
     send(latest(), 'renewvan/battery/y/soc_pct', '12')
     send(latest(), 'renewvan-demo/battery/x/soc_pct', '78')
     await waitFor(() => expect(result.current.state.batteries).toEqual({ y: { soc_pct: 12 } }))
   })
 
-  it('takes router health from the demo root only while on', async () => {
-    const { result } = await renderBus(true)
+  it('follows renewvan-demo/enabled: on shows only the demo van, off only the real one', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan/battery/y/soc_pct', '12')
+    send(latest(), 'renewvan-demo/battery/x/soc_pct', '78')
+
+    send(latest(), 'renewvan-demo/enabled', 'true')
+    await waitFor(() => expect(result.current.demoMode).toBe(true))
+    expect(result.current.state.batteries).toEqual({ x: { soc_pct: 78 } })
+
+    send(latest(), 'renewvan-demo/enabled', 'false')
+    await waitFor(() => expect(result.current.demoMode).toBe(false))
+    expect(result.current.state.batteries).toEqual({ y: { soc_pct: 12 } })
+  })
+
+  it('switches view without reconnecting, so a toggle in another client is instant', async () => {
+    await renderBus()
+    send(latest(), 'renewvan-demo/enabled', 'true')
+    send(latest(), 'renewvan-demo/enabled', 'false')
+    expect(clients).toHaveLength(1)
+    expect(latest().end).not.toHaveBeenCalled()
+  })
+
+  it('keeps each root separate, so real values never leak into demo or back', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan/battery/same/soc_pct', '12')
+    send(latest(), 'renewvan-demo/battery/same/soc_pct', '78')
+    send(latest(), 'renewvan-demo/enabled', 'true')
+    await waitFor(() => expect(result.current.state.batteries.same.soc_pct).toBe(78))
+    send(latest(), 'renewvan-demo/enabled', 'false')
+    await waitFor(() => expect(result.current.state.batteries.same.soc_pct).toBe(12))
+  })
+
+  it('drops a demo value when node-demo clears its retained topic', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan-demo/enabled', 'true')
+    send(latest(), 'renewvan-demo/battery/x/soc_pct', '78')
+    await waitFor(() => expect(result.current.state.batteries).toEqual({ x: { soc_pct: 78 } }))
+    // node-demo removes a retained topic with an empty payload (ADR 0008).
+    send(latest(), 'renewvan-demo/battery/x/soc_pct', '')
+    await waitFor(() => expect(result.current.state.batteries.x?.soc_pct).toBeUndefined())
+  })
+
+  it('ignores anything that is not a JSON boolean on the enabled topic', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan-demo/enabled', 'true')
+    await waitFor(() => expect(result.current.demoMode).toBe(true))
+    for (const bad of ['', 'on', '"true"', 'null', '1']) {
+      send(latest(), 'renewvan-demo/enabled', bad)
+    }
+    expect(result.current.demoMode).toBe(true)
+  })
+
+  it('takes router health from the active root only', async () => {
+    const { result } = await renderBus()
     send(latest(), 'renewvan/router/health', 'online')
-    expect(result.current.routerHealth).toBeNull()
     send(latest(), 'renewvan-demo/router/health', 'offline')
+    await waitFor(() => expect(result.current.routerHealth).toBe('online'))
+    send(latest(), 'renewvan-demo/enabled', 'true')
     await waitFor(() => expect(result.current.routerHealth).toBe('offline'))
   })
 
-  it('subscribes to the demo root plus only the real host plugins while on', async () => {
-    await renderBus(true)
-    expect(latest().subscribe).toHaveBeenCalledWith([
-      'renewvan-demo/#',
-      'renewvan/kiosk/#',
-      'renewvan/tailscale/status',
-    ])
+  it('subscribes to both whole roots on the one connection', async () => {
+    await renderBus()
+    expect(latest().subscribe).toHaveBeenCalledWith(['renewvan/#', 'renewvan-demo/#'])
   })
-
-  it('subscribes to the whole real root while off', async () => {
-    await renderBus(false)
-    expect(latest().subscribe).toHaveBeenCalledWith('renewvan/#')
-  })
-
-  it.each([
-    [false, true],
-    [true, false],
-  ])(
-    'flipping demo %s -> %s drops the client and every accumulated value, then re-subscribes',
-    async (from, to) => {
-      const { result, rerender } = await renderBus(from)
-      const first = latest()
-      const root = from ? 'renewvan-demo' : 'renewvan'
-      send(first, `${root}/battery/x/soc_pct`, '78')
-      send(first, `${root}/router/health`, 'online')
-      send(first, 'renewvan/kiosk/display/power', 'on')
-      send(first, 'renewvan/kiosk/display/brightness', '70')
-      send(first, 'renewvan/kiosk/display/auto-sleep-enabled', 'true')
-      send(first, 'renewvan/kiosk/display/auto-sleep-timeout-minutes', '5')
-      send(first, 'renewvan/tailscale/status', '{"enabled":true,"connected":true,"peers":1}')
-      await waitFor(() => expect(result.current.state.batteries.x).toBeDefined())
-
-      rerender({ demo: to })
-
-      expect(first.end).toHaveBeenCalled()
-      expect(clients).toHaveLength(2)
-      expect(result.current.state.batteries).toEqual({})
-      expect(result.current.routerHealth).toBeNull()
-      expect(result.current.displayPower).toBeNull()
-      expect(result.current.brightness).toBeNull()
-      expect(result.current.autoSleepEnabled).toBeNull()
-      expect(result.current.autoSleepTimeoutMinutes).toBeNull()
-      expect(result.current.tailscale).toBeNull()
-      await waitFor(() => expect(latest().subscribe).toHaveBeenCalled())
-      expect(latest().subscribe).toHaveBeenCalledWith(
-        to ? expect.arrayContaining(['renewvan-demo/#']) : 'renewvan/#',
-      )
-
-      // The torn-down client's late messages and `close` must not repopulate or flip the status.
-      send(first, `${root}/battery/x/soc_pct`, '99')
-      act(() => first.handlers.get('close')?.())
-      expect(result.current.state.batteries).toEqual({})
-      await waitFor(() => expect(result.current.status).toBe('connected'))
-    },
-  )
 
   it('keeps the kiosk and tailscale topics on the real root in demo mode', async () => {
-    const { result } = await renderBus(true)
-    send(latest(), 'renewvan/kiosk/display/power', 'off')
+    const { result } = await renderBus()
+    send(latest(), 'renewvan-demo/enabled', 'true')
     send(latest(), 'renewvan/kiosk/display/brightness', '40')
-    send(latest(), 'renewvan/kiosk/display/auto-sleep-enabled', 'true')
-    send(latest(), 'renewvan/kiosk/display/auto-sleep-timeout-minutes', '15')
-    send(latest(), 'renewvan/tailscale/status', '{"enabled":true,"connected":true,"peers":2}')
-    send(latest(), 'renewvan-demo/kiosk/display/brightness', '99')
-    await waitFor(() => expect(result.current.displayPower).toBe('off'))
-    expect(result.current.brightness).toBe(40)
-    expect(result.current.autoSleepEnabled).toBe(true)
-    expect(result.current.autoSleepTimeoutMinutes).toBe(15)
-    expect(result.current.tailscale).toMatchObject({ connected: true, peers: 2 })
+    send(latest(), 'renewvan/tailscale/status', JSON.stringify({ enabled: true, peers: 2 }))
+    await waitFor(() => expect(result.current.brightness).toBe(40))
+    expect(result.current.tailscale?.peers).toBe(2)
   })
+})
 
-  it('publishes nothing but kiosk commands while on', async () => {
-    const { result } = await renderBus(true)
-    result.current.publish('renewvan/temperature/outdoor/name/set', '"Garage"')
-    result.current.publish('renewvan-demo/temperature/outdoor/name/set', '"Garage"')
-    expect(latest().publish).not.toHaveBeenCalled()
-    result.current.publish('renewvan/kiosk/display/brightness/set', '50')
-    expect(latest().publish).toHaveBeenCalledWith('renewvan/kiosk/display/brightness/set', '50', {
+describe('setDemoMode', () => {
+  it('publishes the retained-state command on renewvan-demo/enabled/set as a JSON boolean', async () => {
+    const { result } = await renderBus()
+    act(() => result.current.setDemoMode(true))
+    expect(latest().publish).toHaveBeenCalledWith('renewvan-demo/enabled/set', 'true', {
+      qos: 1,
+      retain: false,
+    })
+    act(() => result.current.setDemoMode(false))
+    expect(latest().publish).toHaveBeenLastCalledWith('renewvan-demo/enabled/set', 'false', {
       qos: 1,
       retain: false,
     })
   })
 
-  it('publishes any topic while off', async () => {
-    const { result } = await renderBus(false)
-    result.current.publish('renewvan/temperature/outdoor/name/set', '"Garage"')
-    expect(latest().publish).toHaveBeenCalledWith(
-      'renewvan/temperature/outdoor/name/set',
-      '"Garage"',
-      { qos: 1, retain: false },
-    )
+  it('does not flip the view itself: the shared flag from the bus is the only source of truth', async () => {
+    const { result } = await renderBus()
+    act(() => result.current.setDemoMode(true))
+    expect(result.current.demoMode).toBe(false)
+    send(latest(), 'renewvan-demo/enabled', 'true')
+    await waitFor(() => expect(result.current.demoMode).toBe(true))
+  })
+})
+
+describe('publish while in demo mode', () => {
+  it('sends nothing but kiosk commands and the demo switch', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan-demo/enabled', 'true')
+    await waitFor(() => expect(result.current.demoMode).toBe(true))
+    act(() => result.current.publish('renewvan/temperature/indoor/name/set', '"x"'))
+    act(() => result.current.publish('renewvan/kiosk/display/brightness/set', '50'))
+    const sent = latest().publish.mock.calls.map((c) => c[0])
+    expect(sent).toEqual(['renewvan/kiosk/display/brightness/set'])
+  })
+
+  it('publishes any topic while demo mode is off', async () => {
+    const { result } = await renderBus()
+    act(() => result.current.publish('renewvan/temperature/indoor/name/set', '"x"'))
+    expect(latest().publish).toHaveBeenCalledTimes(1)
   })
 })
