@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { DialReadout, type DialSize } from '../DialReadout'
+import { BatteryPulse } from '../BatteryPulse'
 import type { DialView } from './dialView'
 
 interface DialProps {
@@ -10,6 +11,8 @@ interface DialProps {
   size: DialSize
   /** Soft glow behind the fill; dark theme only (it vanishes on a light background). */
   glow: boolean
+  /** The battery dial: a soft band always travels along its fill. */
+  pulse?: boolean
   className?: string
 }
 
@@ -73,7 +76,7 @@ const TRACK_SEGMENTS = segments(TRACK_R)
  * the whole viewBox because the default (the filled arc's own bounding box) slices the band.
  * The arc ends are offset onto a shared baseline (see `ARC_END_GAP`).
  */
-export function CockpitDial({ view, icon, size, glow, className }: DialProps) {
+export function CockpitDial({ view, icon, size, glow, pulse, className }: DialProps) {
   const uid = useId().replace(/:/g, '')
   const maskId = `cut-${uid}`
   const glowId = `glow-${uid}`
@@ -138,6 +141,7 @@ export function CockpitDial({ view, icon, size, glow, className }: DialProps) {
               stroke={view.color}
               strokeWidth={BAND_STROKE}
             />
+            {pulse && <BatteryPulse from={FROM} litTo={filledTo} r={BAND_R} stroke={BAND_STROKE} />}
           </g>
         )}
 

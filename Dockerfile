@@ -1,9 +1,12 @@
-FROM node:22-slim AS build
+# `dist/` is static JS, identical for every target arch, so the build stage always runs on the
+# builder's native platform (no QEMU) and only the nginx stage is produced per-arch.
+FROM --platform=$BUILDPLATFORM node:22-slim AS build
 
 WORKDIR /app
 RUN npm install -g pnpm@11.17.0
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
 RUN pnpm run build
 

@@ -3,6 +3,7 @@ import type { Battery, Tank } from '@/types'
 import { batteryDial, tankDial, tankDialOf } from './dialView'
 import { formatTimeToGo } from '@/lib/time-to-go'
 
+const AMBER_500 = '#f59e0b'
 const NOW = new Date('2026-07-14T12:00:00Z')
 
 function tank(overrides: Partial<Tank> = {}): Tank {
@@ -69,6 +70,16 @@ describe('batteryDial', () => {
     expect(view?.pct).toBe(99.3)
     expect(view?.sub).toBe('13.44V / 8W')
   })
+
+  it('paints the battery blue, amber-500 at 40% and below, red at 20% and below', () => {
+    const colorAt = (soc_pct: number) => batteryDial({ house: battery({ soc_pct }) })?.color
+    expect(colorAt(100)).toBe('var(--accent)')
+    expect(colorAt(41)).toBe('var(--accent)')
+    expect(colorAt(40)).toBe(AMBER_500)
+    expect(colorAt(21)).toBe(AMBER_500)
+    expect(colorAt(20)).toBe('var(--danger)')
+    expect(colorAt(0)).toBe('var(--danger)')
+  })
 })
 
 describe('formatTimeToGo', () => {
@@ -101,15 +112,29 @@ describe('tankDial', () => {
     expect(view.unitsStrong).toBe(true)
   })
 
-  it('paints a grey tank with the tank alert zones: normal, caution, danger', () => {
+  it('paints a grey tank blue, amber-500 in the caution band and red in the danger zone', () => {
     const colorAt = (level_pct: number) => tankDial(tank({ ...GREY_ALARM, level_pct }), NOW).color
-    const normal = colorAt(60)
-    expect(colorAt(80)).toBe(normal)
-    expect(colorAt(85)).toBe('var(--warning)')
+    const blue = colorAt(60)
+    expect(blue).toBe('var(--accent)')
+    expect(colorAt(80)).toBe(blue)
+    expect(colorAt(85)).toBe(AMBER_500)
     expect(colorAt(90)).toBe('var(--danger)')
     expect(colorAt(95)).toBe('var(--danger)')
-    expect(normal).not.toBe('var(--warning)')
-    expect(normal).not.toBe('var(--danger)')
+  })
+
+  it('paints the wrong extreme red even with no alarm configured, and the good one blue', () => {
+    const colorOf = (fluid_type: Tank['fluid_type'], level_pct: number) =>
+      tankDial(tank({ fluid_type, level_pct }), NOW).color
+    // Running out of fresh water, fuel or LPG is the wrong side; being full is fine.
+    expect(colorOf('fresh_water', 0)).toBe('var(--danger)')
+    expect(colorOf('fuel', 0)).toBe('var(--danger)')
+    expect(colorOf('lpg', 0)).toBe('var(--danger)')
+    expect(colorOf('fresh_water', 100)).toBe('var(--accent)')
+    // A full waste tank is the wrong side; an empty one is fine.
+    expect(colorOf('grey_water', 100)).toBe('var(--danger)')
+    expect(colorOf('black_water', 100)).toBe('var(--danger)')
+    expect(colorOf('grey_water', 0)).toBe('var(--accent)')
+    expect(colorOf('fresh_water', 50)).toBe('var(--accent)')
   })
 
   it('shows an empty, danger-painted dial with the fault reason instead of a level', () => {

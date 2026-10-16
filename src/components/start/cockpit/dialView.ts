@@ -1,5 +1,6 @@
 import { FILL_COLOR } from '@/components/tanks/severity'
 import { tankView } from '@/components/tanks/tankView'
+import type { TankSeverity } from '@/lib/tank-alarm'
 import { isCompleteBattery, isCompleteTank, type Battery, type Tank } from '@/types'
 
 /** What one Start-page dial shows. `undefined` from the builders below means "no data yet". */
@@ -18,16 +19,52 @@ export interface DialView {
   faulted: boolean
 }
 
-const BATTERY_COLOR = FILL_COLOR.accent
+/**
+ * The three colours of a Start-page ring, and nothing else: blue is fine, amber-500 is an alert, red is
+ * wrong or bad (empty or full on the wrong side, a fault). Red is the theme's `--danger`; the amber is
+ * Tailwind's amber-500 rather than the theme's paler `--warning`, which badges and the Tanks page keep.
+ */
+const RING_OK = FILL_COLOR.accent
+const RING_ALERT = '#f59e0b'
+const RING_BAD = FILL_COLOR.danger
+
+/** A battery at or below this state of charge is amber, and at or below `BATTERY_BAD_PCT` red. The Power
+ *  page already paints the battery red from 20%. */
+const BATTERY_ALERT_PCT = 40
+const BATTERY_BAD_PCT = 20
+
+function batteryColor(pct: number) {
+  if (pct <= BATTERY_BAD_PCT) return RING_BAD
+  return pct <= BATTERY_ALERT_PCT ? RING_ALERT : RING_OK
+}
+
+/**
+ * A tank ring's colour from the Tanks page's severity (the alarm zones), with the wrong extreme red
+ * even for a tank with no alarm configured: empty for fresh water, fuel and LPG, full for the waste
+ * tanks. A zone the Tanks page paints success (a good extreme) is blue here.
+ */
+function tankColor(
+  severity: TankSeverity,
+  fluid: Tank['fluid_type'],
+  pct: number,
+  faulted: boolean,
+) {
+  if (faulted || severity === 'danger') return RING_BAD
+  const wasteFluid = fluid === 'grey_water' || fluid === 'black_water'
+  const wrongExtreme = wasteFluid ? Math.round(pct) >= 100 : Math.round(pct) <= 0
+  if (wrongExtreme) return RING_BAD
+  return severity === 'warning' ? RING_ALERT : RING_OK
+}
 
 /** The first battery that has fully arrived (MQTT builds a record up one property at a time). */
 export function batteryDial(batteries: Record<string, Partial<Battery>>): DialView | undefined {
   const battery = Object.values(batteries).find(isCompleteBattery)
   if (!battery) return undefined
+  const pct = Math.min(100, Math.max(0, battery.soc_pct))
   return {
     label: 'Battery',
-    pct: Math.min(100, Math.max(0, battery.soc_pct)),
-    color: BATTERY_COLOR,
+    pct,
+    color: batteryColor(pct),
     sub: `${battery.voltage_v.toFixed(2)}V / ${Math.round(Math.abs(battery.power_w))}W`,
     unitsStrong: true,
     faulted: false,
@@ -44,7 +81,7 @@ export function tankDial(tank: Tank, now: Date): DialView {
     label: view.fluidLabel,
     pct: view.pct,
     litres: view.faulted ? 0 : view.litres,
-    color: FILL_COLOR[view.severity],
+    color: tankColor(view.severity, tank.fluid_type, view.pct, view.faulted),
     sub: view.faulted
       ? (view.status?.label ?? 'Fault')
       : `${view.litres} / ${view.capacityL} \u2113`,
