@@ -20,6 +20,7 @@ import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
+import { useDemoMode } from '@/hooks/useDemoMode'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
@@ -67,6 +68,8 @@ const RAIL_INSET = '56px'
 const BAR_INSET = 'calc(57px + env(safe-area-inset-bottom))'
 
 function App() {
+  // Before the bus: the flag picks which van (real or simulated) the bus reads.
+  const [demoMode, setDemoMode] = useDemoMode()
   const {
     state,
     status,
@@ -77,7 +80,7 @@ function App() {
     tailscale,
     routerHealth,
     publish,
-  } = useRenewvanBus()
+  } = useRenewvanBus({ demo: demoMode })
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled })
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
@@ -167,6 +170,8 @@ function App() {
       ...commands,
       alertsEnabled,
       setAlertsEnabled,
+      demoMode,
+      setDemoMode,
       theme,
       setTheme,
       navbarPosition,
@@ -191,6 +196,8 @@ function App() {
       commands,
       alertsEnabled,
       setAlertsEnabled,
+      demoMode,
+      setDemoMode,
       theme,
       setTheme,
       navbarPosition,
@@ -233,6 +240,12 @@ function App() {
       </a>
       <Clock />
       <div className="flex items-center justify-end gap-1.5">
+        {/* Not a control: a persistent mark that every number on screen is simulated. */}
+        {demoMode && (
+          <span className="bg-warning text-warning-foreground rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase">
+            Demo
+          </span>
+        )}
         {/* single router per hub (hub compose's ROUTER_ID) */}
         <UplinkStatusButton
           router={state.routers[routerId]}

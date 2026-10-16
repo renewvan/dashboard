@@ -238,3 +238,20 @@ describe('SettingsPage Alerts', () => {
     expect(setAlertsEnabled).toHaveBeenCalledExactlyOnceWith(false)
   })
 })
+
+describe('SettingsPage Demo mode', () => {
+  it.each([
+    [false, true],
+    [true, false],
+  ])('reports %s -> %s when its whole row is tapped, inline in General', async (demoMode, next) => {
+    const setDemoMode = vi.fn()
+    const { user } = renderSettings({ demoMode, setDemoMode })
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+
+    const row = screen.getByRole('switch', { name: /^Demo mode/ })
+    expect(row.matches(':checked')).toBe(demoMode)
+    await user.click(screen.getByText('Demo mode'))
+
+    expect(setDemoMode).toHaveBeenCalledExactlyOnceWith(next)
+  })
+})

@@ -38,19 +38,30 @@ export interface RenewvanBus {
   publish: (topic: string, payload: string) => void
 }
 
+/** The real van's topic root; every host plugin (kiosk, tailscale) lives here, always. */
+const REAL_ROOT = 'renewvan'
+/** The simulated van's topic root (hub `docs/demo-mode.md`): same shapes as the real root. */
+const DEMO_ROOT = 'renewvan-demo'
+
 // `<id>/<property>` is exactly two segments, so the temperature node's
 // `<id>/name/set` and `<id>/unit/set` command topics (three) never match.
-const TOPIC_PATTERN =
-  /^renewvan\/(tank|relay|battery|solar|charger|router|gps|temperature|tilt)\/([^/]+)\/([^/]+)$/
+function entityPattern(root: string): RegExp {
+  return new RegExp(
+    `^${root}/(tank|relay|battery|solar|charger|router|gps|temperature|tilt)/([^/]+)/([^/]+)$`,
+  )
+}
+const ENTITY_PATTERN = { real: entityPattern(REAL_ROOT), demo: entityPattern(DEMO_ROOT) }
 // Every driver publishes `renewvan/<domain>/driver/status` ("online"/"offline") as its LWT
 // liveness. It fits the two-segment entity shape with id `driver`, so it is dropped explicitly.
 const DRIVER_LIVENESS_ID = 'driver'
-const TOPIC_DISPLAY_POWER = 'renewvan/kiosk/display/power'
-const TOPIC_BRIGHTNESS = 'renewvan/kiosk/display/brightness'
-const TOPIC_AUTO_SLEEP_ENABLED = 'renewvan/kiosk/display/auto-sleep-enabled'
-const TOPIC_AUTO_SLEEP_TIMEOUT = 'renewvan/kiosk/display/auto-sleep-timeout-minutes'
-const TOPIC_TAILSCALE = 'renewvan/tailscale/status'
-const TOPIC_ROUTER_HEALTH = 'renewvan/router/health'
+// The kiosk and tailscale topics are host plugins that no demo node simulates, so they stay on the
+// real root in demo mode: a demo van still dims and sleeps the real screen.
+const KIOSK_PREFIX = `${REAL_ROOT}/kiosk/`
+const TOPIC_DISPLAY_POWER = `${KIOSK_PREFIX}display/power`
+const TOPIC_BRIGHTNESS = `${KIOSK_PREFIX}display/brightness`
+const TOPIC_AUTO_SLEEP_ENABLED = `${KIOSK_PREFIX}display/auto-sleep-enabled`
+const TOPIC_AUTO_SLEEP_TIMEOUT = `${KIOSK_PREFIX}display/auto-sleep-timeout-minutes`
+const TOPIC_TAILSCALE = `${REAL_ROOT}/tailscale/status`
 const AUTO_SLEEP_TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 
 /**
@@ -83,8 +94,13 @@ function accumulate<T>(
   return { ...record, [id]: { ...record[id], [property]: value } as T }
 }
 
-function applyMessage(prev: RenewvanBusState, topic: string, payload: string): RenewvanBusState {
-  const match = TOPIC_PATTERN.exec(topic)
+function applyMessage(
+  prev: RenewvanBusState,
+  topic: string,
+  payload: string,
+  pattern: RegExp,
+): RenewvanBusState {
+  const match = pattern.exec(topic)
   if (!match) return prev
   const [, domain, id, property] = match
   if (id === DRIVER_LIVENESS_ID) return prev
@@ -123,8 +139,17 @@ function applyMessage(prev: RenewvanBusState, topic: string, payload: string): R
  * (read-scoped credentials, optional while the broker allows anonymous
  * access) -- resolved at runtime first, build-time as fallback; see
  * `../config/runtimeEnv`.
+ *
+ * `demo` (default off, see `useDemoMode`) reads the simulated van instead
+ * (hub `docs/demo-mode.md`): entity topics and `router/health` come from
+ * `renewvan-demo/` only, while the kiosk and tailscale host plugins stay on
+ * the real `renewvan/` root (no demo node simulates them). Real entity topics
+ * are ignored in demo mode and vice versa, and flipping the flag drops the
+ * client and every accumulated value before reconnecting, so real and fake
+ * data never mix. Demo state is read-only: `publish` sends only kiosk
+ * commands in demo mode.
  */
-export function useRenewvanBus(): RenewvanBus {
+export function useRenewvanBus({ demo = false }: { demo?: boolean } = {}): RenewvanBus {
   const [state, setState] = useState<RenewvanBusState>(emptyRenewvanBusState)
   const [status, setStatus] = useState<ConnectionStatus>('connecting')
   const [displayPower, setDisplayPower] = useState<DisplayPower>(null)
@@ -137,6 +162,7 @@ export function useRenewvanBus(): RenewvanBus {
   const clientRef = useRef<MqttClient | null>(null)
 
   const publish = (topic: string, payload: string) => {
+    if (demo && !topic.startsWith(KIOSK_PREFIX)) return
     clientRef.current?.publish(topic, payload, { qos: 1, retain: false })
   }
 
@@ -147,6 +173,10 @@ export function useRenewvanBus(): RenewvanBus {
       return
     }
 
+    const pattern = demo ? ENTITY_PATTERN.demo : ENTITY_PATTERN.real
+    const topicRouterHealth = `${demo ? DEMO_ROOT : REAL_ROOT}/router/health`
+    let disposed = false
+
     const client = mqtt.connect(url, {
       username: getEnv('VITE_MQTT_USERNAME'),
       password: getEnv('VITE_MQTT_PASSWORD'),
@@ -154,15 +184,24 @@ export function useRenewvanBus(): RenewvanBus {
     })
     clientRef.current = client
 
+    // `end()` fires `close` after the cleanup below has reset the status: a torn-down client
+    // must not write any state again.
+    const onStatus = (next: ConnectionStatus) => () => {
+      if (!disposed) setStatus(next)
+    }
     client.on('connect', () => {
+      if (disposed) return
       setStatus('connected')
-      client.subscribe('renewvan/#')
+      client.subscribe(
+        demo ? [`${DEMO_ROOT}/#`, `${KIOSK_PREFIX}#`, TOPIC_TAILSCALE] : `${REAL_ROOT}/#`,
+      )
     })
-    client.on('reconnect', () => setStatus('connecting'))
-    client.on('close', () => setStatus('disconnected'))
-    client.on('offline', () => setStatus('disconnected'))
-    client.on('error', () => setStatus('disconnected'))
+    client.on('reconnect', onStatus('connecting'))
+    client.on('close', onStatus('disconnected'))
+    client.on('offline', onStatus('disconnected'))
+    client.on('error', onStatus('disconnected'))
     client.on('message', (topic, message) => {
+      if (disposed) return
       const payload = message.toString()
       if (topic === TOPIC_DISPLAY_POWER) {
         if (payload === 'on' || payload === 'off') setDisplayPower(payload)
@@ -192,18 +231,28 @@ export function useRenewvanBus(): RenewvanBus {
         }
         return
       }
-      if (topic === TOPIC_ROUTER_HEALTH) {
+      if (topic === topicRouterHealth) {
         if (payload === 'online' || payload === 'offline') setRouterHealth(payload)
         return
       }
-      setState((prev) => applyMessage(prev, topic, payload))
+      setState((prev) => applyMessage(prev, topic, payload, pattern))
     })
 
     return () => {
+      disposed = true
       client.end(true)
       clientRef.current = null
+      // Nothing read from this root may outlive it: a flip must never show the other van's values.
+      setState(emptyRenewvanBusState)
+      setStatus('connecting')
+      setDisplayPower(null)
+      setBrightness(null)
+      setAutoSleepEnabled(null)
+      setAutoSleepTimeoutMinutes(null)
+      setTailscale(null)
+      setRouterHealth(null)
     }
-  }, [])
+  }, [demo])
 
   return {
     state,

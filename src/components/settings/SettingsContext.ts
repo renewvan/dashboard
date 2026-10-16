@@ -35,6 +35,9 @@ export interface SettingsContextValue {
   /** The Alerts toggle: the same instance `useAlertToasts` reads. */
   alertsEnabled: boolean
   setAlertsEnabled: (enabled: boolean) => void
+  /** The Demo mode toggle: the same instance `useRenewvanBus` reads its topic root from. */
+  demoMode: boolean
+  setDemoMode: (demo: boolean) => void
   /** The colour theme: the same instance `App` applies to `<html>` and the header toggle drives. */
   theme: Theme
   setTheme: (theme: Theme) => void
