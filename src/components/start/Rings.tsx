@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react'
-import { RINGS_SIZE, arc } from './arcs'
+import { BatteryPulse } from './BatteryPulse'
+import { CUT, RINGS_SIZE, arc } from './arcs'
 import { CutBand } from './CutBand'
 
 /** One ring as drawn. `view` is undefined while its source has not fully arrived over MQTT. */
@@ -15,6 +16,8 @@ export interface RingModel {
   /** Severity colour from the same view the Tanks page paints with; dim when there is no data. */
   color: string
   hasData: boolean
+  /** The battery ring: a soft band always travels along its fill. */
+  pulse?: boolean
 }
 
 // The cockpit's geometry: a thin outer ring wraps three 10-wide bands, each 4 units clear of the
@@ -27,6 +30,7 @@ const BAND = 10
 const GAP = 4
 const FIRST_R = OUTER_R - OUTER_STROKE / 2 - 5.5 - BAND / 2
 const SEGMENTS = 5
+const SEGMENT_SPAN = (TO - FROM) / SEGMENTS
 
 interface RingsProps {
   rings: RingModel[]
@@ -45,6 +49,7 @@ interface RingsProps {
 export function Rings({ rings, legend, centre, glow }: RingsProps) {
   const uid = useId().replace(/:/g, '')
   const glowId = `glow-${uid}`
+  const cutsId = `cuts-${uid}`
 
   return (
     <div className="relative aspect-square w-full max-w-[420px]">
@@ -66,6 +71,34 @@ export function Rings({ rings, legend, centre, glow }: RingsProps) {
             >
               <feGaussianBlur stdDeviation="4" />
             </filter>
+          )}
+          {/* The cuts of a ring, as a mask: the pulse band keeps the gaps between its segments. */}
+          {rings.map((ring, i) =>
+            ring.pulse ? (
+              <mask
+                key={i}
+                id={`${cutsId}-${i}`}
+                maskUnits="userSpaceOnUse"
+                x={0}
+                y={0}
+                width={RINGS_SIZE}
+                height={RINGS_SIZE}
+              >
+                {Array.from({ length: SEGMENTS }, (_, s) => (
+                  <path
+                    key={s}
+                    d={arc(
+                      FROM + s * SEGMENT_SPAN + CUT / 2,
+                      FROM + (s + 1) * SEGMENT_SPAN - CUT / 2,
+                      FIRST_R - i * (BAND + GAP),
+                    )}
+                    fill="none"
+                    stroke="white"
+                    strokeWidth={BAND}
+                  />
+                ))}
+              </mask>
+            ) : null,
           )}
         </defs>
         <path
@@ -102,6 +135,16 @@ export function Rings({ rings, legend, centre, glow }: RingsProps) {
                   filter={`url(#${glowId})`}
                   opacity={0.5}
                 />
+              )}
+              {ring.pulse && ring.hasData && (
+                <g mask={`url(#${cutsId}-${i})`}>
+                  <BatteryPulse
+                    from={FROM}
+                    litTo={FROM + ((TO - FROM) * ring.pct) / 100}
+                    r={r}
+                    stroke={BAND}
+                  />
+                </g>
               )}
             </g>
           )
