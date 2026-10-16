@@ -48,7 +48,8 @@ interface ActiveAlert {
   /** `null` while toasts are disabled: the alert is still tracked and
    * recorded in history, it just has no on-screen toast. */
   toastId: string | null
-  historyId: string
+  /** `null` for a demo alert: it is shown, but never written to the persistent history. */
+  historyId: string | null
   content: AlertContent
 }
 
@@ -59,15 +60,44 @@ interface AlertToastArgs {
   /** Kiosk preference (`useAlertsEnabled`): `false` suppresses toasts only —
    * alert history keeps recording so nothing is lost while muted. */
   enabled: boolean
+  /** Demo mode (the shared bus flag): `tanks` is the simulated van. Its alerts still toast, so the
+   * alert UI can be developed against it, but are never written to the persistent history: a fake
+   * "Grey water tank alarm" must not outlive the demo on the Alerts page. */
+  demo?: boolean
 }
 
-export function useAlertToasts({ tanks, status, tailscale, enabled }: AlertToastArgs): void {
+export function useAlertToasts({
+  tanks,
+  status,
+  tailscale,
+  enabled,
+  demo = false,
+}: AlertToastArgs): void {
   const activeToasts = useRef(new Map<string, ActiveAlert>())
   const programmaticCloses = useRef(new Set<string>())
+  const lastDemo = useRef(demo)
 
   useEffect(() => {
     const active = activeToasts.current
     const desired = new Map<string, AlertContent>()
+
+    // Switching demo mode swaps the van under this hook. Every tracked TANK alert belongs to the
+    // other van, so it is dropped here, its toast closed, and its history entry LEFT ALONE: letting
+    // the diff below treat it as "cleared" would mark a real, still-open alarm as resolved just
+    // because someone looked at the demo. The connection alerts are about the real hub link and
+    // real Tailscale whatever van is on screen, so they stay tracked (dropping them would append
+    // a duplicate history row for the same ongoing outage).
+    if (lastDemo.current !== demo) {
+      lastDemo.current = demo
+      for (const [key, alert] of active) {
+        if (!key.startsWith('tank:')) continue
+        if (alert.toastId !== null) {
+          programmaticCloses.current.add(alert.toastId)
+          toast.close(alert.toastId)
+        }
+        active.delete(key)
+      }
+    }
 
     for (const [id, tank] of Object.entries(tanks)) {
       if (!isCompleteTank(tank) || tank.alarm_state !== 'alarm') continue
@@ -103,7 +133,7 @@ export function useAlertToasts({ tanks, status, tailscale, enabled }: AlertToast
           // calls (resolved / muted paths) — only acknowledge when *this*
           // toast id wasn't the one we just marked as a programmatic close.
           if (programmaticCloses.current.delete(toastId)) return
-          acknowledgeAlertHistoryEntry(alert.historyId)
+          if (alert.historyId !== null) acknowledgeAlertHistoryEntry(alert.historyId)
         },
       }
       const toastId =
@@ -119,7 +149,7 @@ export function useAlertToasts({ tanks, status, tailscale, enabled }: AlertToast
           programmaticCloses.current.add(alert.toastId)
           toast.close(alert.toastId)
         }
-        resolveAlertHistoryEntry(alert.historyId)
+        if (alert.historyId !== null) resolveAlertHistoryEntry(alert.historyId)
         active.delete(key)
       } else if (!enabled && alert.toastId !== null) {
         // Muted while the alert is still open: drop the toast without
@@ -134,11 +164,11 @@ export function useAlertToasts({ tanks, status, tailscale, enabled }: AlertToast
     }
     for (const [key, content] of desired) {
       if (!active.has(key)) {
-        const historyId = appendAlertHistoryEntry({ key, ...content })
+        const historyId = demo ? null : appendAlertHistoryEntry({ key, ...content })
         const alert: ActiveAlert = { toastId: null, historyId, content }
         active.set(key, alert)
         if (enabled) showToast(key, alert)
       }
     }
-  }, [tanks, status, tailscale, enabled])
+  }, [tanks, status, tailscale, enabled, demo])
 }
