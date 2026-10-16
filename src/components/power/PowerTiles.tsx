@@ -30,6 +30,7 @@ import {
   flowSeconds,
   formatPower,
   IDLE_W,
+  PULSE_PAUSE_S,
   pulseSeconds,
   type FlowEdge,
   type NodeId,
@@ -252,7 +253,7 @@ function BatteryTile({
           : 'No data yet'
   const togo = flow.timeToGoS === undefined ? undefined : formatTimeToGo(flow.timeToGoS)
   const low = soc !== undefined && soc <= 20
-  const charging = flow.batteryState === 'charging'
+  const glowing = !reduce
   const fillColour = low ? 'var(--danger)' : 'var(--accent)'
   const pulse = pulseSeconds(power ?? 0, flow.peakW)
   return (
@@ -265,9 +266,9 @@ function BatteryTile({
       className="bg-surface relative flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-3xl border-2 p-4 [@media(max-height:560px)]:p-3"
     >
       {/* Venus fills the tile bottom-up with the SoC; the edge is a spring so a step in SoC
-          settles instead of jumping. While charging, a bright band rises through the fill from its
-          bottom to its top and repeats (the fill clips it at the surface), so "charging" reads as
-          energy moving up into the battery. Speed follows the charge power. */}
+          settles instead of jumping. A soft band always rises through the fill from its bottom to
+          its top and repeats (the fill clips it at the surface), whatever the battery is doing.
+          Speed follows the charge power; discharging and idle use the slowest pace. */}
       <motion.div
         aria-hidden
         className="absolute inset-x-0 bottom-0 overflow-hidden"
@@ -276,19 +277,28 @@ function BatteryTile({
         animate={{ height: `${soc ?? 0}%` }}
         transition={{ type: 'spring', stiffness: 60, damping: 18 }}
       >
-        {charging && !reduce ? (
+        {glowing ? (
           <motion.div
-            className="absolute inset-x-0 h-16"
+            className="absolute inset-x-0 h-10"
             style={{
-              background: `linear-gradient(to top, transparent, color-mix(in oklch, ${fillColour} 100%, white 60%) 55%, transparent)`,
-              filter: 'blur(8px)',
+              top: '100%',
+              background: `linear-gradient(to top, transparent, color-mix(in oklch, ${fillColour} 100%, white 15%))`,
+              opacity: 0.5,
             }}
-            // Starts one band-height below the fill and ends at its top, so it enters smoothly
-            // instead of popping in at the bottom. A fixed height, so the glow looks the same at
-            // 20% and at 99% instead of swelling with the fill.
-            initial={{ bottom: '-4rem' }}
-            animate={{ bottom: '100%' }}
-            transition={{ duration: pulse, repeat: Infinity, ease: 'linear' }}
+            // One loop: the band's top starts flush with the fill's bottom (so it slides in from
+            // under it, as in Venus), rises until its bottom is flush with the fill's top (fully
+            // out), then holds there hidden for the pause. Keyframes, not `repeatDelay`: the loop
+            // restarts from the first keyframe, which is the hidden start. `top` is a % of the
+            // fill and `y` a % of the band itself, one unit each; motion drops the minus sign of
+            // a `calc(0% - 2.5rem)`, which made the band start 40px up.
+            initial={{ top: '100%', y: '0%' }}
+            animate={{ top: ['100%', '0%', '0%'], y: ['0%', '-100%', '-100%'] }}
+            transition={{
+              duration: pulse + PULSE_PAUSE_S,
+              times: [0, pulse / (pulse + PULSE_PAUSE_S), 1],
+              repeat: Infinity,
+              ease: 'linear',
+            }}
           />
         ) : null}
       </motion.div>

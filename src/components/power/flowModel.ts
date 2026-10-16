@@ -74,6 +74,9 @@ export function flowSeconds(watts: number, peakW: number): number {
   return 6 - 3.5 * Math.min(1, watts / peakW)
 }
 
+/** Seconds the battery band rests between two passes, so the next one does not follow at once. */
+export const PULSE_PAUSE_S = 2
+
 /**
  * Seconds one charging pulse takes on a battery fill: 3.2 s at a trickle down to 1.6 s at the
  * busiest link. Shared so A's tile and B's orb breathe at the same rate for the same charge.

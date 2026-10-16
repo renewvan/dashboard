@@ -18,6 +18,7 @@ import {
   flowSeconds,
   formatPower,
   IDLE_W,
+  PULSE_PAUSE_S,
   pulseSeconds,
   type FlowEdge,
   type FlowNode,
@@ -211,28 +212,28 @@ function Wire({ edge, peakW, pos }: { edge: FlowEdge; peakW: number; pos: Layout
 
 /**
  * The battery's fill, as in the Tiles layout: a translucent disc rising from the bottom by the charge,
- * clipped to the circle, and while charging a bright band rising through it from bottom to top.
- * The translucency is in the colour (not `opacity`) so the band keeps full strength.
+ * clipped to the circle, with a soft band that always rises through it from bottom to top.
+ * The translucency is in the colour (not `opacity`) so the band keeps its own strength.
  */
 function BatteryFill({
   x,
   y,
   soc,
   colour,
-  charging,
+  active,
   pulse,
 }: {
   x: number
   y: number
   soc: number
   colour: string
-  charging: boolean
+  active: boolean
   pulse: number
 }) {
   const inner = R - 4
   const level = soc * inner * 2
   // A fixed share of the orb, not of the fill, so the glow looks the same at 20% and at 99%.
-  const bandH = inner * 0.35
+  const bandH = inner * 0.2
   return (
     <g clipPath="url(#orb-clip-battery)">
       <motion.rect
@@ -243,7 +244,7 @@ function BatteryFill({
         animate={{ y: y + inner - level, height: level }}
         transition={{ type: 'spring', stiffness: 60, damping: 18 }}
       />
-      {charging ? (
+      {active ? (
         // Only the part of the band inside the fill shows: the fill's own rect is the clip.
         <g clipPath="url(#orb-clip-battery-fill)">
           <motion.rect
@@ -251,11 +252,18 @@ function BatteryFill({
             width={inner * 2}
             height={bandH}
             fill={`url(#orb-glow-battery)`}
-            style={{ filter: 'blur(8px)' }}
-            // Starts one band below the circle's bottom, ends one band above its top.
+            opacity={0.5}
+            // One loop: rise from just below the circle, through the fill, out of its top, then
+            // hold there hidden for the pause, so the rest is empty. Keyframes (not `repeatDelay`)
+            // because the loop restarts from the first keyframe, which is the hidden bottom.
             initial={{ y: y + inner }}
-            animate={{ y: y - inner - bandH }}
-            transition={{ duration: pulse, repeat: Infinity, ease: 'linear' }}
+            animate={{ y: [y + inner, y - inner - bandH, y - inner - bandH] }}
+            transition={{
+              duration: pulse + PULSE_PAUSE_S,
+              times: [0, pulse / (pulse + PULSE_PAUSE_S), 1],
+              repeat: Infinity,
+              ease: 'linear',
+            }}
           />
         </g>
       ) : null}
@@ -272,7 +280,7 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
   const fill = isBattery ? (flow.soc ?? 0) / 100 : Math.min(1, Math.abs(w ?? 0) / flow.peakW)
   const low = isBattery && flow.soc !== undefined && flow.soc <= 20
   const colour = low ? 'var(--danger)' : ACCENT
-  const charging = isBattery && flow.batteryState === 'charging' && !reduce
+  const active = isBattery && !reduce
   const pulse = pulseSeconds(isBattery ? (w ?? 0) : 0, flow.peakW)
   const inner = R - 4
   return (
@@ -293,8 +301,7 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
           </clipPath>
           <linearGradient id="orb-glow-battery" x1="0" x2="0" y1="1" y2="0">
             <stop offset="0" stopColor={colour} stopOpacity="0" />
-            <stop offset="0.55" stopColor={`color-mix(in oklch, ${colour} 100%, white 60%)`} />
-            <stop offset="1" stopColor={colour} stopOpacity="0" />
+            <stop offset="1" stopColor={`color-mix(in oklch, ${colour} 100%, white 15%)`} />
           </linearGradient>
         </defs>
       ) : null}
@@ -309,7 +316,7 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
         strokeWidth={8}
       />
       {isBattery ? (
-        <BatteryFill x={x} y={y} soc={fill} colour={colour} charging={charging} pulse={pulse} />
+        <BatteryFill x={x} y={y} soc={fill} colour={colour} active={active} pulse={pulse} />
       ) : null}
       <motion.circle
         cx={x}

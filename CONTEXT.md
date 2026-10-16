@@ -58,7 +58,7 @@ The `power` page (`?page=power`, `src/components/power/`): where the van's power
 _Avoid_: Energy page, overview, power flow (that is the **Flow** layout, not the page)
 
 **Power layout**:
-The kiosk-local choice, in Settings → General → Display & Appearance → Power page (`usePowerLayout`, `localStorage`, default **Tiles**), of how the **Power page** draws the snapshot: **Tiles** (boxed readings joined by links along which dashes crawl) or **Flow** (round nodes on a diagram, beads travelling the wires). Both fill the page, so they grow and shrink as the bottom **Navbar position** slides, and both fill the battery from the bottom by its charge and, while it charges, send a glow rising up through the fill. Flow speed and pulse rate follow the watts. Only the picture differs between layouts.
+The kiosk-local choice, in Settings → General → Display & Appearance → Power page (`usePowerLayout`, `localStorage`, default **Tiles**), of how the **Power page** draws the snapshot: **Tiles** (boxed readings joined by links along which dashes crawl) or **Flow** (round nodes on a diagram, beads travelling the wires). Both fill the page, so they grow and shrink as the bottom **Navbar position** slides, and both fill the battery from the bottom by its charge and always send a soft glow rising up through the fill, whether it charges, discharges or idles. Flow speed and pulse rate follow the watts. Only the picture differs between layouts.
 _Avoid_: Power style, power view, variant
 
 **Loads**:
