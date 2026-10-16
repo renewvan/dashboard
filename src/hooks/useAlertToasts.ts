@@ -76,17 +76,25 @@ export function useAlertToasts({
   const activeToasts = useRef(new Map<string, ActiveAlert>())
   const programmaticCloses = useRef(new Set<string>())
   const lastDemo = useRef(demo)
+  // The real van's tank alerts, set aside while demo mode shows the simulated one. Their history
+  // ids are kept so that when the real van comes back and the same alarm is still open, the diff
+  // finds it already tracked instead of recording it a second time.
+  const parkedRealTankAlerts = useRef(new Map<string, ActiveAlert>())
 
   useEffect(() => {
     const active = activeToasts.current
     const desired = new Map<string, AlertContent>()
 
-    // Switching demo mode swaps the van under this hook. Every tracked TANK alert belongs to the
-    // other van, so it is dropped here, its toast closed, and its history entry LEFT ALONE: letting
-    // the diff below treat it as "cleared" would mark a real, still-open alarm as resolved just
-    // because someone looked at the demo. The connection alerts are about the real hub link and
-    // real Tailscale whatever van is on screen, so they stay tracked (dropping them would append
-    // a duplicate history row for the same ongoing outage).
+    // Switching demo mode swaps the van under this hook. Tank alerts belong to whichever van is on
+    // screen, so on a switch they are taken out of play and their toasts closed WITHOUT touching
+    // history: letting the diff below treat them as "cleared" would resolve a real alarm just
+    // because someone looked at the demo.
+    //  - Into demo: the real van's tank alerts are parked (history ids kept), and restored when
+    //    the real van returns. If the same alarm is still open the diff then finds it tracked and
+    //    does nothing; if it cleared in the meantime the diff resolves it, which is correct.
+    //  - Out of demo: the demo alerts have no history entry and are simply discarded.
+    // Connection alerts are about the real hub link and real Tailscale whatever van is on screen,
+    // so they stay tracked (dropping them would append a duplicate row for the same outage).
     if (lastDemo.current !== demo) {
       lastDemo.current = demo
       for (const [key, alert] of active) {
@@ -96,6 +104,11 @@ export function useAlertToasts({
           toast.close(alert.toastId)
         }
         active.delete(key)
+        if (demo) parkedRealTankAlerts.current.set(key, { ...alert, toastId: null })
+      }
+      if (!demo) {
+        for (const [key, alert] of parkedRealTankAlerts.current) active.set(key, alert)
+        parkedRealTankAlerts.current.clear()
       }
     }
 

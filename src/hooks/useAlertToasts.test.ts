@@ -235,6 +235,60 @@ describe('useAlertToasts', () => {
       expect(append).toHaveBeenCalledTimes(1)
     })
 
+    it('does not add a second history row for a real alarm that stays open across a demo round trip', () => {
+      spyToasts()
+      const append = vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('real-1')
+      const resolve = vi.spyOn(alertHistory, 'resolveAlertHistoryEntry')
+
+      // A real alarm is open and recorded. Demo mode is switched on (the van swaps to the demo one,
+      // which is fine), then off again: the SAME real alarm is still open, so it must not be
+      // recorded a second time, and it must not be resolved while demo was only being looked at.
+      const { rerender } = renderHook(
+        ({ tanks, demo }) =>
+          useAlertToasts({ tanks, status: 'connected', tailscale: null, enabled: true, demo }),
+        { initialProps: { tanks: { fresh: alarmTank }, demo: false } },
+      )
+      expect(append).toHaveBeenCalledTimes(1)
+      rerender({ tanks: { fresh: okTank }, demo: true })
+      rerender({ tanks: { fresh: alarmTank }, demo: false })
+
+      expect(append).toHaveBeenCalledTimes(1)
+      expect(resolve).not.toHaveBeenCalled()
+    })
+
+    it('shows the real alarm toast again, once, when demo mode ends and it is still open', () => {
+      const { danger } = spyToasts()
+      vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('real-1')
+
+      const { rerender } = renderHook(
+        ({ tanks, demo }) =>
+          useAlertToasts({ tanks, status: 'connected', tailscale: null, enabled: true, demo }),
+        { initialProps: { tanks: { fresh: alarmTank }, demo: false } },
+      )
+      expect(danger).toHaveBeenCalledTimes(1)
+      rerender({ tanks: { fresh: okTank }, demo: true })
+      rerender({ tanks: { fresh: alarmTank }, demo: false })
+
+      expect(danger).toHaveBeenCalledTimes(2) // the original, and one on return, not a stack
+    })
+
+    it('resolves the real alarm normally if it really clears while demo mode is off', () => {
+      spyToasts()
+      vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('real-1')
+      const resolve = vi.spyOn(alertHistory, 'resolveAlertHistoryEntry')
+
+      const { rerender } = renderHook(
+        ({ tanks, demo }) =>
+          useAlertToasts({ tanks, status: 'connected', tailscale: null, enabled: true, demo }),
+        { initialProps: { tanks: { fresh: alarmTank }, demo: false } },
+      )
+      rerender({ tanks: { fresh: okTank }, demo: true })
+      rerender({ tanks: { fresh: alarmTank }, demo: false })
+      rerender({ tanks: { fresh: okTank }, demo: false })
+
+      expect(resolve).toHaveBeenCalledWith('real-1')
+    })
+
     it('keeps recording real alarms once demo mode is switched off again', () => {
       spyToasts()
       const append = vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('h1')
