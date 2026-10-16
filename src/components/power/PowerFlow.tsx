@@ -193,7 +193,7 @@ const ACCENT = 'var(--accent)'
 
 /**
  * The battery's fill, as in the Tiles layout: a translucent disc rising from the bottom by the charge,
- * clipped to the circle, with a soft band that always rises through it from bottom to top.
+ * clipped to the circle, with a soft band that rises through it from bottom to top while charging.
  * The translucency is in the colour (not `opacity`) so the band keeps its own strength.
  */
 function BatteryFill({
@@ -261,7 +261,8 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
   const fill = isBattery ? (flow.soc ?? 0) / 100 : Math.min(1, Math.abs(w ?? 0) / flow.peakW)
   const low = isBattery && flow.soc !== undefined && flow.soc <= 20
   const colour = low ? 'var(--danger)' : ACCENT
-  const active = isBattery && !reduce
+  const charging = isBattery && flow.batteryState === 'charging'
+  const active = charging && !reduce
   const pulse = pulseSeconds(isBattery ? (w ?? 0) : 0, flow.peakW)
   const inner = R - 4
   const side = labelSide(node.id, flow)
@@ -313,7 +314,7 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
         initial={{ strokeDashoffset: CIRC }}
         animate={{ strokeDashoffset: CIRC * (1 - fill) }}
         transition={{ type: 'spring', stiffness: 50, damping: 16 }}
-        style={{ filter: `drop-shadow(0 0 6px ${colour})` }}
+        style={{ filter: !isBattery || charging ? `drop-shadow(0 0 6px ${colour})` : 'none' }}
       />
       <foreignObject x={x - R} y={y - R} width={R * 2} height={R * 2}>
         <div className="text-foreground flex size-full flex-col items-center justify-center">

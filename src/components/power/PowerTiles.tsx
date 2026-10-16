@@ -211,7 +211,7 @@ function BatteryTile({
           : 'No data yet'
   const togo = flow.timeToGoS === undefined ? undefined : formatTimeToGo(flow.timeToGoS)
   const low = soc !== undefined && soc <= 20
-  const glowing = !reduce
+  const glowing = flow.batteryState === 'charging' && !reduce
   const fillColour = low ? 'var(--danger)' : 'var(--accent)'
   const pulse = pulseSeconds(power ?? 0, flow.peakW)
   return (
@@ -219,14 +219,16 @@ function BatteryTile({
       ref={register('battery')}
       animate={{
         borderColor: fillColour,
-        boxShadow: `0 0 22px 2px color-mix(in oklch, ${fillColour} 40%, transparent)`,
+        boxShadow: glowing
+          ? `0 0 22px 2px color-mix(in oklch, ${fillColour} 40%, transparent)`
+          : '0 0 0 0 transparent',
       }}
       className="bg-surface relative flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-3xl border-2 p-4 [@media(max-height:560px)]:p-3"
     >
       {/* Venus fills the tile bottom-up with the SoC; the edge is a spring so a step in SoC
-          settles instead of jumping. A soft band always rises through the fill from its bottom to
-          its top and repeats (the fill clips it at the surface), whatever the battery is doing.
-          Speed follows the charge power; discharging and idle use the slowest pace. */}
+          settles instead of jumping. While the battery charges, a soft band rises through the fill
+          from its bottom to its top and repeats (the fill clips it at the surface), and the tile
+          glows; otherwise neither is drawn. Speed follows the charge power. */}
       <motion.div
         aria-hidden
         className="absolute inset-x-0 bottom-0 overflow-hidden"
