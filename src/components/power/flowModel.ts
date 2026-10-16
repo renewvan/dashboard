@@ -1,5 +1,5 @@
 // The Power page's model: the van's power at one instant, as nodes and the flows between them.
-// Both layouts (Tiles and Flow) draw this one snapshot, so they always show the same numbers.
+// Both layouts (Tiles and Orbs) draw this one snapshot, so they always show the same numbers.
 //
 // The bus carries solar, battery and charger (alternator / shore) entities. It does NOT yet carry
 // an inverter/charger or separate AC / DC load readings (node-venus maps none of Venus's vebus or

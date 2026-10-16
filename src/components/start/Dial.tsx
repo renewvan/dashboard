@@ -4,6 +4,7 @@ import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import type { RingSource, RingUnit, StartPowerSources } from '@/hooks/useStartPowerSources'
+import { IDLE_W } from '@/components/power/flowModel'
 import { charging } from '@/lib/charging'
 import { INDOOR_ID, OUTDOOR_ID } from '@/lib/temperature'
 import {
@@ -56,7 +57,7 @@ function ringModel(source: RingSource, view: DialView | undefined, unit: RingUni
     unit: litres === undefined ? '%' : '\u2113',
     color: view?.color ?? NO_DATA_COLOR,
     hasData: view !== undefined,
-    pulse: source === 'battery',
+    pulse: view?.charging,
   }
 }
 
@@ -81,7 +82,7 @@ export function Dial({
   const battery = Object.values(batteries).find(isCompleteBattery)
   const solarW = firstSolar(solar)?.power_w
   const batteryW = battery?.power_w
-  const present = charging(chargers)
+  const present = charging(chargers, IDLE_W)
 
   const batteryView = batteryDial(batteries)
   const rings = powerSources.rings.map((source) =>

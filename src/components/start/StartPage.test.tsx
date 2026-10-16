@@ -265,7 +265,7 @@ describe('StartPage kiosk dial', () => {
 
       const dial = screen.getByTestId('start-dial')
       expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
-      expect(within(dial).queryByText('Shore Charger')).not.toBeInTheDocument()
+      expect(within(dial).queryByText('Shore')).not.toBeInTheDocument()
       expect(within(dial).queryByText('Charging')).not.toBeInTheDocument()
     })
 
@@ -284,10 +284,10 @@ describe('StartPage kiosk dial', () => {
       })
 
       const dial = screen.getByTestId('start-dial')
-      expect(within(dial).getByText('Shore Charger').parentElement).toHaveTextContent('144W')
+      expect(within(dial).getByText('Shore').parentElement).toHaveTextContent('144W')
     })
 
-    it('prefers the alternator when both are present', () => {
+    it('sums the alternator and the shore charger as Chargers once both are charging', () => {
       renderAt(KIOSK_WIDTH, {
         chargers: {
           1: { voltage_v: 14.4, current_a: 10, source: 'ac' },
@@ -296,8 +296,22 @@ describe('StartPage kiosk dial', () => {
       })
 
       const dial = screen.getByTestId('start-dial')
-      expect(within(dial).getByText('Alternator')).toBeInTheDocument()
-      expect(within(dial).queryByText('Shore Charger')).not.toBeInTheDocument()
+      expect(within(dial).getByText('Chargers').parentElement).toHaveTextContent('387W')
+      expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
+      expect(within(dial).queryByText('Shore')).not.toBeInTheDocument()
+    })
+
+    it('shows the shore charger while the alternator is on the bus but idle', () => {
+      renderAt(KIOSK_WIDTH, {
+        chargers: {
+          1: { voltage_v: 13.1, current_a: 0, source: 'alternator' },
+          2: { voltage_v: 13.28, current_a: 30, source: 'ac' },
+        },
+      })
+
+      const dial = screen.getByTestId('start-dial')
+      expect(within(dial).getByText('Shore').parentElement).toHaveTextContent('398W')
+      expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
     })
 
     it('waits for the charger to say what it is, rather than guessing a source', () => {
@@ -305,7 +319,7 @@ describe('StartPage kiosk dial', () => {
 
       const dial = screen.getByTestId('start-dial')
       expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
-      expect(within(dial).queryByText('Shore Charger')).not.toBeInTheDocument()
+      expect(within(dial).queryByText('Shore')).not.toBeInTheDocument()
     })
   })
 

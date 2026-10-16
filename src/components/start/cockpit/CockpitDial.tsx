@@ -11,7 +11,7 @@ interface DialProps {
   size: DialSize
   /** Soft glow behind the fill; dark theme only (it vanishes on a light background). */
   glow: boolean
-  /** The battery dial: a soft band always travels along its fill. */
+  /** The battery dial while it charges: a soft band travels along its fill. */
   pulse?: boolean
   className?: string
 }

@@ -4,7 +4,7 @@ import { arc } from './arcs'
 
 /** The band's length as a share of the full 270° sweep. */
 const BAND_SHARE = 0.14
-/** One pass at the slowest pace, the same as the Power page's battery at idle or discharging. */
+/** One pass at the slowest pace, the same as the Power page's battery at its slowest charge. */
 const PASS_S = pulseSeconds(0, 1)
 /** The band is a stack of dashes whose opacity falls off behind its leading edge, so no hard edge. */
 const SLICES = 10
@@ -21,7 +21,7 @@ interface BatteryPulseProps {
 }
 
 /**
- * A soft band that always travels along the lit part of the battery ring, from where the fill starts
+ * A soft band that travels along the lit part of the battery ring while the battery charges, from where the fill starts
  * to where it ends, as the Power page's battery band travels up its fill: it slides in from before
  * the start, leaves past the end, rests hidden for `PULSE_PAUSE_S`, and goes again. Like Venus OS's
  * band it is brightest at its leading edge and fades to nothing behind it, one side only.

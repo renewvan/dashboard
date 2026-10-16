@@ -315,7 +315,7 @@ const TITLES: Partial<Record<NodeId, string>> = {
  * What the Solar tile draws from: the controller's daily harvest history. The Start page's solar
  * widget owns the live power bars; this tile shows the live watts in its value and the week below.
  */
-export function PowerTiles({
+export function TilesLayout({
   flow,
   solar,
 }: {

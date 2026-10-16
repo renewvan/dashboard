@@ -1,4 +1,4 @@
-// The Power page's Flow layout: round nodes on a diagram, joined by the same links as the Tiles
+// The Power page's Orbs layout: round nodes on a diagram, joined by the same links as the Tiles
 // layout (see PowerLinks: grey rails, blue dashes, one shared run into each sink). The SVG fills
 // its panel (meet-fit), so it grows and shrinks as the bottom navbar slides, which the panel
 // already accounts for by padding itself.
@@ -349,7 +349,7 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
   )
 }
 
-export function PowerFlow({ flow }: { flow: PowerSnapshot }) {
+export function OrbsLayout({ flow }: { flow: PowerSnapshot }) {
   const pos = layout(flow)
   // An orb is a box as wide and tall as its circle: wires leave from its extreme left, right, top
   // and bottom points, at its centre.
@@ -360,7 +360,7 @@ export function PowerFlow({ flow }: { flow: PowerSnapshot }) {
   return (
     <div
       className="flex min-h-0 w-full flex-1 items-center justify-center"
-      data-testid="power-flow"
+      data-testid="power-orbs"
     >
       <svg
         viewBox={`0 0 ${widthFor(flow)} ${H}`}

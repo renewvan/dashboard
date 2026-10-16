@@ -34,20 +34,20 @@ describe('PowerPage', () => {
     )
 
     expect(screen.getByTestId('power-tiles')).toBeInTheDocument()
-    expect(screen.queryByTestId('power-flow')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('power-orbs')).not.toBeInTheDocument()
   })
 
-  it('draws the Flow layout when asked for flow', () => {
+  it('draws the Orbs layout when asked for orbs', () => {
     render(
       <PowerPage
         batteries={{ house: battery }}
         solar={{ roof: sun }}
         chargers={none}
-        layout="flow"
+        layout="orbs"
       />,
     )
 
-    expect(screen.getByTestId('power-flow')).toBeInTheDocument()
+    expect(screen.getByTestId('power-orbs')).toBeInTheDocument()
     expect(screen.queryByTestId('power-tiles')).not.toBeInTheDocument()
   })
 
@@ -59,12 +59,12 @@ describe('PowerPage', () => {
     expect(screen.getByText('900')).toBeInTheDocument()
     tiles.unmount()
 
-    render(<PowerPage {...props} layout="flow" />)
+    render(<PowerPage {...props} layout="orbs" />)
     expect(screen.getByText('83')).toBeInTheDocument()
     expect(screen.getByText('900')).toBeInTheDocument()
   })
 
-  it.each(['tiles', 'flow'] as const)(
+  it.each(['tiles', 'orbs'] as const)(
     'says "No data yet" in the %s layout until the battery has published, never a number',
     (layout) => {
       render(
@@ -78,7 +78,7 @@ describe('PowerPage', () => {
 
       expect(screen.getByRole('status')).toHaveTextContent('No data yet')
       expect(screen.queryByTestId('power-tiles')).not.toBeInTheDocument()
-      expect(screen.queryByTestId('power-flow')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('power-orbs')).not.toBeInTheDocument()
     },
   )
 

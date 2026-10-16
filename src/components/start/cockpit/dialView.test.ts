@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 import type { Battery, Tank } from '@/types'
+import { IDLE_W } from '@/components/power/flowModel'
 import { batteryDial, tankDial, tankDialOf } from './dialView'
 import { formatTimeToGo } from '@/lib/time-to-go'
 
@@ -49,6 +50,14 @@ describe('batteryDial', () => {
     expect(charging?.sub).toBe('13.24V / 120W')
     expect(discharging?.sub).toBe('13.24V / 120W')
     expect(charging?.unitsStrong).toBe(true)
+  })
+
+  it('is charging only above the idle band, as on the Power page', () => {
+    const at = (power_w: number) => batteryDial({ house: battery({ power_w }) })?.charging
+    expect(at(IDLE_W + 1)).toBe(true)
+    expect(at(IDLE_W)).toBe(false)
+    expect(at(0)).toBe(false)
+    expect(at(-120)).toBe(false)
   })
 
   it('clamps an out-of-range state of charge into the arc', () => {

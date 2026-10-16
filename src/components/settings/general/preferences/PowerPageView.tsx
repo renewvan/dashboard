@@ -9,7 +9,7 @@ const LAYOUT_CHOICES = POWER_LAYOUTS.map((value) => ({
 
 const LAYOUT_HINTS: Record<PowerLayout, string> = {
   tiles: 'Boxed readings for each source, the battery and the loads, joined by flowing lines.',
-  flow: 'Round nodes on a diagram, with dots travelling along the wires from source to load.',
+  orbs: 'Round nodes on a diagram, with dots travelling along the wires from source to load.',
 }
 
 interface PowerPageViewProps {
