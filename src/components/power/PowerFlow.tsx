@@ -1,7 +1,7 @@
-// The Power page's Flow layout: round nodes on a diagram, with beads travelling each wire from
-// source to load (count follows the watts, speed is the shared `flowSeconds`). The SVG fills its
-// panel (meet-fit), so it grows and shrinks as the bottom navbar slides, which the panel already
-// accounts for by padding itself.
+// The Power page's Flow layout: round nodes on a diagram, joined by the same links as the Tiles
+// layout (see PowerLinks: grey rails, blue dashes, one shared run into each sink). The SVG fills
+// its panel (meet-fit), so it grows and shrinks as the bottom navbar slides, which the panel
+// already accounts for by padding itself.
 
 import type { ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -15,16 +15,18 @@ import {
   Zap,
 } from 'lucide-react'
 import {
-  flowSeconds,
   formatPower,
-  IDLE_W,
   PULSE_PAUSE_S,
   pulseSeconds,
-  type FlowEdge,
   type FlowNode,
   type NodeId,
   type PowerSnapshot,
 } from './flowModel'
+import { PowerLinks, type LinkBox } from './PowerLinks'
+import { RollingNumber, Value } from './PowerValue'
+
+/** Number and unit sizes of an orb's reading: the Tiles' ratio, in the diagram's own units. */
+const ORB_VALUE = ['text-8xl', 'text-5xl'] as const
 
 // Large on purpose: the diagram is read from an arm's length in a van.
 const R = 230
@@ -54,18 +56,61 @@ const COL_PITCH = 2 * R + COL_GAP
 const ROW_PITCH = 2 * R + ROW_GAP
 /** The top row's labels sit above it, so the top margin carries one LABEL; the bottom row's hang below. */
 const TOP = MARGIN + LABEL
-const W = 2 * COL_PITCH + 2 * R + 2 * MARGIN
+/** The diagram is always two rows tall: more sources add a column, never a row, so orbs stay big. */
 const H = TOP + ROW_PITCH + 2 * R + LABEL + MARGIN
 
 /**
- * Nodes whose label goes above the orb. The inverter's wire leaves from its bottom edge and the
- * battery's enters at its top, so a label hanging under the inverter would sit on that wire;
- * everything else has a free bottom edge. A static lookup: only one node is ever affected.
+ * With three sources and no inverter, solar takes the middle column's top row, straight over the
+ * battery (the spot an inverter would occupy), and a vertical link drops into it.
  */
-const LABEL_ABOVE: Partial<Record<NodeId, true>> = { inverter: true }
+function solarOnTop(flow: PowerSnapshot): boolean {
+  const n = flow.nodes
+  return !n.inverter.present && SOURCE_IDS.every((id) => n[id].present)
+}
+
+/** Source columns: three sources with an inverter need a second; solar-on-top needs none. */
+function sourceColumns(flow: PowerSnapshot): number {
+  if (solarOnTop(flow)) return 1
+  return SOURCE_IDS.filter((id) => flow.nodes[id].present).length > 2 ? 2 : 1
+}
+
+/** Room outside the outermost orbs for a side label: "Alternator" is 184 wide at 44px, plus its gap. */
+const SIDE = 230
+
+function widthFor(flow: PowerSnapshot): number {
+  const cols = sourceColumns(flow) + 2
+  return (cols - 1) * COL_PITCH + 2 * R + 2 * SIDE
+}
+
+type LabelSide = 'left' | 'right' | 'above' | 'below'
 
 /**
- * Three columns, left to right: sources | the middle | loads.
+ * Where a node's label goes. Sources name themselves to the left of their orb and loads to the
+ * right, in the margins outside the diagram where no wire runs. The exceptions are the orbs a wire
+ * leaves through its bottom or top edge: the inverter and solar-over-battery hang theirs above,
+ * the battery below. A source with another source column to its left (three sources with an
+ * inverter) has a wire there, so it falls back to a label above (the upper one) or below.
+ */
+function labelSide(id: NodeId, flow: PowerSnapshot): LabelSide {
+  if (id === 'inverter') return 'above'
+  if (id === 'battery') return 'below'
+  if (id === 'loads' || id === 'acLoads' || id === 'dcLoads') return 'right'
+  if (solarOnTop(flow)) return id === 'solar' ? 'above' : 'left'
+  if (sourceColumns(flow) < 2) return 'left'
+  // Two source columns: the outer orb has the margin; the inner pair label vertically.
+  const present = SOURCE_IDS.filter((s) => flow.nodes[s].present)
+  if (id === present[2]) return 'left'
+  return id === present[0] ? 'above' : 'below'
+}
+
+/**
+ * Links are drawn in viewBox units, so their stroke must grow with the viewBox to look the same on
+ * screen: a box LINK_REF_W wide draws them at 1x (tuned by eye: about 2x at the old 1680 width).
+ */
+const LINK_REF_W = 850
+
+/**
+ * Columns, left to right: [outer sources] | sources | the middle | loads. Always two rows.
  *
  * With an inverter the middle column stacks Inverter over Battery, and the loads line up with
  * their own source: AC loads on the inverter's row, DC loads on the battery's row.
@@ -75,17 +120,23 @@ const LABEL_ABOVE: Partial<Record<NodeId, true>> = { inverter: true }
  *   Alternator ─────►  Battery ──► DC loads
  *
  * Without one the middle is just the battery, centred, with the single Loads orb beside it.
- * Sources are spread down the left column, so a lone source sits level with the battery instead of
- * in a corner.
+ * One source sits level with the battery; two fill the two rows of the source column. With all
+ * three, solar takes the middle column's top row, straight over the battery, and alternator and
+ * shore stack on the left. (Three sources with an inverter put the third in its own column
+ * further left, level with the battery.) Always two rows, so orbs stay big.
  */
 function layout(flow: PowerSnapshot): Layout {
   const n = flow.nodes
   const hasInverter = n.inverter.present
+  const outer = sourceColumns(flow) === 2
   const rowTop = TOP + R
   const rowBottom = rowTop + ROW_PITCH
   const midY = (rowTop + rowBottom) / 2
+  /** The row the battery sits on: the lower row under an inverter or solar, else level with the middle. */
+  const batteryY = hasInverter || solarOnTop(flow) ? rowBottom : midY
 
-  const leftX = MARGIN + R
+  const outerX = SIDE + R
+  const leftX = outer ? outerX + COL_PITCH : outerX
   const midX = leftX + COL_PITCH
   const rightX = midX + COL_PITCH
 
@@ -97,12 +148,22 @@ function layout(flow: PowerSnapshot): Layout {
   )
   const pos: Layout = {}
 
-  // Sources stack down the left column, evenly between the two rows (one source sits at the middle).
-  present.forEach((id, i) => {
-    const y =
-      present.length === 1 ? midY : rowTop + (i * (rowBottom - rowTop)) / (present.length - 1)
-    pos[id] = { x: leftX, y }
-  })
+  if (solarOnTop(flow)) {
+    // Solar sits over the battery (the inverter's spot, which this van does not have); the other
+    // two sources stack in the left column, shore over alternator.
+    const rest = present.filter((id) => id !== 'solar').reverse()
+    pos.solar = { x: midX, y: rowTop }
+    rest.forEach((id, i) => {
+      pos[id] = { x: leftX, y: i === 0 ? rowTop : rowBottom }
+    })
+  } else {
+    // The first two sources fill the source column (a lone one sits level with the battery); a
+    // third is the outer column's only orb, level with the battery.
+    present.slice(0, 2).forEach((id, i) => {
+      pos[id] = { x: leftX, y: present.length === 1 ? batteryY : i === 0 ? rowTop : rowBottom }
+    })
+    if (present[2]) pos[present[2]] = { x: outerX, y: batteryY }
+  }
 
   if (hasInverter) {
     pos.inverter = { x: midX, y: rowTop }
@@ -110,8 +171,8 @@ function layout(flow: PowerSnapshot): Layout {
     pos.acLoads = { x: rightX, y: rowTop }
     pos.dcLoads = { x: rightX, y: rowBottom }
   } else {
-    pos.battery = { x: midX, y: midY }
-    pos.loads = { x: rightX, y: midY }
+    pos.battery = { x: midX, y: batteryY }
+    pos.loads = { x: rightX, y: batteryY }
   }
   return pos
 }
@@ -127,88 +188,8 @@ const ICONS: Record<NodeId, ReactNode> = {
   dcLoads: <CircuitBoard className="size-16" />,
 }
 
-/**
- * A wire from the edge of `a`'s orb to the edge of `b`'s. The layout is columns, so the columns
- * decide the direction: orbs in different columns connect side to side (leaving the faces that look
- * at each other, never through a label), and orbs in the same column (inverter over battery)
- * connect top to bottom. The control points pull straight out of each orb, so the curve bows
- * smoothly instead of kinking.
- */
-function curve(a: Pos, b: Pos): string {
-  if (a.x !== b.x) {
-    const s = Math.sign(b.x - a.x)
-    const x1 = a.x + s * R
-    const x2 = b.x - s * R
-    const mx = (x1 + x2) / 2
-    return `M ${x1} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${x2} ${b.y}`
-  }
-  const s = Math.sign(b.y - a.y)
-  const y1 = a.y + s * R
-  const y2 = b.y - s * R
-  const my = (y1 + y2) / 2
-  return `M ${a.x} ${y1} C ${a.x} ${my}, ${b.x} ${my}, ${b.x} ${y2}`
-}
-
 /** One colour for every node and flow; only a low battery leaves it for `--danger`. */
 const ACCENT = 'var(--accent)'
-
-/** A bead riding the wire. offsetPath makes the browser move it, so no per-frame React work. */
-function Bead({
-  d,
-  duration,
-  delay,
-  colour,
-}: {
-  d: string
-  duration: number
-  delay: number
-  colour: string
-}) {
-  return (
-    <motion.circle
-      r={7}
-      fill={colour}
-      style={{ offsetPath: `path("${d}")`, filter: `drop-shadow(0 0 6px ${colour})` }}
-      initial={{ offsetDistance: '0%', opacity: 0 }}
-      animate={{ offsetDistance: '100%', opacity: [0, 1, 1, 0] }}
-      transition={{ duration, delay, repeat: Infinity, ease: 'linear' }}
-    />
-  )
-}
-
-function Wire({ edge, peakW, pos }: { edge: FlowEdge; peakW: number; pos: Layout }) {
-  const reduce = useReducedMotion()
-  const a = pos[edge.from]
-  const b = pos[edge.to]
-  if (!a || !b) return null
-  const d = curve(a, b)
-  const on = edge.watts > IDLE_W
-  const share = Math.min(1, edge.watts / peakW)
-  const colour = ACCENT
-  // 1 bead at a trickle, up to 4 at peak; lap time is the shared slow flowSeconds.
-  const beads = on ? 1 + Math.round(share * 3) : 0
-  const lap = flowSeconds(edge.watts, peakW)
-  return (
-    <g>
-      {/* The wire draws itself in on first paint, like the renewvan.com diagram. */}
-      <motion.path
-        d={d}
-        fill="none"
-        stroke={on ? colour : 'var(--border)'}
-        strokeOpacity={on ? 0.6 : 1}
-        strokeWidth={on ? 2 + share * 3 : 2}
-        initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 0.9, ease: 'easeOut' }}
-      />
-      {!reduce
-        ? Array.from({ length: beads }, (_, i) => (
-            <Bead key={i} d={d} duration={lap} delay={(i * lap) / beads} colour={colour} />
-          ))
-        : null}
-    </g>
-  )
-}
 
 /**
  * The battery's fill, as in the Tiles layout: a translucent disc rising from the bottom by the charge,
@@ -283,6 +264,7 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
   const active = isBattery && !reduce
   const pulse = pulseSeconds(isBattery ? (w ?? 0) : 0, flow.peakW)
   const inner = R - 4
+  const side = labelSide(node.id, flow)
   return (
     <g>
       {isBattery ? (
@@ -335,19 +317,29 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
       />
       <foreignObject x={x - R} y={y - R} width={R * 2} height={R * 2}>
         <div className="text-foreground flex size-full flex-col items-center justify-center">
-          <span style={{ color: colour }}>{ICONS[node.id]}</span>
-          <span className="text-7xl font-semibold tabular-nums">
-            {isBattery && flow.soc !== undefined ? `${Math.round(flow.soc)}%` : p.value}
+          <span className="mb-4" style={{ color: colour }}>
+            {ICONS[node.id]}
           </span>
-          <span className={`${isBattery ? 'text-foreground' : 'text-muted'} text-3xl tabular-nums`}>
-            {isBattery ? `${p.value} ${p.unit}` : p.unit}
-          </span>
+          {isBattery ? (
+            <>
+              <Value
+                sizeClass={ORB_VALUE}
+                value={flow.soc === undefined ? '—' : Math.round(flow.soc)}
+                unit={flow.soc === undefined ? '' : '%'}
+              />
+              <span className="text-foreground text-3xl tabular-nums">
+                {p.value} {p.unit}
+              </span>
+            </>
+          ) : (
+            <Value sizeClass={ORB_VALUE} value={<RollingNumber value={w} />} unit={p.unit} />
+          )}
         </div>
       </foreignObject>
       <text
-        x={x}
-        y={LABEL_ABOVE[node.id] ? y - R - 20 : y + R + 52}
-        textAnchor="middle"
+        x={side === 'left' ? x - R - 28 : side === 'right' ? x + R + 28 : x}
+        y={side === 'above' ? y - R - 20 : side === 'below' ? y + R + 52 : y + 16}
+        textAnchor={side === 'left' ? 'end' : side === 'right' ? 'start' : 'middle'}
         className="fill-[var(--muted)] text-[44px]"
       >
         {node.sub && node.id === 'inverter' ? `${node.label}: ${node.sub}` : node.label}
@@ -358,21 +350,29 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
 
 export function PowerFlow({ flow }: { flow: PowerSnapshot }) {
   const pos = layout(flow)
+  // An orb is a box as wide and tall as its circle: wires leave from its extreme left, right, top
+  // and bottom points, at its centre.
+  const boxes: Partial<Record<NodeId, LinkBox>> = {}
+  for (const [id, p] of Object.entries(pos) as [NodeId, Pos][]) {
+    boxes[id] = { left: p.x - R, right: p.x + R, top: p.y - R, bottom: p.y + R, cx: p.x, cy: p.y }
+  }
   return (
     <div
       className="flex min-h-0 w-full flex-1 items-center justify-center"
       data-testid="power-flow"
     >
       <svg
-        viewBox={`0 0 ${W} ${H}`}
+        viewBox={`0 0 ${widthFor(flow)} ${H}`}
         preserveAspectRatio="xMidYMid meet"
         className="h-full w-full max-w-6xl"
       >
-        {flow.edges
-          .filter((e) => flow.nodes[e.from].present && flow.nodes[e.to].present)
-          .map((e) => (
-            <Wire key={`${e.from}-${e.to}`} edge={e} peakW={flow.peakW} pos={pos} />
-          ))}
+        <PowerLinks
+          edges={flow.edges}
+          boxes={boxes}
+          present={(id) => flow.nodes[id].present}
+          peakW={flow.peakW}
+          scale={widthFor(flow) / LINK_REF_W}
+        />
         {(Object.values(flow.nodes) as FlowNode[])
           .filter((n) => n.present && pos[n.id])
           .map((n) => (

@@ -60,7 +60,7 @@ describe('PowerPage', () => {
     tiles.unmount()
 
     render(<PowerPage {...props} layout="flow" />)
-    expect(screen.getByText('83%')).toBeInTheDocument()
+    expect(screen.getByText('83')).toBeInTheDocument()
     expect(screen.getByText('900')).toBeInTheDocument()
   })
 
