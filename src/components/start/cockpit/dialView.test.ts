@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import type { Battery, Tank } from '@/types'
 import { batteryDial, tankDial, tankDialOf } from './dialView'
 import { formatTimeToGo } from '@/lib/time-to-go'

@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import { Tabs } from '@heroui/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import { Sidebar, type NavItem } from './Sidebar'
 

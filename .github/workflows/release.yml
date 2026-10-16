@@ -16,15 +16,15 @@ jobs:
       # Stable releases are cut from `main`, where test.yml already ran tests + build on the
       # merge commit. Re-running them here only repeats that. Pre-releases come from feature
       # branches that may never have been through test.yml, so they keep the gate.
-      - uses: pnpm/setup@v3
+      - uses: voidzero-dev/setup-vp@v1.21.2
         if: ${{ github.event.release.prerelease }}
         with:
-          runtime: node@22
+          node-version-file: .node-version
           cache: true
 
       - name: Run tests
         if: ${{ github.event.release.prerelease }}
-        run: pnpm install --frozen-lockfile && pnpm exec vitest run
+        run: vp test run
 
       - name: Log in to registry
         uses: docker/login-action@v3

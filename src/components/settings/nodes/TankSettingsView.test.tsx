@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import type { NodeSummary } from '@/lib/nodes'
 import { renderSettings } from '@/test/renderSettings'
 import type { Tank } from '@/types'

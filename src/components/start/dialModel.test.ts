@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import type { Tilt } from '@/types'
 import { centreKind, hasTiltReading, legendIndices, powerReading, ringLabel } from './dialModel'
 

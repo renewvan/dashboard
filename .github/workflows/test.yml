@@ -12,11 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/setup@v3
+      - uses: voidzero-dev/setup-vp@v1.21.2
         with:
-          runtime: node@22
+          node-version-file: .node-version
           cache: true
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec vitest run
-      - run: pnpm run build
+      - run: vp test run
+      - run: vp run build

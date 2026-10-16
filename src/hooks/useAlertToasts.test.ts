@@ -1,6 +1,6 @@
 import { toast } from '@heroui/react'
 import { renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 import type { Tank } from '@/types'
 import type { ConnectionStatus } from './useRenewvanBus'
 import { useAlertToasts } from './useAlertToasts'

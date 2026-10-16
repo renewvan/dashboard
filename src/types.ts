@@ -193,7 +193,15 @@ export function isCompleteCharger(charger: Partial<Charger>): charger is Charger
  * the separate "is there actually a position to plot" check.
  */
 export type GpsFixQuality =
-  'no_fix' | 'gps' | 'dgps' | 'pps' | 'rtk' | 'float_rtk' | 'estimated' | 'manual' | 'simulation'
+  | 'no_fix'
+  | 'gps'
+  | 'dgps'
+  | 'pps'
+  | 'rtk'
+  | 'float_rtk'
+  | 'estimated'
+  | 'manual'
+  | 'simulation'
 
 export interface Gps {
   fix_quality: GpsFixQuality

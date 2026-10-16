@@ -1,5 +1,5 @@
 import { act, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vite-plus/test'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { type MatchMediaStub, stubMatchMedia } from './matchMedia'
 

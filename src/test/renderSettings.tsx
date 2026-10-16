@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { onTestFinished, vi } from 'vitest'
+import { onTestFinished, vi } from 'vite-plus/test'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import type { SettingsContextValue } from '@/components/settings/SettingsContext'
 import { SettingsPage } from '@/components/settings/SettingsPage'

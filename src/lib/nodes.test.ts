@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { emptyRenewvanBusState, type RenewvanBusState } from '@/types'
 import { connectedNodes, nodesSummary } from './nodes'
 

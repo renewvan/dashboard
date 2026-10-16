@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import type { UserEvent } from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { renderSettings } from '@/test/renderSettings'
 
 async function openPowerPage(user: UserEvent) {

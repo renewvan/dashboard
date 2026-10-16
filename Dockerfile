@@ -1,14 +1,15 @@
 # `dist/` is static JS, identical for every target arch, so the build stage always runs on the
 # builder's native platform (no QEMU) and only the nginx stage is produced per-arch.
-FROM --platform=$BUILDPLATFORM node:22-slim AS build
+FROM --platform=$BUILDPLATFORM ghcr.io/voidzero-dev/vite-plus:1.3.0 AS build
 
 WORKDIR /app
-RUN npm install -g pnpm@11.17.0
-COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --ignore-scripts
-COPY . .
-RUN pnpm run build
+# `.node-version` is copied with the manifests so `vp` provisions the pinned Node.js. The image
+# runs as the non-root `vp` user, so every COPY needs --chown.
+COPY --chown=vp:vp package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version ./
+RUN vp install --frozen-lockfile --ignore-scripts
+COPY --chown=vp:vp . .
+# `vp run build` (not the `vp build` built-in) so the package.json script type-checks first.
+RUN vp run build
 
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html

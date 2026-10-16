@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { consumptionRateLph, formatLatchDate, sortTankIds, tankSummary } from './tank-display'
 
 const HOUR_MS = 3_600_000
