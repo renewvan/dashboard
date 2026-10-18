@@ -28,7 +28,11 @@ export function StatusRow({ label, tone, text }: { label: string; tone: string; 
     <div className="flex items-center justify-between gap-3 px-3.5 py-3">
       <dt className="text-sm">{label}</dt>
       <dd className="text-muted flex items-center gap-2 text-xs">
-        <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${tone}`} />
+        <span
+          aria-hidden="true"
+          data-testid="status-dot"
+          className={`size-2 shrink-0 rounded-full ${tone}`}
+        />
         {text}
       </dd>
     </div>

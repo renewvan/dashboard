@@ -270,50 +270,153 @@ describe('useRenewvanBus charger entity', () => {
   })
 })
 
-describe('useRenewvanBus driver liveness topics', () => {
+const validInfo = {
+  node: 'tank',
+  product: 'Tank node',
+  source: 'ADS1115 (I2C)',
+  publishes: ['tank'],
+  version: 'v0.8.0',
+}
+
+describe('useRenewvanBus nodes', () => {
   beforeEach(() => {
     messageHandlers.length = 0
     connectMock.mockClear()
     vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
   })
 
-  // Every driver publishes `renewvan/<domain>/driver/status` ("online"/"offline") as its LWT
-  // liveness. It matches the entity pattern with id `driver`, so without a guard it becomes a
-  // phantom entity (a `driver · NaN%` tank card, a counted node) in every domain.
-  it('does not turn renewvan/tank/driver/status into a tank entity', async () => {
+  it('populates a Node from its retained info and health topics', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
+    messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
+    await waitFor(() =>
+      expect(result.current.state.nodes).toEqual({ tank: { info: validInfo, health: 'online' } }),
+    )
+  })
+
+  it('clears info and health independently when their retained topic is emptied', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
+    messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
+    await waitFor(() => expect(result.current.state.nodes.tank?.health).toBe('online'))
+
+    messageHandlers[0]('renewvan/tank/health', { toString: () => '' })
+    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { info: validInfo } }))
+
+    messageHandlers[0]('renewvan/tank/health', { toString: () => 'offline' })
+    messageHandlers[0]('renewvan/tank/info', { toString: () => '' })
+    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { health: 'offline' } }))
+
+    // Nothing left to say about the Node: it is gone, not an empty record.
+    messageHandlers[0]('renewvan/tank/health', { toString: () => '' })
+    await waitFor(() => expect(result.current.state.nodes).toEqual({}))
+  })
+
+  it.each([
+    ['not JSON', 'online'],
+    ['a JSON array', '[]'],
+    ['a JSON string', '"v0.8.0"'],
+    ['null', 'null'],
+    ['missing node', JSON.stringify({ ...validInfo, node: undefined })],
+    ['missing product', JSON.stringify({ ...validInfo, product: undefined })],
+    ['missing source', JSON.stringify({ ...validInfo, source: undefined })],
+    ['missing version', JSON.stringify({ ...validInfo, version: undefined })],
+    ['a non-string version', JSON.stringify({ ...validInfo, version: 8 })],
+    ['publishes not a list', JSON.stringify({ ...validInfo, publishes: 'tank' })],
+    ['publishes with a non-string', JSON.stringify({ ...validInfo, publishes: ['tank', 1] })],
+  ])('reads info that is %s as no info', async (_name, payload) => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
+    messageHandlers[0]('renewvan/tank/info', { toString: () => payload })
+    await waitFor(() => expect(result.current.state.nodes.tank?.health).toBe('online'))
+    expect(result.current.state.nodes).toEqual({ tank: { health: 'online' } })
+  })
+
+  it('lets a malformed info replace a good one: the Node then reads as no info', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
+    await waitFor(() => expect(result.current.state.nodes.tank?.info).toEqual(validInfo))
+    messageHandlers[0]('renewvan/tank/info', { toString: () => '{"node":"tank"}' })
+    messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
+    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { health: 'online' } }))
+  })
+
+  it('accepts info without publishes, and keeps its optional fields', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    const info = {
+      node: 'relay',
+      product: 'Relay node',
+      source: 'ESPHome GPIO',
+      version: 'dev',
+      manufacturer: 'acme',
+      homepage: 'https://example.com/relay',
+      host_serial: 'AA:BB:CC:DD:EE:FF',
+    }
+    messageHandlers[0]('renewvan/relay/info', { toString: () => JSON.stringify(info) })
+    await waitFor(() => expect(result.current.state.nodes).toEqual({ relay: { info } }))
+  })
+
+  it('reads a Node with info and no health as having no health (Unknown), not offline', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
+    await waitFor(() => expect(result.current.state.nodes.tank).toBeDefined())
+    expect(result.current.state.nodes.tank.health).toBeUndefined()
+  })
+
+  it('ignores a health payload that is not online or offline', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
+    messageHandlers[0]('renewvan/tank/health', { toString: () => 'degraded' })
+    messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
+    await waitFor(() => expect(result.current.state.nodes.tank?.info).toEqual(validInfo))
+    expect(result.current.state.nodes.tank.health).toBeUndefined()
+  })
+
+  it('never reads demo as a Node: renewvan/demo/health is the demo root, not a Node', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/demo/health', { toString: () => 'online' })
+    messageHandlers[0]('renewvan/demo/info', { toString: () => JSON.stringify(validInfo) })
+    // A real message after them proves the handler ran past them.
+    messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
+    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { health: 'online' } }))
+  })
+
+  it('does not mistake other three-segment host topics for Nodes', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tailscale/status', { toString: () => '{"enabled":true}' })
+    messageHandlers[0]('renewvan/kiosk/display/power', { toString: () => 'on' })
+    messageHandlers[0]('renewvan/tank/fresh/level_pct', { toString: () => '62' })
+    await waitFor(() => expect(result.current.state.tanks).toEqual({ fresh: { level_pct: 62 } }))
+    expect(result.current.state.nodes).toEqual({})
+  })
+
+  it('keeps a Node entity-neutral: info and health never create an entity', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
+    messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
+    await waitFor(() => expect(result.current.state.nodes.tank?.health).toBe('online'))
+    expect(result.current.state.tanks).toEqual({})
+  })
+
+  // The legacy driver liveness topic is no longer special-cased: with nothing publishing it,
+  // it is an ordinary entity topic like any other.
+  it('no longer special-cases renewvan/<domain>/driver/status', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tank/driver/status', { toString: () => '"online"' })
-    messageHandlers[0]('renewvan/tank/fresh/level_pct', { toString: () => '62' })
-    await waitFor(() => expect(result.current.state.tanks).toEqual({ fresh: { level_pct: 62 } }))
-  })
-
-  it('ignores the driver liveness topic in every entity domain', async () => {
-    const { result } = renderHook(() => useRenewvanBus())
-    await waitFor(() => expect(connectMock).toHaveBeenCalled())
-    for (const domain of [
-      'tank',
-      'relay',
-      'battery',
-      'solar',
-      'charger',
-      'gps',
-      'temperature',
-      'tilt',
-      'router',
-    ]) {
-      messageHandlers[0](`renewvan/${domain}/driver/status`, { toString: () => '"offline"' })
-    }
-    // A real message after the liveness ones proves the handler ran past them.
-    messageHandlers[0]('renewvan/tank/fresh/level_pct', { toString: () => '10' })
-    await waitFor(() => expect(result.current.state.tanks).toEqual({ fresh: { level_pct: 10 } }))
-    expect(result.current.state.relays).toEqual({})
-    expect(result.current.state.batteries).toEqual({})
-    expect(result.current.state.solar).toEqual({})
-    expect(result.current.state.chargers).toEqual({})
-    expect(result.current.state.temperatures).toEqual({})
-    expect(result.current.state.tilt).toEqual({})
-    expect(result.current.state.routers).toEqual({})
-    expect(result.current.state.routerUpdatedAt).toEqual({})
+    await waitFor(() =>
+      expect(result.current.state.tanks).toEqual({ driver: { status: 'online' } }),
+    )
+    expect(result.current.state.nodes).toEqual({})
   })
 })

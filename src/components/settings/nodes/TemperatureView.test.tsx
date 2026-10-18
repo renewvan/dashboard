@@ -1,12 +1,10 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
-import type { NodeSummary } from '@/lib/nodes'
+import type { SettingsContextValue } from '../SettingsContext'
 import { SettingsProvider } from '../SettingsProvider'
 import { SettingsPage } from '../SettingsPage'
 import { renderSettings } from '@/test/renderSettings'
 import type { TemperatureSensor } from '@/types'
-
-const temperatureNode: NodeSummary = { domain: 'temperatures', label: 'Temperature', count: 1 }
 
 const outdoor: TemperatureSensor = {
   name: 'Outdoor',
@@ -25,13 +23,24 @@ const indoor: TemperatureSensor = {
   status: 'ok',
 }
 
+/**
+ * Opens Settings › Nodes › Temperature. With no Node publishing info the sensors sit in a fallback
+ * row, so the path is the Nodes list, that row, then its Temperature entity row. The row exists
+ * while the bus holds a sensor; `overrides.temperatures` empties what the view reads, not the row.
+ */
 async function openTemperature(
   temperatures: Record<string, Partial<TemperatureSensor>>,
-  overrides: Parameters<typeof renderSettings>[0] = {},
+  overrides: Partial<SettingsContextValue> = {},
 ) {
-  const rendered = renderSettings({ nodes: [temperatureNode], temperatures, ...overrides })
+  const onBus = Object.keys(temperatures).length > 0 ? temperatures : { probe: {} }
+  const rendered = renderSettings(overrides, { bus: { temperatures: onBus as never } })
   await rendered.user.click(screen.getByRole('button', { name: /^Nodes/ }))
   await rendered.user.click(screen.getByRole('button', { name: /^Temperature/ }))
+  await rendered.user.click(
+    within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
+      name: /^Temperature/,
+    }),
+  )
   return rendered
 }
 
@@ -39,19 +48,18 @@ const nameField = (panel: string) =>
   within(screen.getByRole('group', { name: panel })).getByRole('textbox', { name: 'Name' })
 
 describe('Settings › Nodes › Temperature', () => {
-  it('is a drill-in on Nodes next to Tanks, described by its sensor count', async () => {
-    const { user } = renderSettings({
-      nodes: [{ domain: 'tanks', label: 'Tanks', count: 2 }, temperatureNode],
-      temperatures: { outdoor, indoor },
-    })
+  it('is a drill-in on a Node page, described by its sensor count', async () => {
+    const { user } = renderSettings(
+      {},
+      { bus: { tanks: { fresh: {} as never }, temperatures: { outdoor, indoor } } },
+    )
     await user.click(screen.getByRole('button', { name: /^Nodes/ }))
-
-    expect(screen.getByRole('button', { name: /^Temperature/ })).toHaveTextContent('2 sensors')
-    expect(
-      within(screen.getByRole('list', { name: 'Published nodes' })).getAllByRole('button'),
-    ).toHaveLength(2)
-
     await user.click(screen.getByRole('button', { name: /^Temperature/ }))
+
+    const entities = within(screen.getByRole('list', { name: 'Entities' }))
+    expect(entities.getByRole('button', { name: /^Temperature/ })).toHaveTextContent('2 sensors')
+
+    await user.click(entities.getByRole('button', { name: /^Temperature/ }))
 
     expect(screen.getByRole('link', { name: 'Nodes' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Temperature', current: 'page' })).toBeInTheDocument()
@@ -78,7 +86,7 @@ describe('Settings › Nodes › Temperature', () => {
   })
 
   it('says so when no sensor has published', async () => {
-    await openTemperature({}, { nodes: [temperatureNode] })
+    await openTemperature({}, { temperatures: {} })
 
     expect(
       screen.getByText('No temperature sensors found. Waiting for node-temperature to publish.'),
