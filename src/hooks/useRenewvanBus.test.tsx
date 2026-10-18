@@ -361,6 +361,16 @@ describe('useRenewvanBus nodes', () => {
     await waitFor(() => expect(result.current.state.nodes).toEqual({ relay: { info } }))
   })
 
+  it('drops an optional field that is not a string, keeping the rest of the info', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/tank/info', {
+      toString: () =>
+        JSON.stringify({ ...validInfo, manufacturer: 7, homepage: { a: 1 }, host_serial: ['x'] }),
+    })
+    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { info: validInfo } }))
+  })
+
   it('reads a Node with info and no health as having no health (Unknown), not offline', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())

@@ -118,10 +118,16 @@ function isStringList(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
+/** `value` when it is a string, else nothing: an optional info field of the wrong type is dropped. */
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
 /**
  * The dashboard's light structural check of a Node info payload (no schema library): a JSON object
  * with string `node`, `product`, `source` and `version`, and `publishes` a list of strings if
- * present. Anything else reads as no info. Optional strings are kept only when they are strings.
+ * present. Anything else reads as no info. The optional `manufacturer`, `homepage` and
+ * `host_serial` are kept only when they are strings, and no other key is carried into state.
  */
 function parseNodeInfo(payload: string): NodeInfo | undefined {
   const value = parseValue(payload)
@@ -136,7 +142,15 @@ function parseNodeInfo(payload: string): NodeInfo | undefined {
     return undefined
   }
   if (o.publishes !== undefined && !isStringList(o.publishes)) return undefined
-  return o as unknown as NodeInfo
+  const info: NodeInfo = { node: o.node, product: o.product, source: o.source, version: o.version }
+  if (o.publishes !== undefined) info.publishes = o.publishes
+  const manufacturer = optionalString(o.manufacturer)
+  if (manufacturer !== undefined) info.manufacturer = manufacturer
+  const homepage = optionalString(o.homepage)
+  if (homepage !== undefined) info.homepage = homepage
+  const hostSerial = optionalString(o.host_serial)
+  if (hostSerial !== undefined) info.host_serial = hostSerial
+  return info
 }
 
 /** An empty payload clears a retained topic; so does anything that is not a valid value. */

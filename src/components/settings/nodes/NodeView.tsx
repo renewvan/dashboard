@@ -1,6 +1,6 @@
 import { tankSummary } from '@/lib/tank-display'
 import { temperatureSummary } from '@/lib/temperature'
-import type { EntityType, NodeRow } from '@/lib/nodes'
+import { entityCountText, type EntityType, type NodeRow } from '@/lib/nodes'
 import { DetailList, DetailRow, StatusRow } from '../shared/DetailList'
 import { GroupRow } from '../shared/GroupRow'
 import { useSettings } from '../SettingsContext'
@@ -12,10 +12,6 @@ import type { SettingsSubView } from '../views'
 const ENTITY_VIEW: Partial<Record<EntityType, SettingsSubView>> = {
   tank: 'tanks',
   temperature: 'temperature',
-}
-
-function count(n: number, one: string, many: string): string {
-  return n === 1 ? `1 ${one}` : `${n} ${many}`
 }
 
 /**
@@ -37,7 +33,7 @@ export function NodeView({
   const describe = (type: EntityType, ids: string[]): string => {
     if (type === 'tank') return tankSummary(tankIds)
     if (type === 'temperature') return temperatureSummary(temperatures)
-    return count(ids.length, 'entity', 'entities')
+    return entityCountText(ids.length)
   }
 
   return (

@@ -1,11 +1,7 @@
-import type { NodeRow } from '@/lib/nodes'
+import { entityCountText, type NodeRow } from '@/lib/nodes'
 import { GroupRow } from '../shared/GroupRow'
 import { useSettings } from '../SettingsContext'
 import { NODE_TONE } from './nodeTone'
-
-function entities(count: number): string {
-  return count === 1 ? '1 entity' : `${count} entities`
-}
 
 /**
  * `<version> · <N entities>`: the one-line state of a Node. A Node with no info has no known
@@ -13,7 +9,9 @@ function entities(count: number): string {
  * never shown here.
  */
 function describe(row: NodeRow): string {
-  return row.entityCount === null ? row.version : `${row.version} · ${entities(row.entityCount)}`
+  return row.entityCount === null
+    ? row.version
+    : `${row.version} · ${entityCountText(row.entityCount)}`
 }
 
 /**

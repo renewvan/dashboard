@@ -141,6 +141,11 @@ export function nodeRows(state: RenewvanBusState): NodeRow[] {
   return rows
 }
 
+/** `1 entity` / `N entities`: the one wording for an entity count on the Nodes list and Device page. */
+export function entityCountText(count: number): string {
+  return count === 1 ? '1 entity' : `${count} entities`
+}
+
 /** Headline for the Settings → Nodes group row, e.g. `3 nodes`. */
 export function nodesSummary(rows: Pick<NodeRow, 'key'>[]): string {
   if (rows.length === 0) return 'No nodes connected'
