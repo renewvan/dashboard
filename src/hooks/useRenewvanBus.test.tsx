@@ -427,3 +427,96 @@ describe('useRenewvanBus nodes', () => {
     expect(result.current.state.tanks).toEqual({})
   })
 })
+
+describe('useRenewvanBus relay entity', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  const send = (topic: string, payload: string) =>
+    messageHandlers[0](topic, { toString: () => payload })
+
+  it('accumulates a relay name and state per id', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('renewvan/relay/relay_03/state', 'false')
+    send('renewvan/relay/relay_03/name', '"Water pump"')
+    send('renewvan/relay/relay_04/state', 'true')
+    await waitFor(() =>
+      expect(result.current.state.relays).toEqual({
+        relay_03: { state: false, name: 'Water pump' },
+        relay_04: { state: true },
+      }),
+    )
+  })
+
+  it('never reads a name as a state: a retained name must not switch a pump on', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('renewvan/relay/relay_03/state', 'false')
+    send('renewvan/relay/relay_03/name', '"Water pump"')
+    await waitFor(() => expect(result.current.state.relays.relay_03?.name).toBe('Water pump'))
+    expect(result.current.state.relays.relay_03?.state).toBe(false)
+  })
+
+  it('shows a relay that has a name but no state yet as having no known state', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('renewvan/relay/relay_03/name', '"Water pump"')
+    await waitFor(() =>
+      expect(result.current.state.relays.relay_03).toEqual({ name: 'Water pump' }),
+    )
+  })
+
+  it('drops the whole relay when its retained state is cleared (the relay is gone, not off)', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('renewvan/relay/relay_03/state', 'true')
+    send('renewvan/relay/relay_04/state', 'true')
+    await waitFor(() => expect(Object.keys(result.current.state.relays)).toHaveLength(2))
+    send('renewvan/relay/relay_03/state', '')
+    await waitFor(() => expect(Object.keys(result.current.state.relays)).toEqual(['relay_04']))
+  })
+
+  it('drops only the name when a retained name is cleared', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('renewvan/relay/relay_03/state', 'true')
+    send('renewvan/relay/relay_03/name', '"Water pump"')
+    await waitFor(() => expect(result.current.state.relays.relay_03?.name).toBe('Water pump'))
+    send('renewvan/relay/relay_03/name', '')
+    await waitFor(() => expect(result.current.state.relays.relay_03).toEqual({ state: true }))
+  })
+
+  it('ignores a name that is not a string', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('renewvan/relay/relay_03/state', 'true')
+    send('renewvan/relay/relay_03/name', '42')
+    send('renewvan/relay/relay_04/state', 'true')
+    await waitFor(() => expect(result.current.state.relays.relay_04).toEqual({ state: true }))
+    expect(result.current.state.relays.relay_03).toEqual({ state: true })
+  })
+
+  it('never reads a relay command as the relay state: the broker echoes our own set back', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    // `set` has four segments, so it reaches the entity reducer: only `state` and `name` may land.
+    send('renewvan/relay/relay_03/set', 'true')
+    // `name/set` has five segments and never matches the entity pattern at all.
+    send('renewvan/relay/relay_03/name/set', '"Water pump"')
+    // A real message after them proves the handler ran past them.
+    send('renewvan/relay/relay_04/state', 'true')
+    await waitFor(() => expect(result.current.state.relays).toEqual({ relay_04: { state: true } }))
+  })
+
+  it('lets a relay be called health or info: segment count, not the id, tells it from a Node', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('renewvan/relay/health/state', 'true')
+    await waitFor(() => expect(result.current.state.relays).toEqual({ health: { state: true } }))
+    expect(result.current.state.nodes).toEqual({})
+  })
+})

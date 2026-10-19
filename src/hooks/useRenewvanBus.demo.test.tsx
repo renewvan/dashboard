@@ -246,6 +246,15 @@ describe('publish while in demo mode', () => {
     expect(sent).toEqual(['renewvan/kiosk/display/brightness/set'])
   })
 
+  it('never publishes a relay set or name/set: the demo ids overlap the real ids', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan/demo/enabled', 'true')
+    await waitFor(() => expect(result.current.demoMode).toBe(true))
+    act(() => result.current.publish('renewvan/relay/relay_03/set', 'true'))
+    act(() => result.current.publish('renewvan/relay/relay_03/name/set', '"Pump"'))
+    expect(latest().publish).not.toHaveBeenCalled()
+  })
+
   it('publishes any topic while demo mode is off', async () => {
     const { result } = await renderBus()
     act(() => result.current.publish('renewvan/temperature/indoor/name/set', '"x"'))

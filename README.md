@@ -18,12 +18,12 @@ immediately, not a blank screen).
 
 Three domain pages, same tabbed navigation at every supported width:
 
-| Page     | Content                                                                                                                                                                                               |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tanks    | Radial gauge per tank (`level_pct`), liters-remaining readout, sensor-fault status in place of the readout when `status != ok`                                                                        |
-| Power    | Tiles or Orbs diagram (Settings › Display & Appearance › Power page): solar, alternator and shore charger into the battery (`soc_pct`, voltage, current, power, time to go), out to the derived loads |
-| GPS      | OpenStreetMap centred on the hub's fix (`latitude`, `longitude`) with a marker and a fix quality / satellites / speed readout; a message in place of the map until the first fix                      |
-| Switches | One row per relay: dashboard-side `id → label` mapping + on/off indicator — **read-only**, no tap-to-toggle (`relay` has no command topic in v0)                                                      |
+| Page   | Content                                                                                                                                                                                                                                                                                                                                                                             |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tanks  | Radial gauge per tank (`level_pct`), liters-remaining readout, sensor-fault status in place of the readout when `status != ok`                                                                                                                                                                                                                                                      |
+| Power  | Tiles or Orbs diagram (Settings › Display & Appearance › Power page): solar, alternator and shore charger into the battery (`soc_pct`, voltage, current, power, time to go), out to the derived loads                                                                                                                                                                               |
+| GPS    | OpenStreetMap centred on the hub's fix (`latitude`, `longitude`) with a marker and a fix quality / satellites / speed readout; a message in place of the map until the first fix                                                                                                                                                                                                    |
+| Relays | Titled panels of labelled Off \| On controls, one per relay, labelled by the relay's wire `name` (else its id). A critical load asks before switching; a command that does not take effect in 4 seconds reads "Didn't switch" with Retry; an offline relay Node reads Unknown with every control disabled; Demo mode disables every control. `state` means latched, never energised |
 
 ## Architecture
 
@@ -31,23 +31,23 @@ Three domain pages, same tabbed navigation at every supported width:
   `renewvan/#`, accumulates retained messages into a `RenewvanBusState`, exposes
   connection status. Not unit-tested (thin wrapper around `mqtt.js`), per
   the v0 spec's Testing Decisions.
-- `src/components/*` — presentational components (`RelayRow`, `Tabs`,
+- `src/components/*` — presentational components (`RelaysPage`, `Tabs`,
   `ConnectionBanner`), each unit-tested against fixed
   props matching the v0.1 schema shapes (`hub/schema/*.schema.json`).
 - `src/components/*/*Page.tsx` — per-domain composition of the presentational components
   over `RenewvanBusState`, also unit-tested against fixture entity maps.
-- `src/config/relayLabels.ts` — dashboard-side `id → label` map for the
-  Switches page (label is presentation-only, not a wire field).
+- `src/config/relayPanels.ts` — dashboard-side groups, icons and critical loads for the
+  Relays page, keyed by channel id (presentation only, never on the wire). It ships empty:
+  every channel lands in "Unassigned" until you list it. The label is the relay's wire `name`.
 
 ## Configuration
 
 All config is Vite build-time env vars (`VITE_*`), see `.env.example`:
 
-| Variable                                    | Default               | Notes                                                                   |
-| ------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
-| `VITE_MQTT_WS_URL`                          | _(required)_          | Mosquitto's WS listener, browser-reachable, e.g. `ws://<host>:9001`     |
-| `VITE_MQTT_USERNAME` / `VITE_MQTT_PASSWORD` | _(none)_              | Read-scoped credentials; blank while the broker allows anonymous access |
-| `VITE_RELAY_LABELS`                         | _(built-in defaults)_ | JSON `id -> label` override for the Switches page                       |
+| Variable                                    | Default      | Notes                                                                   |
+| ------------------------------------------- | ------------ | ----------------------------------------------------------------------- |
+| `VITE_MQTT_WS_URL`                          | _(required)_ | Mosquitto's WS listener, browser-reachable, e.g. `ws://<host>:9001`     |
+| `VITE_MQTT_USERNAME` / `VITE_MQTT_PASSWORD` | _(none)_     | Read-scoped credentials; blank while the broker allows anonymous access |
 
 ## Running
 
@@ -94,7 +94,7 @@ this in the van, verify against real hardware/broker:
 
 - Load on an actual 7" touchscreen (or an 800×480 simulator) and a laptop
   browser against the real renewvan bus; confirm both wired tanks (`fresh`,
-  `grey`), the house battery, and all 8 relay channels render live data
+  `grey`), the house battery, and all 16 relay channels render live data
   once `tank`/`battery`/`relay` upstream components are publishing.
   (Ticket 06 item 5 — not verifiable from this environment: no physical
   kiosk display or reachable renewvan-bus broker here.)

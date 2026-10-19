@@ -10,7 +10,7 @@ import type { Theme } from '@/hooks/useTheme'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { NodeRow } from '@/lib/nodes'
-import type { Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
+import type { Relay, Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
 
 /**
  * Everything the Settings page and its views read, built once by `App` from
@@ -22,6 +22,7 @@ export interface SettingsContextValue {
   nodes: NodeRow[]
   tanks: Record<string, Partial<Tank>>
   temperatures: Record<string, Partial<TemperatureSensor>>
+  relays: Record<string, Relay>
   router: Partial<Router> | undefined
   routerHealth: RouterHealth | null
   routerUpdatedAt: number | undefined
@@ -53,6 +54,8 @@ export interface SettingsContextValue {
   setPowerLayout: (layout: PowerLayout) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
+  setRelay: (id: string, on: boolean) => void
+  setRelayName: (id: string, name: string) => void
 }
 
 export const SettingsContext = createContext<SettingsContextValue | null>(null)

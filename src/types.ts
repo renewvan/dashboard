@@ -274,8 +274,14 @@ export interface Tilt {
   status: TiltStatus
 }
 
+/**
+ * One relay channel (hub `relay.schema.json`, ADR 0013). `state` means the output was commanded and
+ * latched, NOT that the load is energised. It is optional because a relay can have a retained
+ * `name` before its first `state`; a consumer treats a missing `state` as unknown.
+ */
 export interface Relay {
-  state: boolean
+  state?: boolean
+  name?: string
 }
 
 export type NetworkType = '2g' | '3g' | 'lte' | 'nr' | 'unknown'

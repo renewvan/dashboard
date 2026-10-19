@@ -24,6 +24,7 @@ import { TailscaleView } from './connectivity/TailscaleView'
 import { TankSettingsView } from './nodes/TankSettingsView'
 import { TanksView } from './nodes/TanksView'
 import { useReportedTankIds } from './nodes/useReportedTankIds'
+import { RelaysView } from './nodes/RelaysView'
 import { TemperatureView } from './nodes/TemperatureView'
 import type { SettingsSubView, SettingsView } from './views'
 
@@ -33,6 +34,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   tanks: { title: 'Tanks', parent: 'nodes' },
   tank: { title: 'Tank', parent: 'tanks' },
   temperature: { title: 'Temperature', parent: 'nodes' },
+  relays: { title: 'Relays', parent: 'nodes' },
   general: { title: 'General', parent: 'list' },
   firmware: { title: 'Firmware', parent: 'general' },
   alerts: { title: 'Alerts', parent: 'general' },
@@ -145,6 +147,8 @@ export const SettingsPage = memo(function SettingsPage() {
         return <TankSettingsView />
       case 'temperature':
         return <TemperatureView />
+      case 'relays':
+        return <RelaysView />
       case 'general':
         return <GeneralView onOpen={setView} />
       case 'firmware':

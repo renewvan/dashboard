@@ -12,6 +12,7 @@ import type { SettingsSubView } from '../views'
 const ENTITY_VIEW: Partial<Record<EntityType, SettingsSubView>> = {
   tank: 'tanks',
   temperature: 'temperature',
+  relay: 'relays',
 }
 
 /**

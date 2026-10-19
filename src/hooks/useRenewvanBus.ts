@@ -175,6 +175,38 @@ function applyNodeMessage(
   return { ...prev, nodes: empty ? others : { ...others, [key]: next } }
 }
 
+/**
+ * relay: `state` (a JSON boolean) and the optional `name` (a non-empty JSON string), nothing else.
+ * `set` is a four-segment topic, so the broker's echo of our own command reaches this reducer: it
+ * must never land as state. An empty payload is a retained-topic clear (ADR 0008): clearing
+ * `state` means the relay is gone (not the same as switched off); clearing `name` drops only the
+ * label.
+ */
+function applyRelayMessage(
+  prev: RenewvanBusState,
+  id: string,
+  property: string,
+  value: unknown,
+): RenewvanBusState {
+  if (property !== 'state' && property !== 'name') return prev
+  if (value === undefined) {
+    if (property === 'state') {
+      const { [id]: _removed, ...rest } = prev.relays
+      return { ...prev, relays: rest }
+    }
+    const { name: _name, ...kept } = prev.relays[id] ?? {}
+    return { ...prev, relays: { ...prev.relays, [id]: kept } }
+  }
+  if (property === 'state') {
+    return {
+      ...prev,
+      relays: { ...prev.relays, [id]: { ...prev.relays[id], state: Boolean(value) } },
+    }
+  }
+  if (typeof value !== 'string' || value === '') return prev
+  return { ...prev, relays: { ...prev.relays, [id]: { ...prev.relays[id], name: value } } }
+}
+
 function applyMessage(
   prev: RenewvanBusState,
   topic: string,
@@ -210,16 +242,7 @@ function applyMessage(
   if (domain === 'charger') {
     return { ...prev, chargers: accumulate(prev.chargers, id, property, value) }
   }
-  // relay: only `state`, a JSON boolean. An empty payload is a retained-topic clear (ADR 0008):
-  // the relay is gone, which is not the same as switched off.
-  if (value === undefined) {
-    const { [id]: _removed, ...rest } = prev.relays
-    return { ...prev, relays: rest }
-  }
-  return {
-    ...prev,
-    relays: { ...prev.relays, [id]: { state: Boolean(value) } },
-  }
+  return applyRelayMessage(prev, id, property, value)
 }
 
 /**

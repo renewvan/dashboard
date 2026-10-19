@@ -51,7 +51,7 @@ const KIOSK_WIDTH = 800
 const PHONE_WIDTH = 390
 const JUST_BELOW_KIOSK_WIDTH = 799
 
-const NAV_LABELS = ['Start', 'Power', 'Tanks', 'GPS', 'Switches', 'Heater', 'Settings']
+const NAV_LABELS = ['Start', 'Power', 'Tanks', 'GPS', 'Relays', 'Heater', 'Settings']
 
 const HEADER_HEIGHT_VAR = '--app-header-height'
 
@@ -1013,5 +1013,125 @@ describe('App Alerts toggle', () => {
     expect(
       within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Alerts/ }),
     ).toHaveTextContent('Notifications off')
+  })
+})
+
+describe('App shell Relays page', () => {
+  const RELAY_INFO = {
+    node: 'esp32-relay',
+    product: 'ESP32 16-channel relay board',
+    source: 'ESP32 with two chained SN74HC595 shift registers',
+    publishes: ['relay'],
+    version: 'v0.1.0',
+  }
+
+  /** What the relay Node leaves on the bus: its info and health, then a named relay and its state. */
+  async function receiveRelayNode(health: 'online' | 'offline') {
+    await receive('renewvan/esp32-relay/info', JSON.stringify(RELAY_INFO))
+    await receive('renewvan/esp32-relay/health', health)
+    await receive('renewvan/relay/relay_01/name', '"Ceiling lights"')
+    await receive('renewvan/relay/relay_01/state', 'false')
+  }
+
+  const lights = (word: 'Off' | 'On') =>
+    within(screen.getByRole('radiogroup', { name: 'Ceiling lights' })).getByRole('radio', {
+      name: word,
+    })
+
+  it('is named Relays, and shows a relay the bus reports', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await receiveRelayNode('online')
+
+    await user.click(screen.getByRole('tab', { name: 'Relays' }))
+
+    expect(lights('Off')).toBeChecked()
+  })
+
+  it('publishes the target state as JSON on the relay set topic when a segment is tapped', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=switches')
+    await receiveRelayNode('online')
+
+    await user.click(lights('On'))
+
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith('renewvan/relay/relay_01/set', 'true', {
+      qos: 1,
+      retain: false,
+    })
+  })
+
+  it('settles the control when the relay reports the new state', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=switches')
+    await receiveRelayNode('online')
+    await user.click(lights('On'))
+
+    await receive('renewvan/relay/relay_01/state', 'true')
+
+    expect(lights('On')).toBeChecked()
+    expect(lights('On')).toBeEnabled()
+  })
+
+  it('reads Unknown and publishes nothing while the relay Node is offline', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=switches')
+    await receiveRelayNode('offline')
+
+    expect(lights('On')).toBeDisabled()
+    expect(lights('Off')).not.toBeChecked()
+    expect(lights('On')).not.toBeChecked()
+    await user.click(lights('On'))
+    expect(mqtt.publish).not.toHaveBeenCalled()
+  })
+
+  it('treats a relay Node with info but no health as not online', async () => {
+    await renderAt(KIOSK_WIDTH, '/?page=switches')
+    await receive('renewvan/esp32-relay/info', JSON.stringify(RELAY_INFO))
+    await receive('renewvan/relay/relay_01/name', '"Ceiling lights"')
+    await receive('renewvan/relay/relay_01/state', 'false')
+
+    expect(lights('On')).toBeDisabled()
+  })
+
+  it('never publishes a relay command in Demo mode, though the demo relays share the real ids', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=switches')
+    await receive('renewvan/demo/enabled', 'true')
+    await receive('renewvan/demo/esp32-relay/info', JSON.stringify(RELAY_INFO))
+    await receive('renewvan/demo/esp32-relay/health', 'online')
+    await receive('renewvan/demo/relay/relay_01/name', '"Ceiling lights"')
+    await receive('renewvan/demo/relay/relay_01/state', 'true')
+
+    expect(lights('On')).toBeDisabled()
+    expect(lights('Off')).toBeDisabled()
+    expect(screen.getByText(/Demo mode: controls are disabled/)).toBeInTheDocument()
+    await user.click(lights('Off'))
+    expect(mqtt.publish).not.toHaveBeenCalled()
+  })
+
+  it('renames a relay from Settings, publishing a JSON string to name/set', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=settings')
+    await receiveRelayNode('online')
+
+    await user.click(screen.getByRole('button', { name: /^Nodes/ }))
+    await user.click(screen.getByRole('button', { name: /^ESP32 16-channel relay board/ }))
+    await user.click(
+      within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
+        name: /^Relays/,
+      }),
+    )
+    const field = within(screen.getByRole('group', { name: 'relay_01' })).getByRole('textbox', {
+      name: 'Name',
+    })
+    await user.clear(field)
+    await user.type(field, 'Galley light{Enter}')
+
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/relay/relay_01/name/set',
+      '"Galley light"',
+      { qos: 1, retain: false },
+    )
   })
 })

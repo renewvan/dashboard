@@ -56,6 +56,28 @@ describe('settingsCommands', () => {
     )
   })
 
+  it("publishes a relay's target state as a bare JSON boolean on that relay's set topic", () => {
+    const { publish, commands } = setup()
+
+    commands.setRelay('relay_03', true)
+    commands.setRelay('relay_03', false)
+
+    expect(publish).toHaveBeenNthCalledWith(1, 'renewvan/relay/relay_03/set', 'true')
+    expect(publish).toHaveBeenNthCalledWith(2, 'renewvan/relay/relay_03/set', 'false')
+    expect(publish).toHaveBeenCalledTimes(2)
+  })
+
+  it("publishes a relay name as a quoted JSON string on that relay's name/set topic", () => {
+    const { publish, commands } = setup()
+
+    commands.setRelayName('relay_03', 'Water "pump"')
+
+    expect(publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/relay/relay_03/name/set',
+      '"Water \\"pump\\""',
+    )
+  })
+
   it("publishes a sensor unit as a quoted JSON string on that sensor's topic", () => {
     const { publish, commands } = setup()
 

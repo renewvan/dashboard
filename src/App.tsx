@@ -14,6 +14,7 @@ import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { SettingsSubView } from '@/components/settings/views'
 import { TanksPage } from '@/components/tanks/TanksPage'
+import { RelaysPage } from '@/components/relays/RelaysPage'
 import { GpsPage } from '@/components/gps/GpsPage'
 import { StartPage } from '@/components/start/StartPage'
 import { PowerPage } from '@/components/power/PowerPage'
@@ -23,7 +24,7 @@ import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
-import { nodeRows } from '@/lib/nodes'
+import { nodeRows, relayNodesOnline } from '@/lib/nodes'
 import { settingsCommands } from '@/lib/settings-commands'
 import { useAutoHide } from '@/hooks/useAutoHide'
 import { useTheme } from '@/hooks/useTheme'
@@ -38,7 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
   { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
   { id: 'gps', label: 'GPS', icon: <Map className="size-5" /> },
-  { id: 'switches', label: 'Switches', icon: <ToggleLeft className="size-5" /> },
+  { id: 'switches', label: 'Relays', icon: <ToggleLeft className="size-5" /> },
   { id: 'heater', label: 'Heater', icon: <Heater className="size-5" /> },
   { id: 'settings', label: 'Settings', icon: <Wrench className="size-5" /> },
 ]
@@ -158,6 +159,7 @@ function App() {
       nodes,
       tanks: state.tanks,
       temperatures: state.temperatures,
+      relays: state.relays,
       router,
       routerHealth,
       routerUpdatedAt,
@@ -184,6 +186,7 @@ function App() {
       nodes,
       state.tanks,
       state.temperatures,
+      state.relays,
       router,
       routerHealth,
       routerUpdatedAt,
@@ -295,6 +298,13 @@ function App() {
             />
           ) : item.id === 'tanks' ? (
             <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
+          ) : item.id === 'switches' ? (
+            <RelaysPage
+              relays={state.relays}
+              nodeOnline={relayNodesOnline(state)}
+              demo={demoMode}
+              onSetRelay={commands.setRelay}
+            />
           ) : item.id === 'gps' ? (
             <GpsPage gps={state.gps} />
           ) : (

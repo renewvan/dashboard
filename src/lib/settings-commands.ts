@@ -17,6 +17,8 @@ const TOPIC_AUTO_SLEEP_TIMEOUT_SET = 'renewvan/kiosk/display/auto-sleep-timeout-
 const temperatureSetTopic = (id: string, field: 'name' | 'unit') =>
   `renewvan/temperature/${id}/${field}/set`
 
+const relaySetTopic = (id: string, field: 'set' | 'name/set') => `renewvan/relay/${id}/${field}`
+
 export type Publish = (topic: string, payload: string) => void
 
 export interface SettingsCommands {
@@ -25,6 +27,9 @@ export interface SettingsCommands {
   setAutoSleepTimeoutMinutes: (value: AutoSleepTimeoutMinutes) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
+  /** Sends the TARGET state, never a toggle: a toggle is not idempotent (hub ADR 0013). */
+  setRelay: (id: string, on: boolean) => void
+  setRelayName: (id: string, name: string) => void
 }
 
 /** Binds the settings commands to `publish`. Pure: build once, share everywhere. */
@@ -39,5 +44,7 @@ export function settingsCommands(publish: Publish): SettingsCommands {
       publish(temperatureSetTopic(id, 'name'), JSON.stringify(name)),
     setTemperatureUnit: (id, unit) =>
       publish(temperatureSetTopic(id, 'unit'), JSON.stringify(unit)),
+    setRelay: (id, on) => publish(relaySetTopic(id, 'set'), JSON.stringify(on)),
+    setRelayName: (id, name) => publish(relaySetTopic(id, 'name/set'), JSON.stringify(name)),
   }
 }

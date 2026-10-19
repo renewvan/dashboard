@@ -78,6 +78,7 @@ export function renderSettings(
     nodes: nodeRows(state),
     temperatures: state.temperatures,
     tanks: state.tanks,
+    relays: state.relays,
     router: liveRouter,
     routerHealth: 'online',
     routerUpdatedAt: Date.now(),
@@ -103,6 +104,8 @@ export function renderSettings(
     setPowerLayout: vi.fn(),
     setTemperatureName: vi.fn(),
     setTemperatureUnit: vi.fn(),
+    setRelay: vi.fn(),
+    setRelayName: vi.fn(),
     ...overrides,
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 import { emptyRenewvanBusState, type NodeInfo, type RenewvanBusState } from '@/types'
-import { nodeRows, nodesSummary } from './nodes'
+import { nodeRows, nodesSummary, relayNodesOnline } from './nodes'
 
 function stateWith(partial: Partial<RenewvanBusState>): RenewvanBusState {
   return { ...emptyRenewvanBusState, ...partial }
@@ -206,5 +206,59 @@ describe('nodesSummary', () => {
     expect(nodesSummary([])).toBe('No nodes connected')
     expect(nodesSummary([row('tank')])).toBe('1 node')
     expect(nodesSummary([row('tank'), row('gps')])).toBe('2 nodes')
+  })
+})
+
+describe('relayNodesOnline', () => {
+  const relayInfo: NodeInfo = {
+    node: 'esp32-relay',
+    product: 'ESP32 16-channel relay board',
+    source: 'ESP32 with two chained SN74HC595 shift registers',
+    publishes: ['relay'],
+    version: 'v0.1.0',
+  }
+
+  it('is true only when the Node that publishes relay is online', () => {
+    const nodes = { 'esp32-relay': { info: relayInfo, health: 'online' as const } }
+    expect(relayNodesOnline(stateWith({ nodes }))).toBe(true)
+  })
+
+  it('finds the relay Node by what it publishes, whatever its key', () => {
+    const nodes = {
+      whatever: { info: { ...relayInfo, node: 'whatever' }, health: 'online' as const },
+    }
+    expect(relayNodesOnline(stateWith({ nodes }))).toBe(true)
+  })
+
+  it('is false when the relay Node is offline', () => {
+    const nodes = { 'esp32-relay': { info: relayInfo, health: 'offline' as const } }
+    expect(relayNodesOnline(stateWith({ nodes }))).toBe(false)
+  })
+
+  it('is false for a Node with info but no health: half-started is not trusted', () => {
+    const nodes = { 'esp32-relay': { info: relayInfo } }
+    expect(relayNodesOnline(stateWith({ nodes }))).toBe(false)
+  })
+
+  it('is false when no Node publishes relay at all', () => {
+    const tank = { tank: { info: tankInfo, health: 'online' as const } }
+    expect(relayNodesOnline(stateWith({ nodes: tank }))).toBe(false)
+    expect(relayNodesOnline(emptyRenewvanBusState)).toBe(false)
+  })
+
+  it('is false while any relay Node is not online, so a stale on is never trusted', () => {
+    const nodes = {
+      'esp32-relay': { info: relayInfo, health: 'online' as const },
+      relay: { info: { ...relayInfo, node: 'relay' }, health: 'offline' as const },
+    }
+    expect(relayNodesOnline(stateWith({ nodes }))).toBe(false)
+  })
+
+  it('ignores an online Node that does not publish relay when the relay Node is offline', () => {
+    const nodes = {
+      'esp32-relay': { info: relayInfo, health: 'offline' as const },
+      tank: { info: tankInfo, health: 'online' as const },
+    }
+    expect(relayNodesOnline(stateWith({ nodes }))).toBe(false)
   })
 })

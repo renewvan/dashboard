@@ -6,6 +6,7 @@ export type SettingsView =
   | 'tanks'
   | 'tank'
   | 'temperature'
+  | 'relays'
   | 'general'
   | 'firmware'
   | 'alerts'

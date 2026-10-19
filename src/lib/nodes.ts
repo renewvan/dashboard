@@ -151,3 +151,15 @@ export function nodesSummary(rows: Pick<NodeRow, 'key'>[]): string {
   if (rows.length === 0) return 'No nodes connected'
   return rows.length === 1 ? '1 node' : `${rows.length} nodes`
 }
+
+/**
+ * Whether relay `state` can be trusted: every Node whose info says it publishes `relay` is
+ * `online`. A relay's state is retained and a will cannot clear sixteen topics, so a dead Node
+ * leaves a stale "on" behind; no relay Node at all, an `offline` one, or one with info but no
+ * health (half-started) all read as not trusted. The join is by what the Node publishes, with the
+ * same per-instance limit as `nodeRows` (hub ADR 0013).
+ */
+export function relayNodesOnline(state: Pick<RenewvanBusState, 'nodes'>): boolean {
+  const relayNodes = Object.values(state.nodes).filter((n) => n.info?.publishes?.includes('relay'))
+  return relayNodes.length > 0 && relayNodes.every((n) => n.health === 'online')
+}
