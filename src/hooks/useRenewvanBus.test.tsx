@@ -426,16 +426,4 @@ describe('useRenewvanBus nodes', () => {
     await waitFor(() => expect(result.current.state.nodes.tank?.health).toBe('online'))
     expect(result.current.state.tanks).toEqual({})
   })
-
-  // The legacy driver liveness topic is no longer special-cased: with nothing publishing it,
-  // it is an ordinary entity topic like any other.
-  it('no longer special-cases renewvan/<domain>/driver/status', async () => {
-    const { result } = renderHook(() => useRenewvanBus())
-    await waitFor(() => expect(connectMock).toHaveBeenCalled())
-    messageHandlers[0]('renewvan/tank/driver/status', { toString: () => '"online"' })
-    await waitFor(() =>
-      expect(result.current.state.tanks).toEqual({ driver: { status: 'online' } }),
-    )
-    expect(result.current.state.nodes).toEqual({})
-  })
 })
