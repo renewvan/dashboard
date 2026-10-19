@@ -1,12 +1,12 @@
 import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { Droplets } from 'lucide-react'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Relay } from '@/types'
-import { RelaysPage, type RelaysPageProps } from './RelaysPage'
+import { RelaysPage, GIVE_UP_MS, type RelaysPageProps } from './RelaysPage'
 
 const KIOSK_WIDTH = 800
-const GIVE_UP_MS = 4000
 
 let viewport: MatchMediaStub
 const onSetRelay = vi.fn()
@@ -49,6 +49,13 @@ const control = (name: string) => screen.getByRole('radiogroup', { name })
 const segment = (name: string, word: 'Off' | 'On') =>
   within(control(name)).getByRole('radio', { name: word })
 
+/** The glyph beside a channel's label: the one icon inside the channel that owns this control. */
+const channelIcon = (name: string) => {
+  const icon = control(name).parentElement?.querySelector('svg')
+  if (!icon) throw new Error(`no icon beside ${name}`)
+  return icon
+}
+
 const PUMP: Relay = { name: 'Water pump', state: false }
 const LIGHTS: Relay = { name: 'Ceiling lights', state: true }
 
@@ -61,11 +68,22 @@ describe('RelaysPage', () => {
     expect(segment('Water pump', 'Off')).toBeChecked()
   })
 
-  it('labels an unnamed relay by its id, muted, so a new channel is visible and unconfigured', () => {
+  it('labels an unnamed relay by its id, so a new channel is visible and unconfigured', () => {
     setup({ relays: { relay_04: { state: true } } })
 
     expect(control('relay_04')).toBeInTheDocument()
-    expect(screen.getByText('relay_04')).toHaveClass('text-muted')
+  })
+
+  it('shows a configured icon even on an unnamed channel: the config says what the load is', () => {
+    setup({ relays: { relay_04: { state: true } }, icons: { relay_04: Droplets } })
+
+    expect(channelIcon('relay_04')).toHaveClass('lucide-droplets')
+  })
+
+  it('shows the neutral glyph for a channel with no configured icon', () => {
+    setup({ relays: { relay_04: { name: 'Mystery', state: true } }, icons: {} })
+
+    expect(channelIcon('Mystery')).toHaveClass('lucide-power')
   })
 
   it('puts a channel missing from the group configuration under Unassigned', () => {
@@ -210,6 +228,29 @@ describe('RelaysPage critical loads', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(control('Water pump').contains(document.activeElement)).toBe(true)
+  })
+
+  it('closes the confirmation and sends nothing if the Node drops while it is open', async () => {
+    const { user, rerender } = setup({ relays: { relay_03: PUMP }, ...critical })
+    await user.click(segment('Water pump', 'On'))
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+
+    rerender({ nodeOnline: false })
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(onSetRelay).not.toHaveBeenCalled()
+  })
+
+  it('shows no stale target or failure when the Node returns after a dropped confirmation', async () => {
+    const { user, rerender } = setup({ relays: { relay_03: PUMP }, ...critical })
+    await user.click(segment('Water pump', 'On'))
+    rerender({ nodeOnline: false })
+    rerender({ nodeOnline: true })
+    advance(GIVE_UP_MS)
+
+    expect(screen.queryByText("Didn't switch")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument()
+    expect(segment('Water pump', 'Off')).toBeChecked()
   })
 
   it('asks before switching a critical load off too', async () => {

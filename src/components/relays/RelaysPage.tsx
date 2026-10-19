@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertDialog, Button, Spinner, ToggleButton, ToggleButtonGroup } from '@heroui/react'
-import { ToggleLeft } from 'lucide-react'
+import { ToggleLeft, type LucideIcon } from 'lucide-react'
 import { criticalRelayIds, FALLBACK_RELAY_ICON, panelsFor, relayIcons } from '@/config/relayPanels'
 import type { Relay } from '@/types'
+
+/**
+ * The two segments of every control. `min-h-11` is the 44px touch target
+ * (docs/design-principles.md); the solid fill on the selected segment is required, because the
+ * default faint tint makes a mostly-off van read as a wall of "Off".
+ */
+const SEGMENT_CLASS =
+  'data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground min-h-11 flex-1'
+const SEGMENTS = [
+  { key: 'off', text: 'Off' },
+  { key: 'on', text: 'On' },
+] as const
 
 /** A command that has not changed the relay's state in this long is reported as failed. */
 export const GIVE_UP_MS = 4000
@@ -17,6 +29,8 @@ export interface RelaysPageProps {
   onSetRelay: (id: string, on: boolean) => void
   /** Loads that ask before switching. Defaults to the dashboard's own configuration. */
   criticalIds?: readonly string[]
+  /** Per-channel icons, only for a load the owner has named. Defaults to the dashboard's own. */
+  icons?: Readonly<Record<string, LucideIcon>>
 }
 
 /**
@@ -28,59 +42,51 @@ type Phase =
   | { kind: 'pending'; to: boolean; from: boolean | undefined }
   | { kind: 'failed'; to: boolean }
 
-/** Pending and failed commands per relay id, and the 4 second give-up. */
+/**
+ * Pending and failed commands per relay id, and the 4 second give-up.
+ *
+ * Whether a stored phase still applies is derived at render from the relay's real `state`, not
+ * synced by an effect: a pending command is over once the state moves off the value it was sent
+ * from, and a failure is over once the state reaches the target on its own. The only effect is
+ * the timers' cleanup.
+ */
 function useCommandPhases(
   relays: Record<string, Relay>,
   frozen: boolean,
   send: (id: string, on: boolean) => void,
+  onFreeze: () => void,
 ) {
   const [phases, setPhases] = useState<Record<string, Phase>>({})
+  const [wasFrozen, setWasFrozen] = useState(frozen)
   const timers = useRef<Map<string, number>>(new Map())
 
-  const clearTimer = (id: string) => {
-    window.clearTimeout(timers.current.get(id))
-    timers.current.delete(id)
+  const clearTimers = () => {
+    for (const handle of timers.current.values()) window.clearTimeout(handle)
+    timers.current.clear()
   }
 
-  const drop = (id: string) => {
-    clearTimer(id)
-    setPhases((prev) => {
-      const { [id]: _gone, ...rest } = prev
-      return rest
-    })
-  }
-
-  // The state arriving is what settles a command: pending ends when the state moves off `from`,
-  // and a failure clears when the state later changes on its own.
-  useEffect(() => {
-    for (const [id, phase] of Object.entries(phases)) {
-      const state = relays[id]?.state
-      if (phase.kind === 'pending' && state !== phase.from) drop(id)
-      if (phase.kind === 'failed' && state === phase.to) drop(id)
+  // A Node that drops, or Demo mode, ends every command in flight and any open confirmation, so
+  // no stale target, failure or pump prompt surfaces when it returns. Adjusting state while
+  // rendering is React's way to reset on a change.
+  if (frozen !== wasFrozen) {
+    setWasFrozen(frozen)
+    if (frozen) {
+      setPhases({})
+      onFreeze()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [relays, phases])
+  }
 
-  // A Node that drops, or Demo mode, ends every command in flight: no stale target stays shown.
   useEffect(() => {
-    if (!frozen) return
-    for (const id of [...timers.current.keys()]) clearTimer(id)
-    setPhases({})
+    if (frozen) clearTimers()
   }, [frozen])
 
-  useEffect(
-    () => () => {
-      for (const id of [...timers.current.keys()]) clearTimer(id)
-    },
-    [],
-  )
+  useEffect(() => clearTimers, [])
 
   const request = (id: string, to: boolean) => {
-    clearTimer(id)
-    setPhases((prev) => ({
-      ...prev,
-      [id]: { kind: 'pending', to, from: relays[id]?.state },
-    }))
+    // The page is disabled while frozen; this guards a confirmation that was already open.
+    if (frozen) return
+    window.clearTimeout(timers.current.get(id))
+    setPhases((prev) => ({ ...prev, [id]: { kind: 'pending', to, from: relays[id]?.state } }))
     const handle = window.setTimeout(() => {
       timers.current.delete(id)
       setPhases((prev) =>
@@ -91,12 +97,23 @@ function useCommandPhases(
     send(id, to)
   }
 
-  return { phases, request }
+  /** The phase that still applies to a relay, or nothing once its state has settled it. */
+  const phaseOf = (id: string): Phase | undefined => {
+    const phase = phases[id]
+    const state = relays[id]?.state
+    if (phase?.kind === 'pending' && state !== phase.from) return undefined
+    if (phase?.kind === 'failed' && state === phase.to) return undefined
+    return phase
+  }
+
+  return { phaseOf, request }
 }
 
 interface ChannelProps {
   id: string
   relay: Relay
+  /** The glyph for this channel: a configured one, else the neutral one. */
+  Icon: LucideIcon
   /** Node not online, or Demo mode: nothing selected, controls disabled. */
   frozen: boolean
   phase: Phase | undefined
@@ -105,10 +122,8 @@ interface ChannelProps {
   onRetry: (to: boolean) => void
 }
 
-function Channel({ id, relay, frozen, phase, onPick, onRetry }: ChannelProps) {
+function Channel({ id, relay, Icon, frozen, phase, onPick, onRetry }: ChannelProps) {
   const label = relay.name ?? id
-  const Icon =
-    relay.name === undefined ? FALLBACK_RELAY_ICON : (relayIcons[id] ?? FALLBACK_RELAY_ICON)
   const known = relay.state !== undefined
   const unknown = frozen || !known
   const pending = !unknown && phase?.kind === 'pending'
@@ -143,25 +158,18 @@ function Channel({ id, relay, frozen, phase, onPick, onRetry }: ChannelProps) {
           if (to !== relay.state) onPick(to)
         }}
       >
-        <ToggleButton
-          id="off"
-          className="data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground flex-1"
-        >
-          Off
-        </ToggleButton>
-        <ToggleButton
-          id="on"
-          className="data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground flex-1"
-        >
-          <ToggleButtonGroup.Separator />
-          On
-        </ToggleButton>
+        {SEGMENTS.map(({ key, text }, index) => (
+          <ToggleButton key={key} id={key} className={SEGMENT_CLASS}>
+            {index > 0 && <ToggleButtonGroup.Separator />}
+            {text}
+          </ToggleButton>
+        ))}
       </ToggleButtonGroup>
       {unknown && <span className="text-muted text-xs">Unknown</span>}
       {failed && (
         <span className="text-danger flex items-center gap-3 text-xs">
           Didn&apos;t switch
-          <Button size="sm" variant="ghost" onPress={() => onRetry(phase.to)}>
+          <Button size="sm" variant="ghost" className="min-h-11" onPress={() => onRetry(phase.to)}>
             Retry
           </Button>
         </span>
@@ -199,10 +207,13 @@ export function RelaysPage({
   demo,
   onSetRelay,
   criticalIds = criticalRelayIds,
+  icons = relayIcons,
 }: RelaysPageProps) {
   const frozen = demo || !nodeOnline
-  const { phases, request } = useCommandPhases(relays, frozen, onSetRelay)
   const [confirming, setConfirming] = useState<Confirming | null>(null)
+  const { phaseOf, request } = useCommandPhases(relays, frozen, onSetRelay, () =>
+    setConfirming(null),
+  )
   const ids = Object.keys(relays)
 
   if (ids.length === 0) {
@@ -239,8 +250,9 @@ export function RelaysPage({
                 key={id}
                 id={id}
                 relay={relays[id]}
+                Icon={icons[id] ?? FALLBACK_RELAY_ICON}
                 frozen={frozen}
-                phase={phases[id]}
+                phase={phaseOf(id)}
                 onPick={(to) => pick(id, to)}
                 onRetry={(to) => request(id, to)}
               />
