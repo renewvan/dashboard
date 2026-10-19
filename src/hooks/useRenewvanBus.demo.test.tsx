@@ -128,6 +128,19 @@ describe('shared demo mode flag', () => {
     await waitFor(() => expect(result.current.routerHealth).toBe('offline'))
   })
 
+  it('reads the demo router Node health through the registry, and an empty payload as no health', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan/router/health', 'online')
+    send(latest(), 'renewvan/demo/enabled', 'true')
+    send(latest(), 'renewvan/demo/router/health', 'offline')
+    await waitFor(() => expect(result.current.state.nodes.router?.health).toBe('offline'))
+    expect(result.current.routerHealth).toBe('offline')
+    // node-demo clears its retained topic (ADR 0008); the real root's 'online' must not show through.
+    send(latest(), 'renewvan/demo/router/health', '')
+    await waitFor(() => expect(result.current.state.nodes.router).toBeUndefined())
+    expect(result.current.routerHealth).toBeNull()
+  })
+
   it('subscribes once to renewvan/#, which already covers the demo namespace', async () => {
     await renderBus()
     // A second `renewvan/demo/#` subscription would make the broker deliver every demo message twice.
@@ -161,6 +174,40 @@ describe('shared demo mode flag', () => {
     send(latest(), 'renewvan/tailscale/status', JSON.stringify({ enabled: true, peers: 2 }))
     await waitFor(() => expect(result.current.brightness).toBe(40))
     expect(result.current.tailscale?.peers).toBe(2)
+  })
+
+  it('keeps each root own Nodes separate, so a real Node never shows in demo or back', async () => {
+    const { result } = await renderBus()
+    const info = (version: string) =>
+      JSON.stringify({ node: 'tank', product: 'Tank node', source: 'ADS1115', version })
+    send(latest(), 'renewvan/tank/info', info('v0.8.0'))
+    send(latest(), 'renewvan/tank/health', 'online')
+    send(latest(), 'renewvan/demo/tank/info', info('v9.9.9-demo'))
+    send(latest(), 'renewvan/demo/venus/health', 'offline')
+
+    await waitFor(() => expect(result.current.state.nodes.tank?.info?.version).toBe('v0.8.0'))
+    expect(Object.keys(result.current.state.nodes)).toEqual(['tank'])
+
+    send(latest(), 'renewvan/demo/enabled', 'true')
+    await waitFor(() => expect(result.current.demoMode).toBe(true))
+    expect(result.current.state.nodes).toEqual({
+      tank: { info: expect.objectContaining({ version: 'v9.9.9-demo' }) },
+      venus: { health: 'offline' },
+    })
+
+    send(latest(), 'renewvan/demo/enabled', 'false')
+    await waitFor(() => expect(result.current.demoMode).toBe(false))
+    expect(result.current.state.nodes.tank?.info?.version).toBe('v0.8.0')
+    expect(result.current.state.nodes.venus).toBeUndefined()
+  })
+
+  it('drops every demo Node when node-demo clears its retained topics', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan/demo/enabled', 'true')
+    send(latest(), 'renewvan/demo/venus/health', 'online')
+    await waitFor(() => expect(result.current.state.nodes.venus?.health).toBe('online'))
+    send(latest(), 'renewvan/demo/venus/health', '')
+    await waitFor(() => expect(result.current.state.nodes).toEqual({}))
   })
 })
 

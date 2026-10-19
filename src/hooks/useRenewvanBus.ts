@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import mqtt, { type MqttClient } from 'mqtt'
-import { emptyRenewvanBusState, type RenewvanBusState } from '@/types'
+import { emptyRenewvanBusState, type NodeInfo, type RenewvanBusState } from '@/types'
 import { getEnv } from '@/config/runtimeEnv'
 
 // Client-side MQTT-over-WebSocket connection to the renewvan bus broker
@@ -53,8 +53,6 @@ const DEMO_ROOT = `${REAL_ROOT}/demo`
 /** The shared switch: retained state, plus its `/set` command (same convention as the kiosk settings). */
 const TOPIC_DEMO_ENABLED = `${DEMO_ROOT}/enabled`
 const TOPIC_DEMO_ENABLED_SET = `${TOPIC_DEMO_ENABLED}/set`
-const TOPIC_REAL_ROUTER_HEALTH = `${REAL_ROOT}/router/health`
-const TOPIC_DEMO_ROUTER_HEALTH = `${DEMO_ROOT}/router/health`
 
 // `<id>/<property>` is exactly two segments, so the temperature node's
 // `<id>/name/set` and `<id>/unit/set` command topics (three) never match.
@@ -64,9 +62,18 @@ function entityPattern(root: string): RegExp {
   )
 }
 const ENTITY_PATTERN = { real: entityPattern(REAL_ROOT), demo: entityPattern(DEMO_ROOT) }
-// Every driver publishes `renewvan/<domain>/driver/status` ("online"/"offline") as its LWT
-// liveness. It fits the two-segment entity shape with id `driver`, so it is dropped explicitly.
-const DRIVER_LIVENESS_ID = 'driver'
+
+/**
+ * `<root>/<node>/info` and `<root>/<node>/health`: three segments, so never an entity topic (four).
+ * `demo` sits where a Node key would on the real root and is reserved: it is the simulated van's
+ * namespace, never a Node, so the real pattern excludes it and its own `renewvan/demo/health`
+ * (a topic retained on real brokers) cannot become a Node.
+ */
+function nodePattern(root: string, reserved: string | null): RegExp {
+  const key = reserved === null ? '[^/]+' : `(?!${reserved}/)[^/]+`
+  return new RegExp(`^${root}/(${key})/(info|health)$`)
+}
+const NODE_PATTERN = { real: nodePattern(REAL_ROOT, 'demo'), demo: nodePattern(DEMO_ROOT, null) }
 // The kiosk and tailscale topics are host plugins that no demo node simulates, so they stay on the
 // real root in demo mode: a demo van still dims and sleeps the real screen.
 const KIOSK_PREFIX = `${REAL_ROOT}/kiosk/`
@@ -107,16 +114,81 @@ function accumulate<T>(
   return { ...record, [id]: { ...record[id], [property]: value } as T }
 }
 
+function isStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+/** `value` when it is a string, else nothing: an optional info field of the wrong type is dropped. */
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+/**
+ * The dashboard's light structural check of a Node info payload (no schema library): a JSON object
+ * with string `node`, `product`, `source` and `version`, and `publishes` a list of strings if
+ * present. Anything else reads as no info. The optional `manufacturer`, `homepage` and
+ * `host_serial` are kept only when they are strings, and no other key is carried into state.
+ */
+function parseNodeInfo(payload: string): NodeInfo | undefined {
+  const value = parseValue(payload)
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+  const o = value as Record<string, unknown>
+  if (
+    typeof o.node !== 'string' ||
+    typeof o.product !== 'string' ||
+    typeof o.source !== 'string' ||
+    typeof o.version !== 'string'
+  ) {
+    return undefined
+  }
+  if (o.publishes !== undefined && !isStringList(o.publishes)) return undefined
+  const info: NodeInfo = { node: o.node, product: o.product, source: o.source, version: o.version }
+  if (o.publishes !== undefined) info.publishes = o.publishes
+  const manufacturer = optionalString(o.manufacturer)
+  if (manufacturer !== undefined) info.manufacturer = manufacturer
+  const homepage = optionalString(o.homepage)
+  if (homepage !== undefined) info.homepage = homepage
+  const hostSerial = optionalString(o.host_serial)
+  if (hostSerial !== undefined) info.host_serial = hostSerial
+  return info
+}
+
+/** An empty payload clears a retained topic; so does anything that is not a valid value. */
+function applyNodeMessage(
+  prev: RenewvanBusState,
+  key: string,
+  topic: 'info' | 'health',
+  payload: string,
+): RenewvanBusState {
+  const { [key]: current, ...others } = prev.nodes
+  const next = { ...current }
+  if (topic === 'info') {
+    const info = parseNodeInfo(payload)
+    if (info) next.info = info
+    else delete next.info
+  } else if (payload === 'online' || payload === 'offline') {
+    next.health = payload
+  } else {
+    delete next.health
+  }
+  const empty = next.info === undefined && next.health === undefined
+  return { ...prev, nodes: empty ? others : { ...others, [key]: next } }
+}
+
 function applyMessage(
   prev: RenewvanBusState,
   topic: string,
   payload: string,
   pattern: RegExp,
+  nodeTopicPattern: RegExp,
 ): RenewvanBusState {
+  const nodeMatch = nodeTopicPattern.exec(topic)
+  if (nodeMatch) {
+    return applyNodeMessage(prev, nodeMatch[1], nodeMatch[2] as 'info' | 'health', payload)
+  }
   const match = pattern.exec(topic)
   if (!match) return prev
   const [, domain, id, property] = match
-  if (id === DRIVER_LIVENESS_ID) return prev
   const value = parseValue(payload)
   if (domain === 'router') {
     return {
@@ -165,6 +237,9 @@ function applyMessage(
  * switching is instant (no reconnect) and real and simulated values can never mix. The kiosk and
  * tailscale host plugins stay on the real root: no demo node simulates them. Demo state is
  * read-only: while the switch is on, `publish` sends only kiosk commands.
+ *
+ * Each Node's retained `info` and `health` (`renewvan/<node>/info|health`) accumulate into
+ * `state.nodes` per root, and `routerHealth` is read off the router Node's health there.
  */
 export function useRenewvanBus(): RenewvanBus {
   const [real, setReal] = useState<RenewvanBusState>(emptyRenewvanBusState)
@@ -177,8 +252,6 @@ export function useRenewvanBus(): RenewvanBus {
   const [autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes] =
     useState<AutoSleepTimeoutMinutes | null>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
-  const [realRouterHealth, setRealRouterHealth] = useState<RouterHealth | null>(null)
-  const [demoRouterHealth, setDemoRouterHealth] = useState<RouterHealth | null>(null)
   const clientRef = useRef<MqttClient | null>(null)
   // The message handler lives in a mount-once effect, so it reads the flag through a ref.
   const demoModeRef = useRef(false)
@@ -265,18 +338,8 @@ export function useRenewvanBus(): RenewvanBus {
         }
         return
       }
-      if (topic === TOPIC_REAL_ROUTER_HEALTH || topic === TOPIC_DEMO_ROUTER_HEALTH) {
-        // An empty payload clears the retained topic (node-demo going idle): no health, not offline.
-        const health = payload === 'online' || payload === 'offline' ? payload : null
-        if (topic === TOPIC_REAL_ROUTER_HEALTH) {
-          if (health) setRealRouterHealth(health)
-        } else {
-          setDemoRouterHealth(health)
-        }
-        return
-      }
-      setReal((prev) => applyMessage(prev, topic, payload, ENTITY_PATTERN.real))
-      setDemo((prev) => applyMessage(prev, topic, payload, ENTITY_PATTERN.demo))
+      setReal((prev) => applyMessage(prev, topic, payload, ENTITY_PATTERN.real, NODE_PATTERN.real))
+      setDemo((prev) => applyMessage(prev, topic, payload, ENTITY_PATTERN.demo, NODE_PATTERN.demo))
     })
 
     return () => {
@@ -292,20 +355,19 @@ export function useRenewvanBus(): RenewvanBus {
       setAutoSleepEnabled(null)
       setAutoSleepTimeoutMinutes(null)
       setTailscale(null)
-      setRealRouterHealth(null)
-      setDemoRouterHealth(null)
     }
   }, [])
 
+  const state = demoMode ? demo : real
   return {
-    state: demoMode ? demo : real,
+    state,
     status,
     displayPower,
     brightness,
     autoSleepEnabled,
     autoSleepTimeoutMinutes,
     tailscale,
-    routerHealth: demoMode ? demoRouterHealth : realRouterHealth,
+    routerHealth: state.nodes.router?.health ?? null,
     demoMode,
     setDemoMode,
     publish,

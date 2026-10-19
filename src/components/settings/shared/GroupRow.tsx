@@ -9,6 +9,8 @@ interface GroupRowProps {
   onOpen: () => void
   /** Leading icon (top-level rows). Decorative: the label already names the row. */
   icon?: ReactNode
+  /** A status dot's background class, left of the label (Nodes rows). Decorative: the text says it. */
+  statusTone?: string
 }
 
 /**
@@ -17,7 +19,7 @@ interface GroupRowProps {
  * HeroUI's component CSS is unlayered, so the button's height, justification,
  * wrapping and radius need `!` to give way.
  */
-export function GroupRow({ label, description, onOpen, icon }: GroupRowProps) {
+export function GroupRow({ label, description, onOpen, icon, statusTone }: GroupRowProps) {
   return (
     <div className="border-border bg-surface overflow-hidden rounded-2xl border">
       <Button
@@ -33,6 +35,13 @@ export function GroupRow({ label, description, onOpen, icon }: GroupRowProps) {
           >
             {icon}
           </span>
+        )}
+        {statusTone !== undefined && (
+          <span
+            aria-hidden="true"
+            data-testid="status-dot"
+            className={`size-2.5 shrink-0 rounded-full ${statusTone}`}
+          />
         )}
         <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
           <span className="text-sm font-medium">{label}</span>

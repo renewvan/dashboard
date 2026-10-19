@@ -1,13 +1,10 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vite-plus/test'
-import type { NodeSummary } from '@/lib/nodes'
 import { version } from '../../../package.json'
-import { renderSettings } from '@/test/renderSettings'
+import type { UserEvent } from '@testing-library/user-event'
+import { renderSettings, type RenderSettingsOptions } from '@/test/renderSettings'
 import type { Tank } from '@/types'
 
-const tanks: NodeSummary = { domain: 'tanks', label: 'Tanks', count: 1 }
-const batteries: NodeSummary = { domain: 'batteries', label: 'Batteries', count: 3 }
-const temperature: NodeSummary = { domain: 'temperatures', label: 'Temperature', count: 2 }
 const completeTank: Tank = {
   fluid_type: 'fresh_water',
   capacity_l: 100,
@@ -26,7 +23,7 @@ function rowNames() {
 
 describe('SettingsPage top list', () => {
   it('lists exactly Nodes, General and Connectivity, in that order, with live descriptions', () => {
-    renderSettings({ nodes: [tanks, batteries] })
+    renderSettings({}, { bus: { tanks: { fresh: completeTank }, batteries: { '1': {} as never } } })
 
     expect(rowNames()).toEqual([
       'Nodes2 nodes',
@@ -53,7 +50,7 @@ describe('SettingsPage drill-down', () => {
   it.each(['General', 'Connectivity', 'Nodes'])(
     'opens %s under a Settings breadcrumb',
     async (label) => {
-      const { user } = renderSettings({ nodes: [tanks] })
+      const { user } = renderSettings({}, { bus: { tanks: { fresh: completeTank } } })
 
       await user.click(screen.getByRole('button', { name: new RegExp(`^${label}`) }))
 
@@ -111,31 +108,64 @@ describe('SettingsPage breadcrumb', () => {
   })
 })
 
-describe('SettingsPage Nodes', () => {
-  it('lists published nodes with their entity counts, Tanks and Temperature described by their entities', async () => {
-    const { user } = renderSettings({
-      nodes: [tanks, batteries, temperature],
-      tanks: { fresh: completeTank },
-      temperatures: { outdoor: {}, indoor: {} },
+describe('SettingsPage Firmware', () => {
+  const tankInfo = {
+    node: 'tank',
+    product: 'Tank node',
+    source: 'ADS1115 (I2C)',
+    publishes: ['tank'],
+    version: 'v0.8.0',
+  }
+
+  async function openFirmware(options: RenderSettingsOptions = {}) {
+    const rendered = renderSettings({}, options)
+    await rendered.user.click(screen.getByRole('button', { name: /^General/ }))
+    await rendered.user.click(screen.getByRole('button', { name: /^Firmware/ }))
+    return rendered
+  }
+
+  const rows = () =>
+    within(screen.getByLabelText('Firmware'))
+      .getAllByRole('term')
+      .map((term) => [term.textContent, term.nextElementSibling?.textContent])
+
+  it('lists the dashboard first, then one row per Node, worded as on the Nodes page', async () => {
+    await openFirmware({
+      bus: {
+        nodes: {
+          tank: { info: tankInfo, health: 'online' },
+          temperature: {
+            info: { ...tankInfo, node: 'temperature', product: 'Temperature node', version: 'dev' },
+            health: 'online',
+          },
+          router: {
+            info: { ...tankInfo, node: 'router', product: 'Router bridge', version: 'v0.1.0' },
+            health: 'offline',
+          },
+          gps: { health: 'online' },
+        },
+      },
     })
 
-    await user.click(screen.getByRole('button', { name: /^Nodes/ }))
-
-    const list = screen.getByRole('list', { name: 'Published nodes' })
-    expect(
-      within(list)
-        .getAllByRole('listitem')
-        .map((row) => row.textContent),
-    ).toEqual(['Tanks1 tank', 'Batteries3 entities', 'Temperature2 sensors'])
+    expect(rows()).toEqual([
+      ['Dashboard', version],
+      ['gps', 'Unknown'],
+      ['Router bridge', 'offline, last seen v0.1.0'],
+      ['Tank node', 'v0.8.0'],
+      ['Temperature node', 'dev'],
+    ])
   })
 
-  it('says so when no node has reported yet', async () => {
-    const { user } = renderSettings({ nodes: [] })
+  it('lists only the dashboard while no Node has reported', async () => {
+    await openFirmware()
 
-    await user.click(screen.getByRole('button', { name: /^Nodes/ }))
+    expect(rows()).toEqual([['Dashboard', version]])
+  })
 
-    expect(screen.getByText(/No nodes connected/)).toBeInTheDocument()
-    expect(screen.queryByRole('list', { name: 'Published nodes' })).not.toBeInTheDocument()
+  it('has no drill-in: it is read-only', async () => {
+    await openFirmware({ bus: { nodes: { tank: { info: tankInfo, health: 'online' } } } })
+
+    expect(within(screen.getByLabelText('Firmware')).queryByRole('button')).not.toBeInTheDocument()
   })
 })
 
@@ -175,7 +205,7 @@ describe('SettingsPage General groups', () => {
 })
 
 describe('SettingsPage Alerts', () => {
-  async function openAlerts(user: ReturnType<typeof renderSettings>['user']) {
+  async function openAlerts(user: UserEvent) {
     await user.click(screen.getByRole('button', { name: /^General/ }))
     await user.click(screen.getByRole('button', { name: /^Alerts/ }))
   }

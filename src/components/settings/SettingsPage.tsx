@@ -15,6 +15,7 @@ import { FirmwareView } from './general/system/FirmwareView'
 import { GeneralView } from './general/GeneralView'
 import { GroupRow } from './shared/GroupRow'
 import { HubView } from './connectivity/HubView'
+import { NodeView } from './nodes/NodeView'
 import { NodesView } from './nodes/NodesView'
 import { StartPageView } from './general/preferences/StartPageView'
 import { PowerPageView } from './general/preferences/PowerPageView'
@@ -28,6 +29,7 @@ import type { SettingsSubView, SettingsView } from './views'
 
 const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
   nodes: { title: 'Nodes', parent: 'list' },
+  node: { title: 'Node', parent: 'nodes' },
   tanks: { title: 'Tanks', parent: 'nodes' },
   tank: { title: 'Tank', parent: 'tanks' },
   temperature: { title: 'Temperature', parent: 'nodes' },
@@ -83,13 +85,28 @@ export const SettingsPage = memo(function SettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content
   const validTankIds = useMemo(() => tankIds, [tankIdsKey])
   const [tankParam] = useUrlParam('tank', validTankIds)
-  // A tank view without a reported tank has nothing to show: fall back to the tank list.
+  // The open Node lives in `?node=`, valid only while it names a reported Node or a fallback row.
+  const nodeKeys = nodes.map((row) => row.key)
+  const nodeKeysKey = nodeKeys.join('\u0000')
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content
+  const validNodeKeys = useMemo(() => nodeKeys, [nodeKeysKey])
+  const [nodeParam] = useUrlParam('node', validNodeKeys)
+  const nodeRow = nodes.find((row) => row.key === nodeParam)
+  // A tank view without a reported tank has nothing to show: fall back to the tank list; a node
+  // view without a reported Node, to the Nodes list.
   const view: SettingsView =
-    viewParam === 'tank' && tankParam === null ? 'tanks' : (viewParam ?? 'list')
-  // `tank` is titled by the open tank's fluid; every other view has a fixed title.
+    viewParam === 'tank' && tankParam === null
+      ? 'tanks'
+      : viewParam === 'node' && nodeRow === undefined
+        ? 'nodes'
+        : (viewParam ?? 'list')
+  // `tank` is titled by the open tank's fluid and `node` by the open Node's label; every other
+  // view has a fixed title.
   const titleOf = (id: SettingsSubView): string => {
     const fluid = tankParam === null ? undefined : tanks[tankParam]?.fluid_type
-    return id === 'tank' && fluid ? FLUID_LABELS[fluid] : VIEWS[id].title
+    if (id === 'tank' && fluid) return FLUID_LABELS[fluid]
+    if (id === 'node' && nodeRow) return nodeRow.label
+    return VIEWS[id].title
   }
   // The drawer is one persistent dialog: navigating deeper swaps its content in place instead
   // of closing one drawer and opening another. Remember the last open view so the content
@@ -108,11 +125,20 @@ export const SettingsPage = memo(function SettingsPage() {
     params.set('tank', tankId)
     pushSearchParams(params)
   }, [])
+  // Likewise `view` and `node`.
+  const openNode = useCallback((nodeKey: string) => {
+    const params = new URLSearchParams(window.location.search)
+    params.set('view', 'node')
+    params.set('node', nodeKey)
+    pushSearchParams(params)
+  }, [])
 
   const content = (id: SettingsSubView): ReactNode => {
     switch (id) {
       case 'nodes':
-        return <NodesView onOpen={setView} />
+        return <NodesView onOpen={openNode} />
+      case 'node':
+        return nodeRow === undefined ? null : <NodeView row={nodeRow} onOpen={setView} />
       case 'tanks':
         return <TanksView onOpen={openTank} />
       case 'tank':

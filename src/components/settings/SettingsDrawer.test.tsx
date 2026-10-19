@@ -75,16 +75,32 @@ describe('drawer navigation', () => {
   })
 
   it('renders the pages added by other tickets in their own drawers, replacing the parent in place', async () => {
-    const { user } = renderSettings({
-      nodes: [{ domain: 'temperatures', label: 'Temperature', count: 1 }],
-      temperatures: {
-        outdoor: { name: 'Outdoor', unit: 'C', source: 'w1', temperature_c: 31.4, status: 'ok' },
+    const { user } = renderSettings(
+      {},
+      {
+        bus: {
+          temperatures: {
+            outdoor: {
+              name: 'Outdoor',
+              unit: 'C',
+              source: 'w1',
+              temperature_c: 31.4,
+              status: 'ok',
+            },
+          },
+        },
       },
-    })
+    )
 
     await user.click(screen.getByRole('button', { name: /^Nodes/ }))
+    // No Node publishes info, so the sensor sits in a fallback row: open it, then Temperature.
     await user.click(
       await within(await openDialog('Nodes')).findByRole('button', { name: /^Temperature/ }),
+    )
+    await user.click(
+      await within(await screen.findByRole('list', { name: 'Entities' })).findByRole('button', {
+        name: /^Temperature/,
+      }),
     )
     const temperature = await openDialog('Temperature')
     expect(within(temperature).getByRole('textbox', { name: 'Name' })).toHaveValue('Outdoor')

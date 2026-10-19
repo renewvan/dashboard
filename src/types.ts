@@ -301,6 +301,30 @@ export interface Router {
   data_used_month_rx_b: number
 }
 
+export type NodeHealth = 'online' | 'offline'
+
+/**
+ * The retained `renewvan/<node>/info` payload (hub `node-info.schema.json`): the Node's manifest
+ * plus its build-stamped `version` and optional `host_serial`. `publishes` is optional here only
+ * because the dashboard's structural check requires it to be a list of strings *if present*.
+ */
+export interface NodeInfo {
+  node: string
+  product: string
+  source: string
+  version: string
+  publishes?: string[]
+  manufacturer?: string
+  homepage?: string
+  host_serial?: string
+}
+
+/** What the bus has said about one Node: its retained info and its retained health, each optional. */
+export interface NodeRecord {
+  info?: NodeInfo
+  health?: NodeHealth
+}
+
 /** Live state of the renewvan bus, keyed by entity id within each domain. */
 export interface RenewvanBusState {
   tanks: Record<string, Tank>
@@ -316,6 +340,8 @@ export interface RenewvanBusState {
    * icon's staleness rule (health offline OR older than 180 s = offline;
    * see lib/connection.ts). */
   routerUpdatedAt: Record<string, number>
+  /** Every Node that has published `info` or `health`, keyed by its `<node>` topic segment. */
+  nodes: Record<string, NodeRecord>
 }
 
 export const emptyRenewvanBusState: RenewvanBusState = {
@@ -329,4 +355,5 @@ export const emptyRenewvanBusState: RenewvanBusState = {
   temperatures: {},
   tilt: {},
   routerUpdatedAt: {},
+  nodes: {},
 }

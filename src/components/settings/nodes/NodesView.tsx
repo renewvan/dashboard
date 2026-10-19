@@ -1,17 +1,26 @@
-import { tankSummary } from '@/lib/tank-display'
-import { temperatureSummary } from '@/lib/temperature'
+import { entityCountText, type NodeRow } from '@/lib/nodes'
 import { GroupRow } from '../shared/GroupRow'
 import { useSettings } from '../SettingsContext'
-import { useReportedTankIds } from './useReportedTankIds'
-import type { SettingsSubView } from '../views'
+import { NODE_TONE } from './nodeTone'
 
 /**
- * Every node that has published, with how many entities it exposes. Tanks and
- * Temperature are the drill-ins (their entities have settings); the rest are read-only.
+ * `<version> · <N entities>`: the one-line state of a Node. A Node with no info has no known
+ * entity count (its `publishes` is unknown), so it reads as its version alone. The Host serial is
+ * never shown here.
  */
-export function NodesView({ onOpen }: { onOpen: (view: SettingsSubView) => void }) {
-  const { nodes, temperatures } = useSettings()
-  const tankIds = useReportedTankIds()
+function describe(row: NodeRow): string {
+  return row.entityCount === null
+    ? row.version
+    : `${row.version} · ${entityCountText(row.entityCount)}`
+}
+
+/**
+ * Every Node on the van, one row each (never one per entity type), with a status dot, its version
+ * and how many entities it publishes. A row opens the Node's Device page. Entities that no Node
+ * claims appear as a fallback row by entity type, so a partial rollout never leaves it blank.
+ */
+export function NodesView({ onOpen }: { onOpen: (key: string) => void }) {
+  const { nodes } = useSettings()
 
   if (nodes.length === 0) {
     return (
@@ -23,35 +32,16 @@ export function NodesView({ onOpen }: { onOpen: (view: SettingsSubView) => void 
 
   return (
     <ul aria-label="Published nodes" className="flex flex-col gap-2">
-      {nodes.map((node) =>
-        node.domain === 'tanks' ? (
-          <li key={node.domain}>
-            <GroupRow
-              label={node.label}
-              description={tankSummary(tankIds)}
-              onOpen={() => onOpen('tanks')}
-            />
-          </li>
-        ) : node.domain === 'temperatures' ? (
-          <li key={node.domain}>
-            <GroupRow
-              label={node.label}
-              description={temperatureSummary(temperatures)}
-              onOpen={() => onOpen('temperature')}
-            />
-          </li>
-        ) : (
-          <li
-            key={node.domain}
-            className="border-border bg-surface flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-3"
-          >
-            <span className="text-sm font-medium">{node.label}</span>
-            <span className="text-muted text-xs tabular-nums">
-              {node.count === 1 ? '1 entity' : `${node.count} entities`}
-            </span>
-          </li>
-        ),
-      )}
+      {nodes.map((row) => (
+        <li key={row.key} className={row.dim ? 'opacity-60' : ''}>
+          <GroupRow
+            label={row.label}
+            description={describe(row)}
+            statusTone={NODE_TONE[row.tone]}
+            onOpen={() => onOpen(row.key)}
+          />
+        </li>
+      ))}
     </ul>
   )
 }

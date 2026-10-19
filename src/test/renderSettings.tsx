@@ -6,7 +6,8 @@ import type { SettingsContextValue } from '@/components/settings/SettingsContext
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { TailscaleStatus } from '@/hooks/useRenewvanBus'
 import { DEFAULT_START_POWER_SOURCES } from '@/hooks/useStartPowerSources'
-import type { Router } from '@/types'
+import { nodeRows } from '@/lib/nodes'
+import { emptyRenewvanBusState, type RenewvanBusState, type Router } from '@/types'
 import { stubMatchMedia } from './matchMedia'
 
 export const connectedTailscale: TailscaleStatus = {
@@ -39,11 +40,17 @@ class StubResizeObserver {
 /** Kiosk width: comfortably above the 800px "mobile" breakpoint. */
 const KIOSK_WIDTH = 1024
 
-interface RenderSettingsOptions {
+export interface RenderSettingsOptions {
   /** Simulated viewport width for `matchMedia` (default: kiosk). */
   width?: number
   /** Starting URL, to open on a deep link (default: the Settings top list). */
   url?: string
+  /**
+   * What is on the bus. The Nodes list is derived from it through the real `nodeRows`, so a test
+   * describes topics and not rows; its `tanks` and `temperatures` also feed the context unless
+   * `overrides` set them.
+   */
+  bus?: Partial<RenewvanBusState>
 }
 
 /**
@@ -54,8 +61,9 @@ interface RenderSettingsOptions {
  */
 export function renderSettings(
   overrides: Partial<SettingsContextValue> = {},
-  { width = KIOSK_WIDTH, url = '/?page=settings' }: RenderSettingsOptions = {},
+  { width = KIOSK_WIDTH, url = '/?page=settings', bus }: RenderSettingsOptions = {},
 ) {
+  const state: RenewvanBusState = { ...emptyRenewvanBusState, ...bus }
   // The open view lives in `?view=`: every render starts at the top list unless a `url` is given.
   window.history.replaceState(null, '', url)
   const viewport = stubMatchMedia(width)
@@ -67,9 +75,9 @@ export function renderSettings(
   })
 
   const value: SettingsContextValue = {
-    nodes: [],
-    temperatures: {},
-    tanks: {},
+    nodes: nodeRows(state),
+    temperatures: state.temperatures,
+    tanks: state.tanks,
     router: liveRouter,
     routerHealth: 'online',
     routerUpdatedAt: Date.now(),

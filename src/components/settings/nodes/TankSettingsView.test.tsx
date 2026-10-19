@@ -1,10 +1,8 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
-import type { NodeSummary } from '@/lib/nodes'
+import type { SettingsContextValue } from '../SettingsContext'
 import { renderSettings } from '@/test/renderSettings'
 import type { Tank } from '@/types'
-
-const tanksNode: NodeSummary = { domain: 'tanks', label: 'Tanks', count: 2 }
 
 function tank(overrides: Partial<Tank> = {}): Tank {
   return {
@@ -25,19 +23,28 @@ const TANKS: Record<string, Partial<Tank>> = {
   black: { fluid_type: 'black_water' },
 }
 
-async function openTanks(overrides: Parameters<typeof renderSettings>[0] = {}) {
-  const rendered = renderSettings({ nodes: [tanksNode], tanks: TANKS, ...overrides })
+async function openTanks(overrides: Partial<SettingsContextValue> = {}) {
+  const rendered = renderSettings(overrides, { bus: { tanks: TANKS as never } })
   await rendered.user.click(screen.getByRole('button', { name: /^Nodes/ }))
+  // Tanks have no Node here, so they sit in a fallback row; open it, then its Tanks entity row.
   await rendered.user.click(screen.getByRole('button', { name: /^Tanks/ }))
+  await rendered.user.click(
+    within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', { name: /^Tanks/ }),
+  )
   return rendered
 }
 
 describe('Settings › Nodes › Tanks', () => {
-  it('drills in from Nodes, described by its tank count', async () => {
-    const { user } = renderSettings({ nodes: [tanksNode], tanks: TANKS })
+  it('drills in from a Node page, described by its tank count', async () => {
+    const { user } = renderSettings({}, { bus: { tanks: TANKS as never } })
     await user.click(screen.getByRole('button', { name: /^Nodes/ }))
+    await user.click(screen.getByRole('button', { name: /^Tanks/ }))
 
-    expect(screen.getByRole('button', { name: /^Tanks/ })).toHaveTextContent('2 tanks')
+    expect(
+      within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
+        name: /^Tanks/,
+      }),
+    ).toHaveTextContent('2 tanks')
   })
 
   it('lists each reported tank by name, fresh water first, skipping a partial one', async () => {
@@ -103,8 +110,8 @@ describe('Settings › Nodes › Tanks › Fresh water', () => {
 
   it('opens straight from a deep link', async () => {
     renderSettings(
-      { nodes: [tanksNode], tanks: TANKS },
-      { url: '/?page=settings&view=tank&tank=grey' },
+      {},
+      { bus: { tanks: TANKS as never }, url: '/?page=settings&view=tank&tank=grey' },
     )
     expect(screen.getByRole('link', { name: 'Grey water', current: 'page' })).toBeInTheDocument()
   })
@@ -113,8 +120,8 @@ describe('Settings › Nodes › Tanks › Fresh water', () => {
 describe('Settings › Nodes › Tanks › unknown tank', () => {
   it('shows the tank list, not an empty panel, when ?tank= names no reported tank', () => {
     renderSettings(
-      { nodes: [tanksNode], tanks: TANKS },
-      { url: '/?page=settings&view=tank&tank=nope' },
+      {},
+      { bus: { tanks: TANKS as never }, url: '/?page=settings&view=tank&tank=nope' },
     )
 
     expect(screen.getByRole('link', { name: 'Tanks', current: 'page' })).toBeInTheDocument()
