@@ -128,6 +128,19 @@ describe('shared demo mode flag', () => {
     await waitFor(() => expect(result.current.routerHealth).toBe('offline'))
   })
 
+  it('reads the demo router Node health through the registry, and an empty payload as no health', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan/router/health', 'online')
+    send(latest(), 'renewvan/demo/enabled', 'true')
+    send(latest(), 'renewvan/demo/router/health', 'offline')
+    await waitFor(() => expect(result.current.state.nodes.router?.health).toBe('offline'))
+    expect(result.current.routerHealth).toBe('offline')
+    // node-demo clears its retained topic (ADR 0008); the real root's 'online' must not show through.
+    send(latest(), 'renewvan/demo/router/health', '')
+    await waitFor(() => expect(result.current.state.nodes.router).toBeUndefined())
+    expect(result.current.routerHealth).toBeNull()
+  })
+
   it('subscribes once to renewvan/#, which already covers the demo namespace', async () => {
     await renderBus()
     // A second `renewvan/demo/#` subscription would make the broker deliver every demo message twice.

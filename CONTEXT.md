@@ -10,7 +10,7 @@ _Avoid_: Connection status, router status, internet connection
 
 **Uplink**:
 The van's cellular internet connection through the router entity
-(`renewvan/router/<id>/*` + `renewvan/router/health`, hub schema
+(`renewvan/router/<id>/*` + the router **Node**'s health, `state.nodes.router`, hub schema
 `router.schema.json`): five signal tiers (0–4 bars) from RSRP (≥ -85/
 -95/-105/-115 dBm), offline when the node's health says offline or
 data is older than 180 s, checking until data arrives. The subject of the

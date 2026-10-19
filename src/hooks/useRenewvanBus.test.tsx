@@ -85,6 +85,15 @@ describe('useRenewvanBus router entity', () => {
     await waitFor(() => expect(result.current.routerHealth).toBe('offline'))
   })
 
+  it('reads an empty router/health payload as no health, not offline', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/router/health', { toString: () => 'online' })
+    await waitFor(() => expect(result.current.routerHealth).toBe('online'))
+    messageHandlers[0]('renewvan/router/health', { toString: () => '' })
+    await waitFor(() => expect(result.current.routerHealth).toBeNull())
+  })
+
   it('drops the superseded renewvan/uplink/status topic entirely', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())

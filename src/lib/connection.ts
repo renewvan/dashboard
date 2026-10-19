@@ -4,7 +4,7 @@ import { plmnOperatorName } from './plmn'
 
 /**
  * The header connection icon's state model, derived from the router entity
- * (`renewvan/router/<id>/*`) + node health (`renewvan/router/health`).
+ * (`renewvan/router/<id>/*`) + the router Node's health (`state.nodes.router`).
  * Pure decision function (tailscaleStatusText precedent): the component
  * renders, this decides.
  *
