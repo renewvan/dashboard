@@ -13,6 +13,22 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # The image is built from the tagged commit, whose package.json still holds the
+      # previous release's version (bump-version below only lands on `main` afterwards).
+      # FirmwareView imports that version, so stamp it from the tag before building, or
+      # every release would report the one before it.
+      - name: Stamp package.json version from release tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${TAG#v}"
+          node -e "
+            const fs = require('node:fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = process.argv[1];
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          " "$version"
+
       # Stable releases are cut from `main`, where test.yml already ran tests + build on the
       # merge commit. Re-running them here only repeats that. Pre-releases come from feature
       # branches that may never have been through test.yml, so they keep the gate.
