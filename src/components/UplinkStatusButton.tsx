@@ -1,4 +1,4 @@
-import { CloudOff, Loader2 } from 'lucide-react'
+import { CloudOff, Loader2, Wifi } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNow } from '@/hooks/useNow'
 import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '@/hooks/useRenewvanBus'
@@ -36,13 +36,15 @@ interface TierPresentation {
   label: string
 }
 
-/** Icon, colour and accessible label per connection tier (bar tiers set `filled`; checking/offline set `Icon`). */
+/** Icon, colour and accessible label per connection tier (bar tiers set `filled`; checking/connected/offline set `Icon`). */
 const TIER_PRESENTATION: Record<ConnectionTier, TierPresentation> = {
   checking: {
     Icon: Loader2,
     iconClass: 'text-warning animate-spin',
     label: 'Checking connection…',
   },
+  // Reachable over a non-cellular path (wifi / LAN / Tailscale); no cellular figures to show.
+  connected: { Icon: Wifi, iconClass: 'text-success', label: 'Connected' },
   offline: { Icon: CloudOff, iconClass: 'text-danger', label: 'Connection offline' },
   'no-service': { filled: 0, iconClass: 'text-danger', label: 'Connection: no service' },
   'bars-1': { filled: 1, iconClass: 'text-warning', label: 'Connection: 1 of 4 bars' },
@@ -88,7 +90,14 @@ export function UplinkStatusButton({
   onOpenSettings,
 }: UplinkStatusButtonProps) {
   const now = useNow(30_000)
-  const tier = connectionTier(router?.signal_rsrp_dbm, routerHealth, lastReceivedAt, now)
+  const tier = connectionTier({
+    rsrp: router?.signal_rsrp_dbm,
+    routerHealth,
+    lastReceivedAt,
+    now,
+    busStatus,
+    tailscale,
+  })
   const { filled, Icon, iconClass, label } = TIER_PRESENTATION[tier]
 
   return (
@@ -107,7 +116,7 @@ export function UplinkStatusButton({
       onOpenSettings={onOpenSettings}
       settingsLabel="Network settings"
     >
-      {tier !== 'checking' && tier !== 'offline' && (
+      {tier !== 'checking' && tier !== 'connected' && tier !== 'offline' && (
         <>
           <FieldRow
             label="RSRP"

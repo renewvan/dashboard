@@ -9,15 +9,21 @@ The kiosk's live MQTT-over-WebSocket connection to the van's broker — reported
 _Avoid_: Connection status, router status, internet connection
 
 **Uplink**:
-The van's cellular internet connection through the router entity
-(`renewvan/router/<id>/*` + the router **Node**'s health, `state.nodes.router`, hub schema
-`router.schema.json`): five signal tiers (0–4 bars) from RSRP (≥ -85/
--95/-105/-115 dBm), offline when the node's health says offline or
-data is older than 180 s, checking until data arrives. The subject of the
-header's connection status button (`UplinkStatusButton`) — the icon reports
-the van's uplink; its popover's Hub dot row reports the bus link.
+The van's internet connection as the header's connection status button
+(`UplinkStatusButton`) reports it. While the cellular router entity is
+feeding (`renewvan/router/<id>/*` + the router **Node**'s health,
+`state.nodes.router`, hub schema `router.schema.json`) the icon shows five
+signal tiers (0–4 bars) from RSRP (≥ -85/-95/-105/-115 dBm). When the router
+is silent (no data, data older than 180 s, or node health offline) the van
+can still be online over wifi / LAN / Tailscale, so the icon shows
+**connected** while the **Bus link** or Tailscale is up, **checking** only
+while the Bus link is still connecting, and **offline** only when every path
+is down. There is no wifi/LAN signal on the bus: non-cellular reachability is
+inferred from the Bus link + Tailscale. The Settings → Connectivity Cellular
+row stays cellular-only (`cellularTier`: checking until router data arrives).
+Its popover's Hub dot row reports the bus link.
 _Avoid_: Internet connection, WAN, network status, signal strength (alone —
-it's the whole connection state, including offline/no-service)
+it's the whole connection state, including connected/offline/no-service)
 
 **Status button**:
 A header icon button that reports a live condition and opens a detail popover on tap; visually transparent, unlike an action button.

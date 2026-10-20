@@ -13,6 +13,14 @@ const connectedTailscale: TailscaleStatus = {
   peers: 1,
 }
 
+const disconnectedTailscale: TailscaleStatus = {
+  enabled: true,
+  connected: false,
+  ip: null,
+  hostname: null,
+  peers: 0,
+}
+
 const liveRouter: Router = {
   signal_rsrp_dbm: -85,
   signal_rsrq_db: -10,
@@ -46,11 +54,23 @@ function setup(
 }
 
 describe('UplinkStatusButton icon per tier', () => {
-  it('shows a checking spinner before any router data arrives', () => {
-    setup(undefined, null)
+  it('shows a checking spinner only while the bus link is still connecting', () => {
+    setup(undefined, null, null, disconnectedTailscale, () => {}, 'connecting')
     const button = screen.getByTestId('uplink-status-button')
     expect(button).toHaveAttribute('aria-label', 'Checking connection…')
     expect(button).toHaveAttribute('data-state', 'checking')
+  })
+
+  it('stops checking and shows connected when the van is on wifi/Tailscale with no router feed', () => {
+    setup(undefined, null)
+    const button = screen.getByTestId('uplink-status-button')
+    expect(button).toHaveAttribute('aria-label', 'Connected')
+    expect(button).toHaveAttribute('data-state', 'connected')
+  })
+
+  it('shows connected over Tailscale alone while the bus link is down', () => {
+    setup(undefined, null, null, connectedTailscale, () => {}, 'disconnected')
+    expect(screen.getByTestId('uplink-status-button')).toHaveAttribute('data-state', 'connected')
   })
 
   it.each([
@@ -72,18 +92,23 @@ describe('UplinkStatusButton icon per tier', () => {
     expect(button).toHaveAttribute('data-state', 'no-service')
   })
 
-  it('collapses to the reserved CloudOff glyph when the node health says offline', () => {
+  it('falls back to connected when the router node reports offline but another path is up', () => {
     setup(liveRouter, 'offline', 30_000)
+    const button = screen.getByTestId('uplink-status-button')
+    expect(button).toHaveAttribute('aria-label', 'Connected')
+    expect(button).toHaveAttribute('data-state', 'connected')
+  })
+
+  it('collapses to the CloudOff glyph only when every path is down', () => {
+    setup(liveRouter, 'offline', 30_000, disconnectedTailscale, () => {}, 'disconnected')
     const button = screen.getByTestId('uplink-status-button')
     expect(button).toHaveAttribute('aria-label', 'Connection offline')
     expect(button).toHaveAttribute('data-state', 'offline')
   })
 
-  it('goes offline on stale data even with a good signal and healthy node', () => {
+  it('falls back to connected on stale router data while another path is up', () => {
     setup(liveRouter, 'online', 200_000)
-    const button = screen.getByTestId('uplink-status-button')
-    expect(button).toHaveAttribute('aria-label', 'Connection offline')
-    expect(button).toHaveAttribute('data-state', 'offline')
+    expect(screen.getByTestId('uplink-status-button')).toHaveAttribute('data-state', 'connected')
   })
 })
 
@@ -130,9 +155,9 @@ describe('UplinkStatusButton popover', () => {
     expect(screen.getByText('Not installed')).toBeInTheDocument()
   })
 
-  it('checks instead of guessing while nothing has arrived', async () => {
+  it('checks instead of guessing while the bus link is still connecting', async () => {
     const user = userEvent.setup()
-    setup(undefined, null)
+    setup(undefined, null, null, disconnectedTailscale, () => {}, 'connecting')
     await user.click(screen.getByRole('button', { name: 'Checking connection…' }))
 
     expect(await screen.findByText('Checking…')).toBeInTheDocument()
@@ -140,9 +165,20 @@ describe('UplinkStatusButton popover', () => {
     expect(screen.getByText('Tailscale')).toBeInTheDocument()
   })
 
+  it('titles the popover Connected, without cellular rows, when no router feed exists', async () => {
+    const user = userEvent.setup()
+    setup(undefined, null)
+    await user.click(screen.getByRole('button', { name: 'Connected' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Connected' })).toBeInTheDocument()
+    expect(screen.queryByText('RSRP')).not.toBeInTheDocument()
+    expect(screen.getByText('Hub')).toBeInTheDocument()
+    expect(screen.getByText('Tailscale')).toBeInTheDocument()
+  })
+
   it('drops the detail rows when offline but keeps the Tailscale row', async () => {
     const user = userEvent.setup()
-    setup(liveRouter, 'offline', 30_000)
+    setup(liveRouter, 'offline', 30_000, disconnectedTailscale, () => {}, 'disconnected')
     await user.click(screen.getByRole('button', { name: 'Connection offline' }))
 
     expect(await screen.findByText('Offline')).toBeInTheDocument()

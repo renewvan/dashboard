@@ -1,4 +1,4 @@
-import { connectionTier, busStatusText, uplinkHeadline } from '@/lib/connection'
+import { cellularTier, busStatusText, uplinkHeadline } from '@/lib/connection'
 import { tailscaleStatusText } from '@/lib/tailscale'
 import { useNow } from '@/hooks/useNow'
 import { GroupRow } from '../shared/GroupRow'
@@ -17,7 +17,7 @@ interface ConnectivityViewProps {
 export function ConnectivityView({ onOpen }: ConnectivityViewProps) {
   const { router, routerHealth, routerUpdatedAt, busStatus, tailscale } = useSettings()
   const now = useNow(30_000)
-  const tier = connectionTier(router?.signal_rsrp_dbm, routerHealth, routerUpdatedAt, now)
+  const tier = cellularTier(router?.signal_rsrp_dbm, routerHealth, routerUpdatedAt, now)
 
   return (
     <div className="flex flex-col gap-2">
