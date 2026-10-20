@@ -160,7 +160,7 @@ export function Rings({ rings, legend, centre, glow }: RingsProps) {
       </div>
 
       <div
-        className="absolute inset-x-0 bottom-2 flex flex-col items-center gap-1"
+        className="absolute inset-x-0 bottom-3 flex flex-col items-center gap-1"
         aria-hidden="true"
       >
         {legend.map((index) => {
