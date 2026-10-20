@@ -52,8 +52,8 @@ export type NodeStatus = 'Online' | 'Offline' | 'Unknown'
 export interface NodeRow {
   /** The Node's `<node>` topic segment, or `domain:<entity type>` for a fallback row. */
   key: string
-  /** The product name, else the Node's key, else (a fallback row) the entity type's old label. */
-  label: string
+  /** The Node's name as a title: its `<node>` key capitalised (`tank` → `Tank`); a fallback row's entity label. */
+  name: string
   tone: NodeTone
   status: NodeStatus
   /** What the Firmware version row shows; the same wording on the Nodes and Firmware pages. */
@@ -66,6 +66,13 @@ export interface NodeRow {
   entityCount: number | null
   /** Offline with info: the whole page renders greyed. */
   dim: boolean
+}
+
+/** Node keys whose name is not just the key capitalised (acronyms, and a key that names a board). */
+const NODE_NAMES: Record<string, string> = { gps: 'GPS', 'esp32-relay': 'Relays' }
+
+function nodeName(key: string): string {
+  return NODE_NAMES[key.toLowerCase()] ?? key.charAt(0).toUpperCase() + key.slice(1)
 }
 
 function entitiesOf(state: RenewvanBusState, types: readonly string[]): NodeRow['entities'] {
@@ -116,7 +123,7 @@ export function nodeRows(state: RenewvanBusState): NodeRow[] {
       const entities = entitiesOf(state, info?.publishes ?? [])
       return {
         key,
-        label: info?.product ?? key,
+        name: nodeName(info?.node ?? key),
         info,
         entities,
         // Without info there is no `publishes`, so how many entities it owns is unknown, not zero.
@@ -131,7 +138,7 @@ export function nodeRows(state: RenewvanBusState): NodeRow[] {
     if (ids.length === 0) continue
     rows.push({
       key: `${FALLBACK_PREFIX}${type}`,
-      label,
+      name: label,
       info: undefined,
       entities: [{ type, label, ids }],
       entityCount: ids.length,

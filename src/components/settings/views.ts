@@ -3,6 +3,7 @@ export type SettingsView =
   | 'list'
   | 'nodes'
   | 'node'
+  | 'device'
   | 'tanks'
   | 'tank'
   | 'temperature'

@@ -13,7 +13,7 @@ export function FirmwareView() {
     <DetailList label="Firmware">
       <DetailRow label="Dashboard" value={version} />
       {nodes.map((row) => (
-        <DetailRow key={row.key} label={row.label} value={row.version} />
+        <DetailRow key={row.key} label={row.name} value={row.version} />
       ))}
     </DetailList>
   )

@@ -37,10 +37,17 @@ async function openNodes(user: UserEvent) {
 }
 
 /** Opens Settings › Nodes › <label> for a bus holding one Node. */
-async function openDevice(node: NodeRecord, key = 'tank', label = /^Tank node/) {
+async function openNode(node: NodeRecord, key = 'tank', label = /^Tank/) {
   const rendered = renderSettings({}, { bus: busWith(node, key) })
   await openNodes(rendered.user)
   await rendered.user.click(screen.getByRole('button', { name: label }))
+  return rendered
+}
+
+/** Opens Settings › Nodes › <label> › Device. */
+async function openDevice(node: NodeRecord, key = 'tank', label = /^Tank/) {
+  const rendered = await openNode(node, key, label)
+  await rendered.user.click(screen.getByRole('button', { name: /^Device/ }))
   return rendered
 }
 
@@ -90,7 +97,7 @@ describe('Settings Nodes list', () => {
       within(list)
         .getAllByRole('listitem')
         .map((row) => row.textContent),
-    ).toEqual(['Tank nodev0.8.0 · 2 entities', 'Venus OS bridgev0.3.0 · 4 entities'])
+    ).toEqual(['Tankv0.8.0 · 2 entities', 'Venusv0.3.0 · 4 entities'])
   })
 
   it('says a Node with no info is of Unknown version, and shows an offline one as last seen', async () => {
@@ -123,8 +130,8 @@ describe('Settings Nodes list', () => {
       .map((row) => row.textContent)
     // `gps` publishes no info, so its entities have no claimant and also get a fallback row.
     expect(rows).toEqual([
-      'gpsUnknown',
-      'Router bridgeoffline, last seen v0.1.0 · 1 entity',
+      'GPSUnknown',
+      'Routeroffline, last seen v0.1.0 · 1 entity',
       'GPSUnknown · 1 entity',
     ])
   })
@@ -149,26 +156,35 @@ describe('Settings Nodes list', () => {
   })
 })
 
-describe('Settings Node page: the five states', () => {
-  it('online with info: green dot, Online, the published version, nothing muted', async () => {
-    await openDevice({ info: tankInfo, health: 'online' })
+/** The Node page's Status row: its text and its dot's colour class. */
+function nodeStatus() {
+  const status = screen.getByLabelText('Node status')
+  return {
+    text: within(status).getByRole('term').nextElementSibling?.textContent,
+    dot: within(status).getByTestId('status-dot'),
+  }
+}
 
-    expect(deviceRows().slice(0, 4)).toEqual([
-      ['Status', 'Online'],
-      ['Product', 'Tank node'],
-      ['Source', 'ADS1115 (I2C)'],
-      ['Firmware version', 'v0.8.0'],
-    ])
-    expect(within(pageOf()).getByTestId('status-dot')).toHaveClass('bg-success')
-    expect(pageOf().closest('.opacity-60')).toBeNull()
-    expect(screen.queryByText(/no info/i)).not.toBeInTheDocument()
+/** The Device page's Firmware version value. */
+const firmwareVersion = () => Object.fromEntries(deviceRows())['Firmware version']
+
+describe('Settings Node page: the five states', () => {
+  it('online with info: green dot, Online, nothing muted', async () => {
+    await openNode({ info: tankInfo, health: 'online' })
+
+    expect(nodeStatus().text).toBe('Online')
+    expect(nodeStatus().dot).toHaveClass('bg-success')
+    expect(screen.getByRole('button', { name: 'Device' }).closest('.opacity-60')).toBeNull()
   })
 
-  it('online without info: amber dot, Online, Unknown, identity rows em dashes, a muted note', async () => {
-    await openDevice({ health: 'online' }, 'gps', /^gps/)
+  it('online without info: amber dot, Online, then Unknown identity rows and a muted note on Device', async () => {
+    const { user } = await openNode({ health: 'online' }, 'gps', /^GPS/)
 
+    expect(nodeStatus().text).toBe('Online')
+    expect(nodeStatus().dot).toHaveClass('bg-warning')
+
+    await user.click(screen.getByRole('button', { name: 'Device' }))
     expect(deviceRows()).toEqual([
-      ['Status', 'Online'],
       ['Product', '—'],
       ['Source', '—'],
       ['Firmware version', 'Unknown'],
@@ -176,48 +192,56 @@ describe('Settings Node page: the five states', () => {
       ['Manufacturer', '—'],
       ['Homepage', '—'],
     ])
-    expect(within(pageOf()).getByTestId('status-dot')).toHaveClass('bg-warning')
     expect(screen.getByText(/no info/i)).toBeInTheDocument()
     expect(pageOf().closest('.opacity-60')).toBeNull()
   })
 
-  it('offline with info: grey dot, Offline, last seen version, the whole page at 60% opacity', async () => {
-    await openDevice({ info: { ...tankInfo, version: 'v0.1.0' }, health: 'offline' })
+  it('offline with info: grey dot, Offline, last seen version, both pages at 60% opacity', async () => {
+    const { user } = await openNode({
+      info: { ...tankInfo, version: 'v0.1.0' },
+      health: 'offline',
+    })
 
-    expect(deviceRows().slice(0, 4)).toEqual([
-      ['Status', 'Offline'],
+    expect(nodeStatus().text).toBe('Offline')
+    expect(nodeStatus().dot).toHaveClass('bg-muted')
+    expect(screen.getByRole('button', { name: 'Device' }).closest('.opacity-60')).not.toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Device' }))
+    expect(deviceRows().slice(0, 3)).toEqual([
       ['Product', 'Tank node'],
       ['Source', 'ADS1115 (I2C)'],
       ['Firmware version', 'offline, last seen v0.1.0'],
     ])
-    expect(within(pageOf()).getByTestId('status-dot')).toHaveClass('bg-muted')
     expect(pageOf().closest('.opacity-60')).not.toBeNull()
   })
 
   it('a dev build: green dot, Online, dev', async () => {
-    await openDevice({ info: { ...tankInfo, version: 'dev' }, health: 'online' })
+    const { user } = await openNode({ info: { ...tankInfo, version: 'dev' }, health: 'online' })
 
-    expect(deviceRows()[0]).toEqual(['Status', 'Online'])
-    expect(deviceRows()[3]).toEqual(['Firmware version', 'dev'])
-    expect(within(pageOf()).getByTestId('status-dot')).toHaveClass('bg-success')
+    expect(nodeStatus().text).toBe('Online')
+    expect(nodeStatus().dot).toHaveClass('bg-success')
+
+    await user.click(screen.getByRole('button', { name: 'Device' }))
+    expect(firmwareVersion()).toBe('dev')
   })
 
   it('info with no health: grey dot, Unknown, the version as published, not dimmed', async () => {
-    await openDevice({ info: tankInfo })
+    const { user } = await openNode({ info: tankInfo })
 
-    expect(deviceRows()[0]).toEqual(['Status', 'Unknown'])
-    expect(deviceRows()[3]).toEqual(['Firmware version', 'v0.8.0'])
-    expect(within(pageOf()).getByTestId('status-dot')).toHaveClass('bg-muted')
-    expect(pageOf().closest('.opacity-60')).toBeNull()
+    expect(nodeStatus().text).toBe('Unknown')
+    expect(nodeStatus().dot).toHaveClass('bg-muted')
+    expect(screen.getByRole('button', { name: 'Device' }).closest('.opacity-60')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Device' }))
+    expect(firmwareVersion()).toBe('v0.8.0')
   })
 })
 
 describe('Settings Node page: rows', () => {
-  it('always shows Status, Product, Source, Firmware version, Host serial, Manufacturer, Homepage, in that order', async () => {
+  it('always shows Product, Source, Firmware version, Host serial, Manufacturer, Homepage, in that order, and no Status', async () => {
     await openDevice({ info: tankInfo, health: 'online' })
 
     expect(deviceRows().map(([label]) => label)).toEqual([
-      'Status',
       'Product',
       'Source',
       'Firmware version',
@@ -263,24 +287,34 @@ describe('Settings Node page: rows', () => {
 })
 
 describe('Settings Node page: navigation', () => {
-  it('titles a Node page by its product, with a Back button named Nodes', async () => {
-    await openDevice({ info: tankInfo, health: 'online' })
+  it('titles a Node page by its name, with a Back button named Nodes', async () => {
+    await openNode({ info: tankInfo, health: 'online' })
 
     expect(screen.getByRole('button', { name: 'Nodes' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Tank node' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tank' })).toBeInTheDocument()
   })
 
-  it('labels a Node with no info by its key, and a fallback row by its old label', async () => {
-    await openDevice({ health: 'online' }, 'gps', /^gps/)
-    expect(screen.getByRole('heading', { name: 'gps' })).toBeInTheDocument()
+  it('opens Device below the Node, with a Back button named for the Node', async () => {
+    await openDevice({ info: tankInfo, health: 'online' })
+
+    expect(screen.getByRole('heading', { name: 'Device' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tank' })).toBeInTheDocument()
   })
 
-  it('walks back to the Nodes list from the Back button', async () => {
+  it('walks Device → Tank → Nodes with Back', async () => {
     const { user } = await openDevice({ info: tankInfo, health: 'online' })
 
-    await user.click(screen.getByRole('button', { name: 'Nodes' }))
+    await user.click(screen.getByRole('button', { name: 'Tank' }))
+    expect(screen.getByRole('heading', { name: 'Tank' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Device' })).not.toBeInTheDocument()
 
+    await user.click(screen.getByRole('button', { name: 'Nodes' }))
     expect(screen.getByRole('list', { name: 'Published nodes' })).toBeInTheDocument()
+  })
+
+  it('names a Node with no info by its key, GPS as an acronym', async () => {
+    await openNode({ health: 'online' }, 'gps', /^GPS/)
+    expect(screen.getByRole('heading', { name: 'GPS' })).toBeInTheDocument()
   })
 
   it('falls back to the Nodes list when ?node= names a Node that is not reported', () => {
@@ -288,7 +322,7 @@ describe('Settings Node page: navigation', () => {
       {},
       {
         bus: busWith({ info: tankInfo, health: 'online' }),
-        url: '/?page=settings&view=node&node=nope',
+        url: '/?page=settings&view=device&node=nope',
       },
     )
 
@@ -303,50 +337,55 @@ describe('Settings Node page: navigation', () => {
     expect(screen.getByRole('list', { name: 'Published nodes' })).toBeInTheDocument()
   })
 
-  it('opens a deep link to a reported Node, and to a fallback row', () => {
-    renderSettings(
-      {},
-      {
-        bus: busWith({ info: tankInfo, health: 'online' }),
-        url: '/?page=settings&view=node&node=tank',
-      },
-    )
-    expect(screen.getByRole('heading', { name: 'Tank node' })).toBeInTheDocument()
+  it('opens a deep link to a reported Node, and to its Device page', () => {
+    const bus = busWith({ info: tankInfo, health: 'online' })
+    const { unmount } = renderSettings({}, { bus, url: '/?page=settings&view=node&node=tank' })
+    expect(screen.getByRole('heading', { name: 'Tank' })).toBeInTheDocument()
+    unmount()
+
+    renderSettings({}, { bus, url: '/?page=settings&view=device&node=tank' })
+    expect(screen.getByRole('heading', { name: 'Device' })).toBeInTheDocument()
+    expect(Object.fromEntries(deviceRows())['Product']).toBe('Tank node')
   })
 
   it('opens a fallback row by its domain key', () => {
     renderSettings(
       {},
-      { bus: { gps: { '0': {} as never } }, url: '/?page=settings&view=node&node=domain%3Agps' },
+      {
+        bus: { gps: { '0': {} as never } },
+        url: '/?page=settings&view=device&node=domain%3Agps',
+      },
     )
-    expect(screen.getByRole('heading', { name: 'GPS' })).toBeInTheDocument()
-    expect(deviceRows()[3]).toEqual(['Firmware version', 'Unknown'])
+    expect(screen.getByRole('heading', { name: 'Device' })).toBeInTheDocument()
+    expect(firmwareVersion()).toBe('Unknown')
   })
 
   describe('as a drawer', () => {
     beforeEach(() => window.localStorage.setItem(STORAGE_KEY, 'drawer'))
 
-    it('opens the Device page in the drawer, titled by the Node, and Back steps up to Nodes', async () => {
+    it('opens Device in the drawer below the Node, and Back steps up one level at a time', async () => {
       const { user } = renderSettings({}, { bus: busWith({ info: tankInfo, health: 'online' }) })
       await openNodes(user)
       await user.click(
         await within(await screen.findByRole('dialog', { name: 'Nodes' })).findByRole('button', {
-          name: /^Tank node/,
+          name: /^Tank/,
         }),
       )
+      const node = await screen.findByRole('dialog', { name: 'Tank' })
+      await user.click(within(node).getByRole('button', { name: /^Device/ }))
 
-      const device = await screen.findByRole('dialog', { name: 'Tank node' })
+      const device = await screen.findByRole('dialog', { name: 'Device' })
       expect(within(device).getByText('v0.8.0')).toBeInTheDocument()
 
       await user.click(within(device).getByRole('button', { name: 'Back' }))
-      expect(await screen.findByRole('dialog', { name: 'Nodes' })).toBeInTheDocument()
+      expect(await screen.findByRole('dialog', { name: 'Tank' })).toBeInTheDocument()
     })
   })
 })
 
 describe('Settings Node page: entities', () => {
   it('lists the entities the Node publishes, and opens Tanks from its Publishes row', async () => {
-    const { user } = await openDevice({ info: tankInfo, health: 'online' })
+    const { user } = await openNode({ info: tankInfo, health: 'online' })
 
     await user.click(screen.getByRole('button', { name: /^Tanks/ }))
 

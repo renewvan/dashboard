@@ -35,7 +35,7 @@ export function NodesView({ onOpen }: { onOpen: (key: string) => void }) {
       {nodes.map((row) => (
         <li key={row.key} className={row.dim ? 'opacity-60' : ''}>
           <GroupRow
-            label={row.label}
+            label={row.name}
             description={describe(row)}
             statusTone={NODE_TONE[row.tone]}
             onOpen={() => onOpen(row.key)}

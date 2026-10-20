@@ -1124,7 +1124,7 @@ describe('App shell Relays page', () => {
     await receiveRelayNode('online')
 
     await user.click(screen.getByRole('button', { name: /^Nodes/ }))
-    await user.click(screen.getByRole('button', { name: /^ESP32 16-channel relay board/ }))
+    await user.click(screen.getByRole('button', { name: /^Relays/ }))
     await user.click(
       within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
         name: /^Relays/,

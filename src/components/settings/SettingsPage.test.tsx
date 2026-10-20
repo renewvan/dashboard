@@ -150,10 +150,10 @@ describe('SettingsPage Firmware', () => {
 
     expect(rows()).toEqual([
       ['Dashboard', version],
-      ['gps', 'Unknown'],
-      ['Router bridge', 'offline, last seen v0.1.0'],
-      ['Tank node', 'v0.8.0'],
-      ['Temperature node', 'dev'],
+      ['GPS', 'Unknown'],
+      ['Router', 'offline, last seen v0.1.0'],
+      ['Tank', 'v0.8.0'],
+      ['Temperature', 'dev'],
     ])
   })
 

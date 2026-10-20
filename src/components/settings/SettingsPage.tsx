@@ -15,6 +15,7 @@ import { FirmwareView } from './general/system/FirmwareView'
 import { GeneralView } from './general/GeneralView'
 import { GroupRow } from './shared/GroupRow'
 import { HubView } from './connectivity/HubView'
+import { DeviceView } from './nodes/DeviceView'
 import { NodeView } from './nodes/NodeView'
 import { NodesView } from './nodes/NodesView'
 import { StartPageView } from './general/preferences/StartPageView'
@@ -33,6 +34,7 @@ import { useHideShellHeader } from './ShellHeaderContext'
 const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
   nodes: { title: 'Nodes', parent: 'list' },
   node: { title: 'Node', parent: 'nodes' },
+  device: { title: 'Device', parent: 'node' },
   tanks: { title: 'Tanks', parent: 'nodes' },
   tank: { title: 'Tank', parent: 'tanks' },
   temperature: { title: 'Temperature', parent: 'nodes' },
@@ -95,7 +97,7 @@ export const SettingsPage = memo(function SettingsPage() {
   const view: SettingsView =
     viewParam === 'tank' && tankParam === null
       ? 'tanks'
-      : viewParam === 'node' && nodeRow === undefined
+      : (viewParam === 'node' || viewParam === 'device') && nodeRow === undefined
         ? 'nodes'
         : (viewParam ?? 'list')
   // `tank` is titled by the open tank's fluid and `node` by the open Node's label; every other
@@ -103,7 +105,7 @@ export const SettingsPage = memo(function SettingsPage() {
   const titleOf = (id: SettingsSubView): string => {
     const fluid = tankParam === null ? undefined : tanks[tankParam]?.fluid_type
     if (id === 'tank' && fluid) return FLUID_LABELS[fluid]
-    if (id === 'node' && nodeRow) return nodeRow.label
+    if (id === 'node' && nodeRow) return nodeRow.name
     return VIEWS[id].title
   }
   // The drawer is one persistent dialog: navigating deeper swaps its content in place instead
@@ -137,6 +139,8 @@ export const SettingsPage = memo(function SettingsPage() {
         return <NodesView onOpen={openNode} />
       case 'node':
         return nodeRow === undefined ? null : <NodeView row={nodeRow} onOpen={setView} />
+      case 'device':
+        return nodeRow === undefined ? null : <DeviceView row={nodeRow} />
       case 'tanks':
         return <TanksView onOpen={openTank} />
       case 'tank':

@@ -42,7 +42,7 @@ describe('nodeRows', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
       key: 'venus',
-      label: 'Venus OS bridge',
+      name: 'Venus',
       version: 'v0.3.0',
       entityCount: 4,
     })
@@ -126,14 +126,14 @@ describe('nodeRows', () => {
       expect(rows).toEqual([
         expect.objectContaining({
           key: 'domain:tank',
-          label: 'Tanks',
+          name: 'Tanks',
           version: 'Unknown',
           status: 'Unknown',
           entityCount: 1,
         }),
         expect.objectContaining({
           key: 'domain:gps',
-          label: 'GPS',
+          name: 'GPS',
           version: 'Unknown',
           entityCount: 1,
         }),
@@ -177,14 +177,20 @@ describe('nodeRows', () => {
     })
   })
 
-  it('labels a Node by its product, and a Node with no info by its key', () => {
+  it('names a Node by its capitalised node key (GPS as an acronym), whatever its product', () => {
     const rows = nodeRows(
-      stateWith({ nodes: { tank: { info: tankInfo }, mystery: { health: 'online' } } }),
+      stateWith({
+        nodes: {
+          tank: { info: tankInfo },
+          mystery: { health: 'online' },
+          gps: { health: 'online' },
+        },
+      }),
     )
-    // Sorted by key, so `mystery` precedes `tank`.
-    expect(rows.map((r) => [r.key, r.label])).toEqual([
-      ['mystery', 'mystery'],
-      ['tank', 'Tank node'],
+    expect(rows.map((r) => [r.key, r.name])).toEqual([
+      ['gps', 'GPS'],
+      ['mystery', 'Mystery'],
+      ['tank', 'Tank'],
     ])
   })
 

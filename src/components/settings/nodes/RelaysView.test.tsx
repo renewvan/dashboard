@@ -23,7 +23,7 @@ async function openRelays(
     bus: { relays, nodes: { 'esp32-relay': { info: relayInfo, health: 'online' } } },
   })
   await rendered.user.click(screen.getByRole('button', { name: /^Nodes/ }))
-  await rendered.user.click(screen.getByRole('button', { name: /^ESP32 16-channel relay board/ }))
+  await rendered.user.click(screen.getByRole('button', { name: /^Relays/ }))
   await rendered.user.click(
     within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
       name: /^Relays/,
@@ -65,7 +65,7 @@ describe('Settings › Nodes › Relays', () => {
       { bus: { nodes: { 'esp32-relay': { info: relayInfo, health: 'online' } } } },
     )
     await user.click(screen.getByRole('button', { name: /^Nodes/ }))
-    await user.click(screen.getByRole('button', { name: /^ESP32 16-channel relay board/ }))
+    await user.click(screen.getByRole('button', { name: /^Relays/ }))
 
     // With no relay on the bus the Node lists no Relays row to open.
     expect(screen.queryByRole('button', { name: /^Relays/ })).not.toBeInTheDocument()
