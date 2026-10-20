@@ -263,23 +263,22 @@ describe('Settings Node page: rows', () => {
 })
 
 describe('Settings Node page: navigation', () => {
-  it('reads Settings › Nodes › <product> as a real breadcrumb', async () => {
+  it('titles a Node page by its product, with a Back button named Nodes', async () => {
     await openDevice({ info: tankInfo, health: 'online' })
 
-    expect(screen.getByRole('link', { name: 'Settings' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Nodes' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Tank node', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nodes' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tank node' })).toBeInTheDocument()
   })
 
   it('labels a Node with no info by its key, and a fallback row by its old label', async () => {
     await openDevice({ health: 'online' }, 'gps', /^gps/)
-    expect(screen.getByRole('link', { name: 'gps', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'gps' })).toBeInTheDocument()
   })
 
-  it('walks back to the Nodes list from the Nodes crumb', async () => {
+  it('walks back to the Nodes list from the Back button', async () => {
     const { user } = await openDevice({ info: tankInfo, health: 'online' })
 
-    await user.click(screen.getByRole('link', { name: 'Nodes' }))
+    await user.click(screen.getByRole('button', { name: 'Nodes' }))
 
     expect(screen.getByRole('list', { name: 'Published nodes' })).toBeInTheDocument()
   })
@@ -295,7 +294,7 @@ describe('Settings Node page: navigation', () => {
 
     expect(screen.getByRole('list', { name: 'Published nodes' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Device' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Nodes', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Nodes' })).toBeInTheDocument()
   })
 
   it('falls back to the Nodes list when view=node has no node at all', () => {
@@ -312,7 +311,7 @@ describe('Settings Node page: navigation', () => {
         url: '/?page=settings&view=node&node=tank',
       },
     )
-    expect(screen.getByRole('link', { name: 'Tank node', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tank node' })).toBeInTheDocument()
   })
 
   it('opens a fallback row by its domain key', () => {
@@ -320,7 +319,7 @@ describe('Settings Node page: navigation', () => {
       {},
       { bus: { gps: { '0': {} as never } }, url: '/?page=settings&view=node&node=domain%3Agps' },
     )
-    expect(screen.getByRole('link', { name: 'GPS', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'GPS' })).toBeInTheDocument()
     expect(deviceRows()[3]).toEqual(['Firmware version', 'Unknown'])
   })
 
@@ -351,6 +350,6 @@ describe('Settings Node page: entities', () => {
 
     await user.click(screen.getByRole('button', { name: /^Tanks/ }))
 
-    expect(screen.getByRole('link', { name: 'Tanks', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tanks' })).toBeInTheDocument()
   })
 })

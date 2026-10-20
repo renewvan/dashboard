@@ -33,6 +33,7 @@ import { useNavbarPosition } from '@/hooks/useNavbarPosition'
 import { useStartPowerSources } from '@/hooks/useStartPowerSources'
 import { usePowerLayout } from '@/hooks/usePowerLayout'
 import { useUrlPage } from '@/hooks/useUrlPage'
+import { ShellHeaderContext } from '@/components/settings/ShellHeaderContext'
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'start', label: 'Start', icon: <Gauge className="size-5" /> },
@@ -118,6 +119,9 @@ function App() {
     '--navbar-inset-bottom': isBottomBar ? navInset : '0px',
     '--navbar-inset-left': isBottomBar ? '0px' : navInset,
   } as CSSProperties
+  // A page (the Settings subpage) can ask the shell to hide its header, because it shows its own
+  // navigation bar in that place.
+  const [headerHidden, setHeaderHidden] = useState(false)
   const headerRef = useRef<HTMLElement>(null)
   useLayoutEffect(() => {
     const header = headerRef.current
@@ -223,6 +227,7 @@ function App() {
         'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center py-2 pr-4 pl-[calc(1rem+var(--navbar-inset-left))]',
         insetMotion,
         isMobile && 'bg-surface border-border border-b',
+        headerHidden && 'hidden',
       )}
     >
       {/* A real link (so long-press/middle-click behave), but a plain tap is a one-entry SPA
@@ -319,8 +324,9 @@ function App() {
   )
 
   return (
-    <div className="bg-background text-foreground flex h-svh flex-col overflow-hidden">
-      {/* One `Tabs` root holds the header, the nav and the panes, so the left rail can span the
+    <ShellHeaderContext.Provider value={setHeaderHidden}>
+      <div className="bg-background text-foreground flex h-svh flex-col overflow-hidden">
+        {/* One `Tabs` root holds the header, the nav and the panes, so the left rail can span the
           full height of the app. The nav precedes the panes in the DOM (React Aria warns when a
           tab panel renders before its tab list). On the kiosk the nav, rail or bar, is an
           absolutely positioned, translucent, auto-hiding overlay that never pushes the panes;
@@ -329,36 +335,37 @@ function App() {
           bottom bar, moved below the panes by its `order-last`. Keyed by layout: HeroUI's sliding
           indicator measures its tab once and does not re-measure when the list swaps between the
           rail and a bar under the same root. */}
-      <Tabs
-        key={isMobile ? 'phone' : navbarPosition}
-        selectedKey={activePage}
-        onSelectionChange={(key) => goToPage(String(key))}
-        orientation={isMobile || isBottomBar ? 'horizontal' : 'vertical'}
-        style={navbarInsetStyle}
-        className={cn('min-h-0 flex-1 gap-0!', !isMobile && 'relative overflow-hidden')}
-      >
-        {isBottomBar ? (
-          <BottomNavBar
-            items={NAV_ITEMS}
-            hidden={navHidden}
-            pinned={navPinned}
-            onPinnedChange={setNavPinned}
-          />
-        ) : (
-          <Sidebar
-            items={NAV_ITEMS}
-            isMobile={isMobile}
-            hidden={navHidden}
-            pinned={navPinned}
-            onPinnedChange={setNavPinned}
-          />
-        )}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {header}
-          {panels}
-        </div>
-      </Tabs>
-    </div>
+        <Tabs
+          key={isMobile ? 'phone' : navbarPosition}
+          selectedKey={activePage}
+          onSelectionChange={(key) => goToPage(String(key))}
+          orientation={isMobile || isBottomBar ? 'horizontal' : 'vertical'}
+          style={navbarInsetStyle}
+          className={cn('min-h-0 flex-1 gap-0!', !isMobile && 'relative overflow-hidden')}
+        >
+          {isBottomBar ? (
+            <BottomNavBar
+              items={NAV_ITEMS}
+              hidden={navHidden}
+              pinned={navPinned}
+              onPinnedChange={setNavPinned}
+            />
+          ) : (
+            <Sidebar
+              items={NAV_ITEMS}
+              isMobile={isMobile}
+              hidden={navHidden}
+              pinned={navPinned}
+              onPinnedChange={setNavPinned}
+            />
+          )}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {header}
+            {panels}
+          </div>
+        </Tabs>
+      </div>
+    </ShellHeaderContext.Provider>
   )
 }
 

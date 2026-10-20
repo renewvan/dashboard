@@ -1,6 +1,6 @@
-import { act, screen, within } from '@testing-library/react'
+import { act, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
-import { connectedTailscale, liveRouter, renderSettings } from '@/test/renderSettings'
+import { connectedTailscale, liveRouter, renderSettings, settingsRows } from '@/test/renderSettings'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -28,7 +28,7 @@ describe('Connectivity', () => {
 
     await open(user, 'Connectivity')
 
-    const rows = screen.getAllByRole('button').map((row) => row.textContent)
+    const rows = settingsRows().map((row) => row.textContent)
     expect(rows).toEqual(['CellularLTE · O2', 'HubConnected', `Tailscale${connectedTailscale.ip}`])
   })
 
@@ -159,33 +159,18 @@ describe('Tailscale', () => {
   })
 })
 
-describe('Connectivity breadcrumb', () => {
+describe('Connectivity navigation bar', () => {
   it('walks up one level at a time from a depth-2 page', async () => {
     const { user } = renderSettings()
     await open(user, 'Connectivity', 'Cellular')
 
-    const crumbs = () =>
-      within(screen.getByRole('list', { name: 'Breadcrumbs' }))
-        .getAllByRole('link')
-        .map((link) => link.textContent)
-    expect(crumbs()).toEqual(['Settings', 'Connectivity', 'Cellular'])
-    expect(screen.getByRole('link', { name: 'Cellular', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Cellular' })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: 'Connectivity' }))
-    expect(crumbs()).toEqual(['Settings', 'Connectivity'])
+    await user.click(screen.getByRole('button', { name: 'Connectivity' }))
+    expect(screen.getByRole('heading', { name: 'Connectivity' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Cellular/ })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: 'Settings' }))
-    expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
-  })
-
-  it('jumps straight to the top list from the Settings crumb on a depth-2 page', async () => {
-    const { user } = renderSettings()
-    await open(user, 'Connectivity', 'Tailscale')
-
-    await user.click(screen.getByRole('link', { name: 'Settings' }))
-
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
   })
 })

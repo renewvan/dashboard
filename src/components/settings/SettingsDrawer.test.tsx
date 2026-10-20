@@ -44,9 +44,7 @@ describe('switching to subpages from a drawer', () => {
 
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('subpage')
     await expectNoDialog()
-    expect(
-      screen.getByRole('link', { name: 'Display & Appearance', current: 'page' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Display & Appearance' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Subpages' })).toBeChecked()
   })
 })
@@ -71,7 +69,7 @@ describe('drawer navigation', () => {
     ).toEqual(['CellularLTE · O2', 'HubConnected', 'Tailscale100.64.0.1'])
     // The page behind the drawer is still the top list, not a breadcrumbed subpage.
     expect(screen.getByRole('heading', { name: 'Settings', hidden: true })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument()
   })
 
   it('renders the pages added by other tickets in their own drawers, replacing the parent in place', async () => {
@@ -238,7 +236,7 @@ describe('on a phone', () => {
 
     act(() => viewport.setViewportWidth(390))
     await expectNoDialog()
-    expect(screen.getByRole('link', { name: 'General', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'General' })).toBeInTheDocument()
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('drawer')
 
     act(() => viewport.setViewportWidth(1024))

@@ -21,8 +21,8 @@ describe('Settings › General › Display & Appearance › Power page', () => {
 
     await user.click(screen.getByRole('button', { name: /^Power page/ }))
 
-    expect(screen.getByRole('link', { name: 'Display & Appearance' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Power page', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Display & Appearance' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Power page' })).toBeInTheDocument()
   })
 
   it('shows the stored layout as selected and says what it draws', async () => {

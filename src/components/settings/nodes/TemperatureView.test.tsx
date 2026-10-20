@@ -61,8 +61,8 @@ describe('Settings › Nodes › Temperature', () => {
 
     await user.click(entities.getByRole('button', { name: /^Temperature/ }))
 
-    expect(screen.getByRole('link', { name: 'Nodes' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Temperature', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nodes' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Temperature' })).toBeInTheDocument()
   })
 
   it('lists a panel per sensor: outdoor, indoor, then by id, each with source and reading', async () => {

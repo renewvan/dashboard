@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { onTestFinished, vi } from 'vite-plus/test'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
@@ -116,4 +116,16 @@ export function renderSettings(
     </SettingsProvider>,
   )
   return { user, viewport, value, ...result }
+}
+
+/**
+ * The rows of the open Settings view: the pane's buttons except the navigation bar's Back
+ * button, which is not a row.
+ */
+export function settingsRows(): HTMLElement[] {
+  const pane = screen.getByTestId('pane-settings')
+  const nav = within(pane).queryByRole('navigation', { name: 'Settings navigation' })
+  return within(pane)
+    .getAllByRole('button')
+    .filter((button) => !nav?.contains(button))
 }

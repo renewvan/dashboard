@@ -123,21 +123,22 @@ async function openCellularFromUplink(user: ReturnType<typeof userEvent.setup>) 
   await user.click(await screen.findByRole('button', { name: /network settings/i }))
 }
 
-/** The subpage breadcrumb ends on the open view. */
-function currentCrumb() {
+/** The open Settings view: a subpage's navigation bar titles it with the pane's `h1`. */
+function currentView() {
   const pane = screen.getByTestId('pane-settings')
-  return within(pane).queryByRole('link', { current: 'page' })
+  return within(pane).queryByRole('heading', { level: 1 })
 }
 
 function expectInCellular() {
   expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
-  expect(currentCrumb()).toHaveAccessibleName('Cellular')
+  expect(currentView()).toHaveAccessibleName('Cellular')
 }
 
+/** The top list: Settings' own title and its three rows, with no back button above them. */
 function expectTopList() {
   const pane = screen.getByTestId('pane-settings')
   expect(within(pane).getAllByRole('button')).toHaveLength(3)
-  expect(within(pane).queryByRole('link')).not.toBeInTheDocument()
+  expect(within(pane).getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
 }
 
 /** jsdom delivers `popstate` on a later task: wait for it, then let React settle. */
@@ -410,7 +411,7 @@ describe('App shell Tanks page', () => {
       await user.click(screen.getAllByRole('button', { name: 'Configure' })[1])
 
       expect(selectedPage()).toHaveAccessibleName('Settings')
-      expect(screen.getByRole('link', { name: 'Grey water', current: 'page' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Grey water' })).toBeInTheDocument()
       expect(screen.getByRole('switch', { name: 'Enabled' })).toBeDisabled()
       expect(window.location.search).toBe('?page=settings&view=tank&tank=grey')
 
@@ -546,8 +547,8 @@ describe('App shell header', () => {
     )
 
     await user.click(within(pane).getByRole('button', { name: /^General/ }))
-    expect(within(pane).getByRole('link', { name: 'General', current: 'page' })).toBeVisible()
-    await user.click(within(pane).getByRole('link', { name: 'Settings' }))
+    expect(within(pane).getByRole('heading', { name: 'General' })).toBeVisible()
+    await user.click(within(pane).getByRole('button', { name: 'Settings' }))
     expect(within(pane).getAllByRole('button')).toHaveLength(3)
   })
 
@@ -650,7 +651,7 @@ describe('App shell Settings view in the URL', () => {
       expectTopList()
 
       await goBack()
-      expect(currentCrumb()).toHaveAccessibleName('Hub')
+      expect(currentView()).toHaveAccessibleName('Hub')
     },
   )
 
@@ -688,7 +689,7 @@ describe('App shell Settings view in the URL', () => {
 
     cleanup()
     await renderAt(KIOSK_WIDTH, `/${window.location.search}`)
-    expect(currentCrumb()).toHaveAccessibleName('Hub')
+    expect(currentView()).toHaveAccessibleName('Hub')
   })
 
   it('Back and Forward step through the views', async () => {
@@ -700,27 +701,34 @@ describe('App shell Settings view in the URL', () => {
     expect(window.location.search).toBe('?page=settings&view=connectivity')
     await user.click(within(pane).getByRole('button', { name: /^Tailscale/ }))
     expect(window.location.search).toBe('?page=settings&view=tailscale')
-    expect(currentCrumb()).toHaveAccessibleName('Tailscale')
+    expect(currentView()).toHaveAccessibleName('Tailscale')
 
     await goBack()
-    expect(currentCrumb()).toHaveAccessibleName('Connectivity')
+    expect(currentView()).toHaveAccessibleName('Connectivity')
     await goBack()
     expectTopList()
     expect(window.location.search).toBe('?page=settings')
 
     await goForward()
-    expect(currentCrumb()).toHaveAccessibleName('Connectivity')
+    expect(currentView()).toHaveAccessibleName('Connectivity')
     await goForward()
-    expect(currentCrumb()).toHaveAccessibleName('Tailscale')
+    expect(currentView()).toHaveAccessibleName('Tailscale')
   })
 
-  it('a breadcrumb step pushes an entry too, so Back returns to the deeper view', async () => {
+  it('the nav bar Back button pushes an entry too, so browser Back returns to the deeper view', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=settings&view=cellular')
     const pane = screen.getByTestId('pane-settings')
-    await user.click(within(pane).getByRole('link', { name: 'Settings' }))
+    await user.click(within(pane).getByRole('button', { name: 'Connectivity' }))
+    expect(currentView()).toHaveAccessibleName('Connectivity')
+    expect(window.location.search).toBe('?page=settings&view=connectivity')
+
+    await user.click(within(pane).getByRole('button', { name: 'Settings' }))
     expectTopList()
     expect(window.location.search).toBe('?page=settings')
+
+    await goBack()
+    expect(currentView()).toHaveAccessibleName('Connectivity')
 
     await goBack()
     expectInCellular()
@@ -732,14 +740,14 @@ describe('App shell Settings view in the URL', () => {
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
     const pane = screen.getByTestId('pane-settings')
     await user.click(within(pane).getByRole('button', { name: /^General/ }))
-    expect(currentCrumb()).toHaveAccessibleName('General')
+    expect(currentView()).toHaveAccessibleName('General')
 
     await openCellularFromUplink(user)
     expectInCellular()
     expect(window.location.search).toBe('?page=settings&view=cellular')
 
     await goBack()
-    expect(currentCrumb()).toHaveAccessibleName('General')
+    expect(currentView()).toHaveAccessibleName('General')
   })
 })
 
@@ -803,7 +811,7 @@ describe('App shell navbar position', () => {
     expect(window.localStorage.getItem(POSITION_KEY)).toBe('bottom')
     // The remount that swaps the layouts must not lose where the user is.
     expect(selectedPage()).toHaveAccessibleName('Settings')
-    expect(currentCrumb()).toHaveAccessibleName('Display & Appearance')
+    expect(currentView()).toHaveAccessibleName('Display & Appearance')
     expect(window.location.search).toBe('?page=settings&view=display')
 
     cleanup()
@@ -1008,7 +1016,7 @@ describe('App Alerts toggle', () => {
     const user = await openAlerts()
 
     await user.click(screen.getByRole('switch', { name: SWITCH_NAME }))
-    await user.click(screen.getByRole('link', { name: 'General' }))
+    await user.click(screen.getByRole('button', { name: 'General' }))
 
     expect(
       within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Alerts/ }),

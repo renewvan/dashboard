@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vite-plus/test'
 import { version } from '../../../package.json'
 import type { UserEvent } from '@testing-library/user-event'
-import { renderSettings, type RenderSettingsOptions } from '@/test/renderSettings'
+import { renderSettings, settingsRows, type RenderSettingsOptions } from '@/test/renderSettings'
 import type { Tank } from '@/types'
 
 const completeTank: Tank = {
@@ -15,10 +15,7 @@ const completeTank: Tank = {
 }
 
 function rowNames() {
-  const pane = screen.getByTestId('pane-settings')
-  return within(pane)
-    .getAllByRole('button')
-    .map((row) => row.textContent)
+  return settingsRows().map((row) => row.textContent)
 }
 
 describe('SettingsPage top list', () => {
@@ -38,24 +35,24 @@ describe('SettingsPage top list', () => {
     expect(screen.getByRole('button', { name: /^Nodes/ })).toHaveTextContent('No nodes connected')
   })
 
-  it('opens on the top list, with no breadcrumb', () => {
+  it('opens on the top list, titled Settings, with no back button', () => {
     renderSettings()
 
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(rowNames()).toHaveLength(3)
   })
 })
 
 describe('SettingsPage drill-down', () => {
   it.each(['General', 'Connectivity', 'Nodes'])(
-    'opens %s under a Settings breadcrumb',
+    'opens %s with a Back button named Settings in place of the Settings title',
     async (label) => {
       const { user } = renderSettings({}, { bus: { tanks: { fresh: completeTank } } })
 
       await user.click(screen.getByRole('button', { name: new RegExp(`^${label}`) }))
 
-      expect(screen.getByRole('link', { name: 'Settings' })).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: label, current: 'page' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: label })).toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: 'Settings' })).not.toBeInTheDocument()
     },
   )
@@ -71,11 +68,11 @@ describe('SettingsPage drill-down', () => {
       'AlertsNotifications on',
     ])
 
-    await user.click(screen.getByRole('link', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
     await user.click(screen.getByRole('button', { name: /^Connectivity/ }))
     expect(screen.queryByText(/not available/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/nothing to configure/i)).not.toBeInTheDocument()
-    expect(screen.getAllByRole('button').map((row) => row.textContent)).toEqual([
+    expect(settingsRows().map((row) => row.textContent)).toEqual([
       expect.stringMatching(/^Cellular/),
       expect.stringMatching(/^Hub/),
       expect.stringMatching(/^Tailscale/),
@@ -83,28 +80,32 @@ describe('SettingsPage drill-down', () => {
   })
 })
 
-describe('SettingsPage breadcrumb', () => {
-  it('walks back to the top list from the Settings crumb', async () => {
+describe('SettingsPage navigation bar', () => {
+  it('walks back to the top list from a depth-1 page', async () => {
     const { user } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))
 
-    await user.click(screen.getByRole('link', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
 
     expect(rowNames()).toHaveLength(3)
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
   })
 
-  it('does not act on the current page, and a keyboard Enter on an ancestor walks up', async () => {
+  it('steps up exactly one level at a time, naming each parent', async () => {
     const { user } = renderSettings()
-    await user.click(screen.getByRole('button', { name: /^Connectivity/ }))
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+    await user.click(screen.getByRole('button', { name: /^Display/ }))
+    await user.click(screen.getByRole('button', { name: /^Power page/ }))
+    expect(screen.getByRole('heading', { name: 'Power page' })).toBeInTheDocument()
 
-    const current = screen.getByRole('link', { name: 'Connectivity', current: 'page' })
-    await user.click(current)
-    expect(screen.getByRole('link', { name: 'Connectivity', current: 'page' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Display & Appearance' }))
+    expect(screen.getByRole('heading', { name: 'Display & Appearance' })).toBeInTheDocument()
 
-    screen.getByRole('link', { name: 'Settings' }).focus()
-    await user.keyboard('{Enter}')
-    expect(rowNames()).toHaveLength(3)
+    await user.click(screen.getByRole('button', { name: 'General' }))
+    expect(screen.getByRole('heading', { name: 'General' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
   })
 })
 
@@ -198,8 +199,8 @@ describe('SettingsPage General groups', () => {
 
     await user.click(screen.getByRole('button', { name: /^Firmware/ }))
 
-    expect(screen.getByRole('link', { name: 'General' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Firmware', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'General' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Firmware' })).toBeInTheDocument()
     expect(within(screen.getByLabelText('Firmware')).getByText(version)).toBeVisible()
   })
 })
@@ -226,7 +227,7 @@ describe('SettingsPage Alerts', () => {
 
     await openAlerts(user)
 
-    expect(screen.getByRole('link', { name: 'Alerts', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Alerts' })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Show alert notifications' })).toBeChecked()
   })
 

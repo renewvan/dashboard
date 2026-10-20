@@ -15,7 +15,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
     const { user } = renderSettings()
     await openStartPage(user)
 
-    expect(screen.getByRole('link', { name: 'Start page', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Start page' })).toBeInTheDocument()
     for (const label of ['Left, top', 'Right']) {
       expect(screen.getByRole('radiogroup', { name: `${label} source` })).toBeInTheDocument()
     }

@@ -25,10 +25,8 @@ describe('Settings › General › Display & Appearance', () => {
 
     await user.click(screen.getByRole('button', { name: /^Display/ }))
 
-    expect(screen.getByRole('link', { name: 'General' })).toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: 'Display & Appearance', current: 'page' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'General' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Display & Appearance' })).toBeInTheDocument()
   })
 
   it('shows the live brightness readout and slider', async () => {

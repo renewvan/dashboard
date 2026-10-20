@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState, type ReactNode } from 'react'
-import { Breadcrumbs, Button, Drawer, ScrollShadow, Separator } from '@heroui/react'
+import { Button, Drawer, ScrollShadow, Separator } from '@heroui/react'
 import { ArrowLeft, Workflow, SlidersHorizontal, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
@@ -27,6 +27,8 @@ import { useReportedTankIds } from './nodes/useReportedTankIds'
 import { RelaysView } from './nodes/RelaysView'
 import { TemperatureView } from './nodes/TemperatureView'
 import type { SettingsSubView, SettingsView } from './views'
+import { SettingsNavBar } from './SettingsNavBar'
+import { useHideShellHeader } from './ShellHeaderContext'
 
 const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
   nodes: { title: 'Nodes', parent: 'list' },
@@ -49,19 +51,13 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
 
 const SUB_VIEWS = Object.keys(VIEWS) as SettingsSubView[]
 
-/** `list → … → view`, root excluded, outermost first. */
-function trailTo(view: SettingsSubView): SettingsSubView[] {
-  const trail: SettingsSubView[] = []
-  for (let v: SettingsView = view; v !== 'list'; v = VIEWS[v].parent) trail.unshift(v)
-  return trail
-}
-
 /**
  * Settings as a drill-down tree: the top list, then one group's view per
- * level. The Navigation style (a toggle in Display & Appearance) opens a view either as a subpage (the view
- * replaces the page under a breadcrumb trail) or as a drawer (the top list
- * stays and the view slides in from the right). Memoised: it takes no props
- * and only re-renders when the Settings context value changes.
+ * level. The Navigation style (a toggle in Display & Appearance) opens a view either as a subpage
+ * (the view replaces the page, and its navigation bar replaces the app header: a back button
+ * named for the parent view, and the view's title) or as a drawer (the top list stays and the
+ * view slides in from the right). Memoised: it takes no props and only re-renders when the
+ * Settings context value changes.
  */
 export const SettingsPage = memo(function SettingsPage() {
   const {
@@ -208,35 +204,30 @@ export const SettingsPage = memo(function SettingsPage() {
     </>
   )
 
+  // A subpage replaces the app header with its own bar; the drawer and the top list keep it.
+  const subpage = navStyle === 'subpage' && view !== 'list' ? view : null
+  useHideShellHeader(subpage !== null)
+
   return (
     <section
       aria-label="Settings"
       data-testid="pane-settings"
       className="flex min-h-0 flex-1 flex-col px-4 pb-4"
     >
+      {subpage !== null && (
+        <div className="shrink-0 py-2">
+          <SettingsNavBar
+            title={titleOf(subpage)}
+            parentTitle={
+              VIEWS[subpage].parent === 'list' ? 'Settings' : titleOf(VIEWS[subpage].parent)
+            }
+            onBack={() => setView(VIEWS[subpage].parent)}
+          />
+        </div>
+      )}
       <ScrollShadow hideScrollBar className="min-h-0 flex-1">
         <div className="flex w-full min-w-0 flex-col gap-3">
-          {navStyle === 'drawer' || view === 'list' ? (
-            topList
-          ) : (
-            <>
-              <Breadcrumbs className="px-1">
-                <Breadcrumbs.Item id="list" onPress={() => setView('list')}>
-                  Settings
-                </Breadcrumbs.Item>
-                {trailTo(view).map((id) => (
-                  <Breadcrumbs.Item
-                    key={id}
-                    id={id}
-                    onPress={id === view ? undefined : () => setView(id)}
-                  >
-                    {titleOf(id)}
-                  </Breadcrumbs.Item>
-                ))}
-              </Breadcrumbs>
-              {content(view)}
-            </>
-          )}
+          {subpage === null ? topList : content(subpage)}
         </div>
       </ScrollShadow>
       {navStyle === 'drawer' && drawerView !== null && (

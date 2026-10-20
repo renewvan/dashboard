@@ -67,8 +67,8 @@ describe('Settings › Nodes › Tanks', () => {
   it('shows the Tanks crumb under Nodes', async () => {
     await openTanks()
 
-    expect(screen.getByRole('link', { name: 'Nodes' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Tanks', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nodes' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tanks' })).toBeInTheDocument()
   })
 })
 
@@ -82,8 +82,8 @@ describe('Settings › Nodes › Tanks › Fresh water', () => {
   it('opens under Settings › Nodes › Tanks › Fresh water', async () => {
     await openFresh()
 
-    expect(screen.getByRole('link', { name: 'Tanks' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Fresh water', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tanks' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Fresh water' })).toBeInTheDocument()
   })
 
   it('shows an Enabled switch that is on and not yet changeable', async () => {
@@ -103,7 +103,7 @@ describe('Settings › Nodes › Tanks › Fresh water', () => {
   it('walks back to the tank list from the Tanks crumb', async () => {
     const { user } = await openFresh()
 
-    await user.click(screen.getByRole('link', { name: 'Tanks' }))
+    await user.click(screen.getByRole('button', { name: 'Tanks' }))
 
     expect(screen.getByRole('button', { name: /^Grey water/ })).toBeInTheDocument()
   })
@@ -113,7 +113,7 @@ describe('Settings › Nodes › Tanks › Fresh water', () => {
       {},
       { bus: { tanks: TANKS as never }, url: '/?page=settings&view=tank&tank=grey' },
     )
-    expect(screen.getByRole('link', { name: 'Grey water', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Grey water' })).toBeInTheDocument()
   })
 })
 
@@ -124,7 +124,7 @@ describe('Settings › Nodes › Tanks › unknown tank', () => {
       { bus: { tanks: TANKS as never }, url: '/?page=settings&view=tank&tank=nope' },
     )
 
-    expect(screen.getByRole('link', { name: 'Tanks', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tanks' })).toBeInTheDocument()
     expect(
       within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Fresh water/ }),
     ).toBeInTheDocument()
