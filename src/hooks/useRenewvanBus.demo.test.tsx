@@ -171,7 +171,11 @@ describe('shared demo mode flag', () => {
     const { result } = await renderBus()
     send(latest(), 'renewvan/demo/enabled', 'true')
     send(latest(), 'renewvan/kiosk/display/brightness', '40')
-    send(latest(), 'renewvan/tailscale/status', JSON.stringify({ enabled: true, peers: 2 }))
+    send(
+      latest(),
+      'renewvan/tailscale/status',
+      JSON.stringify({ enabled: true, connected: true, ip: null, hostname: null, peers: 2 }),
+    )
     await waitFor(() => expect(result.current.brightness).toBe(40))
     expect(result.current.tailscale?.peers).toBe(2)
   })

@@ -518,11 +518,87 @@ describe('useRenewvanBus relay entity', () => {
     await waitFor(() => expect(result.current.state.relays).toEqual({ relay_04: { state: true } }))
   })
 
+  it('ignores a state that is not a JSON boolean: a string "off" must not read as switched on', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('renewvan/relay/relay_03/state', 'false')
+    send('renewvan/relay/relay_03/state', '"off"')
+    send('renewvan/relay/relay_03/state', '"false"')
+    send('renewvan/relay/relay_03/state', '1')
+    send('renewvan/relay/relay_05/state', '"on"')
+    send('renewvan/relay/relay_04/state', 'true')
+    await waitFor(() => expect(result.current.state.relays.relay_04).toEqual({ state: true }))
+    expect(result.current.state.relays.relay_03).toEqual({ state: false })
+    expect(result.current.state.relays.relay_05).toBeUndefined()
+  })
+
   it('lets a relay be called health or info: segment count, not the id, tells it from a Device', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     send('renewvan/relay/health/state', 'true')
     await waitFor(() => expect(result.current.state.relays).toEqual({ health: { state: true } }))
     expect(result.current.state.devices).toEqual({})
+  })
+})
+
+describe('useRenewvanBus tailscale status', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  const send = (payload: string) =>
+    messageHandlers[0]('renewvan/tailscale/status', { toString: () => payload })
+
+  const status = { enabled: true, connected: true, ip: '100.64.0.1', hostname: 'van', peers: 2 }
+
+  it('reads a status that matches the schema', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify(status))
+    await waitFor(() => expect(result.current.tailscale).toEqual(status))
+  })
+
+  it('accepts a null ip and hostname while not connected', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    const down = { enabled: true, connected: false, ip: null, hostname: null, peers: 0 }
+    send(JSON.stringify(down))
+    await waitFor(() => expect(result.current.tailscale).toEqual(down))
+  })
+
+  it('carries no key the schema does not define', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify({ ...status, extra: 'x' }))
+    await waitFor(() => expect(result.current.tailscale).toEqual(status))
+  })
+
+  it('clears the status when the retained topic is cleared', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify(status))
+    await waitFor(() => expect(result.current.tailscale).toEqual(status))
+    send('')
+    await waitFor(() => expect(result.current.tailscale).toBeNull())
+  })
+
+  it.each([
+    ['a bare boolean', 'true'],
+    ['malformed JSON', '{"enabled":'],
+    ['a missing field', JSON.stringify({ enabled: true, peers: 2 })],
+    ['a non-boolean connected', JSON.stringify({ ...status, connected: 'yes' })],
+    ['a numeric ip', JSON.stringify({ ...status, ip: 100 })],
+    ['a fractional peer count', JSON.stringify({ ...status, peers: 1.5 })],
+    ['a negative peer count', JSON.stringify({ ...status, peers: -1 })],
+    ['an array', JSON.stringify([status])],
+  ])('reads %s as no status, so the last one does not stay on screen', async (_, payload) => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify(status))
+    await waitFor(() => expect(result.current.tailscale).toEqual(status))
+    send(payload)
+    await waitFor(() => expect(result.current.tailscale).toBeNull())
   })
 })

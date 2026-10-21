@@ -161,6 +161,40 @@ function parseDeviceInfo(payload: string): DeviceInfo | undefined {
   return info
 }
 
+function isStringOrNull(value: unknown): value is string | null {
+  return value === null || typeof value === 'string'
+}
+
+/**
+ * The Tailscale plugin's retained status (hub `tailscale-status.schema.json`): a JSON object with
+ * boolean `enabled` and `connected`, `ip` and `hostname` a string or null, and `peers` a whole
+ * number ≥ 0, all required. An empty payload clears the retained topic, and anything else reads as
+ * no status too, like a Device's info: a stale or malformed status must not stay on screen.
+ */
+function parseTailscaleStatus(payload: string): TailscaleStatus | null {
+  const value = parseValue(payload)
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  const o = value as Record<string, unknown>
+  if (
+    typeof o.enabled !== 'boolean' ||
+    typeof o.connected !== 'boolean' ||
+    !isStringOrNull(o.ip) ||
+    !isStringOrNull(o.hostname) ||
+    typeof o.peers !== 'number' ||
+    !Number.isInteger(o.peers) ||
+    o.peers < 0
+  ) {
+    return null
+  }
+  return {
+    enabled: o.enabled,
+    connected: o.connected,
+    ip: o.ip,
+    hostname: o.hostname,
+    peers: o.peers,
+  }
+}
+
 /** An empty payload clears a retained topic; so does anything that is not a valid value. */
 function applyDeviceMessage(
   prev: RenewvanBusState,
@@ -206,9 +240,11 @@ function applyRelayMessage(
     return { ...prev, relays: { ...prev.relays, [id]: kept } }
   }
   if (property === 'state') {
+    // Only a JSON boolean is a state: coercing would read `"off"` or `"false"` as switched on.
+    if (typeof value !== 'boolean') return prev
     return {
       ...prev,
-      relays: { ...prev.relays, [id]: { ...prev.relays[id], state: Boolean(value) } },
+      relays: { ...prev.relays, [id]: { ...prev.relays[id], state: value } },
     }
   }
   if (typeof value !== 'string' || value === '') return prev
@@ -362,11 +398,7 @@ export function useRenewvanBus(): RenewvanBus {
         return
       }
       if (topic === TOPIC_TAILSCALE) {
-        try {
-          setTailscale(JSON.parse(payload) as TailscaleStatus)
-        } catch {
-          // malformed payload — ignore
-        }
+        setTailscale(parseTailscaleStatus(payload))
         return
       }
       setReal((prev) =>
