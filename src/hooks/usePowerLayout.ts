@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
 
-/** How the Power page draws the van's power: boxed `tiles`, or round nodes on an `orbs` diagram. */
-export type PowerLayout = 'tiles' | 'orbs'
+/**
+ * How the Power page draws the van's power: boxed `tiles` or round `orbs` around the battery, or
+ * the same two styles around the van itself (`van-tiles`, `van-orbs`), where the van is the hub.
+ */
+export type PowerLayout = 'tiles' | 'orbs' | 'van-tiles' | 'van-orbs'
 
-export const POWER_LAYOUTS: readonly PowerLayout[] = ['tiles', 'orbs']
+export const POWER_LAYOUTS: readonly PowerLayout[] = ['tiles', 'orbs', 'van-tiles', 'van-orbs']
 
 export const POWER_LAYOUT_LABELS: Record<PowerLayout, string> = {
   tiles: 'Tiles',
   orbs: 'Orbs',
+  'van-tiles': 'Van tiles',
+  'van-orbs': 'Van orbs',
 }
 
 const STORAGE_KEY = 'renewvan-dashboard-power-layout'

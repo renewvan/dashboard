@@ -10,6 +10,10 @@ const LAYOUT_CHOICES = POWER_LAYOUTS.map((value) => ({
 const LAYOUT_HINTS: Record<PowerLayout, string> = {
   tiles: 'Boxed readings for each source, the battery and the loads, joined by flowing lines.',
   orbs: 'Round nodes on a diagram, with dots travelling along the wires from source to load.',
+  'van-tiles':
+    'The van at the centre, charging as it fills, with boxed readings plugged into it by flowing lines.',
+  'van-orbs':
+    'The van at the centre, charging as it fills, with round readings plugged into it by flowing lines.',
 }
 
 interface PowerPageViewProps {
@@ -31,6 +35,7 @@ export function PowerPageView({ layout, onChange }: PowerPageViewProps) {
             choices={LAYOUT_CHOICES}
             value={layout}
             onChange={onChange}
+            stacked
           />
         </Card>
         <p className="text-muted px-1 text-sm">{LAYOUT_HINTS[layout]}</p>

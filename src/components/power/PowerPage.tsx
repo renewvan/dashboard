@@ -6,18 +6,20 @@ import { firstSolar } from '@/components/widgets/solar/solarView'
 import { flowFromBus } from './flowModel'
 import { OrbsLayout } from './OrbsLayout'
 import { TilesLayout } from './TilesLayout'
+import { VanOrbsLayout } from './VanOrbsLayout'
+import { VanTilesLayout } from './VanTilesLayout'
 
 interface PowerPageProps {
   batteries: Record<string, Partial<Battery>>
   solar: Record<string, Partial<Solar>>
   chargers: Record<string, Partial<Charger>>
-  /** Tiles or Orbs: Settings › General › Display & Appearance › Power page. */
+  /** Tiles, Orbs, or either around the van: Settings › General › Display & Appearance › Power page. */
   layout: PowerLayout
 }
 
 /**
  * The Power page: where the van's power comes from, goes to, and what the battery is doing. One
- * snapshot is built from the bus and drawn by the chosen layout, so Tiles and Orbs always show
+ * snapshot is built from the bus and drawn by the chosen layout, so every layout shows
  * the same numbers. The battery is the page's anchor: until it has published, there is nothing
  * to place the sources and loads around, so the page says so instead of drawing numbers it does
  * not have.
@@ -33,7 +35,11 @@ export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps
       className="relative flex min-h-0 flex-1 flex-col px-8 pb-4"
     >
       {hasBattery ? (
-        layout === 'orbs' ? (
+        layout === 'van-tiles' ? (
+          <VanTilesLayout flow={flow} />
+        ) : layout === 'van-orbs' ? (
+          <VanOrbsLayout flow={flow} />
+        ) : layout === 'orbs' ? (
           <OrbsLayout flow={flow} />
         ) : (
           <TilesLayout flow={flow} solar={firstSolar(solar)} />
