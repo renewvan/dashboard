@@ -6,6 +6,21 @@ import { firstSolar } from '@/components/widgets/solar/solarView'
 import { flowFromBus } from './flowModel'
 import { OrbsLayout } from './OrbsLayout'
 import { TilesLayout } from './TilesLayout'
+// PROTOTYPE: throwaway van variants, gated on ?variant= (see prototype-van/).
+import { useUrlParam } from '@/hooks/useUrlParam'
+import { PrototypeSwitcher } from './prototype-van/PrototypeSwitcher'
+import { VariantA } from './prototype-van/VariantA'
+import { VariantB } from './prototype-van/VariantB'
+import { VariantC } from './prototype-van/VariantC'
+import { VariantD } from './prototype-van/VariantD'
+
+const VARIANT_KEYS = ['A', 'B', 'C', 'D'] as const
+const VARIANTS = [
+  { key: 'A', name: 'Hub: sources left, loads right' },
+  { key: 'B', name: 'Cutaway: in through roof, out through floor' },
+  { key: 'C', name: 'Ported: wires plug into the van' },
+  { key: 'D', name: 'Ported, Orbs: round endpoints' },
+] as const
 
 interface PowerPageProps {
   batteries: Record<string, Partial<Battery>>
@@ -25,6 +40,7 @@ interface PowerPageProps {
 export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps) {
   const hasBattery = Object.values(batteries).some(isCompleteBattery)
   const flow = useMemo(() => flowFromBus(batteries, solar, chargers), [batteries, solar, chargers])
+  const [variant] = useUrlParam('variant', VARIANT_KEYS)
 
   return (
     <section
@@ -33,7 +49,15 @@ export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps
       className="relative flex min-h-0 flex-1 flex-col px-8 pb-4"
     >
       {hasBattery ? (
-        layout === 'orbs' ? (
+        variant === 'A' ? (
+          <VariantA flow={flow} />
+        ) : variant === 'B' ? (
+          <VariantB flow={flow} />
+        ) : variant === 'C' ? (
+          <VariantC flow={flow} />
+        ) : variant === 'D' ? (
+          <VariantD flow={flow} />
+        ) : layout === 'orbs' ? (
           <OrbsLayout flow={flow} />
         ) : (
           <TilesLayout flow={flow} solar={firstSolar(solar)} />
@@ -48,6 +72,7 @@ export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps
           No data yet
         </div>
       )}
+      {variant ? <PrototypeSwitcher variants={VARIANTS} current={variant} /> : null}
     </section>
   )
 }
