@@ -70,6 +70,10 @@ const PANEL_CLASS =
 const RAIL_INSET = '56px'
 const BAR_INSET = 'calc(57px + env(safe-area-inset-bottom))'
 
+/** The header's sleep/wake command. Its payload is a bare `on`/`off`, not JSON, so it is not one
+ * of the settings commands (`lib/settings-commands.ts`). */
+const TOPIC_DISPLAY_POWER_SET = 'renewvan/kiosk/display/power/set'
+
 function App() {
   const {
     state,
@@ -165,14 +169,8 @@ function App() {
     [],
   )
 
-  const handleSleep = useCallback(
-    () => publishRef.current('renewvan/kiosk/display/power/set', 'off'),
-    [],
-  )
-  const handleWake = useCallback(
-    () => publishRef.current('renewvan/kiosk/display/power/set', 'on'),
-    [],
-  )
+  const handleSleep = useCallback(() => publishRef.current(TOPIC_DISPLAY_POWER_SET, 'off'), [])
+  const handleWake = useCallback(() => publishRef.current(TOPIC_DISPLAY_POWER_SET, 'on'), [])
 
   // The Settings nav bar's bell: stable like the sleep handlers, so the settings memo only changes
   // when a value does. `goToPage` closes over `setActivePage`, recreated each render.
@@ -281,11 +279,10 @@ function App() {
             Demo
           </span>
         )}
-        {/* single router per hub (hub compose's ROUTER_ID) */}
         <UplinkStatusButton
-          router={state.routers[routerId]}
+          router={router}
           routerHealth={routerHealth}
-          lastReceivedAt={state.routerUpdatedAt[routerId]}
+          lastReceivedAt={routerUpdatedAt}
           tailscale={tailscale}
           busStatus={status}
           onOpenSettings={() => openSettings('cellular')}
@@ -302,47 +299,61 @@ function App() {
     </header>
   )
 
+  // One page per nav item; one that is not built yet (Heater) shows a stub.
+  const renderPage = (item: NavItem) => {
+    switch (item.id) {
+      case 'start':
+        return (
+          <StartPage
+            tanks={state.tanks}
+            batteries={state.batteries}
+            solar={state.solar}
+            chargers={state.chargers}
+            temperatures={state.temperatures}
+            gps={state.gps}
+            tilt={state.tilt}
+            powerSources={startPowerSources}
+            isDark={theme === 'dark'}
+          />
+        )
+      case 'power':
+        return (
+          <PowerPage
+            batteries={state.batteries}
+            solar={state.solar}
+            chargers={state.chargers}
+            layout={powerLayout}
+          />
+        )
+      case 'tanks':
+        return <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
+      case 'gps':
+        return <GpsPage gps={state.gps} />
+      case 'switches':
+        return (
+          <RelaysPage
+            relays={state.relays}
+            deviceOnline={relayDevicesOnline(state)}
+            demo={demoMode}
+            onSetRelay={commands.setRelay}
+          />
+        )
+      case 'settings':
+        return (
+          <SettingsProvider value={settings}>
+            <SettingsPage />
+          </SettingsProvider>
+        )
+      default:
+        return <StubPane id={item.id} title={item.label} icon={item.icon} />
+    }
+  }
+
   const panels = (
     <>
       {NAV_ITEMS.map((item) => (
         <Tabs.Panel key={item.id} id={item.id} className={panelClass}>
-          {item.id === 'settings' ? (
-            <SettingsProvider value={settings}>
-              <SettingsPage />
-            </SettingsProvider>
-          ) : item.id === 'start' ? (
-            <StartPage
-              tanks={state.tanks}
-              batteries={state.batteries}
-              solar={state.solar}
-              chargers={state.chargers}
-              temperatures={state.temperatures}
-              gps={state.gps}
-              tilt={state.tilt}
-              powerSources={startPowerSources}
-              isDark={theme === 'dark'}
-            />
-          ) : item.id === 'power' ? (
-            <PowerPage
-              batteries={state.batteries}
-              solar={state.solar}
-              chargers={state.chargers}
-              layout={powerLayout}
-            />
-          ) : item.id === 'tanks' ? (
-            <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
-          ) : item.id === 'switches' ? (
-            <RelaysPage
-              relays={state.relays}
-              deviceOnline={relayDevicesOnline(state)}
-              demo={demoMode}
-              onSetRelay={commands.setRelay}
-            />
-          ) : item.id === 'gps' ? (
-            <GpsPage gps={state.gps} />
-          ) : (
-            <StubPane id={item.id} title={item.label} icon={item.icon} />
-          )}
+          {renderPage(item)}
         </Tabs.Panel>
       ))}
       <Tabs.Panel id="alerts" className={panelClass}>
