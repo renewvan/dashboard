@@ -82,10 +82,19 @@ container-runtime override.
 
 ## Releasing
 
-Tagging a GitHub release builds and publishes
-`ghcr.io/<owner>/dashboard:<tag>`, which `hub`'s deployment compose file
-pins by tag (never builds from source — see
+Start a release from **Actions → Release → Run workflow**, or
+`gh workflow run release.yml -f bump=patch` (`minor`, `major`, or `-f version=0.2.0`
+to set it explicitly). One run works out the next version from the latest `v*` tag,
+commits the `package.json` bump (`chore: release vX.Y.Z`) to `main`, tags that commit,
+creates the GitHub release and builds and publishes
+`ghcr.io/<owner>/dashboard:<tag>` (and `:latest`) from it, so `main` always holds the
+version of its latest release, which the Firmware page shows. `hub`'s deployment
+compose file pins the image by tag (never builds from source — see
 `hub/docs/adr/0001-compose-services-via-pinned-images-not-git-submodules.md`).
+
+A beta from a feature branch: dispatch the workflow on that branch with **prerelease**
+ticked. It runs the tests, publishes only its own tag (never `:latest`) and writes nothing
+to `main`.
 
 ## Manual verification
 
