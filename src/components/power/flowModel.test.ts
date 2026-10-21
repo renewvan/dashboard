@@ -72,6 +72,31 @@ describe('buildFlow without an inverter', () => {
     expect(calm(-IDLE_W - 1)).toBe('discharging')
   })
 
+  it('picks the first complete charger of each source, skipping partial ones', () => {
+    const flow = flowFromBus(
+      { house: battery(80, 0) },
+      {},
+      {
+        partial: { source: 'alternator', power_w: 999 },
+        alt: charger('alternator', 300),
+        shore: charger('ac', 450),
+      },
+    )
+
+    expect(flow.nodes.alternator).toMatchObject({ present: true, watts: 300 })
+    expect(flow.nodes.shore).toMatchObject({ present: true, watts: 450 })
+  })
+
+  it('draws no alternator while its only charger is still partial', () => {
+    const flow = flowFromBus(
+      { house: battery(80, 0) },
+      {},
+      { partial: { source: 'alternator', power_w: 999 } },
+    )
+
+    expect(flow.nodes.alternator.present).toBe(false)
+  })
+
   it('marks nothing present until the battery has published its core measurements', () => {
     const flow = flowFromBus({ house: { soc_pct: 80 } }, {}, {})
 

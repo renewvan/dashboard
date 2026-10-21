@@ -9,7 +9,13 @@
 
 import { chargerWatts } from '@/lib/charging'
 import { firstSolar } from '@/components/widgets/solar/solarView'
-import { isCompleteBattery, type Battery, type Charger, type Solar } from '@/types'
+import {
+  isCompleteBattery,
+  isCompleteCharger,
+  type Battery,
+  type Charger,
+  type Solar,
+} from '@/types'
 
 export type NodeId =
   | 'solar'
@@ -219,7 +225,7 @@ export function buildFlow({
 /** First complete charger of a given source. */
 function chargerOf(chargers: Record<string, Partial<Charger>>, source: Charger['source']) {
   return Object.values(chargers).find(
-    (c): c is Charger => c.voltage_v !== undefined && c.source === source,
+    (c): c is Charger => isCompleteCharger(c) && c.source === source,
   )
 }
 

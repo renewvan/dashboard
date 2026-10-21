@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import mqtt, { type MqttClient } from 'mqtt'
 import { emptyRenewvanBusState, type DeviceInfo, type RenewvanBusState } from '@/types'
 import { getEnv } from '@/config/runtimeEnv'
@@ -161,6 +161,40 @@ function parseDeviceInfo(payload: string): DeviceInfo | undefined {
   return info
 }
 
+function isStringOrNull(value: unknown): value is string | null {
+  return value === null || typeof value === 'string'
+}
+
+/**
+ * The Tailscale plugin's retained status (hub `tailscale-status.schema.json`): a JSON object with
+ * boolean `enabled` and `connected`, `ip` and `hostname` a string or null, and `peers` a whole
+ * number ≥ 0, all required. An empty payload clears the retained topic, and anything else reads as
+ * no status too, like a Device's info: a stale or malformed status must not stay on screen.
+ */
+function parseTailscaleStatus(payload: string): TailscaleStatus | null {
+  const value = parseValue(payload)
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  const o = value as Record<string, unknown>
+  if (
+    typeof o.enabled !== 'boolean' ||
+    typeof o.connected !== 'boolean' ||
+    !isStringOrNull(o.ip) ||
+    !isStringOrNull(o.hostname) ||
+    typeof o.peers !== 'number' ||
+    !Number.isInteger(o.peers) ||
+    o.peers < 0
+  ) {
+    return null
+  }
+  return {
+    enabled: o.enabled,
+    connected: o.connected,
+    ip: o.ip,
+    hostname: o.hostname,
+    peers: o.peers,
+  }
+}
+
 /** An empty payload clears a retained topic; so does anything that is not a valid value. */
 function applyDeviceMessage(
   prev: RenewvanBusState,
@@ -206,9 +240,11 @@ function applyRelayMessage(
     return { ...prev, relays: { ...prev.relays, [id]: kept } }
   }
   if (property === 'state') {
+    // Only a JSON boolean is a state: coercing would read `"off"` or `"false"` as switched on.
+    if (typeof value !== 'boolean') return prev
     return {
       ...prev,
-      relays: { ...prev.relays, [id]: { ...prev.relays[id], state: Boolean(value) } },
+      relays: { ...prev.relays, [id]: { ...prev.relays[id], state: value } },
     }
   }
   if (typeof value !== 'string' || value === '') return prev
@@ -276,7 +312,10 @@ export function useRenewvanBus(): RenewvanBus {
   const [real, setReal] = useState<RenewvanBusState>(emptyRenewvanBusState)
   const [demo, setDemo] = useState<RenewvanBusState>(emptyRenewvanBusState)
   const [demoMode, setDemoModeState] = useState(false)
-  const [status, setStatus] = useState<ConnectionStatus>('connecting')
+  // Without a broker URL the effect never connects, so the bus starts (and stays) disconnected.
+  const [status, setStatus] = useState<ConnectionStatus>(() =>
+    getEnv('VITE_MQTT_WS_URL') ? 'connecting' : 'disconnected',
+  )
   const [displayPower, setDisplayPower] = useState<DisplayPower>(null)
   const [brightness, setBrightness] = useState<number | null>(null)
   const [autoSleepEnabled, setAutoSleepEnabled] = useState<boolean | null>(null)
@@ -284,29 +323,28 @@ export function useRenewvanBus(): RenewvanBus {
     useState<AutoSleepTimeoutMinutes | null>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
   const clientRef = useRef<MqttClient | null>(null)
-  // The message handler lives in a mount-once effect, so it reads the flag through a ref.
-  const demoModeRef = useRef(false)
-  demoModeRef.current = demoMode
 
+  // A fresh function every render, so it always reads the current flag; callers that keep it
+  // (the shell's settings commands) forward to the latest one.
   const publish = (topic: string, payload: string) => {
-    if (demoModeRef.current && !topic.startsWith(KIOSK_PREFIX)) return
+    if (demoMode && !topic.startsWith(KIOSK_PREFIX)) return
     clientRef.current?.publish(topic, payload, { qos: 1, retain: false })
   }
 
   // Not routed through `publish`: the switch itself is the one non-kiosk command demo mode allows.
-  const setDemoMode = (next: boolean) => {
+  // Stable (it only reads the client ref), so the shell's Settings context, which carries it, does
+  // not change on every render.
+  const setDemoMode = useCallback((next: boolean) => {
     clientRef.current?.publish(TOPIC_DEMO_ENABLED_SET, JSON.stringify(next), {
       qos: 1,
       retain: false,
     })
-  }
+  }, [])
 
   useEffect(() => {
     const url = getEnv('VITE_MQTT_WS_URL')
-    if (!url) {
-      setStatus('disconnected')
-      return
-    }
+    // No broker configured: the initial status already says disconnected.
+    if (!url) return
 
     let disposed = false
 
@@ -362,11 +400,7 @@ export function useRenewvanBus(): RenewvanBus {
         return
       }
       if (topic === TOPIC_TAILSCALE) {
-        try {
-          setTailscale(JSON.parse(payload) as TailscaleStatus)
-        } catch {
-          // malformed payload — ignore
-        }
+        setTailscale(parseTailscaleStatus(payload))
         return
       }
       setReal((prev) =>

@@ -171,7 +171,11 @@ describe('shared demo mode flag', () => {
     const { result } = await renderBus()
     send(latest(), 'renewvan/demo/enabled', 'true')
     send(latest(), 'renewvan/kiosk/display/brightness', '40')
-    send(latest(), 'renewvan/tailscale/status', JSON.stringify({ enabled: true, peers: 2 }))
+    send(
+      latest(),
+      'renewvan/tailscale/status',
+      JSON.stringify({ enabled: true, connected: true, ip: null, hostname: null, peers: 2 }),
+    )
     await waitFor(() => expect(result.current.brightness).toBe(40))
     expect(result.current.tailscale?.peers).toBe(2)
   })
@@ -212,6 +216,15 @@ describe('shared demo mode flag', () => {
 })
 
 describe('setDemoMode', () => {
+  it('keeps setDemoMode the same function across renders, so the Settings context can hold', async () => {
+    const { result, rerender } = await renderBus()
+    const first = result.current.setDemoMode
+    send(latest(), 'renewvan/tank/fresh/level_pct', '62')
+    await waitFor(() => expect(result.current.state.tanks.fresh?.level_pct).toBe(62))
+    rerender()
+    expect(result.current.setDemoMode).toBe(first)
+  })
+
   it('publishes the retained-state command on renewvan/demo/enabled/set as a JSON boolean', async () => {
     const { result } = await renderBus()
     act(() => result.current.setDemoMode(true))

@@ -416,6 +416,8 @@ describe('useAlertToasts', () => {
 
     it('does not acknowledge when the hook itself closes the toast', () => {
       captureOnClose()
+      // Spying again returns the spy `captureOnClose` installed, implementation and all.
+      const close = vi.spyOn(toast, 'close')
       const ack = vi.spyOn(alertHistory, 'acknowledgeAlertHistoryEntry')
       const resolve = vi.spyOn(alertHistory, 'resolveAlertHistoryEntry')
       vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('h1')
@@ -427,7 +429,7 @@ describe('useAlertToasts', () => {
       )
       rerender({ tanks: { fresh: okTank } })
 
-      expect(toast.close).toHaveBeenCalledWith('t1')
+      expect(close).toHaveBeenCalledWith('t1')
       expect(resolve).toHaveBeenCalledWith('h1')
       expect(ack).not.toHaveBeenCalled()
     })
