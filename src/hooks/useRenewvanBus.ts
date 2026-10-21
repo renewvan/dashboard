@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import mqtt, { type MqttClient } from 'mqtt'
 import { emptyRenewvanBusState, type DeviceInfo, type RenewvanBusState } from '@/types'
 import { getEnv } from '@/config/runtimeEnv'
@@ -332,12 +332,14 @@ export function useRenewvanBus(): RenewvanBus {
   }
 
   // Not routed through `publish`: the switch itself is the one non-kiosk command demo mode allows.
-  const setDemoMode = (next: boolean) => {
+  // Stable (it only reads the client ref), so the shell's Settings context, which carries it, does
+  // not change on every render.
+  const setDemoMode = useCallback((next: boolean) => {
     clientRef.current?.publish(TOPIC_DEMO_ENABLED_SET, JSON.stringify(next), {
       qos: 1,
       retain: false,
     })
-  }
+  }, [])
 
   useEffect(() => {
     const url = getEnv('VITE_MQTT_WS_URL')

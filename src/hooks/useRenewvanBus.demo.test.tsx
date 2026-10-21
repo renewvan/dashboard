@@ -216,6 +216,15 @@ describe('shared demo mode flag', () => {
 })
 
 describe('setDemoMode', () => {
+  it('keeps setDemoMode the same function across renders, so the Settings context can hold', async () => {
+    const { result, rerender } = await renderBus()
+    const first = result.current.setDemoMode
+    send(latest(), 'renewvan/tank/fresh/level_pct', '62')
+    await waitFor(() => expect(result.current.state.tanks.fresh?.level_pct).toBe(62))
+    rerender()
+    expect(result.current.setDemoMode).toBe(first)
+  })
+
   it('publishes the retained-state command on renewvan/demo/enabled/set as a JSON boolean', async () => {
     const { result } = await renderBus()
     act(() => result.current.setDemoMode(true))
