@@ -116,7 +116,7 @@ export function StartPage({
     return (
       <div
         data-testid="pane-start"
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto p-4"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pb-4"
       >
         <div className="h-28 shrink-0">
           <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />

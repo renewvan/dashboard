@@ -281,7 +281,7 @@ describe('App shell alerts bell', () => {
     expect(bell).not.toHaveAttribute('aria-current')
     await user.click(bell)
     expect(screen.getByTestId('pane-alerts')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Alerts' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Alerts' })).toBeInTheDocument()
     expect(bell).toHaveAttribute('aria-current', 'page')
     expect(selectedPage()).toBeNull()
   })

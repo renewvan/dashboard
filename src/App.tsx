@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Bell, Gauge, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
+import { Gauge, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
 import lockupDark from '../assets/logo/svg/renewvan-lockup-dark.svg'
@@ -10,6 +10,7 @@ import { AlertsButton } from '@/components/AlertsButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { StubPane } from '@/components/StubPane'
+import { AlertsPage } from '@/components/alerts/AlertsPage'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { SettingsSubView } from '@/components/settings/views'
@@ -20,6 +21,7 @@ import { StartPage } from '@/components/start/StartPage'
 import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
+import { useAlertHistory } from '@/hooks/useAlertHistory'
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
@@ -83,6 +85,7 @@ function App() {
     publish,
   } = useRenewvanBus()
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
+  const alertHistory = useAlertHistory()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled, demo: demoMode })
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
   // A view (and the tank it shows) belongs to the Settings page: any other page change leaves
@@ -127,8 +130,12 @@ function App() {
     const header = headerRef.current
     if (!header) return
     const root = document.documentElement
-    const syncHeaderHeight = () =>
-      root.style.setProperty(HEADER_HEIGHT_VAR, `${header.offsetHeight}px`)
+    // While the Settings subpage's bar replaces the header, the header is `display: none` (its
+    // height reads 0) and the bar publishes its own height instead: never overwrite it.
+    const syncHeaderHeight = () => {
+      if (header.offsetHeight > 0)
+        root.style.setProperty(HEADER_HEIGHT_VAR, `${header.offsetHeight}px`)
+    }
     syncHeaderHeight()
     const observer = new ResizeObserver(syncHeaderHeight)
     observer.observe(header)
@@ -339,7 +346,7 @@ function App() {
         </Tabs.Panel>
       ))}
       <Tabs.Panel id="alerts" className={panelClass}>
-        <StubPane id="alerts" title="Alerts" icon={<Bell className="size-5" />} />
+        <AlertsPage entries={alertHistory.entries} onRemove={alertHistory.remove} />
       </Tabs.Panel>
     </>
   )
