@@ -229,7 +229,15 @@ export const SettingsPage = memo(function SettingsPage() {
           />
         </div>
       )}
-      <ScrollShadow hideScrollBar className="min-h-0 flex-1">
+      {/* Keyed per screen: HeroUI's scroll-driven fade keeps the previous scroller's fully-applied
+          start fade when the same element stops overflowing (Chromium leaves the start animation
+          `running` at progress 1), so a short node view inherits the list's top shadow. A fresh
+          element starts with an inactive timeline and no fade. */}
+      <ScrollShadow
+        key={`${view}:${nodeParam ?? ''}:${tankParam ?? ''}`}
+        hideScrollBar
+        className="min-h-0 flex-1"
+      >
         <div className="flex w-full min-w-0 flex-col gap-3">
           {subpage === null ? topList : content(subpage)}
         </div>
