@@ -6,15 +6,10 @@
 
 import { useEffect, useState } from 'react'
 import { Card } from '@heroui/react'
-import { WeatherIcon, type Day } from './WeatherForecast'
+import { WeatherIcon } from './WeatherForecast'
+import { parseForecast, type Weather } from './forecast'
 import { INDOOR_ID, OUTDOOR_ID, formatTemperature, temperatureReading } from '@/lib/temperature'
 import type { TemperatureSensor } from '@/types'
-
-interface Weather {
-  temp: number
-  code: number
-  days: Day[]
-}
 
 const FALLBACK = { lat: 52.52, lon: 13.41 } // Berlin, used when GPS has no fix
 const REFRESH_MS = 10 * 60 * 1000
@@ -34,24 +29,17 @@ function useWeather(lat: number, lon: number) {
           `&timezone=auto&forecast_days=5`
         const res = await fetch(url)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const d = await res.json()
+        const next = parseForecast(await res.json())
         if (cancelled) return
-        setWeather({
-          temp: d.current.temperature_2m,
-          code: d.current.weather_code,
-          days: d.daily.time.map((date: string, i: number) => ({
-            date,
-            code: d.daily.weather_code[i],
-            max: d.daily.temperature_2m_max[i],
-            min: d.daily.temperature_2m_min[i],
-          })),
-        })
+        if (!next) throw new Error('unexpected response')
+        setWeather(next)
         setError(null)
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e))
       }
     }
-    load()
+    // `load` catches its own failures into `error`, so nothing is left to await.
+    void load()
     const id = setInterval(load, REFRESH_MS)
     return () => {
       cancelled = true
