@@ -28,6 +28,14 @@ export function useUnseenAlertCount(activePage: string): number {
   const toasts = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const knownKeys = useRef(new Set<string>())
   const [count, setCount] = useState(0)
+  const [lastPage, setLastPage] = useState(activePage)
+
+  // Arriving on the Alerts page clears the count. Adjusting state while rendering is React's way
+  // to reset on a prop change, without a second render pass from an effect.
+  if (activePage !== lastPage) {
+    setLastPage(activePage)
+    if (activePage === 'alerts') setCount(0)
+  }
 
   useEffect(() => {
     const newKeys = toasts.map((t) => t.key).filter((key) => !knownKeys.current.has(key))
@@ -37,10 +45,6 @@ export function useUnseenAlertCount(activePage: string): number {
       setCount((c) => c + newKeys.length)
     }
   }, [toasts, activePage])
-
-  useEffect(() => {
-    if (activePage === 'alerts') setCount(0)
-  }, [activePage])
 
   return count
 }

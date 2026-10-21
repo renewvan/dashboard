@@ -312,7 +312,10 @@ export function useRenewvanBus(): RenewvanBus {
   const [real, setReal] = useState<RenewvanBusState>(emptyRenewvanBusState)
   const [demo, setDemo] = useState<RenewvanBusState>(emptyRenewvanBusState)
   const [demoMode, setDemoModeState] = useState(false)
-  const [status, setStatus] = useState<ConnectionStatus>('connecting')
+  // Without a broker URL the effect never connects, so the bus starts (and stays) disconnected.
+  const [status, setStatus] = useState<ConnectionStatus>(() =>
+    getEnv('VITE_MQTT_WS_URL') ? 'connecting' : 'disconnected',
+  )
   const [displayPower, setDisplayPower] = useState<DisplayPower>(null)
   const [brightness, setBrightness] = useState<number | null>(null)
   const [autoSleepEnabled, setAutoSleepEnabled] = useState<boolean | null>(null)
@@ -320,12 +323,11 @@ export function useRenewvanBus(): RenewvanBus {
     useState<AutoSleepTimeoutMinutes | null>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
   const clientRef = useRef<MqttClient | null>(null)
-  // The message handler lives in a mount-once effect, so it reads the flag through a ref.
-  const demoModeRef = useRef(false)
-  demoModeRef.current = demoMode
 
+  // A fresh function every render, so it always reads the current flag; callers that keep it
+  // (the shell's settings commands) forward to the latest one.
   const publish = (topic: string, payload: string) => {
-    if (demoModeRef.current && !topic.startsWith(KIOSK_PREFIX)) return
+    if (demoMode && !topic.startsWith(KIOSK_PREFIX)) return
     clientRef.current?.publish(topic, payload, { qos: 1, retain: false })
   }
 
@@ -339,10 +341,8 @@ export function useRenewvanBus(): RenewvanBus {
 
   useEffect(() => {
     const url = getEnv('VITE_MQTT_WS_URL')
-    if (!url) {
-      setStatus('disconnected')
-      return
-    }
+    // No broker configured: the initial status already says disconnected.
+    if (!url) return
 
     let disposed = false
 

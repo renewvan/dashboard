@@ -35,6 +35,13 @@ describe('useRenewvanBus router entity', () => {
     vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
   })
 
+  it('starts disconnected and never connects when no broker URL is configured', () => {
+    vi.stubEnv('VITE_MQTT_WS_URL', '')
+    const { result } = renderHook(() => useRenewvanBus())
+    expect(result.current.status).toBe('disconnected')
+    expect(connectMock).not.toHaveBeenCalled()
+  })
+
   it('starts with no routers, no health, and no receipt times', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
