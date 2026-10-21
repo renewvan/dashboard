@@ -29,6 +29,15 @@
 @import './global.css';
 
 /*
+ * The toast region is top-centre, so it must clear the app header: `App` publishes the header's
+ * height as `--app-header-height` (0px while a Settings subpage hides it, where its own
+ * navigation bar sits instead). HeroUI's `top-4` is replaced, not added to.
+ */
+.toast-region--top {
+  top: calc(var(--app-header-height, 0px) + 0.5rem);
+}
+
+/*
  * Toasts on a touchscreen (kiosk): no hover exists, so HeroUI's hover-revealed
  * close button is never reachable. Keep it visible on the frontmost toast and
  * size it to the 44px minimum touch target (docs/design-principles.md). Placed

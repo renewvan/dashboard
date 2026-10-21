@@ -19,9 +19,9 @@ interface Swipe {
 }
 
 /**
- * The app's toast region, at HeroUI's default placement. Toasts dismiss with
- * the (always visible, see `index.css`) close button or by swiping sideways —
- * the kiosk is a touchscreen, so there is no hover to reveal controls.
+ * The app's toast region, top-centre just below the app header (`--app-header-height`, see
+ * `index.css`). Toasts dismiss with the (always visible, see `index.css`) close button or by
+ * swiping sideways — the kiosk is a touchscreen, so there is no hover to reveal controls.
  */
 export function AppToasts() {
   const swipe = useRef<Swipe | null>(null)
@@ -94,7 +94,7 @@ export function AppToasts() {
   }
 
   return (
-    <Toast.Provider maxVisibleToasts={6}>
+    <Toast.Provider maxVisibleToasts={6} placement="top">
       {({ toast: queued }) => {
         const { title, description, indicator, variant } = queued.content ?? {}
         const key = queued.key

@@ -226,25 +226,23 @@ export const SettingsPage = memo(function SettingsPage() {
       className="flex min-h-0 flex-1 flex-col px-4 pb-4"
     >
       {subpage !== null && (
-        <div className="shrink-0 py-2">
-          <SettingsNavBar
-            title={titleOf(subpage)}
-            parentTitle={
-              VIEWS[subpage].parent === 'list' ? 'Settings' : titleOf(VIEWS[subpage].parent)
-            }
-            onBack={() => setView(VIEWS[subpage].parent)}
-            action={
-              <div className="flex items-center gap-1.5">
-                <AlertsButton onClick={openAlerts} count={unseenAlertCount} active={false} />
-                <DisplaySleepButton
-                  displayPower={displayPower}
-                  onSleep={sleepDisplay}
-                  onWake={wakeDisplay}
-                />
-              </div>
-            }
-          />
-        </div>
+        <SettingsNavBar
+          title={titleOf(subpage)}
+          parentTitle={
+            VIEWS[subpage].parent === 'list' ? 'Settings' : titleOf(VIEWS[subpage].parent)
+          }
+          onBack={() => setView(VIEWS[subpage].parent)}
+          action={
+            <div className="flex items-center gap-1.5">
+              <AlertsButton onClick={openAlerts} count={unseenAlertCount} active={false} />
+              <DisplaySleepButton
+                displayPower={displayPower}
+                onSleep={sleepDisplay}
+                onWake={wakeDisplay}
+              />
+            </div>
+          }
+        />
       )}
       {/* Keyed per screen: HeroUI's scroll-driven fade keeps the previous scroller's fully-applied
           start fade when the same element stops overflowing (Chromium leaves the start animation
