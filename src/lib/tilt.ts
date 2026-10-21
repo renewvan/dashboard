@@ -1,7 +1,7 @@
 import type { Tilt } from '@/types'
 
 /** Within this many degrees the van counts as level for that axis. A
- * presentation threshold: the node publishes raw angles, not a level flag. */
+ * presentation threshold: the device publishes raw angles, not a level flag. */
 export const LEVEL_TOLERANCE_DEG = 1
 
 /** The drawn vans stop rotating past this; the number still shows the truth. */
@@ -15,7 +15,7 @@ export interface TiltReading {
 }
 
 /**
- * The angles worth showing, or nulls. While the node reports `sensor_error`
+ * The angles worth showing, or nulls. While the device reports `sensor_error`
  * it stops republishing, but the LAST retained angles stay on the broker, so
  * a stale value must not be drawn as if it were live.
  */

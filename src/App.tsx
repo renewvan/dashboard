@@ -26,7 +26,7 @@ import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
-import { nodeRows, relayNodesOnline } from '@/lib/nodes'
+import { deviceRows, relayDevicesOnline } from '@/lib/devices'
 import { settingsCommands } from '@/lib/settings-commands'
 import { useAutoHide } from '@/hooks/useAutoHide'
 import { useTheme } from '@/hooks/useTheme'
@@ -93,7 +93,7 @@ function App() {
   const goToPage = (id: string) => setActivePage(id, { view: null, tank: null })
   // One history entry for page and view together, so Back returns to the previous page.
   const openSettings = (view: SettingsSubView) => setActivePage('settings', { view, tank: null })
-  // The tank's Configure button: Settings › Nodes › Tanks › <tank>, page, view and tank in one entry.
+  // The tank's Configure button: Settings › Devices › Tanks › <tank>, page, view and tank in one entry.
   const openTankSettings = (tankId: string) =>
     setActivePage('settings', { view: 'tank', tank: tankId })
   const unseenAlertCount = useUnseenAlertCount(activePage)
@@ -150,11 +150,11 @@ function App() {
   const routerUpdatedAt = state.routerUpdatedAt[routerId]
 
   // `state.tanks` / `state.gps` change on every message, so the derived rows are kept by their
-  // content: the Settings context only changes when a Node, its state or its entity count does.
-  const derivedNodes = nodeRows(state)
-  const nodesKey = JSON.stringify(derivedNodes)
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `derivedNodes`
-  const nodes = useMemo(() => derivedNodes, [nodesKey])
+  // content: the Settings context only changes when a Device, its state or its entity count does.
+  const derivedDevices = deviceRows(state)
+  const devicesKey = JSON.stringify(derivedDevices)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `derivedDevices`
+  const devices = useMemo(() => derivedDevices, [devicesKey])
 
   // `publish` is a fresh function every render (it only closes over the bus's stable client
   // ref), so the commands bind to a forwarder that always calls the latest one.
@@ -181,7 +181,7 @@ function App() {
   const openAlerts = useCallback(() => goToPageRef.current('alerts'), [])
   const settings = useMemo(
     () => ({
-      nodes,
+      devices,
       tanks: state.tanks,
       temperatures: state.temperatures,
       relays: state.relays,
@@ -213,7 +213,7 @@ function App() {
       setPowerLayout,
     }),
     [
-      nodes,
+      devices,
       state.tanks,
       state.temperatures,
       state.relays,
@@ -334,7 +334,7 @@ function App() {
           ) : item.id === 'switches' ? (
             <RelaysPage
               relays={state.relays}
-              nodeOnline={relayNodesOnline(state)}
+              deviceOnline={relayDevicesOnline(state)}
               demo={demoMode}
               onSetRelay={commands.setRelay}
             />

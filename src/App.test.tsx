@@ -558,8 +558,8 @@ describe('App shell header', () => {
 
     const pane = screen.getByTestId('pane-settings')
     expect(within(pane).getAllByRole('button')).toHaveLength(3)
-    expect(within(pane).getByRole('button', { name: /^Nodes/ })).toHaveTextContent(
-      'No nodes connected',
+    expect(within(pane).getByRole('button', { name: /^Devices/ })).toHaveTextContent(
+      'No devices connected',
     )
 
     await user.click(within(pane).getByRole('button', { name: /^General/ }))
@@ -1044,15 +1044,15 @@ describe('App Alerts toggle', () => {
 
 describe('App shell Relays page', () => {
   const RELAY_INFO = {
-    node: 'esp32-relay',
+    device: 'esp32-relay',
     product: 'ESP32 16-channel relay board',
     source: 'ESP32 with two chained SN74HC595 shift registers',
     publishes: ['relay'],
     version: 'v0.1.0',
   }
 
-  /** What the relay Node leaves on the bus: its info and health, then a named relay and its state. */
-  async function receiveRelayNode(health: 'online' | 'offline') {
+  /** What the relay Device leaves on the bus: its info and health, then a named relay and its state. */
+  async function receiveRelayDevice(health: 'online' | 'offline') {
     await receive('renewvan/esp32-relay/info', JSON.stringify(RELAY_INFO))
     await receive('renewvan/esp32-relay/health', health)
     await receive('renewvan/relay/relay_01/name', '"Ceiling lights"')
@@ -1067,7 +1067,7 @@ describe('App shell Relays page', () => {
   it('is named Relays, and shows a relay the bus reports', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
-    await receiveRelayNode('online')
+    await receiveRelayDevice('online')
 
     await user.click(screen.getByRole('tab', { name: 'Relays' }))
 
@@ -1077,7 +1077,7 @@ describe('App shell Relays page', () => {
   it('publishes the target state as JSON on the relay set topic when a segment is tapped', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=switches')
-    await receiveRelayNode('online')
+    await receiveRelayDevice('online')
 
     await user.click(lights('On'))
 
@@ -1090,7 +1090,7 @@ describe('App shell Relays page', () => {
   it('settles the control when the relay reports the new state', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=switches')
-    await receiveRelayNode('online')
+    await receiveRelayDevice('online')
     await user.click(lights('On'))
 
     await receive('renewvan/relay/relay_01/state', 'true')
@@ -1099,10 +1099,10 @@ describe('App shell Relays page', () => {
     expect(lights('On')).toBeEnabled()
   })
 
-  it('reads Unknown and publishes nothing while the relay Node is offline', async () => {
+  it('reads Unknown and publishes nothing while the relay Device is offline', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=switches')
-    await receiveRelayNode('offline')
+    await receiveRelayDevice('offline')
 
     expect(lights('On')).toBeDisabled()
     expect(lights('Off')).not.toBeChecked()
@@ -1111,7 +1111,7 @@ describe('App shell Relays page', () => {
     expect(mqtt.publish).not.toHaveBeenCalled()
   })
 
-  it('treats a relay Node with info but no health as not online', async () => {
+  it('treats a relay Device with info but no health as not online', async () => {
     await renderAt(KIOSK_WIDTH, '/?page=switches')
     await receive('renewvan/esp32-relay/info', JSON.stringify(RELAY_INFO))
     await receive('renewvan/relay/relay_01/name', '"Ceiling lights"')
@@ -1139,9 +1139,9 @@ describe('App shell Relays page', () => {
   it('renames a relay from Settings, publishing a JSON string to name/set', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=settings')
-    await receiveRelayNode('online')
+    await receiveRelayDevice('online')
 
-    await user.click(screen.getByRole('button', { name: /^Nodes/ }))
+    await user.click(screen.getByRole('button', { name: /^Devices/ }))
     await user.click(screen.getByRole('button', { name: /^Relays/ }))
     await user.click(
       within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {

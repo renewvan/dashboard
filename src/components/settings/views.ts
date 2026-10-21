@@ -1,9 +1,9 @@
 /** Every view the Settings page can show; `list` is the top list and has no `?view=` value. */
 export type SettingsView =
   | 'list'
-  | 'nodes'
-  | 'node'
+  | 'devices'
   | 'device'
+  | 'device-info'
   | 'tanks'
   | 'tank'
   | 'temperature'

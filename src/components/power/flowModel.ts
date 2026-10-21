@@ -2,7 +2,7 @@
 // Both layouts (Tiles and Orbs) draw this one snapshot, so they always show the same numbers.
 //
 // The bus carries solar, battery and charger (alternator / shore) entities. It does NOT yet carry
-// an inverter/charger or separate AC / DC load readings (node-venus maps none of Venus's vebus or
+// an inverter/charger or separate AC / DC load readings (driver-venus maps none of Venus's vebus or
 // system/0/Ac|Dc paths), so `inverter` and `dcLoadsW` are optional INPUTS: absent, the page shows
 // one derived "Loads" node (the battery's signed power_w, as the Start page's right half-moon
 // does); present, it splits into inverter -> AC loads and battery -> DC loads.

@@ -1,13 +1,13 @@
-import type { NodeRow } from '@/lib/nodes'
+import type { DeviceRow } from '@/lib/devices'
 import { DetailList, DetailRow } from '../shared/DetailList'
 
 /**
- * The Venus-style Device page for one Node (or one fallback row): the same six rows in the same
- * order whatever the Node reports, `—` for a value it does not. The whole page greys while the
- * Node is offline. The Host serial is shown here in full and nowhere else; the Node's Status is on
+ * The Venus-style Device page for one Device (or one fallback row): the same six rows in the same
+ * order whatever the Device reports, `—` for a value it does not. The whole page greys while the
+ * Device is offline. The Board serial is shown here in full and nowhere else; the Device's Status is on
  * its own page, above this one.
  */
-export function DeviceView({ row }: { row: NodeRow }) {
+export function DeviceInfoView({ row }: { row: DeviceRow }) {
   const { info } = row
 
   return (
@@ -17,7 +17,7 @@ export function DeviceView({ row }: { row: NodeRow }) {
           <DetailRow label="Product" value={info?.product ?? null} />
           <DetailRow label="Source" value={info?.source ?? null} />
           <DetailRow label="Firmware version" value={row.version} />
-          <DetailRow label="Host serial" value={info?.host_serial ?? null} />
+          <DetailRow label="Board serial" value={info?.board_serial ?? null} />
           {/* "renewvan" only when info exists without one: no info at all is not a manufacturer. */}
           <DetailRow
             label="Manufacturer"
@@ -27,7 +27,7 @@ export function DeviceView({ row }: { row: NodeRow }) {
         </DetailList>
         {info === undefined && (
           <p className="text-muted px-1 text-xs">
-            This node publishes no info. Update it to see its product and version here.
+            This device publishes no info. Update it to see its product and version here.
           </p>
         )}
       </section>

@@ -75,7 +75,7 @@ export function StartPage({
 }: StartPageProps) {
   // The first GPS record with a plottable position; the weather is looked up there.
   const fix = Object.values(gps).find((g): g is Gps => isCompleteGps(g) && hasGpsFix(g))
-  // One tilt node per van; show the first record.
+  // One tilt device per van; show the first record.
   const firstTilt = Object.values(tilt)[0]
   // One solar controller per van is the common case; show the first complete record.
   const firstSolarRecord = firstSolar(solar)

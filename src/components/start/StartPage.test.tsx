@@ -438,7 +438,7 @@ describe('StartPage weather widget', () => {
 })
 
 describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage tilt widget (%s)', (_name, width) => {
-  it('shows the van tilt from the node, tinted by the level tolerance', () => {
+  it('shows the van tilt from the device, tinted by the level tolerance', () => {
     renderAt(width, { tilt: { tilt: { roll_deg: 0.7, pitch_deg: -2.3, status: 'ok' } } })
 
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('-2.3°')
@@ -454,7 +454,7 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage tilt widget (%s)',
     expect(screen.getByTestId('tilt-roll')).toHaveTextContent('—')
   })
 
-  it('shows no angle before the node has published anything', () => {
+  it('shows no angle before the device has published anything', () => {
     renderAt(width, {})
 
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('—')

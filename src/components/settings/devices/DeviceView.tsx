@@ -2,11 +2,11 @@ import { ChevronRight } from 'lucide-react'
 import { Button } from '@heroui/react'
 import { tankSummary } from '@/lib/tank-display'
 import { temperatureSummary } from '@/lib/temperature'
-import { entityCountText, type EntityType, type NodeRow } from '@/lib/nodes'
+import { entityCountText, type EntityType, type DeviceRow } from '@/lib/devices'
 import { StatusRow } from '../shared/DetailList'
 import { GroupRow } from '../shared/GroupRow'
 import { useSettings } from '../SettingsContext'
-import { NODE_TONE } from './nodeTone'
+import { DEVICE_TONE } from './deviceTone'
 import { useReportedTankIds } from './useReportedTankIds'
 import type { SettingsSubView } from '../views'
 
@@ -18,15 +18,15 @@ const ENTITY_VIEW: Partial<Record<EntityType, SettingsSubView>> = {
 }
 
 /**
- * One Node's page, titled by the Node's name: a card with its Status and a Device row (product,
- * firmware… on its own subpage), then what the Node publishes. The whole page greys while the
- * Node is offline.
+ * One Device's page, titled by the Device's name: a card with its Status and a Device row (product,
+ * firmware… on its own subpage), then what the Device publishes. The whole page greys while the
+ * Device is offline.
  */
-export function NodeView({
+export function DeviceView({
   row,
   onOpen,
 }: {
-  row: NodeRow
+  row: DeviceRow
   onOpen: (view: SettingsSubView) => void
 }) {
   const { temperatures } = useSettings()
@@ -41,13 +41,13 @@ export function NodeView({
   return (
     <div className={`flex flex-col gap-3 ${row.dim ? 'opacity-60' : ''}`}>
       <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-2xl border">
-        <dl aria-label="Node status">
-          <StatusRow label="Status" tone={NODE_TONE[row.tone]} text={row.status} />
+        <dl aria-label="Device status">
+          <StatusRow label="Status" tone={DEVICE_TONE[row.tone]} text={row.status} />
         </dl>
         <Button
           variant="ghost"
           fullWidth
-          onPress={() => onOpen('device')}
+          onPress={() => onOpen('device-info')}
           className="h-auto! justify-between! gap-3! rounded-none! px-3.5! py-3! text-sm font-medium whitespace-normal! md:h-auto!"
         >
           Device

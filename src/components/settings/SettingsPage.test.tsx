@@ -19,20 +19,22 @@ function rowNames() {
 }
 
 describe('SettingsPage top list', () => {
-  it('lists exactly Nodes, General and Connectivity, in that order, with live descriptions', () => {
+  it('lists exactly Devices, General and Connectivity, in that order, with live descriptions', () => {
     renderSettings({}, { bus: { tanks: { fresh: completeTank }, batteries: { '1': {} as never } } })
 
     expect(rowNames()).toEqual([
-      'Nodes2 nodes',
+      'Devices2 devices',
       'GeneralFirmware, display, alerts',
       'ConnectivityCellular, Hub, Tailscale',
     ])
   })
 
-  it('describes Nodes as empty before any node has published', () => {
-    renderSettings({ nodes: [] })
+  it('describes Devices as empty before any device has published', () => {
+    renderSettings({ devices: [] })
 
-    expect(screen.getByRole('button', { name: /^Nodes/ })).toHaveTextContent('No nodes connected')
+    expect(screen.getByRole('button', { name: /^Devices/ })).toHaveTextContent(
+      'No devices connected',
+    )
   })
 
   it('opens on the top list, titled Settings, with no back button', () => {
@@ -44,7 +46,7 @@ describe('SettingsPage top list', () => {
 })
 
 describe('SettingsPage drill-down', () => {
-  it.each(['General', 'Connectivity', 'Nodes'])(
+  it.each(['General', 'Connectivity', 'Devices'])(
     'opens %s with a Back button named Settings in place of the Settings title',
     async (label) => {
       const { user } = renderSettings({}, { bus: { tanks: { fresh: completeTank } } })
@@ -144,8 +146,8 @@ describe('SettingsPage navigation bar', () => {
 
 describe('SettingsPage Firmware', () => {
   const tankInfo = {
-    node: 'tank',
-    product: 'Tank node',
+    device: 'tank',
+    product: 'Tank device',
     source: 'ADS1115 (I2C)',
     publishes: ['tank'],
     version: 'v0.8.0',
@@ -163,17 +165,22 @@ describe('SettingsPage Firmware', () => {
       .getAllByRole('term')
       .map((term) => [term.textContent, term.nextElementSibling?.textContent])
 
-  it('lists the dashboard first, then one row per Node, worded as on the Nodes page', async () => {
+  it('lists the dashboard first, then one row per Device, worded as on the Devices page', async () => {
     await openFirmware({
       bus: {
-        nodes: {
+        devices: {
           tank: { info: tankInfo, health: 'online' },
           temperature: {
-            info: { ...tankInfo, node: 'temperature', product: 'Temperature node', version: 'dev' },
+            info: {
+              ...tankInfo,
+              device: 'temperature',
+              product: 'Temperature device',
+              version: 'dev',
+            },
             health: 'online',
           },
           router: {
-            info: { ...tankInfo, node: 'router', product: 'Router bridge', version: 'v0.1.0' },
+            info: { ...tankInfo, device: 'router', product: 'Router bridge', version: 'v0.1.0' },
             health: 'offline',
           },
           gps: { health: 'online' },
@@ -190,14 +197,14 @@ describe('SettingsPage Firmware', () => {
     ])
   })
 
-  it('lists only the dashboard while no Node has reported', async () => {
+  it('lists only the dashboard while no Device has reported', async () => {
     await openFirmware()
 
     expect(rows()).toEqual([['Dashboard', version]])
   })
 
   it('has no drill-in: it is read-only', async () => {
-    await openFirmware({ bus: { nodes: { tank: { info: tankInfo, health: 'online' } } } })
+    await openFirmware({ bus: { devices: { tank: { info: tankInfo, health: 'online' } } } })
 
     expect(within(screen.getByLabelText('Firmware')).queryByRole('button')).not.toBeInTheDocument()
   })

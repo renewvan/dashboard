@@ -17,7 +17,7 @@ export type TankAlarmZone = 'danger' | 'caution' | 'normal'
  *  alarm_direction/alarm_threshold_pct/alarm_restore_pct, retained/static,
  *  published once at startup alongside fluid_type/capacity_l -- see
  *  docs/adr/0004 in hub). Returns undefined if the tank has no alarm
- *  configured (all three fields absent), matching node-tank's own gating. */
+ *  configured (all three fields absent), matching driver-tank's own gating. */
 export function tankAlarmConfig(tank: Tank): TankAlarmConfig | undefined {
   if (
     tank.alarm_direction === undefined ||
@@ -35,7 +35,7 @@ export function tankAlarmConfig(tank: Tank): TankAlarmConfig | undefined {
 
 /**
  * Level-band severity for a tank's gauge fill. Boundary comparisons match
- * node-tank's `_crossed` exactly: entering alarm is inclusive of the
+ * driver-tank's `_crossed` exactly: entering alarm is inclusive of the
  * threshold (low: `<=`, high: `>=`), restoring is inclusive of the
  * restore level, so the caution zone is the open band between them.
  */
@@ -58,7 +58,7 @@ export type TankSeverity = 'danger' | 'warning' | 'success' | 'accent'
 /** Severity of a tank's liquid fill: `danger` while faulted, in the danger
  *  zone, or while the bus holds a committed alarm with no zone info to
  *  say otherwise (config absent, so zone always reads 'normal') --
- *  covers the node's delay holding `alarm` past restore. A caution
+ *  covers the device's delay holding `alarm` past restore. A caution
  *  zone reading is always `warning` regardless of the committed-alarm bit:
  *  the hub only clears `alarm_state` once level crosses all the way to
  *  restore, so while recovering from danger the bit stays set for the
@@ -103,7 +103,7 @@ export interface TankLevelStatus {
  *  "0%", so it must read Empty here too, not fall through to Low on an
  *  exact-zero check the sensor will rarely ever hit. A committed
  *  alarm_state holds danger past restore (mirrors `tankSeverity`'s own
- *  override, for the same node-side delay) but never overrides a
+ *  override, for the same device-side delay) but never overrides a
  *  caution reading, which the zone math already places more precisely
  *  than the coarser bit. Returns undefined for a tank with no alarm
  *  configured -- there's no meaningful severity to report, so the

@@ -4,7 +4,7 @@ import { ArrowLeft, Workflow, SlidersHorizontal, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
-import { nodesSummary } from '@/lib/nodes'
+import { devicesSummary } from '@/lib/devices'
 import { pushSearchParams } from '@/lib/urlHistory'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 import { AlertsView } from './general/preferences/AlertsView'
@@ -17,30 +17,30 @@ import { FirmwareView } from './general/system/FirmwareView'
 import { GeneralView } from './general/GeneralView'
 import { GroupRow } from './shared/GroupRow'
 import { HubView } from './connectivity/HubView'
-import { DeviceView } from './nodes/DeviceView'
-import { NodeView } from './nodes/NodeView'
-import { NodesView } from './nodes/NodesView'
+import { DeviceInfoView } from './devices/DeviceInfoView'
+import { DeviceView } from './devices/DeviceView'
+import { DevicesView } from './devices/DevicesView'
 import { StartPageView } from './general/preferences/StartPageView'
 import { PowerPageView } from './general/preferences/PowerPageView'
 import { useSettings } from './SettingsContext'
 import { TailscaleView } from './connectivity/TailscaleView'
-import { TankSettingsView } from './nodes/TankSettingsView'
-import { TanksView } from './nodes/TanksView'
-import { useReportedTankIds } from './nodes/useReportedTankIds'
-import { RelaysView } from './nodes/RelaysView'
-import { TemperatureView } from './nodes/TemperatureView'
+import { TankSettingsView } from './devices/TankSettingsView'
+import { TanksView } from './devices/TanksView'
+import { useReportedTankIds } from './devices/useReportedTankIds'
+import { RelaysView } from './devices/RelaysView'
+import { TemperatureView } from './devices/TemperatureView'
 import type { SettingsSubView, SettingsView } from './views'
 import { SettingsNavBar } from './SettingsNavBar'
 import { useHideShellHeader } from './ShellHeaderContext'
 
 const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
-  nodes: { title: 'Nodes', parent: 'list' },
-  node: { title: 'Node', parent: 'nodes' },
-  device: { title: 'Device', parent: 'node' },
-  tanks: { title: 'Tanks', parent: 'nodes' },
+  devices: { title: 'Devices', parent: 'list' },
+  device: { title: 'Device', parent: 'devices' },
+  'device-info': { title: 'Device', parent: 'device' },
+  tanks: { title: 'Tanks', parent: 'devices' },
   tank: { title: 'Tank', parent: 'tanks' },
-  temperature: { title: 'Temperature', parent: 'nodes' },
-  relays: { title: 'Relays', parent: 'nodes' },
+  temperature: { title: 'Temperature', parent: 'devices' },
+  relays: { title: 'Relays', parent: 'devices' },
   general: { title: 'General', parent: 'list' },
   firmware: { title: 'Firmware', parent: 'general' },
   alerts: { title: 'Alerts', parent: 'general' },
@@ -65,7 +65,7 @@ const SUB_VIEWS = Object.keys(VIEWS) as SettingsSubView[]
  */
 export const SettingsPage = memo(function SettingsPage() {
   const {
-    nodes,
+    devices,
     tanks,
     displayPower,
     sleepDisplay,
@@ -92,27 +92,27 @@ export const SettingsPage = memo(function SettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content
   const validTankIds = useMemo(() => tankIds, [tankIdsKey])
   const [tankParam] = useUrlParam('tank', validTankIds)
-  // The open Node lives in `?node=`, valid only while it names a reported Node or a fallback row.
-  const nodeKeys = nodes.map((row) => row.key)
-  const nodeKeysKey = nodeKeys.join('\u0000')
+  // The open Device lives in `?device=`, valid only while it names a reported Device or a fallback row.
+  const deviceKeys = devices.map((row) => row.key)
+  const deviceKeysKey = deviceKeys.join('\u0000')
   // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content
-  const validNodeKeys = useMemo(() => nodeKeys, [nodeKeysKey])
-  const [nodeParam] = useUrlParam('node', validNodeKeys)
-  const nodeRow = nodes.find((row) => row.key === nodeParam)
-  // A tank view without a reported tank has nothing to show: fall back to the tank list; a node
-  // view without a reported Node, to the Nodes list.
+  const validDeviceKeys = useMemo(() => deviceKeys, [deviceKeysKey])
+  const [deviceParam] = useUrlParam('device', validDeviceKeys)
+  const deviceRow = devices.find((row) => row.key === deviceParam)
+  // A tank view without a reported tank has nothing to show: fall back to the tank list; a device
+  // view without a reported Device, to the Devices list.
   const view: SettingsView =
     viewParam === 'tank' && tankParam === null
       ? 'tanks'
-      : (viewParam === 'node' || viewParam === 'device') && nodeRow === undefined
-        ? 'nodes'
+      : (viewParam === 'device' || viewParam === 'device-info') && deviceRow === undefined
+        ? 'devices'
         : (viewParam ?? 'list')
-  // `tank` is titled by the open tank's fluid and `node` by the open Node's label; every other
+  // `tank` is titled by the open tank's fluid and `device` by the open Device's label; every other
   // view has a fixed title.
   const titleOf = (id: SettingsSubView): string => {
     const fluid = tankParam === null ? undefined : tanks[tankParam]?.fluid_type
     if (id === 'tank' && fluid) return FLUID_LABELS[fluid]
-    if (id === 'node' && nodeRow) return nodeRow.name
+    if (id === 'device' && deviceRow) return deviceRow.name
     return VIEWS[id].title
   }
   // The drawer is one persistent dialog: navigating deeper swaps its content in place instead
@@ -132,22 +132,22 @@ export const SettingsPage = memo(function SettingsPage() {
     params.set('tank', tankId)
     pushSearchParams(params)
   }, [])
-  // Likewise `view` and `node`.
-  const openNode = useCallback((nodeKey: string) => {
+  // Likewise `view` and `device`.
+  const openDevice = useCallback((deviceKey: string) => {
     const params = new URLSearchParams(window.location.search)
-    params.set('view', 'node')
-    params.set('node', nodeKey)
+    params.set('view', 'device')
+    params.set('device', deviceKey)
     pushSearchParams(params)
   }, [])
 
   const content = (id: SettingsSubView): ReactNode => {
     switch (id) {
-      case 'nodes':
-        return <NodesView onOpen={openNode} />
-      case 'node':
-        return nodeRow === undefined ? null : <NodeView row={nodeRow} onOpen={setView} />
+      case 'devices':
+        return <DevicesView onOpen={openDevice} />
       case 'device':
-        return nodeRow === undefined ? null : <DeviceView row={nodeRow} />
+        return deviceRow === undefined ? null : <DeviceView row={deviceRow} onOpen={setView} />
+      case 'device-info':
+        return deviceRow === undefined ? null : <DeviceInfoView row={deviceRow} />
       case 'tanks':
         return <TanksView onOpen={openTank} />
       case 'tank':
@@ -194,9 +194,9 @@ export const SettingsPage = memo(function SettingsPage() {
       <div className="flex flex-col gap-2">
         <GroupRow
           icon={<Workflow />}
-          label="Nodes"
-          description={nodesSummary(nodes)}
-          onOpen={() => setView('nodes')}
+          label="Devices"
+          description={devicesSummary(devices)}
+          onOpen={() => setView('devices')}
         />
         <Separator className="my-1" />
         <GroupRow
@@ -246,10 +246,10 @@ export const SettingsPage = memo(function SettingsPage() {
       )}
       {/* Keyed per screen: HeroUI's scroll-driven fade keeps the previous scroller's fully-applied
           start fade when the same element stops overflowing (Chromium leaves the start animation
-          `running` at progress 1), so a short node view inherits the list's top shadow. A fresh
+          `running` at progress 1), so a short device view inherits the list's top shadow. A fresh
           element starts with an inactive timeline and no fade. */}
       <ScrollShadow
-        key={`${view}:${nodeParam ?? ''}:${tankParam ?? ''}`}
+        key={`${view}:${deviceParam ?? ''}:${tankParam ?? ''}`}
         hideScrollBar
         className="min-h-0 flex-1"
       >

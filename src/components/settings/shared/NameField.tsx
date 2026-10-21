@@ -9,8 +9,8 @@ interface NameFieldProps {
   /** Greys the field out, for a sensor whose identity has not arrived yet. */
   isDisabled?: boolean
   /**
-   * The node's limit in UTF-8 bytes. The counter shows it, and a longer name is never committed:
-   * the node would silently drop it, and the field would only show the old name again.
+   * The device's limit in UTF-8 bytes. The counter shows it, and a longer name is never committed:
+   * the device would silently drop it, and the field would only show the old name again.
    */
   maxBytes?: number
 }
@@ -20,7 +20,7 @@ interface NameFieldProps {
  * keystroke: every commit becomes a retained identity topic and a state-file
  * write on the Pi, so typing "Galley fridge" must not publish eleven partial
  * names. While not editing it shows the bus value directly (another client's
- * edit, or the node rejecting ours, shows through); the typed draft only
+ * edit, or the device rejecting ours, shows through); the typed draft only
  * exists mid-edit. Nothing is applied optimistically.
  */
 export function NameField({ name, onCommit, isDisabled = false, maxBytes }: NameFieldProps) {

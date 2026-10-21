@@ -1,32 +1,32 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { emptyRenewvanBusState, type NodeInfo, type RenewvanBusState } from '@/types'
-import { nodeRows, nodesSummary, relayNodesOnline } from './nodes'
+import { emptyRenewvanBusState, type DeviceInfo, type RenewvanBusState } from '@/types'
+import { deviceRows, devicesSummary, relayDevicesOnline } from './devices'
 
 function stateWith(partial: Partial<RenewvanBusState>): RenewvanBusState {
   return { ...emptyRenewvanBusState, ...partial }
 }
 
-const tankInfo: NodeInfo = {
-  node: 'tank',
-  product: 'Tank node',
+const tankInfo: DeviceInfo = {
+  device: 'tank',
+  product: 'Tank device',
   source: 'ADS1115 (I2C)',
   publishes: ['tank'],
   version: 'v0.8.0',
 }
 
-describe('nodeRows', () => {
+describe('deviceRows', () => {
   it('is empty before anything has published', () => {
-    expect(nodeRows(emptyRenewvanBusState)).toEqual([])
+    expect(deviceRows(emptyRenewvanBusState)).toEqual([])
   })
 
-  it('makes one row per Node, however many entity types it publishes', () => {
-    const rows = nodeRows(
+  it('makes one row per Device, however many entity types it publishes', () => {
+    const rows = deviceRows(
       stateWith({
-        nodes: {
+        devices: {
           venus: {
             health: 'online',
             info: {
-              node: 'venus',
+              device: 'venus',
               product: 'Venus OS bridge',
               source: 'Venus OS MQTT',
               publishes: ['battery', 'solar', 'charger'],
@@ -48,10 +48,10 @@ describe('nodeRows', () => {
     })
   })
 
-  it('joins entities to a Node by the entity types it publishes', () => {
-    const [row] = nodeRows(
+  it('joins entities to a Device by the entity types it publishes', () => {
+    const [row] = deviceRows(
       stateWith({
-        nodes: { tank: { info: tankInfo, health: 'online' } },
+        devices: { tank: { info: tankInfo, health: 'online' } },
         tanks: { fresh: {} as never, grey: {} as never },
         gps: { '0': {} as never },
       }),
@@ -60,8 +60,8 @@ describe('nodeRows', () => {
     expect(row.entityCount).toBe(2)
   })
 
-  describe('the five states of a Node', () => {
-    const row = (nodes: RenewvanBusState['nodes']) => nodeRows(stateWith({ nodes }))[0]
+  describe('the five states of a Device', () => {
+    const row = (devices: RenewvanBusState['devices']) => deviceRows(stateWith({ devices }))[0]
 
     it('online with info: green, Online, the published version', () => {
       expect(row({ tank: { info: tankInfo, health: 'online' } })).toMatchObject({
@@ -121,8 +121,10 @@ describe('nodeRows', () => {
   })
 
   describe('fallback rows', () => {
-    it('gives entities no Node claims a row by entity type, labelled as before, version Unknown', () => {
-      const rows = nodeRows(stateWith({ tanks: { fresh: {} as never }, gps: { '0': {} as never } }))
+    it('gives entities no Device claims a row by entity type, labelled as before, version Unknown', () => {
+      const rows = deviceRows(
+        stateWith({ tanks: { fresh: {} as never }, gps: { '0': {} as never } }),
+      )
       expect(rows).toEqual([
         expect.objectContaining({
           key: 'domain:tank',
@@ -140,17 +142,17 @@ describe('nodeRows', () => {
       ])
     })
 
-    it('omits the fallback row once a Node claims that entity type', () => {
-      const rows = nodeRows(
-        stateWith({ nodes: { tank: { info: tankInfo } }, tanks: { fresh: {} as never } }),
+    it('omits the fallback row once a Device claims that entity type', () => {
+      const rows = deviceRows(
+        stateWith({ devices: { tank: { info: tankInfo } }, tanks: { fresh: {} as never } }),
       )
       expect(rows.map((r) => r.key)).toEqual(['tank'])
     })
 
-    it('keeps a fallback row for an entity type the Node did not claim', () => {
-      const rows = nodeRows(
+    it('keeps a fallback row for an entity type the Device did not claim', () => {
+      const rows = deviceRows(
         stateWith({
-          nodes: { tank: { info: tankInfo } },
+          devices: { tank: { info: tankInfo } },
           tanks: { fresh: {} as never },
           gps: { '0': {} as never },
         }),
@@ -159,28 +161,28 @@ describe('nodeRows', () => {
     })
 
     it('does not create a row for an entity type with no entities', () => {
-      expect(nodeRows(stateWith({ nodes: {} }))).toEqual([])
+      expect(deviceRows(stateWith({ devices: {} }))).toEqual([])
     })
 
-    it('does not treat a health-only Node as claiming anything (no publishes known)', () => {
-      const rows = nodeRows(
-        stateWith({ nodes: { tank: { health: 'online' } }, tanks: { fresh: {} as never } }),
+    it('does not treat a health-only Device as claiming anything (no publishes known)', () => {
+      const rows = deviceRows(
+        stateWith({ devices: { tank: { health: 'online' } }, tanks: { fresh: {} as never } }),
       )
       expect(rows.map((r) => r.key)).toEqual(['tank', 'domain:tank'])
     })
 
-    it('does not know how many entities a Node with no info publishes, so it counts none', () => {
-      const [health] = nodeRows(
-        stateWith({ nodes: { tank: { health: 'online' } }, tanks: { fresh: {} as never } }),
+    it('does not know how many entities a Device with no info publishes, so it counts none', () => {
+      const [health] = deviceRows(
+        stateWith({ devices: { tank: { health: 'online' } }, tanks: { fresh: {} as never } }),
       )
       expect(health.entityCount).toBeNull()
     })
   })
 
-  it('names a Node by its capitalised node key (GPS as an acronym), whatever its product', () => {
-    const rows = nodeRows(
+  it('names a Device by its capitalised device key (GPS as an acronym), whatever its product', () => {
+    const rows = deviceRows(
       stateWith({
-        nodes: {
+        devices: {
           tank: { info: tankInfo },
           mystery: { health: 'online' },
           gps: { health: 'online' },
@@ -194,10 +196,10 @@ describe('nodeRows', () => {
     ])
   })
 
-  it('lists Nodes in a stable order: by key, then fallback rows in the old display order', () => {
-    const rows = nodeRows(
+  it('lists Devices in a stable order: by key, then fallback rows in the old display order', () => {
+    const rows = deviceRows(
       stateWith({
-        nodes: { venus: { health: 'online' }, tank: { health: 'online' } },
+        devices: { venus: { health: 'online' }, tank: { health: 'online' } },
         tilt: { '0': {} as never },
         tanks: { fresh: {} as never },
       }),
@@ -206,65 +208,65 @@ describe('nodeRows', () => {
   })
 })
 
-describe('nodesSummary', () => {
+describe('devicesSummary', () => {
   it('pluralises and handles none', () => {
     const row = (key: string) => ({ key }) as never
-    expect(nodesSummary([])).toBe('No nodes connected')
-    expect(nodesSummary([row('tank')])).toBe('1 node')
-    expect(nodesSummary([row('tank'), row('gps')])).toBe('2 nodes')
+    expect(devicesSummary([])).toBe('No devices connected')
+    expect(devicesSummary([row('tank')])).toBe('1 device')
+    expect(devicesSummary([row('tank'), row('gps')])).toBe('2 devices')
   })
 })
 
-describe('relayNodesOnline', () => {
-  const relayInfo: NodeInfo = {
-    node: 'esp32-relay',
+describe('relayDevicesOnline', () => {
+  const relayInfo: DeviceInfo = {
+    device: 'esp32-relay',
     product: 'ESP32 16-channel relay board',
     source: 'ESP32 with two chained SN74HC595 shift registers',
     publishes: ['relay'],
     version: 'v0.1.0',
   }
 
-  it('is true only when the Node that publishes relay is online', () => {
-    const nodes = { 'esp32-relay': { info: relayInfo, health: 'online' as const } }
-    expect(relayNodesOnline(stateWith({ nodes }))).toBe(true)
+  it('is true only when the Device that publishes relay is online', () => {
+    const devices = { 'esp32-relay': { info: relayInfo, health: 'online' as const } }
+    expect(relayDevicesOnline(stateWith({ devices }))).toBe(true)
   })
 
-  it('finds the relay Node by what it publishes, whatever its key', () => {
-    const nodes = {
-      whatever: { info: { ...relayInfo, node: 'whatever' }, health: 'online' as const },
+  it('finds the relay Device by what it publishes, whatever its key', () => {
+    const devices = {
+      whatever: { info: { ...relayInfo, device: 'whatever' }, health: 'online' as const },
     }
-    expect(relayNodesOnline(stateWith({ nodes }))).toBe(true)
+    expect(relayDevicesOnline(stateWith({ devices }))).toBe(true)
   })
 
-  it('is false when the relay Node is offline', () => {
-    const nodes = { 'esp32-relay': { info: relayInfo, health: 'offline' as const } }
-    expect(relayNodesOnline(stateWith({ nodes }))).toBe(false)
+  it('is false when the relay Device is offline', () => {
+    const devices = { 'esp32-relay': { info: relayInfo, health: 'offline' as const } }
+    expect(relayDevicesOnline(stateWith({ devices }))).toBe(false)
   })
 
-  it('is false for a Node with info but no health: half-started is not trusted', () => {
-    const nodes = { 'esp32-relay': { info: relayInfo } }
-    expect(relayNodesOnline(stateWith({ nodes }))).toBe(false)
+  it('is false for a Device with info but no health: half-started is not trusted', () => {
+    const devices = { 'esp32-relay': { info: relayInfo } }
+    expect(relayDevicesOnline(stateWith({ devices }))).toBe(false)
   })
 
-  it('is false when no Node publishes relay at all', () => {
+  it('is false when no Device publishes relay at all', () => {
     const tank = { tank: { info: tankInfo, health: 'online' as const } }
-    expect(relayNodesOnline(stateWith({ nodes: tank }))).toBe(false)
-    expect(relayNodesOnline(emptyRenewvanBusState)).toBe(false)
+    expect(relayDevicesOnline(stateWith({ devices: tank }))).toBe(false)
+    expect(relayDevicesOnline(emptyRenewvanBusState)).toBe(false)
   })
 
-  it('is false while any relay Node is not online, so a stale on is never trusted', () => {
-    const nodes = {
+  it('is false while any relay Device is not online, so a stale on is never trusted', () => {
+    const devices = {
       'esp32-relay': { info: relayInfo, health: 'online' as const },
-      relay: { info: { ...relayInfo, node: 'relay' }, health: 'offline' as const },
+      relay: { info: { ...relayInfo, device: 'relay' }, health: 'offline' as const },
     }
-    expect(relayNodesOnline(stateWith({ nodes }))).toBe(false)
+    expect(relayDevicesOnline(stateWith({ devices }))).toBe(false)
   })
 
-  it('ignores an online Node that does not publish relay when the relay Node is offline', () => {
-    const nodes = {
+  it('ignores an online Device that does not publish relay when the relay Device is offline', () => {
+    const devices = {
       'esp32-relay': { info: relayInfo, health: 'offline' as const },
       tank: { info: tankInfo, health: 'online' as const },
     }
-    expect(relayNodesOnline(stateWith({ nodes }))).toBe(false)
+    expect(relayDevicesOnline(stateWith({ devices }))).toBe(false)
   })
 })

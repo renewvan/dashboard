@@ -15,7 +15,7 @@ function setup(props: Partial<RelaysPageProps> & { relays: Record<string, Relay>
   viewport = stubMatchMedia(KIOSK_WIDTH)
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
   const all: RelaysPageProps = {
-    nodeOnline: true,
+    deviceOnline: true,
     demo: false,
     onSetRelay,
     ...props,
@@ -230,22 +230,22 @@ describe('RelaysPage critical loads', () => {
     expect(control('Water pump').contains(document.activeElement)).toBe(true)
   })
 
-  it('closes the confirmation and sends nothing if the Node drops while it is open', async () => {
+  it('closes the confirmation and sends nothing if the Device drops while it is open', async () => {
     const { user, rerender } = setup({ relays: { relay_03: PUMP }, ...critical })
     await user.click(segment('Water pump', 'On'))
     expect(screen.getByRole('alertdialog')).toBeInTheDocument()
 
-    rerender({ nodeOnline: false })
+    rerender({ deviceOnline: false })
 
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
     expect(onSetRelay).not.toHaveBeenCalled()
   })
 
-  it('shows no stale target or failure when the Node returns after a dropped confirmation', async () => {
+  it('shows no stale target or failure when the Device returns after a dropped confirmation', async () => {
     const { user, rerender } = setup({ relays: { relay_03: PUMP }, ...critical })
     await user.click(segment('Water pump', 'On'))
-    rerender({ nodeOnline: false })
-    rerender({ nodeOnline: true })
+    rerender({ deviceOnline: false })
+    rerender({ deviceOnline: true })
     advance(GIVE_UP_MS)
 
     expect(screen.queryByText("Didn't switch")).not.toBeInTheDocument()
@@ -266,9 +266,9 @@ describe('RelaysPage critical loads', () => {
   })
 })
 
-describe('RelaysPage when the relay Node is not online', () => {
+describe('RelaysPage when the relay Device is not online', () => {
   it('reads every relay as Unknown with neither segment selected and every control disabled', () => {
-    setup({ relays: { relay_01: LIGHTS, relay_03: PUMP }, nodeOnline: false })
+    setup({ relays: { relay_01: LIGHTS, relay_03: PUMP }, deviceOnline: false })
 
     for (const name of ['Ceiling lights', 'Water pump']) {
       expect(segment(name, 'On')).not.toBeChecked()
@@ -280,19 +280,19 @@ describe('RelaysPage when the relay Node is not online', () => {
   })
 
   it('explains why with one banner, not one message per relay', () => {
-    setup({ relays: { relay_01: LIGHTS, relay_03: PUMP }, nodeOnline: false })
+    setup({ relays: { relay_01: LIGHTS, relay_03: PUMP }, deviceOnline: false })
 
     expect(screen.getAllByRole('status')).toHaveLength(1)
-    expect(screen.getByRole('status')).toHaveTextContent(/relay node/i)
+    expect(screen.getByRole('status')).toHaveTextContent(/relay device/i)
   })
 
-  it('shows no banner while the Node is online', () => {
+  it('shows no banner while the Device is online', () => {
     setup({ relays: { relay_01: LIGHTS } })
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('reads a relay that has a name but no state yet as Unknown, even with the Node online', () => {
+  it('reads a relay that has a name but no state yet as Unknown, even with the Device online', () => {
     setup({ relays: { relay_03: { name: 'Water pump' } } })
 
     expect(segment('Water pump', 'On')).not.toBeChecked()
@@ -300,13 +300,13 @@ describe('RelaysPage when the relay Node is not online', () => {
     expect(segment('Water pump', 'On')).toBeDisabled()
   })
 
-  it('cancels a command in flight when the Node drops, so no stale target is shown', async () => {
+  it('cancels a command in flight when the Device drops, so no stale target is shown', async () => {
     const { user, rerender } = setup({
       relays: { relay_01: { name: 'Ceiling lights', state: false } },
     })
     await user.click(segment('Ceiling lights', 'On'))
 
-    rerender({ nodeOnline: false })
+    rerender({ deviceOnline: false })
 
     expect(segment('Ceiling lights', 'On')).not.toBeChecked()
     expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument()
@@ -335,8 +335,8 @@ describe('RelaysPage in Demo mode', () => {
     expect(onSetRelay).not.toHaveBeenCalled()
   })
 
-  it('explains Demo mode rather than the relay Node, even while the demo Node is online', () => {
-    setup({ relays: { relay_01: LIGHTS }, demo: true, nodeOnline: true })
+  it('explains Demo mode rather than the relay Device, even while the demo Device is online', () => {
+    setup({ relays: { relay_01: LIGHTS }, demo: true, deviceOnline: true })
 
     expect(screen.getAllByRole('status')).toHaveLength(1)
   })

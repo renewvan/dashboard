@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import mqtt, { type MqttClient } from 'mqtt'
-import { emptyRenewvanBusState, type NodeInfo, type RenewvanBusState } from '@/types'
+import { emptyRenewvanBusState, type DeviceInfo, type RenewvanBusState } from '@/types'
 import { getEnv } from '@/config/runtimeEnv'
 
 // Client-side MQTT-over-WebSocket connection to the renewvan bus broker
@@ -37,7 +37,7 @@ export interface RenewvanBus {
   routerHealth: RouterHealth | null
   /** The shared Demo mode flag (`renewvan/demo/enabled`): true while every client reads the simulated van. */
   demoMode: boolean
-  /** Asks `node-demo` to switch demo mode; the view only changes when the bus reports it did. */
+  /** Asks `driver-demo` to switch demo mode; the view only changes when the bus reports it did. */
   setDemoMode: (demo: boolean) => void
   publish: (topic: string, payload: string) => void
 }
@@ -54,7 +54,7 @@ const DEMO_ROOT = `${REAL_ROOT}/demo`
 const TOPIC_DEMO_ENABLED = `${DEMO_ROOT}/enabled`
 const TOPIC_DEMO_ENABLED_SET = `${TOPIC_DEMO_ENABLED}/set`
 
-// `<id>/<property>` is exactly two segments, so the temperature node's
+// `<id>/<property>` is exactly two segments, so the temperature device's
 // `<id>/name/set` and `<id>/unit/set` command topics (three) never match.
 function entityPattern(root: string): RegExp {
   return new RegExp(
@@ -64,17 +64,20 @@ function entityPattern(root: string): RegExp {
 const ENTITY_PATTERN = { real: entityPattern(REAL_ROOT), demo: entityPattern(DEMO_ROOT) }
 
 /**
- * `<root>/<node>/info` and `<root>/<node>/health`: three segments, so never an entity topic (four).
- * `demo` sits where a Node key would on the real root and is reserved: it is the simulated van's
- * namespace, never a Node, so the real pattern excludes it and its own `renewvan/demo/health`
- * (a topic retained on real brokers) cannot become a Node.
+ * `<root>/<device>/info` and `<root>/<device>/health`: three segments, so never an entity topic (four).
+ * `demo` sits where a Device key would on the real root and is reserved: it is the simulated van's
+ * namespace, never a Device, so the real pattern excludes it and its own `renewvan/demo/health`
+ * (a topic retained on real brokers) cannot become a Device.
  */
-function nodePattern(root: string, reserved: string | null): RegExp {
+function devicePattern(root: string, reserved: string | null): RegExp {
   const key = reserved === null ? '[^/]+' : `(?!${reserved}/)[^/]+`
   return new RegExp(`^${root}/(${key})/(info|health)$`)
 }
-const NODE_PATTERN = { real: nodePattern(REAL_ROOT, 'demo'), demo: nodePattern(DEMO_ROOT, null) }
-// The kiosk and tailscale topics are host plugins that no demo node simulates, so they stay on the
+const DEVICE_PATTERN = {
+  real: devicePattern(REAL_ROOT, 'demo'),
+  demo: devicePattern(DEMO_ROOT, null),
+}
+// The kiosk and tailscale topics are host plugins that no demo device simulates, so they stay on the
 // real root in demo mode: a demo van still dims and sleeps the real screen.
 const KIOSK_PREFIX = `${REAL_ROOT}/kiosk/`
 const TOPIC_DISPLAY_POWER = `${KIOSK_PREFIX}display/power`
@@ -124,17 +127,17 @@ function optionalString(value: unknown): string | undefined {
 }
 
 /**
- * The dashboard's light structural check of a Node info payload (no schema library): a JSON object
- * with string `node`, `product`, `source` and `version`, and `publishes` a list of strings if
+ * The dashboard's light structural check of a Device info payload (no schema library): a JSON object
+ * with string `device`, `product`, `source` and `version`, and `publishes` a list of strings if
  * present. Anything else reads as no info. The optional `manufacturer`, `homepage` and
- * `host_serial` are kept only when they are strings, and no other key is carried into state.
+ * `board_serial` are kept only when they are strings, and no other key is carried into state.
  */
-function parseNodeInfo(payload: string): NodeInfo | undefined {
+function parseDeviceInfo(payload: string): DeviceInfo | undefined {
   const value = parseValue(payload)
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
   const o = value as Record<string, unknown>
   if (
-    typeof o.node !== 'string' ||
+    typeof o.device !== 'string' ||
     typeof o.product !== 'string' ||
     typeof o.source !== 'string' ||
     typeof o.version !== 'string'
@@ -142,28 +145,33 @@ function parseNodeInfo(payload: string): NodeInfo | undefined {
     return undefined
   }
   if (o.publishes !== undefined && !isStringList(o.publishes)) return undefined
-  const info: NodeInfo = { node: o.node, product: o.product, source: o.source, version: o.version }
+  const info: DeviceInfo = {
+    device: o.device,
+    product: o.product,
+    source: o.source,
+    version: o.version,
+  }
   if (o.publishes !== undefined) info.publishes = o.publishes
   const manufacturer = optionalString(o.manufacturer)
   if (manufacturer !== undefined) info.manufacturer = manufacturer
   const homepage = optionalString(o.homepage)
   if (homepage !== undefined) info.homepage = homepage
-  const hostSerial = optionalString(o.host_serial)
-  if (hostSerial !== undefined) info.host_serial = hostSerial
+  const boardSerial = optionalString(o.board_serial)
+  if (boardSerial !== undefined) info.board_serial = boardSerial
   return info
 }
 
 /** An empty payload clears a retained topic; so does anything that is not a valid value. */
-function applyNodeMessage(
+function applyDeviceMessage(
   prev: RenewvanBusState,
   key: string,
   topic: 'info' | 'health',
   payload: string,
 ): RenewvanBusState {
-  const { [key]: current, ...others } = prev.nodes
+  const { [key]: current, ...others } = prev.devices
   const next = { ...current }
   if (topic === 'info') {
-    const info = parseNodeInfo(payload)
+    const info = parseDeviceInfo(payload)
     if (info) next.info = info
     else delete next.info
   } else if (payload === 'online' || payload === 'offline') {
@@ -172,7 +180,7 @@ function applyNodeMessage(
     delete next.health
   }
   const empty = next.info === undefined && next.health === undefined
-  return { ...prev, nodes: empty ? others : { ...others, [key]: next } }
+  return { ...prev, devices: empty ? others : { ...others, [key]: next } }
 }
 
 /**
@@ -212,11 +220,11 @@ function applyMessage(
   topic: string,
   payload: string,
   pattern: RegExp,
-  nodeTopicPattern: RegExp,
+  deviceTopicPattern: RegExp,
 ): RenewvanBusState {
-  const nodeMatch = nodeTopicPattern.exec(topic)
-  if (nodeMatch) {
-    return applyNodeMessage(prev, nodeMatch[1], nodeMatch[2] as 'info' | 'health', payload)
+  const deviceMatch = deviceTopicPattern.exec(topic)
+  if (deviceMatch) {
+    return applyDeviceMessage(prev, deviceMatch[1], deviceMatch[2] as 'info' | 'health', payload)
   }
   const match = pattern.exec(topic)
   if (!match) return prev
@@ -254,15 +262,15 @@ function applyMessage(
  * `../config/runtimeEnv`.
  *
  * Demo mode is one shared switch on the bus (hub `docs/demo-mode.md`), not a per-client
- * preference: `renewvan/demo/enabled` is retained, `node-demo` publishes the simulated van while
+ * preference: `renewvan/demo/enabled` is retained, `driver-demo` publishes the simulated van while
  * it is `true`, and every client follows it, so toggling in one dashboard shows the demo in all.
  * Each root's entities are accumulated separately and the flag picks which one is exposed, so
  * switching is instant (no reconnect) and real and simulated values can never mix. The kiosk and
- * tailscale host plugins stay on the real root: no demo node simulates them. Demo state is
+ * tailscale host plugins stay on the real root: no demo device simulates them. Demo state is
  * read-only: while the switch is on, `publish` sends only kiosk commands.
  *
- * Each Node's retained `info` and `health` (`renewvan/<node>/info|health`) accumulate into
- * `state.nodes` per root, and `routerHealth` is read off the router Node's health there.
+ * Each Device's retained `info` and `health` (`renewvan/<device>/info|health`) accumulate into
+ * `state.devices` per root, and `routerHealth` is read off the router Device's health there.
  */
 export function useRenewvanBus(): RenewvanBus {
   const [real, setReal] = useState<RenewvanBusState>(emptyRenewvanBusState)
@@ -361,8 +369,12 @@ export function useRenewvanBus(): RenewvanBus {
         }
         return
       }
-      setReal((prev) => applyMessage(prev, topic, payload, ENTITY_PATTERN.real, NODE_PATTERN.real))
-      setDemo((prev) => applyMessage(prev, topic, payload, ENTITY_PATTERN.demo, NODE_PATTERN.demo))
+      setReal((prev) =>
+        applyMessage(prev, topic, payload, ENTITY_PATTERN.real, DEVICE_PATTERN.real),
+      )
+      setDemo((prev) =>
+        applyMessage(prev, topic, payload, ENTITY_PATTERN.demo, DEVICE_PATTERN.demo),
+      )
     })
 
     return () => {
@@ -390,7 +402,7 @@ export function useRenewvanBus(): RenewvanBus {
     autoSleepEnabled,
     autoSleepTimeoutMinutes,
     tailscale,
-    routerHealth: state.nodes.router?.health ?? null,
+    routerHealth: state.devices.router?.health ?? null,
     demoMode,
     setDemoMode,
     publish,

@@ -61,7 +61,7 @@ function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSe
   )
 }
 
-/** Settings › Nodes › Temperature: rename a sensor and pick its unit. */
+/** Settings › Devices › Temperature: rename a sensor and pick its unit. */
 export function TemperatureView() {
   const { temperatures } = useSettings()
   const ids = sortedSensorIds(temperatures)
@@ -69,7 +69,7 @@ export function TemperatureView() {
   if (ids.length === 0) {
     return (
       <p className="border-border bg-surface text-muted rounded-2xl border px-3.5 py-3 text-sm">
-        No temperature sensors found. Waiting for node-temperature to publish.
+        No temperature sensors found. Waiting for driver-temperature to publish.
       </p>
     )
   }

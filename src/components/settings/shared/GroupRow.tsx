@@ -9,7 +9,7 @@ interface GroupRowProps {
   onOpen: () => void
   /** Leading icon (top-level rows). Decorative: the label already names the row. */
   icon?: ReactNode
-  /** A status dot's background class, left of the label (Nodes rows). Decorative: the text says it. */
+  /** A status dot's background class, left of the label (Devices rows). Decorative: the text says it. */
   statusTone?: string
 }
 

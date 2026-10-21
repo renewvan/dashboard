@@ -10,7 +10,7 @@ import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { Theme } from '@/hooks/useTheme'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
-import type { NodeRow } from '@/lib/nodes'
+import type { DeviceRow } from '@/lib/devices'
 import type { Relay, Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
 
 /**
@@ -19,8 +19,8 @@ import type { Relay, Router, Tank, TemperatureSensor, TemperatureUnit } from '@/
  * the bus accumulates entities one property per retained message.
  */
 export interface SettingsContextValue {
-  /** One row per Node, then one fallback row per entity type no Node claims (`nodeRows`). */
-  nodes: NodeRow[]
+  /** One row per Device, then one fallback row per entity type no Device claims (`deviceRows`). */
+  devices: DeviceRow[]
   tanks: Record<string, Partial<Tank>>
   temperatures: Record<string, Partial<TemperatureSensor>>
   relays: Record<string, Relay>

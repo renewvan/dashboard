@@ -34,7 +34,7 @@ function EmptyPane({ title, description }: { title: string; description: string 
 export function GpsPage({ gps }: GpsPageProps) {
   // MQTT builds a record up one property per retained message; skip any id whose
   // unconditional fields haven't arrived (see `isCompleteGps`). There is a single
-  // GPS node per hub, so the first complete id decides.
+  // GPS device per hub, so the first complete id decides.
   const id = Object.keys(gps).find((key) => isCompleteGps(gps[key]))
   const record = id ? gps[id] : undefined
 

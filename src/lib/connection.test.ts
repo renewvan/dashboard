@@ -17,14 +17,14 @@ describe('cellularTier band edges (LTE-calibrated)', () => {
     expect(cellularTier(-115, 'online', FRESH, NOW)).toBe('bars-1')
   })
 
-  it("reads no-service below -115 even while the node reports online — radio-silent isn't offline", () => {
+  it("reads no-service below -115 even while the device reports online — radio-silent isn't offline", () => {
     expect(cellularTier(-115.1, 'online', FRESH, NOW)).toBe('no-service')
     expect(cellularTier(-120, 'online', FRESH, NOW)).toBe('no-service')
   })
 })
 
 describe('cellularTier offline resolution', () => {
-  it('goes offline the moment the node health says offline, even with fresh data', () => {
+  it('goes offline the moment the device health says offline, even with fresh data', () => {
     expect(cellularTier(-85, 'offline', FRESH, NOW)).toBe('offline')
   })
 
@@ -91,7 +91,7 @@ describe('connectionTier (header icon)', () => {
     ).toBe('connected')
   })
 
-  it('is connected when the router node reports offline but the bus is up', () => {
+  it('is connected when the router device reports offline but the bus is up', () => {
     expect(
       connectionTier({ ...noRouter, rsrp: -85, routerHealth: 'offline', lastReceivedAt: FRESH }),
     ).toBe('connected')

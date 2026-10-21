@@ -4,22 +4,22 @@ import { plmnOperatorName } from './plmn'
 
 /**
  * The cellular uplink's state model, derived from the router entity
- * (`renewvan/router/<id>/*`) + the router Node's health
- * (`state.nodes.router`). Pure decision function (tailscaleStatusText
+ * (`renewvan/router/<id>/*`) + the router Device's health
+ * (`state.devices.router`). Pure decision function (tailscaleStatusText
  * precedent): the component renders, this decides.
  *
  * Resolution order (settled in .scratch/router-connection-icon/ grilling,
  * 2026-10-03):
- * 1. node health offline → offline (LWT trumps everything);
+ * 1. device health offline → offline (LWT trumps everything);
  * 2. no router data received yet → checking;
  * 3. newest property older than STALE_MS (3× the 60 s publish cadence;
  *    receipt-time — a retained message's true publish time isn't on the
- *    wire, and the health LWT is the cross-check for a dead node) →
+ *    wire, and the health LWT is the cross-check for a dead device) →
  *    offline;
  * 4. no signal_rsrp_dbm among the received properties yet → checking;
  * 5. LTE-calibrated bands from rsrp — 4 bars ≥ -85, 3 bars ≥ -95,
  *    2 bars ≥ -105, 1 bar ≥ -115, below that no-service. no-service is
- *    radio-silent while the node is alive — NOT offline (grilling: signal
+ *    radio-silent while the device is alive — NOT offline (grilling: signal
  *    floor doesn't fake offline). NR recalibration is fog until router
  *    hardware changes (RUT-360 is LTE-only).
  *

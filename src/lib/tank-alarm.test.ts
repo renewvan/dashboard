@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 import type { Tank } from '@/types'
 import { tankAlarmConfig, tankAlarmZone, tankLevelStatus, tankSeverity } from './tank-alarm'
 
-// Boundary semantics must match node-tank's `_crossed` (driver.py): entry
+// Boundary semantics must match driver-tank's `_crossed` (driver.py): entry
 // is inclusive of the threshold, restore inclusive of the restore level,
 // so caution is the open band between them.
 describe('tankAlarmZone', () => {

@@ -168,7 +168,7 @@ export type ChargerSource = 'ac' | 'alternator' | 'dc' | 'unknown'
 /**
  * Non-solar battery charger per hub/schema/charger.schema.json: an AC mains charger (Victron Blue
  * Smart IP22) or a DC-DC charger fed by the alternator. Only `voltage_v` is required of every
- * source. node-venus publishes no `power_w`, so a consumer derives watts from voltage × current.
+ * source. driver-venus publishes no `power_w`, so a consumer derives watts from voltage × current.
  */
 export interface Charger {
   voltage_v: number
@@ -187,7 +187,7 @@ export function isCompleteCharger(charger: Partial<Charger>): charger is Charger
 /**
  * GPS position fix per hub/schema/gps.schema.json. `fix_quality`/
  * `satellites_in_use`/`avg_snr_db` are unconditional (the latter absent
- * only before the node's first GSV sentence); every position/motion
+ * only before the device's first GSV sentence); every position/motion
  * field is present only once fix_quality !== 'no_fix' — see
  * `isCompleteGps` for the render-readiness check and `hasGpsFix` for
  * the separate "is there actually a position to plot" check.
@@ -239,10 +239,10 @@ export type TemperatureStatus = 'ok' | 'no_reading' | 'disconnected'
 
 /**
  * Temperature sensor per hub/schema/temperature.schema.json (1-Wire
- * DS18B20 probes + the Pi CPU, read by renewvan/node-temperature).
+ * DS18B20 probes + the Pi CPU, read by renewvan/driver-temperature).
  * `temperature_c` is ALWAYS Celsius on the wire; `unit` is only the
  * user's display preference, applied by lib/temperature.ts. While
- * `status` is not 'ok' the node stops republishing `temperature_c` but
+ * `status` is not 'ok' the device stops republishing `temperature_c` but
  * the LAST retained value stays on the broker, so a reading must only
  * be shown when `status === 'ok'` (see {@link temperatureReading}).
  * Same partial-accumulation caveat as {@link isCompleteTank}.
@@ -261,9 +261,9 @@ export type TiltStatus = 'ok' | 'sensor_error'
 
 /**
  * Van inclination per hub/schema/tilt.schema.json (read by
- * renewvan/node-tilt). Angles are in the van frame, already level-zeroed
- * by the node: `roll_deg` positive = left side down, `pitch_deg` positive
- * = nose up. While `status` is 'sensor_error' the node stops republishing
+ * renewvan/driver-tilt). Angles are in the van frame, already level-zeroed
+ * by the device: `roll_deg` positive = left side down, `pitch_deg` positive
+ * = nose up. While `status` is 'sensor_error' the device stops republishing
  * angles but the LAST retained values stay on the broker, so an angle must
  * only be shown when `status === 'ok'`. Same partial-accumulation caveat
  * as {@link isCompleteTank}.
@@ -307,28 +307,28 @@ export interface Router {
   data_used_month_rx_b: number
 }
 
-export type NodeHealth = 'online' | 'offline'
+export type DeviceHealth = 'online' | 'offline'
 
 /**
- * The retained `renewvan/<node>/info` payload (hub `node-info.schema.json`): the Node's manifest
- * plus its build-stamped `version` and optional `host_serial`. `publishes` is optional here only
+ * The retained `renewvan/<device>/info` payload (hub `device-info.schema.json`): the Device's manifest
+ * plus its build-stamped `version` and optional `board_serial`. `publishes` is optional here only
  * because the dashboard's structural check requires it to be a list of strings *if present*.
  */
-export interface NodeInfo {
-  node: string
+export interface DeviceInfo {
+  device: string
   product: string
   source: string
   version: string
   publishes?: string[]
   manufacturer?: string
   homepage?: string
-  host_serial?: string
+  board_serial?: string
 }
 
-/** What the bus has said about one Node: its retained info and its retained health, each optional. */
-export interface NodeRecord {
-  info?: NodeInfo
-  health?: NodeHealth
+/** What the bus has said about one Device: its retained info and its retained health, each optional. */
+export interface DeviceRecord {
+  info?: DeviceInfo
+  health?: DeviceHealth
 }
 
 /** Live state of the renewvan bus, keyed by entity id within each domain. */
@@ -346,8 +346,8 @@ export interface RenewvanBusState {
    * icon's staleness rule (health offline OR older than 180 s = offline;
    * see lib/connection.ts). */
   routerUpdatedAt: Record<string, number>
-  /** Every Node that has published `info` or `health`, keyed by its `<node>` topic segment. */
-  nodes: Record<string, NodeRecord>
+  /** Every Device that has published `info` or `health`, keyed by its `<device>` topic segment. */
+  devices: Record<string, DeviceRecord>
 }
 
 export const emptyRenewvanBusState: RenewvanBusState = {
@@ -361,5 +361,5 @@ export const emptyRenewvanBusState: RenewvanBusState = {
   temperatures: {},
   tilt: {},
   routerUpdatedAt: {},
-  nodes: {},
+  devices: {},
 }

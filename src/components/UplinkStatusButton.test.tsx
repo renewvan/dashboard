@@ -85,14 +85,14 @@ describe('UplinkStatusButton icon per tier', () => {
     expect(button).toHaveAttribute('data-state', state)
   })
 
-  it('reads no-service below the signal floor while the node stays online', () => {
+  it('reads no-service below the signal floor while the device stays online', () => {
     setup({ ...liveRouter, signal_rsrp_dbm: -120 }, 'online', 30_000)
     const button = screen.getByTestId('uplink-status-button')
     expect(button).toHaveAttribute('aria-label', 'Connection: no service')
     expect(button).toHaveAttribute('data-state', 'no-service')
   })
 
-  it('falls back to connected when the router node reports offline but another path is up', () => {
+  it('falls back to connected when the router device reports offline but another path is up', () => {
     setup(liveRouter, 'offline', 30_000)
     const button = screen.getByTestId('uplink-status-button')
     expect(button).toHaveAttribute('aria-label', 'Connected')

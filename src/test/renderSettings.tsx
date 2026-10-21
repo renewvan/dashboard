@@ -6,7 +6,7 @@ import type { SettingsContextValue } from '@/components/settings/SettingsContext
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { TailscaleStatus } from '@/hooks/useRenewvanBus'
 import { DEFAULT_START_POWER_SOURCES } from '@/hooks/useStartPowerSources'
-import { nodeRows } from '@/lib/nodes'
+import { deviceRows } from '@/lib/devices'
 import { emptyRenewvanBusState, type RenewvanBusState, type Router } from '@/types'
 import { stubMatchMedia } from './matchMedia'
 
@@ -46,7 +46,7 @@ export interface RenderSettingsOptions {
   /** Starting URL, to open on a deep link (default: the Settings top list). */
   url?: string
   /**
-   * What is on the bus. The Nodes list is derived from it through the real `nodeRows`, so a test
+   * What is on the bus. The Devices list is derived from it through the real `deviceRows`, so a test
    * describes topics and not rows; its `tanks` and `temperatures` also feed the context unless
    * `overrides` set them.
    */
@@ -75,7 +75,7 @@ export function renderSettings(
   })
 
   const value: SettingsContextValue = {
-    nodes: nodeRows(state),
+    devices: deviceRows(state),
     temperatures: state.temperatures,
     tanks: state.tanks,
     relays: state.relays,

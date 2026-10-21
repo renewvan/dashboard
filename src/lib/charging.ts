@@ -18,7 +18,7 @@ export interface Charging {
   watts: number | undefined
 }
 
-/** Output watts: the published `power_w`, else voltage × current (node-venus publishes no `power_w`). */
+/** Output watts: the published `power_w`, else voltage × current (driver-venus publishes no `power_w`). */
 export function chargerWatts(charger: Charger): number | undefined {
   if (charger.power_w !== undefined) return charger.power_w
   if (charger.current_a === undefined) return undefined

@@ -5,8 +5,8 @@
  * that presentation layer, so the popover title and Settings' Operator
  * row read "O2", not "26203".
  *
- * Owned here (frontend) on purpose: the router node just reports the
- * code it sees. If the node-router ever wants to own naming, this table
+ * Owned here (frontend) on purpose: the router device just reports the
+ * code it sees. If the driver-router ever wants to own naming, this table
  * moves there and `plmnOperatorName` becomes a pass-through — every
  * caller already renders whatever it returns.
  *

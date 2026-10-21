@@ -37,7 +37,7 @@ export interface DisplaySleepButtonProps {
  * Named for what it actually does, not the retired "power" framing: this
  * never powers the Raspberry Pi itself off, only the attached display's
  * backlight (`vcgencmd display_power` / `wlopm`) — see
- * `hub/plugins/kiosk/node_kiosk.py`. The icon reflects what tapping does
+ * `hub/plugins/kiosk/kiosk.py`. The icon reflects what tapping does
  * (sleep while on, wake while off).
  *
  * Disabled until the retained display-power topic arrives

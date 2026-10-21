@@ -74,7 +74,7 @@ describe('useRenewvanBus router entity', () => {
     }
   })
 
-  it("tracks the node's health from renewvan/router/health, ignoring unknown payloads", async () => {
+  it("tracks the device's health from renewvan/router/health, ignoring unknown payloads", async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/router/health', { toString: () => 'online' })
@@ -177,7 +177,7 @@ describe('useRenewvanBus temperature entity', () => {
     )
   })
 
-  it('ignores the node health topic and the <field>/set command topics', async () => {
+  it('ignores the device health topic and the <field>/set command topics', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/temperature/health', { toString: () => 'online' })
@@ -210,7 +210,7 @@ describe('useRenewvanBus tilt entity', () => {
     )
   })
 
-  it('ignores the node liveness topic and the level_zero command topic', async () => {
+  it('ignores the device liveness topic and the level_zero command topic', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tilt/health', { toString: () => 'online' })
@@ -280,27 +280,27 @@ describe('useRenewvanBus charger entity', () => {
 })
 
 const validInfo = {
-  node: 'tank',
-  product: 'Tank node',
+  device: 'tank',
+  product: 'Tank device',
   source: 'ADS1115 (I2C)',
   publishes: ['tank'],
   version: 'v0.8.0',
 }
 
-describe('useRenewvanBus nodes', () => {
+describe('useRenewvanBus devices', () => {
   beforeEach(() => {
     messageHandlers.length = 0
     connectMock.mockClear()
     vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
   })
 
-  it('populates a Node from its retained info and health topics', async () => {
+  it('populates a Device from its retained info and health topics', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
     messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
     await waitFor(() =>
-      expect(result.current.state.nodes).toEqual({ tank: { info: validInfo, health: 'online' } }),
+      expect(result.current.state.devices).toEqual({ tank: { info: validInfo, health: 'online' } }),
     )
   })
 
@@ -309,18 +309,20 @@ describe('useRenewvanBus nodes', () => {
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
     messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
-    await waitFor(() => expect(result.current.state.nodes.tank?.health).toBe('online'))
+    await waitFor(() => expect(result.current.state.devices.tank?.health).toBe('online'))
 
     messageHandlers[0]('renewvan/tank/health', { toString: () => '' })
-    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { info: validInfo } }))
+    await waitFor(() => expect(result.current.state.devices).toEqual({ tank: { info: validInfo } }))
 
     messageHandlers[0]('renewvan/tank/health', { toString: () => 'offline' })
     messageHandlers[0]('renewvan/tank/info', { toString: () => '' })
-    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { health: 'offline' } }))
+    await waitFor(() =>
+      expect(result.current.state.devices).toEqual({ tank: { health: 'offline' } }),
+    )
 
-    // Nothing left to say about the Node: it is gone, not an empty record.
+    // Nothing left to say about the Device: it is gone, not an empty record.
     messageHandlers[0]('renewvan/tank/health', { toString: () => '' })
-    await waitFor(() => expect(result.current.state.nodes).toEqual({}))
+    await waitFor(() => expect(result.current.state.devices).toEqual({}))
   })
 
   it.each([
@@ -328,7 +330,7 @@ describe('useRenewvanBus nodes', () => {
     ['a JSON array', '[]'],
     ['a JSON string', '"v0.8.0"'],
     ['null', 'null'],
-    ['missing node', JSON.stringify({ ...validInfo, node: undefined })],
+    ['missing device', JSON.stringify({ ...validInfo, device: undefined })],
     ['missing product', JSON.stringify({ ...validInfo, product: undefined })],
     ['missing source', JSON.stringify({ ...validInfo, source: undefined })],
     ['missing version', JSON.stringify({ ...validInfo, version: undefined })],
@@ -340,34 +342,36 @@ describe('useRenewvanBus nodes', () => {
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
     messageHandlers[0]('renewvan/tank/info', { toString: () => payload })
-    await waitFor(() => expect(result.current.state.nodes.tank?.health).toBe('online'))
-    expect(result.current.state.nodes).toEqual({ tank: { health: 'online' } })
+    await waitFor(() => expect(result.current.state.devices.tank?.health).toBe('online'))
+    expect(result.current.state.devices).toEqual({ tank: { health: 'online' } })
   })
 
-  it('lets a malformed info replace a good one: the Node then reads as no info', async () => {
+  it('lets a malformed info replace a good one: the Device then reads as no info', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
-    await waitFor(() => expect(result.current.state.nodes.tank?.info).toEqual(validInfo))
-    messageHandlers[0]('renewvan/tank/info', { toString: () => '{"node":"tank"}' })
+    await waitFor(() => expect(result.current.state.devices.tank?.info).toEqual(validInfo))
+    messageHandlers[0]('renewvan/tank/info', { toString: () => '{"device":"tank"}' })
     messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
-    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { health: 'online' } }))
+    await waitFor(() =>
+      expect(result.current.state.devices).toEqual({ tank: { health: 'online' } }),
+    )
   })
 
   it('accepts info without publishes, and keeps its optional fields', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     const info = {
-      node: 'relay',
-      product: 'Relay node',
+      device: 'relay',
+      product: 'Relay device',
       source: 'ESPHome GPIO',
       version: 'dev',
       manufacturer: 'acme',
       homepage: 'https://example.com/relay',
-      host_serial: 'AA:BB:CC:DD:EE:FF',
+      board_serial: 'AA:BB:CC:DD:EE:FF',
     }
     messageHandlers[0]('renewvan/relay/info', { toString: () => JSON.stringify(info) })
-    await waitFor(() => expect(result.current.state.nodes).toEqual({ relay: { info } }))
+    await waitFor(() => expect(result.current.state.devices).toEqual({ relay: { info } }))
   })
 
   it('drops an optional field that is not a string, keeping the rest of the info', async () => {
@@ -375,17 +379,17 @@ describe('useRenewvanBus nodes', () => {
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tank/info', {
       toString: () =>
-        JSON.stringify({ ...validInfo, manufacturer: 7, homepage: { a: 1 }, host_serial: ['x'] }),
+        JSON.stringify({ ...validInfo, manufacturer: 7, homepage: { a: 1 }, board_serial: ['x'] }),
     })
-    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { info: validInfo } }))
+    await waitFor(() => expect(result.current.state.devices).toEqual({ tank: { info: validInfo } }))
   })
 
-  it('reads a Node with info and no health as having no health (Unknown), not offline', async () => {
+  it('reads a Device with info and no health as having no health (Unknown), not offline', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
-    await waitFor(() => expect(result.current.state.nodes.tank).toBeDefined())
-    expect(result.current.state.nodes.tank.health).toBeUndefined()
+    await waitFor(() => expect(result.current.state.devices.tank).toBeDefined())
+    expect(result.current.state.devices.tank.health).toBeUndefined()
   })
 
   it('ignores a health payload that is not online or offline', async () => {
@@ -394,36 +398,38 @@ describe('useRenewvanBus nodes', () => {
     messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
     messageHandlers[0]('renewvan/tank/health', { toString: () => 'degraded' })
     messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
-    await waitFor(() => expect(result.current.state.nodes.tank?.info).toEqual(validInfo))
-    expect(result.current.state.nodes.tank.health).toBeUndefined()
+    await waitFor(() => expect(result.current.state.devices.tank?.info).toEqual(validInfo))
+    expect(result.current.state.devices.tank.health).toBeUndefined()
   })
 
-  it('never reads demo as a Node: renewvan/demo/health is the demo root, not a Node', async () => {
+  it('never reads demo as a Device: renewvan/demo/health is the demo root, not a Device', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/demo/health', { toString: () => 'online' })
     messageHandlers[0]('renewvan/demo/info', { toString: () => JSON.stringify(validInfo) })
     // A real message after them proves the handler ran past them.
     messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
-    await waitFor(() => expect(result.current.state.nodes).toEqual({ tank: { health: 'online' } }))
+    await waitFor(() =>
+      expect(result.current.state.devices).toEqual({ tank: { health: 'online' } }),
+    )
   })
 
-  it('does not mistake other three-segment host topics for Nodes', async () => {
+  it('does not mistake other three-segment host topics for Devices', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tailscale/status', { toString: () => '{"enabled":true}' })
     messageHandlers[0]('renewvan/kiosk/display/power', { toString: () => 'on' })
     messageHandlers[0]('renewvan/tank/fresh/level_pct', { toString: () => '62' })
     await waitFor(() => expect(result.current.state.tanks).toEqual({ fresh: { level_pct: 62 } }))
-    expect(result.current.state.nodes).toEqual({})
+    expect(result.current.state.devices).toEqual({})
   })
 
-  it('keeps a Node entity-neutral: info and health never create an entity', async () => {
+  it('keeps a Device entity-neutral: info and health never create an entity', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     messageHandlers[0]('renewvan/tank/info', { toString: () => JSON.stringify(validInfo) })
     messageHandlers[0]('renewvan/tank/health', { toString: () => 'online' })
-    await waitFor(() => expect(result.current.state.nodes.tank?.health).toBe('online'))
+    await waitFor(() => expect(result.current.state.devices.tank?.health).toBe('online'))
     expect(result.current.state.tanks).toEqual({})
   })
 })
@@ -512,11 +518,11 @@ describe('useRenewvanBus relay entity', () => {
     await waitFor(() => expect(result.current.state.relays).toEqual({ relay_04: { state: true } }))
   })
 
-  it('lets a relay be called health or info: segment count, not the id, tells it from a Node', async () => {
+  it('lets a relay be called health or info: segment count, not the id, tells it from a Device', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
     send('renewvan/relay/health/state', 'true')
     await waitFor(() => expect(result.current.state.relays).toEqual({ health: { state: true } }))
-    expect(result.current.state.nodes).toEqual({})
+    expect(result.current.state.devices).toEqual({})
   })
 })

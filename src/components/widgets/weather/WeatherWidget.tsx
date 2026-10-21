@@ -1,6 +1,6 @@
 // Start-page weather card: current conditions + 3-day outlook (today first)
 // from Open-Meteo (no API key) at the van's GPS position, plus the van's own
-// Inside/Outside readings from the node-temperature probes on the bus.
+// Inside/Outside readings from the driver-temperature probes on the bus.
 // Outside shows the outdoor probe and falls back to Open-Meteo's air
 // temperature, labelled "(forecast)", when the probe has no valid reading.
 
