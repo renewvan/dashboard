@@ -51,8 +51,8 @@ const ANCHORS: Partial<Record<NodeId, Anchor>> = {
     side: 't',
   },
   alternator: { port: at(3.7, 26), end: { x: 30 + TILE_W, y: 150 }, side: 'l' },
-  shore: { port: at(2, 55), end: { x: 30 + TILE_W, y: 470 }, side: 'l' },
-  loads: { port: at(108.7, 26), end: { x: W - 30 - TILE_W, y: 150 }, side: 'r' },
+  shore: { port: at(1.25, 55.3), end: { x: 30 + TILE_W, y: 470 }, side: 'l' },
+  loads: { port: at(108.68, 34), end: { x: W - 30 - TILE_W, y: 150 }, side: 'r' },
 }
 
 export function VanTilesLayout({ flow }: { flow: PowerSnapshot }) {
