@@ -1,9 +1,7 @@
 name: Release
 
-# Start a release from the Actions tab or `gh workflow run release.yml -f bump=patch`.
-# One run does everything: it works out the next version, bumps package.json in the very
-# commit the tag points at, creates the GitHub release, and builds the image from that tag.
-# `main` therefore always holds the version of its latest release, with no follow-up commit.
+# Start a release from the Actions tab or `gh workflow run release.yml -f bump=minor`.
+# The process lives in renewvan/hub (docs/adr/0015); this file only says what this repo ships.
 on:
   workflow_dispatch:
     inputs:
@@ -26,148 +24,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  cut:
-    runs-on: ubuntu-latest
+  release:
     permissions:
       contents: write
-    outputs:
-      tag: ${{ steps.version.outputs.tag }}
-      sha: ${{ steps.commit.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      # Stable releases are cut from `main`; a pre-release from whichever branch it was
-      # dispatched on.
-      - name: Check the branch
-        if: ${{ !inputs.prerelease && github.ref_name != 'main' }}
-        run: |
-          echo "::error::Stable releases are cut from main (dispatched on ${{ github.ref_name }}). Tick 'prerelease' for a beta."
-          exit 1
-
-      # The latest stable tag, not package.json, is the source of truth: it cannot drift.
-      - name: Work out the version
-        id: version
-        env:
-          BUMP: ${{ inputs.bump }}
-          EXPLICIT: ${{ inputs.version }}
-        run: |
-          if [ -n "$EXPLICIT" ]; then
-            version="${EXPLICIT#v}"
-          else
-            latest="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -Ev -- '-' | head -n1)"
-            latest="${latest#v}"
-            IFS=. read -r major minor patch <<< "${latest:-0.0.0}"
-            case "$BUMP" in
-              major) version="$((major + 1)).0.0" ;;
-              minor) version="${major}.$((minor + 1)).0" ;;
-              *) version="${major}.${minor}.$((patch + 1))" ;;
-            esac
-          fi
-          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
-            echo "::error::'$version' is not a semantic version"
-            exit 1
-          fi
-          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
-            echo "::error::v$version already exists"
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=v$version" >> "$GITHUB_OUTPUT"
-
-      # The version is stamped into the commit the tag will point at, so the image built from
-      # the tag and the repository agree. A pre-release is a throwaway commit that only the tag
-      # sees: it is never pushed to a branch (a beta branch's code does not belong on `main`).
-      - name: Stamp package.json and commit
-        id: commit
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ steps.version.outputs.tag }}
-          PRERELEASE: ${{ inputs.prerelease }}
-        run: |
-          node -e "
-            const fs = require('node:fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = process.argv[1];
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          " "$VERSION"
-          git config user.name "renewvan"
-          git config user.email "github@renewvan.com"
-          git add package.json
-          # A re-cut of the version already in package.json leaves nothing to commit.
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: release $TAG"
-          fi
-          sha="$(git rev-parse HEAD)"
-          if [ "$PRERELEASE" = "true" ]; then
-            git push origin "$sha:refs/tags/$TAG"
-          else
-            git push origin HEAD:main
-            git tag "$TAG" "$sha"
-            git push origin "$TAG"
-          fi
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
-      - name: Create the GitHub release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.version.outputs.tag }}
-          PRERELEASE: ${{ inputs.prerelease }}
-        run: |
-          flags=(--verify-tag --title "$TAG" --generate-notes)
-          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); else flags+=(--latest); fi
-          gh release create "$TAG" "${flags[@]}"
-
-  publish-image:
-    needs: cut
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
       packages: write
-    steps:
-      # The tagged commit already carries its own version in package.json.
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.cut.outputs.tag }}
-
-      # Stable releases are cut from `main`, where test.yml already ran tests + build on the
-      # merge commit. Re-running them here only repeats that. Pre-releases come from feature
-      # branches that may never have been through test.yml, so they keep the gate.
-      - uses: voidzero-dev/setup-vp@v1.21.2
-        if: ${{ inputs.prerelease }}
-        with:
-          node-version-file: .node-version
-          cache: true
-
-      - name: Run tests
-        if: ${{ inputs.prerelease }}
-        run: vp test run
-
-      - name: Log in to registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false
-          # A pre-release (e.g. a beta cut from a feature branch) publishes only its own
-          # tag, so it can never take `:latest` from the stable line.
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/dashboard:${{ needs.cut.outputs.tag }}
-            ${{ !inputs.prerelease && format('ghcr.io/{0}/dashboard:latest', github.repository_owner) || '' }}
+    uses: renewvan/hub/.github/workflows/release.yml@eb9ad8a4b29519bbbd1c33b1092cdb7719628ec9
+    with:
+      kind: image
+      image: dashboard
+      stamp-package-json: true
+      node-version-file: .node-version
+      test-command: vp test run
+      bump: ${{ inputs.bump }}
+      version: ${{ inputs.version }}
+      prerelease: ${{ inputs.prerelease }}
