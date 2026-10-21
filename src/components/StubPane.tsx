@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 
 interface StubPaneProps {
-  /** Pane id (a nav item id, or `alerts`); used to label the heading. */
+  /** Pane id (a nav item id); used to label the heading. */
   id: string
-  /** Literal title: the nav item label, or e.g. "Alerts" (no nav item). */
+  /** Literal title: the nav item label. */
   title: string
   icon?: ReactNode
 }
