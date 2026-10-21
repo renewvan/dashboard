@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Bell, Gauge, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
@@ -158,6 +158,20 @@ function App() {
     [],
   )
 
+  const handleSleep = useCallback(
+    () => publishRef.current('renewvan/kiosk/display/power/set', 'off'),
+    [],
+  )
+  const handleWake = useCallback(
+    () => publishRef.current('renewvan/kiosk/display/power/set', 'on'),
+    [],
+  )
+
+  // The Settings nav bar's bell: stable like the sleep handlers, so the settings memo only changes
+  // when a value does. `goToPage` closes over `setActivePage`, recreated each render.
+  const goToPageRef = useRef(goToPage)
+  goToPageRef.current = goToPage
+  const openAlerts = useCallback(() => goToPageRef.current('alerts'), [])
   const settings = useMemo(
     () => ({
       nodes,
@@ -172,6 +186,11 @@ function App() {
       brightness,
       autoSleepEnabled,
       autoSleepTimeoutMinutes,
+      displayPower,
+      sleepDisplay: handleSleep,
+      wakeDisplay: handleWake,
+      unseenAlertCount,
+      openAlerts,
       ...commands,
       alertsEnabled,
       setAlertsEnabled,
@@ -199,6 +218,11 @@ function App() {
       brightness,
       autoSleepEnabled,
       autoSleepTimeoutMinutes,
+      displayPower,
+      handleSleep,
+      handleWake,
+      unseenAlertCount,
+      openAlerts,
       commands,
       alertsEnabled,
       setAlertsEnabled,
@@ -214,9 +238,6 @@ function App() {
       setPowerLayout,
     ],
   )
-
-  const handleSleep = () => publish('renewvan/kiosk/display/power/set', 'off')
-  const handleWake = () => publish('renewvan/kiosk/display/power/set', 'on')
 
   // The rail spans the full height of the app (header included), so while it is up the header pads
   // itself clear of it, which pushes the logo to the right; the pages do the same for their edge.
@@ -263,12 +284,12 @@ function App() {
           onOpenSettings={() => openSettings('cellular')}
         />
         <Separator orientation="vertical" className="mx-0.5 h-6" />
+        <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
         <AlertsButton
           onClick={() => goToPage('alerts')}
           count={unseenAlertCount}
           active={activePage === 'alerts'}
         />
-        <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
         <DisplaySleepButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
       </div>
     </header>

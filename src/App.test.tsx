@@ -519,6 +519,22 @@ describe('App shell header', () => {
     expect(screen.getByTestId('display-sleep-button')).toBeInTheDocument()
   })
 
+  it('orders the header controls theme, alerts, sleep', async () => {
+    await renderAt(KIOSK_WIDTH)
+    const header = within(screen.getByRole('banner'))
+    const order = [
+      header.getByRole('button', { name: /switch to .* theme/i }),
+      header.getByRole('button', { name: /^alerts/i }),
+      header.getByTestId('display-sleep-button'),
+    ]
+    for (const [before, after] of [
+      [order[0], order[1]],
+      [order[1], order[2]],
+    ]) {
+      expect(before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
+  })
+
   it('opens the uplink popover from the header', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
@@ -982,7 +998,7 @@ describe('App Alerts toggle', () => {
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
     const pane = within(screen.getByTestId('pane-settings'))
     await user.click(pane.getByRole('button', { name: /^General/ }))
-    await user.click(pane.getByRole('button', { name: /^Alerts/ }))
+    await user.click(pane.getByRole('button', { name: /^AlertsNotifications/ }))
     return user
   }
 
@@ -1019,7 +1035,9 @@ describe('App Alerts toggle', () => {
     await user.click(screen.getByRole('button', { name: 'General' }))
 
     expect(
-      within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Alerts/ }),
+      within(screen.getByTestId('pane-settings')).getByRole('button', {
+        name: /^AlertsNotifications/,
+      }),
     ).toHaveTextContent('Notifications off')
   })
 })

@@ -107,6 +107,39 @@ describe('SettingsPage navigation bar', () => {
     await user.click(screen.getByRole('button', { name: 'Settings' }))
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
   })
+
+  it('puts the sleep button at the right of a subpage bar, and sleeps the display', async () => {
+    const { user, value } = renderSettings()
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+
+    const nav = screen.getByRole('navigation', { name: 'Settings navigation' })
+    await user.click(within(nav).getByRole('button', { name: 'Sleep display' }))
+
+    expect(value.sleepDisplay).toHaveBeenCalledOnce()
+  })
+
+  it('offers Wake while the display is off, and wakes it', async () => {
+    const { user, value } = renderSettings({ displayPower: 'off' })
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+
+    const nav = screen.getByRole('navigation', { name: 'Settings navigation' })
+    await user.click(within(nav).getByRole('button', { name: 'Wake display' }))
+
+    expect(value.wakeDisplay).toHaveBeenCalledOnce()
+  })
+
+  it('puts the alert bell left of the sleep button, with the unseen count, and opens Alerts', async () => {
+    const { user, value } = renderSettings({ unseenAlertCount: 3 })
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+
+    const nav = within(screen.getByRole('navigation', { name: 'Settings navigation' }))
+    const bell = nav.getByRole('button', { name: 'Alerts, 3 active' })
+    const sleep = nav.getByRole('button', { name: 'Sleep display' })
+    expect(bell.compareDocumentPosition(sleep) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    await user.click(bell)
+    expect(value.openAlerts).toHaveBeenCalledOnce()
+  })
 })
 
 describe('SettingsPage Firmware', () => {
@@ -208,7 +241,7 @@ describe('SettingsPage General groups', () => {
 describe('SettingsPage Alerts', () => {
   async function openAlerts(user: UserEvent) {
     await user.click(screen.getByRole('button', { name: /^General/ }))
-    await user.click(screen.getByRole('button', { name: /^Alerts/ }))
+    await user.click(screen.getByRole('button', { name: /^AlertsNotifications/ }))
   }
 
   it.each([
@@ -219,7 +252,7 @@ describe('SettingsPage Alerts', () => {
 
     await user.click(screen.getByRole('button', { name: /^General/ }))
 
-    expect(screen.getByRole('button', { name: /^Alerts/ })).toHaveTextContent(text)
+    expect(screen.getByRole('button', { name: /^AlertsNotifications/ })).toHaveTextContent(text)
   })
 
   it('shows a labelled switch that reflects the preference', async () => {

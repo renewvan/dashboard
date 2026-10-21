@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 import type {
   AutoSleepTimeoutMinutes,
   ConnectionStatus,
+  DisplayPower,
   RouterHealth,
   TailscaleStatus,
 } from '@/hooks/useRenewvanBus'
@@ -31,6 +32,13 @@ export interface SettingsContextValue {
   brightness: number | null
   autoSleepEnabled: boolean | null
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
+  /** The kiosk display's power, `null` until the retained topic arrives; drives the nav bar's sleep button. */
+  displayPower: DisplayPower
+  sleepDisplay: () => void
+  wakeDisplay: () => void
+  /** Unseen-alert count and the jump to the Alerts page: the header bell, repeated in a subpage's nav bar. */
+  unseenAlertCount: number
+  openAlerts: () => void
   setBrightness: (value: number) => void
   setAutoSleepEnabled: (value: boolean) => void
   setAutoSleepTimeoutMinutes: (value: AutoSleepTimeoutMinutes) => void

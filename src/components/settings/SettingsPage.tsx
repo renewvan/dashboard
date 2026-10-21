@@ -8,6 +8,8 @@ import { nodesSummary } from '@/lib/nodes'
 import { pushSearchParams } from '@/lib/urlHistory'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 import { AlertsView } from './general/preferences/AlertsView'
+import { AlertsButton } from '@/components/AlertsButton'
+import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { CellularView } from './connectivity/CellularView'
 import { ConnectivityView } from './connectivity/ConnectivityView'
 import { DisplayView } from './general/preferences/DisplayView'
@@ -65,6 +67,11 @@ export const SettingsPage = memo(function SettingsPage() {
   const {
     nodes,
     tanks,
+    displayPower,
+    sleepDisplay,
+    wakeDisplay,
+    unseenAlertCount,
+    openAlerts,
     navbarPosition,
     setNavbarPosition,
     startPowerSources,
@@ -226,6 +233,16 @@ export const SettingsPage = memo(function SettingsPage() {
               VIEWS[subpage].parent === 'list' ? 'Settings' : titleOf(VIEWS[subpage].parent)
             }
             onBack={() => setView(VIEWS[subpage].parent)}
+            action={
+              <div className="flex items-center gap-1.5">
+                <AlertsButton onClick={openAlerts} count={unseenAlertCount} active={false} />
+                <DisplaySleepButton
+                  displayPower={displayPower}
+                  onSleep={sleepDisplay}
+                  onWake={wakeDisplay}
+                />
+              </div>
+            }
           />
         </div>
       )}
