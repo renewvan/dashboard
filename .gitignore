@@ -27,3 +27,9 @@ dist-ssr
 # Local env overrides (VITE_MQTT_WS_URL/credentials)
 .env
 .vitest/
+
+# Offline basemap archives are regional extracts (MBs to GBs): mounted on the hub in production and
+# dropped in public/maps for `vp dev`. Any .pmtiles file, whatever it is called, is never committed.
+# The fonts and sprites beside them are small, third-party and committed (public/maps/README.md).
+# See docs/offline-map.md.
+*.pmtiles

@@ -19,3 +19,12 @@ jobs:
 
       - run: vp test run
       - run: vp run build
+
+      # The map's worker and glyph/sprite assets are found by URL at runtime, so nothing in the unit
+      # tests (jsdom, mocked map) notices if the build stops emitting them: the map would ship blank.
+      - name: Build emits the map's worker, fonts and sprites
+        run: |
+          ls dist/assets/maplibre-gl-worker-*.mjs
+          test -f "dist/maps/fonts/Noto Sans Regular/0-255.pbf"
+          test -f dist/maps/sprites/v4/dark.json
+          test -f dist/maps/sprites/v4/light.json

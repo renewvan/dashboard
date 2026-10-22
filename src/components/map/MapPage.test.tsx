@@ -1,37 +1,62 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import type { Gps, Tilt } from '@/types'
 import { MapPage } from './MapPage'
 
-// Leaflet needs real layout and tile loading; jsdom has neither. The page's own logic is
-// which state it shows and what the readout says, so the map is reduced to its inputs.
-vi.mock('react-leaflet', () => ({
-  MapContainer: ({ center, children }: { center: [number, number]; children: ReactNode }) => (
-    <div data-testid="map" data-center={center.join(',')}>
+// The map's zoom methods, shared so a test can tell which one a button called, and every style the
+// map is handed, in order, so a test can tell which flavor it got and whether it was rebuilt.
+const map = vi.hoisted(() => ({
+  zoomIn: vi.fn(),
+  zoomOut: vi.fn(),
+  styles: [] as { sprite?: string; layers: unknown[] }[],
+}))
+
+// MapLibre needs WebGL, real layout and tile loading; jsdom has none. The page's own logic is which
+// state it shows and what the readout says, so the map is reduced to its inputs. The Marker keeps
+// its React children, so the van's mirror and pitch stay real DOM a test can read.
+vi.mock('react-map-gl/maplibre', () => ({
+  Map: ({
+    initialViewState,
+    mapStyle,
+    children,
+  }: {
+    initialViewState: { longitude: number; latitude: number }
+    mapStyle: { sprite?: string; layers: unknown[] }
+    children: ReactNode
+  }) => {
+    map.styles.push(mapStyle)
+    return (
+      <div
+        data-testid="map"
+        data-center={`${initialViewState.latitude},${initialViewState.longitude}`}
+      >
+        {children}
+      </div>
+    )
+  },
+  Marker: ({
+    longitude,
+    latitude,
+    children,
+  }: {
+    longitude: number
+    latitude: number
+    children: ReactNode
+  }) => (
+    <div data-testid="marker" data-position={`${latitude},${longitude}`}>
       {children}
     </div>
   ),
-  TileLayer: () => null,
-  Marker: ({
-    position,
-    icon,
-  }: {
-    position: [number, number]
-    icon: { options: { html?: string } }
-  }) => (
-    <div
-      data-testid="marker"
-      data-position={position.join(',')}
-      // The van's mirror and pitch live in the icon's HTML; expose it so a test can read them.
-      data-html={icon.options.html}
-    />
-  ),
+  useMap: () => ({ current: map }),
 }))
-vi.mock('@/lib/leafletIconFix', () => ({}))
-vi.mock('leaflet', () => ({
-  default: { divIcon: (options: object) => ({ options }) },
+vi.mock('maplibre-gl', () => ({
+  addProtocol: vi.fn(),
+  removeProtocol: vi.fn(),
+  setWorkerUrl: vi.fn(),
 }))
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({ default: '/worker.mjs' }))
 
 const FIX: Gps = {
   fix_quality: 'gps',
@@ -51,6 +76,9 @@ const fetchMock = vi.fn()
 // finds nothing, so a test that does not care about the place name sees the readout without it.
 beforeEach(() => {
   fetchMock.mockReset()
+  map.zoomIn.mockReset()
+  map.zoomOut.mockReset()
+  map.styles.length = 0
   fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
   vi.stubGlobal('fetch', fetchMock)
 })
@@ -58,6 +86,74 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+})
+
+describe('MapPage zoom buttons', () => {
+  // The wheel is off and a gloved finger or a mouse cannot pinch, so these are the only way to zoom
+  // there; the map under them is mocked, so what matters is which zoom each one asks for.
+  it('zooms the map in and out, one step per press', async () => {
+    const user = userEvent.setup()
+    renderPage({ gps0: FIX })
+
+    await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+    expect(map.zoomIn).toHaveBeenCalledTimes(1)
+    expect(map.zoomOut).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(map.zoomOut).toHaveBeenCalledTimes(1)
+    expect(map.zoomIn).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers no zoom with no map to zoom: before the first fix', () => {
+    renderPage({})
+    expect(screen.queryByRole('button', { name: 'Zoom in' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Zoom out' })).not.toBeInTheDocument()
+  })
+})
+
+describe('MapPage theme', () => {
+  const sprite = () => map.styles.at(-1)?.sprite ?? ''
+  const withTheme = (gps: Record<string, Partial<Gps>>, isDark?: boolean) => (
+    <MapPage gps={gps as Record<string, Gps>} isDark={isDark} />
+  )
+
+  it('draws the dark map by default, as the app does', () => {
+    render(withTheme({ gps0: FIX }))
+    expect(sprite()).toMatch(/\/sprites\/v4\/dark$/)
+  })
+
+  it('draws the light map under the light theme and the dark one under the dark theme', () => {
+    const light = render(withTheme({ gps0: FIX }, false))
+    expect(sprite()).toMatch(/\/sprites\/v4\/light$/)
+    light.unmount()
+
+    render(withTheme({ gps0: FIX }, true))
+    expect(sprite()).toMatch(/\/sprites\/v4\/dark$/)
+  })
+
+  it('repaints in the other flavor when the theme is toggled, keeping the van where it is', () => {
+    const { rerender } = render(withTheme({ gps0: FIX }, true))
+    const dark = map.styles.at(-1)
+
+    rerender(withTheme({ gps0: FIX }, false))
+
+    expect(sprite()).toMatch(/\/sprites\/v4\/light$/)
+    // A different style object, so MapLibre swaps it; and different layer colours, not just a path.
+    expect(map.styles.at(-1)).not.toBe(dark)
+    expect(JSON.stringify(map.styles.at(-1)?.layers)).not.toBe(JSON.stringify(dark?.layers))
+    expect(screen.getByTestId('marker')).toHaveAttribute('data-position', '51.5,-0.12')
+  })
+
+  it('keeps the same style object while the van moves, so the tiles are not reloaded', () => {
+    const { rerender } = render(withTheme({ gps0: FIX }, true))
+    const first = map.styles.at(-1)
+
+    rerender(withTheme({ gps0: { ...FIX, latitude: 51.6, speed_kmh: 80 } }, true))
+
+    expect(screen.getByTestId('marker')).toHaveAttribute('data-position', '51.6,-0.12')
+    // A new style object on every GPS message would make MapLibre reload the whole basemap.
+    expect(map.styles.at(-1)).toBe(first)
+  })
 })
 
 describe('MapPage', () => {
@@ -117,34 +213,38 @@ describe('MapPage', () => {
 
   describe('van marker', () => {
     const MOVING = { ...FIX, speed_kmh: 60 }
-    const html = () => screen.getByTestId('marker').getAttribute('data-html') ?? ''
+    // The van is the marker's one wrapper (`van-marker`); its mirror is that element's transform
+    // and its pitch the SVG inside it.
+    const van = () => screen.getByTestId('van-marker')
+    const mirror = () => van().style.transform
+    const pitch = () => van().querySelector('svg')?.style.transform ?? ''
 
     it('faces right and shows the bearing while heading east', () => {
       renderPage({ gps0: { ...MOVING, course_deg: 90 } })
-      expect(html()).not.toContain('scaleX(-1)')
+      expect(mirror()).not.toContain('scaleX(-1)')
       expect(screen.getByTestId('map-heading')).toHaveTextContent('E 90°')
     })
 
     it('mirrors to face left while heading west', () => {
       renderPage({ gps0: { ...MOVING, course_deg: 270 } })
-      expect(html()).toContain('scaleX(-1)')
+      expect(mirror()).toContain('scaleX(-1)')
       expect(screen.getByTestId('map-heading')).toHaveTextContent('W 270°')
     })
 
     it('shows no heading at a standstill, where the course is stale', () => {
       renderPage({ gps0: { ...FIX, speed_kmh: 0, course_deg: 270 } })
       expect(screen.queryByTestId('map-heading')).not.toBeInTheDocument()
-      expect(html()).not.toContain('scaleX(-1)')
+      expect(mirror()).not.toContain('scaleX(-1)')
     })
 
     it('pitches the van with the tilt device', () => {
       renderPage({ gps0: MOVING }, { tilt: { roll_deg: 0, pitch_deg: 4, status: 'ok' } })
-      expect(html()).toContain('rotate(4deg)')
+      expect(pitch()).toContain('rotate(4deg)')
     })
 
     it('stays level when the tilt sensor errors, ignoring its stale retained angles', () => {
       renderPage({ gps0: MOVING }, { tilt: { roll_deg: 0, pitch_deg: 4, status: 'sensor_error' } })
-      expect(html()).toContain('rotate(0deg)')
+      expect(pitch()).toContain('rotate(0deg)')
     })
   })
 

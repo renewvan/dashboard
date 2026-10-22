@@ -39,6 +39,17 @@ host stands in for the address.
 _Avoid_: Internet connection, WAN, network status, signal strength (alone —
 it's the whole connection state, including connected/offline/no-service)
 
+**Map page**:
+The `map` page (`MapPage`): a full-bleed MapLibre map of where the hub's GPS fix is, with the van drawn
+on it and a readout of fix quality, satellites, speed and heading. It is a live view, not a
+navigator: it centres once, so the van moves on a still map and the view re-centres only when the
+page remounts. The basemap is **offline**: Protomaps vector tiles read from one regional
+`basemap.pmtiles` on the dashboard's own origin (`/maps/`), with fonts and sprites baked into the
+image, so no tile request ever leaves the LAN (`docs/adr/0001-self-hosted-pmtiles-basemap.md`, how to
+make the file: `docs/offline-map.md`). Outside the file's area, or with no file mounted, the map is an
+empty background with the van on it; nothing falls back to the internet.
+_Avoid_: GPS page (the old name; the page shows a map, the GPS readings are its readout), OpenStreetMap tiles (the data is OSM's, the tiles are ours)
+
 **Router row**:
 The first row of Settings → Connectivity (`ConnectivityView`, page `CellularView`, still
 `?view=cellular` so links keep working), named for the **Device** that feeds the router entity:
