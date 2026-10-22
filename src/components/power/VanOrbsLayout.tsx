@@ -10,6 +10,9 @@ import { formatPower, IDLE_W, type NodeId, type PowerSnapshot } from './flowMode
 import { RollingNumber, Value } from './PowerValue'
 import { PortDomes, VanHub, Wire } from './VanDiagram'
 import { VAN_FRAME, wirePath, type Point, type PortSide } from './vanGeometry'
+import { SolarHistory } from '@/components/widgets/solar/SolarHistory'
+import { yieldHistoryView } from '@/components/widgets/solar/solarView'
+import type { Solar } from '@/types'
 
 const ICON: Partial<Record<NodeId, ReactNode>> = {
   solar: <SolarPanel className="size-9" />,
@@ -104,6 +107,7 @@ function Orb({
   watts,
   shown,
   peakW,
+  history,
 }: {
   id: NodeId
   spot: Spot
@@ -113,6 +117,8 @@ function Orb({
   /** What the orb reads out (undefined = not published). */
   shown: number | undefined
   peakW: number
+  /** Drawn in the label's place, at the foot of the orb (the Solar orb's days of harvest). */
+  history?: ReactNode
 }) {
   const { x, y } = spot.c
   const p = formatPower(shown)
@@ -151,7 +157,11 @@ function Orb({
             {ICON[id]}
           </span>
           <Value sizeClass={ORB_VALUE} value={<RollingNumber value={shown} />} unit={p.unit} />
-          <span className="text-muted mt-1 text-xl">{label}</span>
+          {history ? (
+            <div className="mt-2 h-9 w-36">{history}</div>
+          ) : (
+            <span className="text-muted mt-1 text-xl">{label}</span>
+          )}
         </div>
       </foreignObject>
     </g>
@@ -162,7 +172,15 @@ function Orb({
 const LOAD_IDS = ['loads', 'acLoads', 'dcLoads'] as const
 const isLoad = (id: NodeId) => (LOAD_IDS as readonly NodeId[]).includes(id)
 
-export function VanOrbsLayout({ flow }: { flow: PowerSnapshot }) {
+export function VanOrbsLayout({
+  flow,
+  solar,
+}: {
+  flow: PowerSnapshot
+  /** Absent until a solar controller has published its required fields: then no history is drawn. */
+  solar?: Solar
+}) {
+  const solarHistory = yieldHistoryView(solar?.yield_history_wh)
   const sources = (['solar', 'alternator', 'shore'] as const).filter((id) => flow.nodes[id].present)
   const loads = LOAD_IDS.filter((id) => flow.nodes[id].present)
   const all: NodeId[] = [...sources, ...loads]
@@ -208,6 +226,9 @@ export function VanOrbsLayout({ flow }: { flow: PowerSnapshot }) {
               watts={wattsOf(id)}
               shown={flow.nodes[id].watts}
               peakW={flow.peakW}
+              history={
+                id === 'solar' && solarHistory ? <SolarHistory view={solarHistory} /> : undefined
+              }
             />
           ))}
         </svg>
