@@ -14,6 +14,7 @@ export type SettingsView =
   | 'display'
   | 'start-page'
   | 'power-page'
+  | 'map-page'
   | 'connectivity'
   | 'cellular'
   | 'hub'

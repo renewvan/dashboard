@@ -128,6 +128,8 @@ export function renderSettings(
     setStartPowerSources: vi.fn(),
     powerLayout: 'tiles',
     setPowerLayout: vi.fn(),
+    mapTheme: 'auto',
+    setMapTheme: vi.fn(),
     setTemperatureName: vi.fn(),
     setTemperatureUnit: vi.fn(),
     setRelay: vi.fn(),

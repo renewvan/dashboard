@@ -24,6 +24,7 @@ import { DeviceView } from './devices/DeviceView'
 import { DevicesView } from './devices/DevicesView'
 import { StartPageView } from './general/preferences/StartPageView'
 import { PowerPageView } from './general/preferences/PowerPageView'
+import { MapPageView } from './general/preferences/MapPageView'
 import { useSettings } from './SettingsContext'
 import { TailscaleView } from './connectivity/TailscaleView'
 import { TankSettingsView } from './devices/TankSettingsView'
@@ -49,6 +50,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   display: { title: 'Display & Appearance', parent: 'general' },
   'start-page': { title: 'Start page', parent: 'display' },
   'power-page': { title: 'Power page', parent: 'display' },
+  'map-page': { title: 'Map page', parent: 'display' },
   connectivity: { title: 'Connectivity', parent: 'list' },
   cellular: { title: 'Cellular', parent: 'connectivity' },
   hub: { title: 'Hub', parent: 'connectivity' },
@@ -86,6 +88,8 @@ export const SettingsPage = memo(function SettingsPage() {
     setStartPowerSources,
     powerLayout,
     setPowerLayout,
+    mapTheme,
+    setMapTheme,
   } = useSettings()
   const isMobile = useIsMobile()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
@@ -186,6 +190,8 @@ export const SettingsPage = memo(function SettingsPage() {
         return <StartPageView sources={startPowerSources} onChange={setStartPowerSources} />
       case 'power-page':
         return <PowerPageView layout={powerLayout} onChange={setPowerLayout} />
+      case 'map-page':
+        return <MapPageView theme={mapTheme} onChange={setMapTheme} />
       case 'connectivity':
         return <ConnectivityView onOpen={setView} />
       case 'cellular':

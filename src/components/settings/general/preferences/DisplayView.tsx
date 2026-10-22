@@ -3,6 +3,7 @@ import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
 import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import type { Theme } from '@/hooks/useTheme'
+import { MAP_THEME_LABELS } from '@/hooks/useMapTheme'
 import { Card, ChoiceRow } from '../../shared/ChoiceRow'
 import { Group } from '../../shared/Group'
 import { GroupRow } from '../../shared/GroupRow'
@@ -173,7 +174,7 @@ export function DisplayView({
   isMobile,
   onOpen,
 }: DisplayViewProps) {
-  const { autoSleepEnabled } = useSettings()
+  const { autoSleepEnabled, mapTheme } = useSettings()
 
   return (
     <div className="flex flex-col gap-4">
@@ -199,6 +200,11 @@ export function DisplayView({
           label="Power page"
           description="Van tiles or van orbs"
           onOpen={() => onOpen('power-page')}
+        />
+        <GroupRow
+          label="Map page"
+          description={`Map theme: ${MAP_THEME_LABELS[mapTheme]}`}
+          onOpen={() => onOpen('map-page')}
         />
         <Separator className="my-1" />
         <Card>

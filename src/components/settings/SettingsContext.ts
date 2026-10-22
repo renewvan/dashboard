@@ -13,6 +13,7 @@ import type { BrokerLink } from '@/lib/brokerLink'
 import type { HubAddress } from '@/lib/hubAddress'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
+import type { MapThemeChoice } from '@/hooks/useMapTheme'
 import type { DeviceRow } from '@/lib/devices'
 import type { Relay, Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
 
@@ -69,6 +70,9 @@ export interface SettingsContextValue {
   /** How the Power page is drawn, Tiles or Orbs: the same instance the Power page reads. */
   powerLayout: PowerLayout
   setPowerLayout: (layout: PowerLayout) => void
+  /** The Map page's look: Auto (follow the app theme), Light or Dark; the same instance `App` reads. */
+  mapTheme: MapThemeChoice
+  setMapTheme: (choice: MapThemeChoice) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
   setRelay: (id: string, on: boolean) => void
