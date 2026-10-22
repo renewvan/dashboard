@@ -38,7 +38,6 @@ export function PowerPageView({ layout, onChange }: PowerPageViewProps) {
             choices={LAYOUT_CHOICES}
             value={layout}
             onChange={onChange}
-            stacked
           />
         </Card>
         <p className="text-muted px-1 text-sm">{LAYOUT_HINTS[layout]}</p>

@@ -20,24 +20,15 @@ export function ChoiceRow<T extends string>({
   value,
   onChange,
   isDisabled = false,
-  stacked = false,
 }: {
   label: string
   choices: { value: T; label: string }[]
   value: T
   onChange: (value: T) => void
   isDisabled?: boolean
-  /** Puts the label above the group, for a row with more choices than fit beside it on a phone. */
-  stacked?: boolean
 }) {
   return (
-    <div
-      className={
-        stacked
-          ? 'flex flex-col gap-2 px-3.5 py-3'
-          : 'flex items-center justify-between gap-3 px-3.5 py-3'
-      }
-    >
+    <div className="flex items-center justify-between gap-3 px-3.5 py-3">
       <span className="text-sm font-medium">{label}</span>
       <ToggleButtonGroup
         aria-label={label}
