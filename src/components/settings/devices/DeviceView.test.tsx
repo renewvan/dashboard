@@ -128,11 +128,12 @@ describe('Settings Devices list', () => {
     const rows = within(screen.getByRole('list', { name: 'Published devices' }))
       .getAllByRole('listitem')
       .map((row) => row.textContent)
-    // `gps` publishes no info, so its entities have no claimant and also get a fallback row.
+    // Alphabetical by name. `gps` publishes no info, so its entities have no claimant and also get a
+    // fallback row, which follows the Device of the same name.
     expect(rows).toEqual([
       'GPSUnknown',
-      'Routeroffline, last seen v0.1.0 · 1 entity',
       'GPSUnknown · 1 entity',
+      'Routeroffline, last seen v0.1.0 · 1 entity',
     ])
   })
 
