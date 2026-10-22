@@ -5,56 +5,63 @@
 
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { Engine, Plug2, PlugZap, Sun } from 'lucide-react'
+import { Engine, Plug2, PlugZap, SolarPanel } from 'lucide-react'
 import { formatPower, IDLE_W, type NodeId, type PowerSnapshot } from './flowModel'
 import { RollingNumber, Value } from './PowerValue'
 import { PortDomes, VanHub, Wire } from './VanDiagram'
-import { wirePath, type Point, type PortSide } from './vanGeometry'
+import { VAN_FRAME, wirePath, type Point, type PortSide } from './vanGeometry'
 
 const ICON: Partial<Record<NodeId, ReactNode>> = {
-  solar: <Sun className="size-12" />,
-  alternator: <Engine className="size-12" />,
-  shore: <PlugZap className="size-12" />,
-  loads: <Plug2 className="size-12" />,
+  solar: <SolarPanel className="size-9" />,
+  alternator: <Engine className="size-9" />,
+  shore: <PlugZap className="size-9" />,
+  loads: <Plug2 className="size-9" />,
+  acLoads: <Plug2 className="size-9" />,
+  dcLoads: <Plug2 className="size-9" />,
 }
 
-/** Orb radius in canvas units. Smaller than Orbs' 230: a van and four orbs share the canvas. */
-const R = 150
+/**
+ * Orb radius in canvas units. Each side column can hold two orbs, so they are sized to stack in the
+ * band beside the van, with room for a wire between them and the van.
+ */
+const R = 110
 const CIRC = 2 * Math.PI * R
-const ORB_VALUE = ['text-7xl', 'text-3xl'] as const
+const ORB_VALUE = ['text-5xl', 'text-2xl'] as const
 
-const W = 1500
-/** Empty space between the roof and the Solar orb above it, measured for the original 330 van. */
-const SOLAR_GAP = 94
+const W = VAN_FRAME.w
+/** Empty space between the roof and the Solar orb above it. */
+const SOLAR_GAP = 60
+/** Empty space between the screen edge and an outer orb, and between two stacked orbs. */
+const EDGE_GAP = 40
+const STACK_GAP = 50
 
-// The van is the fixed centre: x = W / 2 always, and the canvas is symmetric about it.
+// The van is where Van tiles draws it, in the same canvas (VAN_FRAME), so it has the same size and
+// place in both layouts. The orbs are laid out around it and may paint outside the visible band.
 //
-//   Solar                              over the van
-//   Alternator --- [ VAN ] --- Loads   at fixed positions, wires run to the van's ports
-//   Shore                              below Alternator
-const VAN_W_UNITS = 420
-const VAN_H_UNITS = (VAN_W_UNITS * 68.002) / 113.312
-/** The bar, the watts line and the state line under the van. */
-const VAN_STACK_H = 100
+//   Solar                    over the van
+//   Alternator               Loads, or AC and DC loads, on the right; each wire runs to its own
+//   Shore       [ VAN ]      port on the van's body
+const VAN_X = VAN_FRAME.van.x
+const VAN_Y = VAN_FRAME.van.y
+const VAN_W_UNITS = VAN_FRAME.van.w
 const k = VAN_W_UNITS / 113.312
 
-// The orbs were laid out around a 330-wide van; these are the positions that gave, kept fixed.
-const ORIG_VAN_W = 330
-const ORIG_K = ORIG_VAN_W / 113.312
-const ORB_LEFT_X = (W - ORIG_VAN_W) / 2 - 240 - R
-const ORB_RIGHT_X = (W + ORIG_VAN_W) / 2 + 240 + R
-const ORB_SIDE_Y = 26 * ORIG_K
-
-// Vertical layout in a local frame with the van's top at y=0; the band is then centred on it. The
-// orbs sit at fixed positions (pinned from a 330-wide van's layout), so the van can be resized
-// without moving them: only the van and its ports scale.
-const SOLAR_Y = -(R + SOLAR_GAP)
-const SIDE_Y = ORB_SIDE_Y
-/** Alternator and Shore mirror each other about the side row, 1.5 orb radii away. */
-const ALT_Y = SIDE_Y - 1.5 * R
-const SHORE_Y = SIDE_Y + 1.5 * R
-const VAN_X = (W - VAN_W_UNITS) / 2
-const at = (px: number, py: number): Point => ({ x: VAN_X + px * k, y: py * k })
+// Each side column has up to two slots, stacked about the diagram's vertical centre: halfway between
+// the top of the Solar orb and the bottom of the van's text stack, so a pair reads as centred on the
+// whole figure. A column with one orb puts it on the van's side-port row instead, level with its
+// port. Alternator and Shore fill the left column; Loads, or AC and DC loads, the right.
+const ORB_LEFT_X = EDGE_GAP + R
+const ORB_RIGHT_X = W - EDGE_GAP - R
+const SIDE_Y = VAN_Y + 30 * k
+const SOLAR_Y = VAN_Y - (R + SOLAR_GAP)
+/** The bar, the watts line and the state line under the van. */
+const VAN_STACK_H = 100
+const VAN_H_UNITS = (VAN_W_UNITS * 68.002) / 113.312
+const COLUMN_Y = (SOLAR_Y - R + VAN_Y + VAN_H_UNITS + VAN_STACK_H) / 2
+/** Slot centres above and below the column's centre. */
+const SLOT_UP_Y = COLUMN_Y - (R + STACK_GAP / 2)
+const SLOT_DOWN_Y = COLUMN_Y + (R + STACK_GAP / 2)
+const at = (px: number, py: number): Point => ({ x: VAN_X + px * k, y: VAN_Y + py * k })
 
 interface Spot {
   /** Orb centre. */
@@ -67,22 +74,17 @@ interface Spot {
 
 const SPOTS: Partial<Record<NodeId, Spot>> = {
   solar: { c: { x: W / 2, y: SOLAR_Y }, port: at(113.312 / 2, 1.25), side: 't' },
-  alternator: { c: { x: ORB_LEFT_X, y: ALT_Y }, port: at(3.7, 26), side: 'l' },
-  shore: { c: { x: ORB_LEFT_X, y: SHORE_Y }, port: at(1.25, 55.3), side: 'l' },
+  alternator: { c: { x: ORB_LEFT_X, y: SLOT_UP_Y }, port: at(3.7, 26), side: 'l' },
+  shore: { c: { x: ORB_LEFT_X, y: SLOT_DOWN_Y }, port: at(1.25, 55.3), side: 'l' },
   loads: { c: { x: ORB_RIGHT_X, y: SIDE_Y }, port: at(108.68, 34), side: 'r' },
+  acLoads: { c: { x: ORB_RIGHT_X, y: SLOT_UP_Y }, port: at(108.68, 30), side: 'r' },
+  dcLoads: { c: { x: ORB_RIGHT_X, y: SLOT_DOWN_Y }, port: at(108.68, 46), side: 'r' },
 }
 
-// The visible band is symmetric about the van's vertical centre, so the van sits in the middle of
-// the view (and, by VAN_X, of its width) whatever the orbs show. Its half-height is the larger of
-// the reach above the van's centre (to the top of the Solar orb) and below it (to the Shore orb or
-// the van's text stack), plus a margin.
-const VAN_CY = VAN_H_UNITS / 3
-const REACH_UP = VAN_CY - Math.min(SOLAR_Y - R, ALT_Y - R)
-const REACH_DOWN = Math.max(SHORE_Y + R, VAN_H_UNITS + VAN_STACK_H) - VAN_CY
-const MARGIN = 30
-const HALF = Math.max(REACH_UP, REACH_DOWN) + MARGIN
-const VIEW_TOP = VAN_CY - HALF
-const VIEW_H = 2 * HALF
+// The visible band is the tiles layout's, so the canvas scales to the screen the same way and the
+// van comes out the same size. The orbs reach past it.
+const VIEW_TOP = VAN_FRAME.top
+const VIEW_H = VAN_FRAME.h
 const VIEW_BOX = `0 ${VIEW_TOP} ${W} ${VIEW_H}`
 
 /**
@@ -145,32 +147,53 @@ function Orb({
       />
       <foreignObject x={x - R} y={y - R} width={R * 2} height={R * 2}>
         <div className="text-foreground flex size-full flex-col items-center justify-center">
-          <span className="mb-2" style={{ color: colour }}>
+          <span className="mb-1" style={{ color: colour }}>
             {ICON[id]}
           </span>
           <Value sizeClass={ORB_VALUE} value={<RollingNumber value={shown} />} unit={p.unit} />
-          <span className="text-muted mt-2 text-3xl">{label}</span>
+          <span className="text-muted mt-1 text-xl">{label}</span>
         </div>
       </foreignObject>
     </g>
   )
 }
 
+/** The orbs on the right: what the van feeds. One derived Loads, or AC and DC loads with an inverter. */
+const LOAD_IDS = ['loads', 'acLoads', 'dcLoads'] as const
+const isLoad = (id: NodeId) => (LOAD_IDS as readonly NodeId[]).includes(id)
+
 export function VanOrbsLayout({ flow }: { flow: PowerSnapshot }) {
-  const ids = (['solar', 'alternator', 'shore'] as const).filter((id) => flow.nodes[id].present)
-  const out = flow.edges.find((e) => e.to === 'loads')?.watts ?? 0
-  const all: NodeId[] = [...ids, 'loads']
-  const wattsOf = (id: NodeId) => (id === 'loads' ? out : (flow.nodes[id].watts ?? 0))
+  const sources = (['solar', 'alternator', 'shore'] as const).filter((id) => flow.nodes[id].present)
+  const loads = LOAD_IDS.filter((id) => flow.nodes[id].present)
+  const all: NodeId[] = [...sources, ...loads]
+  // What the wire carries: a load's is the flow into it, a source's is its own reading.
+  const wattsOf = (id: NodeId) =>
+    isLoad(id) ? (flow.edges.find((e) => e.to === id)?.watts ?? 0) : (flow.nodes[id].watts ?? 0)
+  // A column with a single orb puts it on the side-port row; two stack about the column's centre.
+  const leftCount = sources.filter((id) => id !== 'solar').length
+  const spotOf = (id: NodeId): Spot => {
+    const s = SPOTS[id]!
+    return leftCount === 1 && (id === 'alternator' || id === 'shore')
+      ? { ...s, c: { ...s.c, y: SIDE_Y } }
+      : s
+  }
   return (
-    <div data-testid="power-van-orbs" className="flex min-h-0 flex-1 items-center justify-center">
+    <div
+      data-testid="power-van-orbs"
+      className="flex min-h-0 flex-1 items-center justify-center pb-16"
+    >
       <div className="relative h-full max-w-full" style={{ aspectRatio: `${W} / ${VIEW_H}` }}>
-        <svg viewBox={VIEW_BOX} className="absolute inset-0 size-full" aria-hidden="true">
+        <svg
+          viewBox={VIEW_BOX}
+          className="absolute inset-0 size-full overflow-visible"
+          aria-hidden="true"
+        >
           {all.map((id) => {
-            const s = SPOTS[id]!
+            const s = spotOf(id)
             return (
               <Wire
                 key={id}
-                d={wirePath(edge(s), s.port, s.side, id === 'loads')}
+                d={wirePath(edge(s), s.port, s.side, isLoad(id))}
                 watts={wattsOf(id)}
                 peakW={flow.peakW}
               />
@@ -180,7 +203,7 @@ export function VanOrbsLayout({ flow }: { flow: PowerSnapshot }) {
             <Orb
               key={id}
               id={id}
-              spot={SPOTS[id]!}
+              spot={spotOf(id)}
               label={flow.nodes[id].label}
               watts={wattsOf(id)}
               shown={flow.nodes[id].watts}
@@ -191,11 +214,10 @@ export function VanOrbsLayout({ flow }: { flow: PowerSnapshot }) {
         <VanHub
           flow={flow}
           left={`${(VAN_X / W) * 100}%`}
-          top={`${((0 - VIEW_TOP) / VIEW_H) * 100}%`}
+          top={`${((VAN_Y - VIEW_TOP) / VIEW_H) * 100}%`}
           width={`${(VAN_W_UNITS / W) * 100}%`}
-          compact
         />
-        <PortDomes ports={all.map((id) => SPOTS[id]!)} viewBox={VIEW_BOX} />
+        <PortDomes ports={all.map(spotOf)} viewBox={VIEW_BOX} />
       </div>
     </div>
   )

@@ -36,7 +36,7 @@ export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps
     >
       {hasBattery ? (
         layout === 'van-tiles' ? (
-          <VanTilesLayout flow={flow} />
+          <VanTilesLayout flow={flow} solar={firstSolar(solar)} />
         ) : layout === 'van-orbs' ? (
           <VanOrbsLayout flow={flow} />
         ) : layout === 'orbs' ? (
