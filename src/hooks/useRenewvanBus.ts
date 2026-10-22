@@ -138,11 +138,19 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined
 }
 
+const IPV4 = /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/
+
+/** `value` when it is an IPv4 dotted quad other than the unspecified `0.0.0.0` (the schema's rule), else nothing. */
+function optionalIpv4(value: unknown): string | undefined {
+  return typeof value === 'string' && value !== '0.0.0.0' && IPV4.test(value) ? value : undefined
+}
+
 /**
  * The dashboard's light structural check of a Device info payload (no schema library): a JSON object
  * with string `device`, `product`, `source` and `version`, and `publishes` a list of strings if
- * present. Anything else reads as no info. The optional `manufacturer`, `homepage` and
- * `board_serial` are kept only when they are strings, and no other key is carried into state.
+ * present. Anything else reads as no info. The optional `manufacturer`, `homepage`,
+ * `board_serial` and `ip` are kept only when they are valid (a string; an IPv4 dotted quad for `ip`),
+ * and no other key is carried into state.
  */
 function parseDeviceInfo(payload: string): DeviceInfo | undefined {
   const value = parseValue(payload)
@@ -170,6 +178,8 @@ function parseDeviceInfo(payload: string): DeviceInfo | undefined {
   if (homepage !== undefined) info.homepage = homepage
   const boardSerial = optionalString(o.board_serial)
   if (boardSerial !== undefined) info.board_serial = boardSerial
+  const ip = optionalIpv4(o.ip)
+  if (ip !== undefined) info.ip = ip
   return info
 }
 
