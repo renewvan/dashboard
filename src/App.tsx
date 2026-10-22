@@ -1,4 +1,13 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 import { Gauge, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
@@ -16,7 +25,6 @@ import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { SettingsSubView } from '@/components/settings/views'
 import { TanksPage } from '@/components/tanks/TanksPage'
 import { RelaysPage } from '@/components/relays/RelaysPage'
-import { MapPage } from '@/components/map/MapPage'
 import { StartPage } from '@/components/start/StartPage'
 import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
@@ -40,6 +48,23 @@ import { useUrlPage } from '@/hooks/useUrlPage'
 import { useHubAddress } from '@/hooks/useHubAddress'
 import { useBrokerLink } from '@/hooks/useBrokerLink'
 import { ShellHeaderContext } from '@/components/settings/ShellHeaderContext'
+
+// MapLibre is most of the bundle and only the Map page uses it, so that page loads on first visit
+// instead of with every other page. `MapPage` is a named export, which `lazy` needs as a default.
+const MapPage = lazy(() => import('@/components/map/MapPage').then((m) => ({ default: m.MapPage })))
+
+/** What the Map pane shows for the moment its chunk loads: the same quiet pane as "no fix yet". */
+function MapLoading() {
+  return (
+    <section
+      data-testid="pane-map-loading"
+      aria-busy="true"
+      className="flex min-h-0 flex-1 items-center justify-center"
+    >
+      <span className="text-muted text-sm">Loading map…</span>
+    </section>
+  )
+}
 
 /** No tilt record at all, one stable object so the pages' `tilt` prop does not change every render. */
 const NO_TILT: RenewvanBusState['tilt'] = {}
@@ -355,12 +380,15 @@ function App() {
       case 'tanks':
         return <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
       case 'map':
+        // MapLibre is most of the bundle and only this page needs it, so it loads on first visit.
         return (
-          <MapPage
-            gps={state.gps}
-            tilt={tilt}
-            isDark={resolveMapIsDark(mapTheme, theme === 'dark')}
-          />
+          <Suspense fallback={<MapLoading />}>
+            <MapPage
+              gps={state.gps}
+              tilt={tilt}
+              isDark={resolveMapIsDark(mapTheme, theme === 'dark')}
+            />
+          </Suspense>
         )
       case 'switches':
         return (
