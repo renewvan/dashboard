@@ -311,8 +311,8 @@ export type DeviceHealth = 'online' | 'offline'
 
 /**
  * The retained `renewvan/<device>/info` payload (hub `device-info.schema.json`): the Device's manifest
- * plus its build-stamped `version` and optional `board_serial`. `publishes` is optional here only
- * because the dashboard's structural check requires it to be a list of strings *if present*.
+ * plus its build-stamped `version` and optional `board_serial` and `ip`. `publishes` is optional here
+ * only because the dashboard's structural check requires it to be a list of strings *if present*.
  */
 export interface DeviceInfo {
   device: string
@@ -323,6 +323,8 @@ export interface DeviceInfo {
   manufacturer?: string
   homepage?: string
   board_serial?: string
+  /** The Board's own IPv4 address as of the Device's last connect; only Devices with an address of their own publish it. */
+  ip?: string
 }
 
 /** What the bus has said about one Device: its retained info and its retained health, each optional. */

@@ -391,6 +391,30 @@ describe('useRenewvanBus devices', () => {
     await waitFor(() => expect(result.current.state.devices).toEqual({ tank: { info: validInfo } }))
   })
 
+  it('keeps a valid ip, and drops one that is not an IPv4 dotted quad, keeping the rest', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    messageHandlers[0]('renewvan/relay/info', {
+      toString: () => JSON.stringify({ ...validInfo, device: 'relay', ip: '192.168.10.57' }),
+    })
+    await waitFor(() =>
+      expect(result.current.state.devices.relay?.info).toEqual({
+        ...validInfo,
+        device: 'relay',
+        ip: '192.168.10.57',
+      }),
+    )
+
+    for (const ip of ['0.0.0.0', '192.168.10', '192.168.10.256', 'fe80::1', '', 5]) {
+      messageHandlers[0]('renewvan/relay/info', {
+        toString: () => JSON.stringify({ ...validInfo, device: 'relay', ip }),
+      })
+      await waitFor(() =>
+        expect(result.current.state.devices.relay?.info).toEqual({ ...validInfo, device: 'relay' }),
+      )
+    }
+  })
+
   it('reads a Device with info and no health as having no health (Unknown), not offline', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
