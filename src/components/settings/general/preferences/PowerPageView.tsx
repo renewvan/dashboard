@@ -2,7 +2,10 @@ import { POWER_LAYOUTS, POWER_LAYOUT_LABELS, type PowerLayout } from '@/hooks/us
 import { Card, ChoiceRow } from '../../shared/ChoiceRow'
 import { Group } from '../../shared/Group'
 
-const LAYOUT_CHOICES = POWER_LAYOUTS.map((value) => ({
+/** The layouts the picker offers. Tiles and Orbs still exist and still render if one is stored. */
+const OFFERED: readonly PowerLayout[] = ['van-tiles', 'van-orbs']
+
+const LAYOUT_CHOICES = POWER_LAYOUTS.filter((value) => OFFERED.includes(value)).map((value) => ({
   value,
   label: POWER_LAYOUT_LABELS[value],
 }))

@@ -197,7 +197,7 @@ export function DisplayView({
         />
         <GroupRow
           label="Power page"
-          description="Tiles, orbs or the van"
+          description="Van tiles or van orbs"
           onOpen={() => onOpen('power-page')}
         />
         <Separator className="my-1" />
