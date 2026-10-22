@@ -16,7 +16,7 @@ describe('Settings › General › Display & Appearance › Power page', () => {
     await user.click(screen.getByRole('button', { name: /^Display/ }))
 
     expect(screen.getByRole('button', { name: /^Power page/ })).toHaveTextContent(
-      'Tiles, orbs or the van',
+      'Van tiles or van orbs',
     )
 
     await user.click(screen.getByRole('button', { name: /^Power page/ }))
@@ -25,46 +25,51 @@ describe('Settings › General › Display & Appearance › Power page', () => {
     expect(screen.getByRole('heading', { name: 'Power page' })).toBeInTheDocument()
   })
 
-  it('shows the stored layout as selected and says what it draws', async () => {
+  it('offers only the van layouts', async () => {
+    const { user } = renderSettings({ powerLayout: 'van-tiles' })
+    await openPowerPage(user)
+
+    expect(
+      screen
+        .getAllByRole('radio')
+        .map((radio) => radio.getAttribute('aria-label') ?? radio.textContent),
+    ).toEqual(['Van tiles', 'Van orbs'])
+  })
+
+  it('still opens with a stored Tiles or Orbs layout, with nothing selected', async () => {
     const { user } = renderSettings({ powerLayout: 'orbs' })
     await openPowerPage(user)
 
-    expect(screen.getByRole('radio', { name: 'Orbs' })).toBeChecked()
-    expect(screen.getByRole('radio', { name: 'Tiles' })).not.toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Van tiles' })).not.toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Van orbs' })).not.toBeChecked()
     expect(screen.getByText(/dots travelling along the wires/)).toBeInTheDocument()
   })
 
-  it('switches from Tiles to Orbs', async () => {
-    const { user, value } = renderSettings({ powerLayout: 'tiles' })
-    await openPowerPage(user)
-
-    await user.click(screen.getByRole('radio', { name: 'Orbs' }))
-
-    expect(value.setPowerLayout).toHaveBeenCalledExactlyOnceWith('orbs')
-  })
-
   it.each([
-    ['van-tiles', 'Van tiles', /boxed readings plugged into it/],
-    ['van-orbs', 'Van orbs', /round readings plugged into it/],
-  ] as const)('offers the %s layout and says what it draws', async (value, name, hint) => {
-    const { user, value: settings } = renderSettings({ powerLayout: 'tiles' })
-    await openPowerPage(user)
+    ['van-tiles', 'Van tiles', 'van-orbs', 'Van orbs', /round readings plugged into it/],
+    ['van-orbs', 'Van orbs', 'van-tiles', 'Van tiles', /boxed readings plugged into it/],
+  ] as const)(
+    'switches from %s to the other van layout and says what it draws',
+    async (from, _fromName, to, toName, hint) => {
+      const { user, value } = renderSettings({ powerLayout: from })
+      await openPowerPage(user)
 
-    await user.click(screen.getByRole('radio', { name }))
-    expect(settings.setPowerLayout).toHaveBeenCalledExactlyOnceWith(value)
+      await user.click(screen.getByRole('radio', { name: toName }))
+      expect(value.setPowerLayout).toHaveBeenCalledExactlyOnceWith(to)
 
-    cleanup()
-    const again = renderSettings({ powerLayout: value })
-    await openPowerPage(again.user)
-    expect(screen.getByRole('radio', { name })).toBeChecked()
-    expect(screen.getByText(hint)).toBeInTheDocument()
-  })
+      cleanup()
+      const again = renderSettings({ powerLayout: to })
+      await openPowerPage(again.user)
+      expect(screen.getByRole('radio', { name: toName })).toBeChecked()
+      expect(screen.getByText(hint)).toBeInTheDocument()
+    },
+  )
 
   it('does nothing on a re-tap of the selected layout', async () => {
-    const { user, value } = renderSettings({ powerLayout: 'tiles' })
+    const { user, value } = renderSettings({ powerLayout: 'van-tiles' })
     await openPowerPage(user)
 
-    await user.click(screen.getByRole('radio', { name: 'Tiles' }))
+    await user.click(screen.getByRole('radio', { name: 'Van tiles' }))
 
     expect(value.setPowerLayout).not.toHaveBeenCalled()
   })
