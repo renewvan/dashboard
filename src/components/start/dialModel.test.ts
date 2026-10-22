@@ -4,34 +4,45 @@ import { centreKind, hasTiltReading, legendIndices, powerReading, ringLabel } fr
 
 const OK_TILT: Tilt = { roll_deg: -2.2, pitch_deg: 4, status: 'ok' }
 
+const NONE = { solarW: undefined, batteryW: undefined, loadW: undefined }
+
 describe('powerReading', () => {
   it('fills the band by the share of the configured full scale, in whole watts', () => {
-    const reading = powerReading({ source: 'solar', fullScaleW: 400 }, 247.4, undefined)
+    const reading = powerReading({ source: 'solar', fullScaleW: 400 }, { ...NONE, solarW: 247.4 })
     expect(reading.watts).toBe(247)
     expect(reading.pct).toBeCloseTo(61.85)
     expect(reading.label).toBe('Solar')
   })
 
   it('caps the band at full when the power exceeds the scale', () => {
-    expect(powerReading({ source: 'solar', fullScaleW: 400 }, 900, undefined).pct).toBe(100)
+    expect(powerReading({ source: 'solar', fullScaleW: 400 }, { ...NONE, solarW: 900 }).pct).toBe(
+      100,
+    )
   })
 
   it('shows no watts and an empty band until the source has published, never a made-up zero', () => {
-    const reading = powerReading({ source: 'solar', fullScaleW: 400 }, undefined, 120)
+    const reading = powerReading({ source: 'solar', fullScaleW: 400 }, { ...NONE, batteryW: 120 })
     expect(reading.watts).toBeUndefined()
     expect(reading.pct).toBe(0)
   })
 
-  it('reads charging and load from the battery power, by direction', () => {
+  it('reads charging from the battery power, by direction', () => {
     const charging = { source: 'battery-in', fullScaleW: 1000 } as const
-    const load = { source: 'battery-out', fullScaleW: 1000 } as const
-    expect(powerReading(charging, undefined, 250).watts).toBe(250)
-    expect(powerReading(charging, undefined, -250).watts).toBe(0)
-    expect(powerReading(load, undefined, -250).watts).toBe(250)
+    expect(powerReading(charging, { ...NONE, batteryW: 250 }).watts).toBe(250)
+    expect(powerReading(charging, { ...NONE, batteryW: -250 }).watts).toBe(0)
   })
 
-  it('shows a real 0 W, not a dash, when the source published zero', () => {
-    const reading = powerReading({ source: 'battery-out', fullScaleW: 1000 }, undefined, 120)
+  it('reads the load as what the van draws, even while the battery is still charging', () => {
+    // 15 W of sun, 9 W of it charging the battery: 6 W is going to the loads, and the reading says so
+    // rather than 0 W because the battery is not discharging.
+    const load = { source: 'battery-out', fullScaleW: 1000 } as const
+    const reading = powerReading(load, { solarW: 15, batteryW: 9, loadW: 6 })
+    expect(reading.watts).toBe(6)
+    expect(reading.label).toBe('Load')
+  })
+
+  it('shows a real 0 W, not a dash, when the load published zero', () => {
+    const reading = powerReading({ source: 'battery-out', fullScaleW: 1000 }, { ...NONE, loadW: 0 })
     expect(reading.watts).toBe(0)
     expect(reading.pct).toBe(0)
   })

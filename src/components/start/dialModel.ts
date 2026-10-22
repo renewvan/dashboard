@@ -3,6 +3,7 @@ import { FLUID_LABELS } from '@/lib/tank-labels'
 import { CHARGING_LABELS, type Charging, type ChargingKind } from '@/lib/charging'
 import {
   POWER_SOURCE_LABELS,
+  type LiveWatts,
   powerOf,
   type ChargerSlot,
   type PowerSlot,
@@ -37,16 +38,12 @@ function reading(
   }
 }
 
-/** `slot`'s reading from the live solar and battery watts. */
-export function powerReading(
-  slot: PowerSlot,
-  solarW: number | undefined,
-  batteryW: number | undefined,
-): PowerReading {
+/** `slot`'s reading from the live solar, battery and load watts. */
+export function powerReading(slot: PowerSlot, live: LiveWatts): PowerReading {
   return reading(
     slot.source,
     POWER_SOURCE_LABELS[slot.source],
-    powerOf(slot.source, solarW, batteryW),
+    powerOf(slot.source, live),
     slot.fullScaleW,
   )
 }

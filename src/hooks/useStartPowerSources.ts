@@ -189,19 +189,25 @@ export function useStartPowerSources(): [StartPowerSources, (next: StartPowerSou
   return [sources, setSources]
 }
 
+/** The live readings a slot can be taken from; each is `undefined` until its source has published. */
+export interface LiveWatts {
+  /** The solar controller's output. */
+  solarW: number | undefined
+  /** The battery's signed power: positive while it charges. */
+  batteryW: number | undefined
+  /** What the van draws: everything coming in, less what the battery absorbed (the Power page's Loads). */
+  loadW: number | undefined
+}
+
 /** Watts for one slot from the live records; `undefined` while its source has not arrived. */
-export function powerOf(
-  source: PowerSource,
-  solarW: number | undefined,
-  batteryW: number | undefined,
-): number | undefined {
+export function powerOf(source: PowerSource, { solarW, batteryW, loadW }: LiveWatts) {
   switch (source) {
     case 'solar':
       return solarW
     case 'battery-in':
       return batteryW === undefined ? undefined : Math.max(0, batteryW)
     case 'battery-out':
-      return batteryW === undefined ? undefined : Math.max(0, -batteryW)
+      return loadW
     case 'battery-net':
       return batteryW === undefined ? undefined : Math.abs(batteryW)
   }

@@ -248,7 +248,7 @@ describe('StartPage kiosk dial', () => {
     expect(within(screen.getByTestId('rings-centre')).getByText('No data yet')).toBeInTheDocument()
   })
 
-  it('reads solar and load from the configured sources', () => {
+  it('reads solar and load from the configured sources, the load as the Power page shows it', () => {
     renderAt(KIOSK_WIDTH, {
       solar: { 291: { power_w: 247, battery_voltage_v: 13.4 } },
       batteries: { house: { ...BATTERY, power_w: -112 } },
@@ -256,7 +256,19 @@ describe('StartPage kiosk dial', () => {
 
     const dial = screen.getByTestId('start-dial')
     expect(within(dial).getByText('Solar').parentElement).toHaveTextContent('247W')
-    expect(within(dial).getByText('Load').parentElement).toHaveTextContent('112W')
+    // The sun's 247 W plus the 112 W the battery gives up: everything the van draws, not just the
+    // part the battery covers.
+    expect(within(dial).getByText('Load').parentElement).toHaveTextContent('359W')
+  })
+
+  it('shows the load the sun is covering while the battery is still charging', () => {
+    renderAt(KIOSK_WIDTH, {
+      solar: { 291: { power_w: 15, battery_voltage_v: 13.4 } },
+      batteries: { house: { ...BATTERY, power_w: 9 } },
+    })
+
+    const dial = screen.getByTestId('start-dial')
+    expect(within(dial).getByText('Load').parentElement).toHaveTextContent('6W')
   })
 
   describe('charging reading', () => {

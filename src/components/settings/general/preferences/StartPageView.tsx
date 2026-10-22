@@ -177,21 +177,7 @@ interface StartPageViewProps {
 export function StartPageView({ sources, onChange }: StartPageViewProps) {
   return (
     <div className="flex flex-col gap-2">
-      {SLOTS.map(({ key, label, hint }) => (
-        <SlotCard
-          key={key}
-          label={label}
-          hint={hint}
-          slot={sources[key]}
-          onChange={(slot) => onChange({ ...sources, [key]: slot })}
-        />
-      ))}
-      <p className="text-muted px-1 text-xs">
-        Load is the battery&apos;s power going out. The left-bottom reading shows the alternator, or
-        the shore charger when there is none, and is hidden while neither is connected. Full band is
-        the wattage that fills a reading&apos;s arc.
-      </p>
-      <h2 className="mt-2 px-1 text-sm font-medium">Centre</h2>
+      <h2 className="px-1 text-sm font-medium">Centre</h2>
       <Card>
         <ChoiceRow
           label="Shows"
@@ -205,6 +191,21 @@ export function StartPageView({ sources, onChange }: StartPageViewProps) {
         battery readout while there is no reading. Van draws the van filling as the battery charges.
         Battery readout shows the charge as a number, and the battery is then left out of the list
         under the rings.
+      </p>
+      <h2 className="mt-2 px-1 text-sm font-medium">Power Readings</h2>
+      {SLOTS.map(({ key, label, hint }) => (
+        <SlotCard
+          key={key}
+          label={label}
+          hint={hint}
+          slot={sources[key]}
+          onChange={(slot) => onChange({ ...sources, [key]: slot })}
+        />
+      ))}
+      <p className="text-muted px-1 text-xs">
+        Load is the battery&apos;s power going out. The left-bottom reading shows the alternator, or
+        the shore charger when there is none, and is hidden while neither is connected. Full band is
+        the wattage that fills a reading&apos;s arc.
       </p>
       <h2 className="mt-2 px-1 text-sm font-medium">Level Rings</h2>
       <Card>
