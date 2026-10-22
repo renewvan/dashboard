@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vite-plus/test'
 import type { Battery, Charger, Solar } from '@/types'
-import { buildFlow, flowFromBus, IDLE_W, type FlowEdge, type NodeId } from './flowModel'
+import {
+  buildFlow,
+  flowFromBus,
+  IDLE_W,
+  inputWatts,
+  pulseClock,
+  pulsePass,
+  type FlowEdge,
+  type NodeId,
+} from './flowModel'
 
 const battery = (soc: number, powerW: number): Battery => ({
   soc_pct: soc,
@@ -167,5 +176,40 @@ describe('buildFlow with an inverter', () => {
     expect(flow.nodes.loads.present).toBe(true)
     expect(flow.nodes.acLoads.present).toBe(false)
     expect(flow.nodes.dcLoads.present).toBe(false)
+  })
+})
+
+describe('the charging pulse clock', () => {
+  it('puts two bands with the same pass on the same beat, whenever each was mounted', () => {
+    const now = 1_700_000_123_456
+    const a = pulseClock(2.4, now)
+    const b = pulseClock(2.4, now)
+
+    expect(a).toEqual(b)
+  })
+
+  it('starts a loop part-way through, at the beat the wall clock is on', () => {
+    // A 2 s pass and the 2 s rest make a 4 s period: a whole number of milliseconds, so exact.
+    const atMs = (secondsIntoLoop: number) => 4_000 * 1_000_000 + secondsIntoLoop * 1000
+
+    expect(pulseClock(2, atMs(0)).delayS).toBeCloseTo(0)
+    // A second and a half into the loop, it starts there: a negative delay of that much.
+    expect(pulseClock(2, atMs(1.5)).delayS).toBeCloseTo(-1.5)
+    expect(pulseClock(2, atMs(1.5)).passS).toBe(2)
+  })
+
+  it('rounds the pass to a tenth of a second, so a wobbling reading does not restart the loop', () => {
+    const peakW = 1000
+    expect(pulsePass(400, peakW)).toBe(pulsePass(402, peakW))
+    expect(pulsePass(0, peakW)).toBe(3.2)
+    expect(pulsePass(peakW, peakW)).toBe(1.6)
+  })
+
+  it('counts what solar, the alternator and shore power feed in, and not what leaves the battery', () => {
+    const flow = flowFromBus({ house: battery(80, -50) }, { roof: solar(300) }, {})
+
+    // 300 W of solar in; the 350 W the loads draw is not input.
+    expect(flow.edges.find((e) => e.to === 'loads')?.watts).toBe(350)
+    expect(inputWatts(flow)).toBe(300)
   })
 })

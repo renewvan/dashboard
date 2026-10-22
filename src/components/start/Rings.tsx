@@ -40,13 +40,15 @@ interface RingsProps {
   centre: ReactNode
   /** Soft glow behind the fill; dark theme only. */
   glow: boolean
+  /** The charging pulse's pass and phase, when another band on screen must beat with it. */
+  pulseClock?: { passS: number; delayS: number }
 }
 
 /**
  * Concentric 270° rings, outermost first, each with the cockpit's five cuts and its severity
  * colour, around the readout, with a one-line legend per listed ring under the open mouth.
  */
-export function Rings({ rings, legend, centre, glow }: RingsProps) {
+export function Rings({ rings, legend, centre, glow, pulseClock }: RingsProps) {
   const uid = useId().replace(/:/g, '')
   const glowId = `glow-${uid}`
   const cutsId = `cuts-${uid}`
@@ -144,6 +146,7 @@ export function Rings({ rings, legend, centre, glow }: RingsProps) {
                     litTo={FROM + ((TO - FROM) * ring.pct) / 100}
                     r={r}
                     stroke={BAND}
+                    clock={pulseClock}
                   />
                 </g>
               )}

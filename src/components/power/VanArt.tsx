@@ -4,7 +4,7 @@
 // Coordinates are the van's own canvas (113.312 x 68.002, nose RIGHT).
 
 import { motion, useReducedMotion } from 'motion/react'
-import { IDLE_W, PULSE_PAUSE_S, pulseSeconds, type PowerSnapshot } from './flowModel'
+import { IDLE_W, PULSE_PAUSE_S, inputWatts, pulseSeconds, type PowerSnapshot } from './flowModel'
 import { VanSide } from '@/components/widgets/tilt/VanSide'
 
 export const VAN_W = 113.312
@@ -30,10 +30,13 @@ export function VanArt({
   flow,
   className,
   glow = true,
+  clock,
 }: {
   flow: PowerSnapshot
   className?: string
   glow?: boolean
+  /** The pulse's pass and phase when it must beat with another band on screen (`pulseClock`). */
+  clock?: { passS: number; delayS: number }
 }) {
   const reduce = useReducedMotion()
   const soc = (flow.soc ?? 0) / 100
@@ -42,13 +45,11 @@ export function VanArt({
   // "Charging" here means power is coming IN (solar, alternator, shore), not that the battery's net
   // is positive: a van can be net-discharging at 95% while its sources still feed it, and it should
   // still glow.
-  const inputW = flow.edges
-    .filter((e) => e.from === 'solar' || e.from === 'alternator' || e.from === 'shore')
-    .reduce((sum, e) => sum + e.watts, 0)
+  const inputW = inputWatts(flow)
   const powered = flow.batteryState !== 'unknown' && inputW > IDLE_W
   const charging = powered && !reduce
   const level = HEIGHT * soc
-  const pulse = pulseSeconds(inputW, flow.peakW)
+  const pulse = clock?.passS ?? pulseSeconds(inputW, flow.peakW)
   const bandH = HEIGHT * 0.2
   // Strong halo while power flows in; a faint one when the van has data but nothing feeds it, so
   // a discharging van is not dark. No data, no halo.
@@ -117,6 +118,7 @@ export function VanArt({
                   times: [0, pulse / (pulse + PULSE_PAUSE_S), 1],
                   repeat: Infinity,
                   ease: 'linear',
+                  delay: clock?.delayS ?? 0,
                 }}
               />
             </g>
