@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 import type { ConnectionInputs } from './connection'
-import { cellularTier, connectionTier } from './connection'
+import { cellularTier, connectionBadge, connectionTier, networkTypeLabel } from './connection'
 
 const NOW = 1_791_288_000_000 // 2026-10-03T12:00:00Z
 const FRESH = NOW - 30_000 // 30 s ago — inside the 180 s window
@@ -126,5 +126,50 @@ describe('connectionTier (header icon)', () => {
     expect(
       connectionTier({ ...noRouter, busStatus: 'disconnected', tailscale: TAILSCALE_DOWN }),
     ).toBe('offline')
+  })
+})
+
+describe('networkTypeLabel', () => {
+  it('reads the radio standard NR as 5G, and shows the rest as the schema names them', () => {
+    expect(networkTypeLabel('nr')).toBe('5G')
+    expect(networkTypeLabel('lte')).toBe('LTE')
+    expect(networkTypeLabel('3g')).toBe('3G')
+    expect(networkTypeLabel('2g')).toBe('2G')
+  })
+
+  it('reads UNKNOWN for a type the modem has not reported', () => {
+    expect(networkTypeLabel('unknown')).toBe('UNKNOWN')
+    expect(networkTypeLabel(undefined)).toBe('UNKNOWN')
+  })
+})
+
+describe('connectionBadge', () => {
+  const LAN = { host: '192.168.1.10', route: 'local' } as const
+
+  it('names the mobile technology on the cellular bars', () => {
+    expect(connectionBadge('bars-4', 'lte', LAN)).toBe('LTE')
+    expect(connectionBadge('bars-1', 'nr', LAN)).toBe('5G')
+  })
+
+  it('leaves the badge off while the modem has not said what network it is on', () => {
+    expect(connectionBadge('bars-3', 'unknown', LAN)).toBeNull()
+    expect(connectionBadge('bars-3', undefined, LAN)).toBeNull()
+  })
+
+  it('names how the hub is reached while the van is connected without a router feed', () => {
+    expect(connectionBadge('connected', undefined, LAN)).toBe('LAN')
+    expect(
+      connectionBadge('connected', undefined, { host: '100.64.0.1', route: 'tailscale' }),
+    ).toBe('TS')
+    expect(
+      connectionBadge('connected', undefined, { host: 'hub.example.com', route: 'remote' }),
+    ).toBe('WAN')
+  })
+
+  it('has no badge for connected without a broker address, or with no connection to name', () => {
+    expect(connectionBadge('connected', undefined, null)).toBeNull()
+    expect(connectionBadge('offline', 'lte', LAN)).toBeNull()
+    expect(connectionBadge('checking', 'lte', LAN)).toBeNull()
+    expect(connectionBadge('no-service', 'lte', LAN)).toBeNull()
   })
 })

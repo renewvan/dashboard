@@ -109,7 +109,16 @@ export function VanTilesLayout({
             const x = a.side === 'r' ? W - 30 - w : a.side === 'l' ? 30 : a.end.x - w / 2
             const y = a.side === 't' ? 20 : a.end.y - h / 2
             return (
-              <foreignObject key={id} x={x} y={y} width={w} height={h}>
+              <foreignObject
+                key={id}
+                x={x}
+                y={y}
+                width={w}
+                height={h}
+                // The active tile's glow extends past the tile's own box; the default `hidden`
+                // clips it flat, leaving a hard-edged square at the corners.
+                className="overflow-visible"
+              >
                 <div
                   className="bg-surface flex size-full flex-col justify-center rounded-3xl border-2 px-5"
                   style={{

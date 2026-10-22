@@ -65,8 +65,8 @@ describe('drawer navigation', () => {
       within(dialog)
         .getAllByRole('button')
         .map((button) => button.textContent)
-        .filter((text) => /^(Cellular|Hub|Tailscale)/.test(text ?? '')),
-    ).toEqual(['CellularLTE · O2', 'HubConnected', 'Tailscale100.64.0.1'])
+        .filter((text) => /^(Router|Hub|Tailscale)/.test(text ?? '')),
+    ).toEqual(['RouterLTE · O2', 'HubConnected', 'Tailscale100.64.0.1'])
     // The page behind the drawer is still the top list, not a breadcrumbed subpage.
     expect(screen.getByRole('heading', { name: 'Settings', hidden: true })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument()
@@ -120,8 +120,8 @@ describe('drawer navigation', () => {
 
     await user.click(screen.getByRole('button', { name: /^Connectivity/ }))
     for (const [page, row] of [
-      ['Cellular', 'Operator'],
-      ['Hub', 'Bus link'],
+      ['Router', 'Operator'],
+      ['Hub', 'Broker'],
       ['Tailscale', 'Status'],
     ]) {
       await user.click(

@@ -1,4 +1,5 @@
 import { cellularTier, busStatusText, uplinkHeadline } from '@/lib/connection'
+import { routerDevice, routerName } from '@/lib/routerDevice'
 import { tailscaleStatusText } from '@/lib/tailscale'
 import { useNow } from '@/hooks/useNow'
 import { GroupRow } from '../shared/GroupRow'
@@ -11,19 +12,26 @@ interface ConnectivityViewProps {
 
 /**
  * Connectivity's rows, each with a live one-line summary. The tick lives here
- * so a stale router feed degrades the Cellular headline to Offline with no bus
+ * so a stale router feed degrades the router headline to Offline with no bus
  * traffic to re-render it.
+ *
+ * The first row is the router, named for the Device that feeds it (`RUT-360`). With no router
+ * Device on the bus and no router data either, nothing is installed to check, so it says so rather
+ * than "Checking…" for ever. Router data with no Device behind it (a driver that publishes no info
+ * yet) is still shown: live numbers are never hidden for want of a name.
  */
 export function ConnectivityView({ onOpen }: ConnectivityViewProps) {
-  const { router, routerHealth, routerUpdatedAt, busStatus, tailscale } = useSettings()
+  const { devices, router, routerHealth, routerUpdatedAt, busStatus, tailscale } = useSettings()
   const now = useNow(30_000)
+  const device = routerDevice(devices)
   const tier = cellularTier(router?.signal_rsrp_dbm, routerHealth, routerUpdatedAt, now)
+  const installed = device !== undefined || routerUpdatedAt !== undefined
 
   return (
     <div className="flex flex-col gap-2">
       <GroupRow
-        label="Cellular"
-        description={uplinkHeadline(router, tier)}
+        label={routerName(device)}
+        description={installed ? uplinkHeadline(router, tier) : 'Not installed'}
         onOpen={() => onOpen('cellular')}
       />
       <GroupRow label="Hub" description={busStatusText(busStatus)} onOpen={() => onOpen('hub')} />

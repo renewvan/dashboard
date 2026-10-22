@@ -1,15 +1,19 @@
 import { CloudOff, Loader2, Wifi } from 'lucide-react'
+import { useId, type ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { useNow } from '@/hooks/useNow'
 import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '@/hooks/useRenewvanBus'
 import {
   BUS_TONE,
   busStatusText,
+  connectionBadge,
   connectionTier,
+  networkTypeLabel,
   uplinkHeadline,
   type ConnectionTier,
 } from '@/lib/connection'
 import { formatBytes } from '@/lib/format'
+import { hubRouteText, type HubAddress } from '@/lib/hubAddress'
 import { tailscaleStatusText } from '@/lib/tailscale'
 import type { Router } from '@/types'
 import { IconStatusButton } from './IconStatusButton'
@@ -24,6 +28,9 @@ export interface UplinkStatusButtonProps {
   /** `useRenewvanBus().status` — the kiosk's MQTT bus link, shown in
    * this popover as a dot row. */
   busStatus: ConnectionStatus
+  /** The hub (`hubAddress`): the Pi's own address from `renewvan/hub/status` and how this kiosk
+   * reaches the broker. Null while neither is known. */
+  hub: HubAddress | null
   onOpenSettings: () => void
 }
 
@@ -87,6 +94,7 @@ export function UplinkStatusButton({
   lastReceivedAt,
   tailscale,
   busStatus,
+  hub,
   onOpenSettings,
 }: UplinkStatusButtonProps) {
   const now = useNow(30_000)
@@ -99,6 +107,7 @@ export function UplinkStatusButton({
     tailscale,
   })
   const { filled, Icon, iconClass, label } = TIER_PRESENTATION[tier]
+  const badge = connectionBadge(tier, router?.network_type, hub)
 
   return (
     <IconStatusButton
@@ -106,18 +115,35 @@ export function UplinkStatusButton({
       data-testid="uplink-status-button"
       data-state={tier}
       icon={
-        Icon !== undefined ? (
-          <Icon className={`size-5 ${iconClass}`} />
-        ) : (
-          <BarTower filled={filled ?? 0} className={iconClass} />
-        )
+        <span className="relative inline-flex">
+          {Icon !== undefined ? (
+            <Icon className={`size-5 ${iconClass}`} />
+          ) : (
+            <BarTower filled={filled ?? 0} className={iconClass} />
+          )}
+          {badge && (
+            <span
+              aria-hidden="true"
+              data-testid="uplink-badge"
+              className="bg-surface text-foreground border-border absolute -right-2 -bottom-1.5 rounded px-0.5 text-[9px] leading-3 font-bold tracking-tight"
+            >
+              {badge}
+            </span>
+          )}
+        </span>
       }
       title={uplinkHeadline(router, tier)}
       onOpenSettings={onOpenSettings}
       settingsLabel="Network settings"
     >
       {tier !== 'checking' && tier !== 'connected' && tier !== 'offline' && (
-        <>
+        <Section heading="Router connection">
+          <FieldRow
+            label="Network"
+            value={
+              router?.network_type !== undefined ? networkTypeLabel(router.network_type) : null
+            }
+          />
           <FieldRow
             label="RSRP"
             value={router?.signal_rsrp_dbm !== undefined ? `${router.signal_rsrp_dbm} dBm` : null}
@@ -131,16 +157,20 @@ export function UplinkStatusButton({
                 : null
             }
           />
-        </>
+        </Section>
       )}
-      <div className="border-border mt-4 flex flex-col gap-2 border-t pt-4">
+      <Section heading="Hub connection">
         <StatusDotRow label="Hub" tone={BUS_TONE[busStatus]} text={busStatusText(busStatus)} />
+        <FieldRow label="Address" value={hub?.host ?? null} />
+        <FieldRow label="Via" value={hub ? hubRouteText(hub.route) : null} />
+      </Section>
+      <Section heading="Remote access">
         <StatusDotRow
           label="Tailscale"
           tone={tailscale?.connected ? 'bg-success' : 'bg-muted'}
           text={tailscaleStatusText(tailscale)}
         />
-      </div>
+      </Section>
     </IconStatusButton>
   )
 }
@@ -170,6 +200,27 @@ function FieldRow({ label, value }: { label: string; value: string | null }) {
     <div className="text-muted flex items-center justify-between gap-3">
       <span>{label}</span>
       <span className="text-foreground">{value ?? '—'}</span>
+    </div>
+  )
+}
+
+/**
+ * A titled group of rows in the popover. The router, the hub and Tailscale are three different
+ * things the van is reached through, so each reads as its own block (the heading names the source
+ * and labels the group for screen readers) rather than as one undifferentiated list.
+ */
+function Section({ heading, children }: { heading: string; children: ReactNode }) {
+  const id = useId()
+  return (
+    <div
+      role="group"
+      aria-labelledby={id}
+      className="border-border mt-2 flex flex-col gap-2 border-t pt-3 first:mt-0 first:border-t-0 first:pt-0"
+    >
+      <div id={id} className="text-muted text-xs font-medium tracking-wide uppercase">
+        {heading}
+      </div>
+      {children}
     </div>
   )
 }

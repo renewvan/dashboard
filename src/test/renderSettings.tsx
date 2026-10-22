@@ -30,6 +30,24 @@ export const liveRouter: Router = {
   data_used_month_rx_b: 385.1 * 1024 * 1024,
 }
 
+/**
+ * A van with `driver-router` installed: the retained info and health it publishes. Opt in with
+ * `renderSettings({}, { bus: { devices: ROUTER_DEVICES } })`; without it the bus has no Devices, so
+ * Connectivity names the router plain `Router`.
+ */
+export const ROUTER_DEVICES: RenewvanBusState['devices'] = {
+  router: {
+    health: 'online',
+    info: {
+      device: 'router',
+      product: 'Teltonika RUT-360 router',
+      source: 'RutOS Data to Server MQTT push feed',
+      publishes: ['router'],
+      version: 'v0.2.0',
+    },
+  },
+}
+
 /** jsdom has no `ResizeObserver`, which HeroUI's `ScrollShadow` observes. */
 class StubResizeObserver {
   observe() {}
@@ -84,6 +102,9 @@ export function renderSettings(
     routerUpdatedAt: Date.now(),
     busStatus: 'connected',
     tailscale: connectedTailscale,
+    hub: { host: '192.168.1.10', route: 'local' },
+    hubStatus: { ip: '192.168.1.10', hostname: 'renewvan' },
+    broker: { endpoint: '192.168.1.10:9001', protocol: 'WebSocket', authenticated: false },
     brightness: 70,
     autoSleepEnabled: false,
     autoSleepTimeoutMinutes: 5,

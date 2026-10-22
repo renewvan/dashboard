@@ -1,5 +1,6 @@
 import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '@/hooks/useRenewvanBus'
-import type { Router } from '@/types'
+import type { NetworkType, Router } from '@/types'
+import type { HubAddress, HubRoute } from './hubAddress'
 import { plmnOperatorName } from './plmn'
 
 /**
@@ -99,6 +100,16 @@ export function connectionTier({
 }
 
 /**
+ * The mobile technology as a driver reads it: `LTE`, `5G`, `3G`, `2G`. The schema's `nr` is the
+ * radio standard behind 5G, so it is shown as 5G. A type not yet received reads `UNKNOWN`, which
+ * the headline prints but the icon badge leaves off (see `connectionBadge`).
+ */
+export function networkTypeLabel(type: NetworkType | undefined): string {
+  if (type === 'nr') return '5G'
+  return (type ?? 'unknown').toUpperCase()
+}
+
+/**
  * One-line summary of the uplink tier (`LTE · <operator>` / `Checking…` /
  * `Connected` / `Offline` / `No service`) — the uplink popover's title and
  * the Settings → Connectivity Cellular row's summary, read from this one copy
@@ -111,9 +122,32 @@ export function uplinkHeadline(router: Partial<Router> | undefined, tier: Connec
   if (tier === 'connected') return 'Connected'
   if (tier === 'offline') return 'Offline'
   if (tier === 'no-service') return 'No service'
-  return `${(router?.network_type ?? 'unknown').toUpperCase()} · ${
+  return `${networkTypeLabel(router?.network_type)} · ${
     plmnOperatorName(router?.operator) ?? router?.operator ?? '—'
   }`
+}
+
+const HUB_ROUTE_BADGE: Record<HubRoute, string> = { local: 'LAN', tailscale: 'TS', remote: 'WAN' }
+
+/**
+ * The short connection-type mark on the header icon, or null for none. While the router feeds
+ * (bars) it is the mobile technology, left off when the modem reports `unknown` rather than
+ * printing a meaningless word on the icon. While the van is reached some other way (`connected`)
+ * it is how the kiosk reaches the hub: LAN, Tailscale or WAN. Checking, offline and no service say
+ * nothing: there is no connection to name.
+ */
+export function connectionBadge(
+  tier: ConnectionTier,
+  networkType: NetworkType | undefined,
+  hub: HubAddress | null,
+): string | null {
+  if (tier === 'connected') return hub ? HUB_ROUTE_BADGE[hub.route] : null
+  if (tier.startsWith('bars-')) {
+    return networkType === undefined || networkType === 'unknown'
+      ? null
+      : networkTypeLabel(networkType)
+  }
+  return null
 }
 
 /**

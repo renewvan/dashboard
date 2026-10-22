@@ -6,6 +6,7 @@ import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import { devicesSummary } from '@/lib/devices'
 import { pushSearchParams } from '@/lib/urlHistory'
+import { routerDevice, routerName } from '@/lib/routerDevice'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 import { AlertsView } from './general/preferences/AlertsView'
 import { AlertsButton } from '@/components/AlertsButton'
@@ -74,6 +75,7 @@ export const SettingsPage = memo(function SettingsPage() {
     routerUpdatedAt,
     busStatus,
     tailscale,
+    hub,
     sleepDisplay,
     wakeDisplay,
     unseenAlertCount,
@@ -119,6 +121,7 @@ export const SettingsPage = memo(function SettingsPage() {
     const fluid = tankParam === null ? undefined : tanks[tankParam]?.fluid_type
     if (id === 'tank' && fluid) return FLUID_LABELS[fluid]
     if (id === 'device' && deviceRow) return deviceRow.name
+    if (id === 'cellular') return routerName(routerDevice(devices))
     return VIEWS[id].title
   }
   // The drawer is one persistent dialog: navigating deeper swaps its content in place instead
@@ -214,7 +217,7 @@ export const SettingsPage = memo(function SettingsPage() {
         <GroupRow
           icon={<Wifi />}
           label="Connectivity"
-          description="Cellular, Hub, Tailscale"
+          description={`${routerName(routerDevice(devices))}, Hub, Tailscale`}
           onOpen={() => setView('connectivity')}
         />
       </div>
@@ -246,6 +249,7 @@ export const SettingsPage = memo(function SettingsPage() {
                 lastReceivedAt={routerUpdatedAt}
                 tailscale={tailscale}
                 busStatus={busStatus}
+                hub={hub}
                 onOpenSettings={() => setView('connectivity')}
               />
               <AlertsButton onClick={openAlerts} count={unseenAlertCount} active={false} />
