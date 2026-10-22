@@ -18,41 +18,43 @@ const SPRITE_DIR = '/maps/sprites/v4'
 const SOURCE = 'protomaps'
 
 /**
- * Protomaps' `dark` flavor with the structure lifted. Stock `dark` keeps land (`#1f1f1f`), roads
- * (`#3d3d3d`) and buildings (`#111111`) inside one very dark band, so on the kiosk's small screen
- * the streets barely separate from the ground. Here land, buildings, roads and labels are spread
- * out: buildings sit between land and roads, roads are clearly lighter than both, and the road and
- * place labels are brighter. Water, parks, POI colours and the sprite are stock `dark`, so the icons
- * (`sprites/v4/dark`) still match the layers that use them.
+ * Protomaps' `dark` flavor with the structure lifted, but only part of the way. Stock `dark` keeps
+ * land (`#1f1f1f`), roads (`#3d3d3d`) and buildings (`#111111`) inside one very dark band, so on the
+ * kiosk's small screen the streets barely separate from the ground. A first lift (land `#2e3138`)
+ * fixed that but glared at night, so this sits between the two: land, buildings, roads and labels
+ * are still spread out (buildings between land and roads, roads clearly lighter than both, brighter
+ * road and place labels), with the whole range pulled down toward stock. Water, parks, POI colours
+ * and the sprite are stock `dark`, so the icons (`sprites/v4/dark`) still match the layers that
+ * use them.
  */
 const DARK_LIFTED: Flavor = {
   ...DARK,
-  earth: '#2e3138',
-  buildings: '#3b3f48',
-  industrial: '#2c2f35',
-  hospital: '#33312f',
-  school: '#34312f',
-  wood_b: '#2c302f',
-  scrub_b: '#2d3130',
-  glacier: '#30333a',
-  aerodrome: '#2d3036',
-  minor_a: '#5b606b',
-  minor_b: '#4d525c',
-  other: '#4d525c',
-  major: '#6a707c',
-  highway: '#868c99',
-  major_casing_early: '#2e3138',
-  major_casing_late: '#2e3138',
-  highway_casing_early: '#2e3138',
-  highway_casing_late: '#2e3138',
-  roads_label_minor: '#a3a9b5',
-  roads_label_minor_halo: '#2e3138',
-  roads_label_major: '#c4c9d3',
-  roads_label_major_halo: '#2e3138',
-  subplace_label: '#a3a9b5',
-  subplace_label_halo: '#2e3138',
-  city_label: '#d0d4dc',
-  city_label_halo: '#2e3138',
+  earth: '#262830',
+  buildings: '#2d3038',
+  industrial: '#25272d',
+  hospital: '#2b2a29',
+  school: '#2c2a29',
+  wood_b: '#252928',
+  scrub_b: '#262a29',
+  glacier: '#272a2f',
+  aerodrome: '#26282d',
+  minor_a: '#4f525b',
+  minor_b: '#40444c',
+  other: '#40444c',
+  major: '#525761',
+  highway: '#70757f',
+  major_casing_early: '#262830',
+  major_casing_late: '#262830',
+  highway_casing_early: '#262830',
+  highway_casing_late: '#262830',
+  roads_label_minor: '#8a909c',
+  roads_label_minor_halo: '#262830',
+  roads_label_major: '#a9aeb9',
+  roads_label_major_halo: '#262830',
+  subplace_label: '#8a909c',
+  subplace_label_halo: '#262830',
+  city_label: '#b4b8c1',
+  city_label_halo: '#262830',
 }
 
 /**
