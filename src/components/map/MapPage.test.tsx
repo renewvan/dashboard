@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import type { Gps, Tilt } from '@/types'
-import { GpsPage } from './GpsPage'
+import { MapPage } from './MapPage'
 
 // Leaflet needs real layout and tile loading; jsdom has neither. The page's own logic is
 // which state it shows and what the readout says, so the map is reduced to its inputs.
@@ -42,7 +42,7 @@ const FIX: Gps = {
 }
 
 function renderPage(gps: Record<string, Partial<Gps>>, tilt: Record<string, Partial<Tilt>> = {}) {
-  return render(<GpsPage gps={gps as Record<string, Gps>} tilt={tilt} />)
+  return render(<MapPage gps={gps as Record<string, Gps>} tilt={tilt} />)
 }
 
 const fetchMock = vi.fn()
@@ -60,7 +60,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('GpsPage', () => {
+describe('MapPage', () => {
   it('asks for data when no GPS record has arrived', () => {
     renderPage({})
     expect(screen.getByRole('heading', { name: 'No GPS data yet.' })).toBeInTheDocument()
@@ -94,7 +94,7 @@ describe('GpsPage', () => {
 
   it('reads out the fix quality, satellites and rounded speed', () => {
     renderPage({ gps0: FIX })
-    const readout = screen.getByTestId('gps-readout')
+    const readout = screen.getByTestId('map-readout')
     expect(readout).toHaveTextContent('GPS')
     expect(readout).toHaveTextContent('9')
     expect(readout).toHaveTextContent('62 km/h')
@@ -102,12 +102,12 @@ describe('GpsPage', () => {
 
   it('omits the speed when the fix carries none', () => {
     renderPage({ gps0: { ...FIX, speed_kmh: undefined } })
-    expect(screen.getByTestId('gps-readout')).not.toHaveTextContent('km/h')
+    expect(screen.getByTestId('map-readout')).not.toHaveTextContent('km/h')
   })
 
   it('shows 0 km/h for a standstill rather than hiding the speed', () => {
     renderPage({ gps0: { ...FIX, speed_kmh: 0 } })
-    expect(screen.getByTestId('gps-readout')).toHaveTextContent('0 km/h')
+    expect(screen.getByTestId('map-readout')).toHaveTextContent('0 km/h')
   })
 
   it('skips an incomplete record and plots the first complete one', () => {
@@ -122,18 +122,18 @@ describe('GpsPage', () => {
     it('faces right and shows the bearing while heading east', () => {
       renderPage({ gps0: { ...MOVING, course_deg: 90 } })
       expect(html()).not.toContain('scaleX(-1)')
-      expect(screen.getByTestId('gps-heading')).toHaveTextContent('E 90°')
+      expect(screen.getByTestId('map-heading')).toHaveTextContent('E 90°')
     })
 
     it('mirrors to face left while heading west', () => {
       renderPage({ gps0: { ...MOVING, course_deg: 270 } })
       expect(html()).toContain('scaleX(-1)')
-      expect(screen.getByTestId('gps-heading')).toHaveTextContent('W 270°')
+      expect(screen.getByTestId('map-heading')).toHaveTextContent('W 270°')
     })
 
     it('shows no heading at a standstill, where the course is stale', () => {
       renderPage({ gps0: { ...FIX, speed_kmh: 0, course_deg: 270 } })
-      expect(screen.queryByTestId('gps-heading')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('map-heading')).not.toBeInTheDocument()
       expect(html()).not.toContain('scaleX(-1)')
     })
 
@@ -155,7 +155,7 @@ describe('GpsPage', () => {
     it('names the place the van is in, looked up at the fix', async () => {
       answer({ address: { town: 'Hastings' }, display_name: 'Hastings, England' })
       renderPage({ gps0: FIX })
-      expect(await screen.findByTestId('gps-place')).toHaveTextContent('Hastings')
+      expect(await screen.findByTestId('map-place')).toHaveTextContent('Hastings')
       expect(String(fetchMock.mock.calls[0][0])).toContain('lat=51.5&lon=-0.12')
     })
 
@@ -163,16 +163,16 @@ describe('GpsPage', () => {
       answer({ error: 'Unable to geocode' })
       renderPage({ gps0: FIX })
       await waitFor(() => expect(fetchMock).toHaveBeenCalled())
-      expect(screen.queryByTestId('gps-place')).not.toBeInTheDocument()
-      expect(screen.getByTestId('gps-readout')).toHaveTextContent('62 km/h')
+      expect(screen.queryByTestId('map-place')).not.toBeInTheDocument()
+      expect(screen.getByTestId('map-readout')).toHaveTextContent('62 km/h')
     })
 
     it('keeps the rest of the readout when the lookup fails', async () => {
       fetchMock.mockRejectedValue(new Error('offline'))
       renderPage({ gps0: FIX })
       await waitFor(() => expect(fetchMock).toHaveBeenCalled())
-      expect(screen.queryByTestId('gps-place')).not.toBeInTheDocument()
-      expect(screen.getByTestId('gps-readout')).toHaveTextContent('62 km/h')
+      expect(screen.queryByTestId('map-place')).not.toBeInTheDocument()
+      expect(screen.getByTestId('map-readout')).toHaveTextContent('62 km/h')
     })
 
     it('does not look anything up while there is no fix to look up', () => {
@@ -183,10 +183,10 @@ describe('GpsPage', () => {
     it('looks up once per ~110 m cell, not for every jittering fix', async () => {
       answer({ address: { town: 'Hastings' } })
       const { rerender } = renderPage({ gps0: FIX })
-      await screen.findByTestId('gps-place')
-      rerender(<GpsPage gps={{ gps0: { ...FIX, latitude: 51.50031, longitude: -0.12012 } }} />)
+      await screen.findByTestId('map-place')
+      rerender(<MapPage gps={{ gps0: { ...FIX, latitude: 51.50031, longitude: -0.12012 } }} />)
       expect(fetchMock).toHaveBeenCalledTimes(1)
-      rerender(<GpsPage gps={{ gps0: { ...FIX, latitude: 51.52, longitude: -0.12 } }} />)
+      rerender(<MapPage gps={{ gps0: { ...FIX, latitude: 51.52, longitude: -0.12 } }} />)
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     })
   })

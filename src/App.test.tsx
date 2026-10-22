@@ -51,7 +51,7 @@ const KIOSK_WIDTH = 800
 const PHONE_WIDTH = 390
 const JUST_BELOW_KIOSK_WIDTH = 799
 
-const NAV_LABELS = ['Start', 'Power', 'Tanks', 'GPS', 'Relays', 'Heater', 'Settings']
+const NAV_LABELS = ['Start', 'Power', 'Tanks', 'Map', 'Relays', 'Heater', 'Settings']
 
 const HEADER_HEIGHT_VAR = '--app-header-height'
 
@@ -334,9 +334,9 @@ describe('App shell alerts bell', () => {
 
 describe('App shell URL state', () => {
   it('opens the page named by ?page= on load', async () => {
-    await renderAt(KIOSK_WIDTH, '/?page=gps')
-    expect(selectedPage()).toHaveAccessibleName('GPS')
-    expect(screen.getByTestId('pane-gps')).toBeInTheDocument()
+    await renderAt(KIOSK_WIDTH, '/?page=map')
+    expect(selectedPage()).toHaveAccessibleName('Map')
+    expect(screen.getByTestId('pane-map')).toBeInTheDocument()
   })
 
   it('falls back to Start for an unknown ?page=', async () => {
@@ -349,16 +349,90 @@ describe('App shell URL state', () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('tab', { name: 'Power' }))
-    await user.click(screen.getByRole('tab', { name: 'GPS' }))
-    expect(screen.getByTestId('pane-gps')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Map' }))
+    expect(screen.getByTestId('pane-map')).toBeInTheDocument()
 
     act(() => window.history.back())
     await waitFor(() => expect(screen.getByTestId('pane-power')).toBeInTheDocument())
     expect(selectedPage()).toHaveAccessibleName('Power')
 
     act(() => window.history.forward())
-    await waitFor(() => expect(screen.getByTestId('pane-gps')).toBeInTheDocument())
-    expect(selectedPage()).toHaveAccessibleName('GPS')
+    await waitFor(() => expect(screen.getByTestId('pane-map')).toBeInTheDocument())
+    expect(selectedPage()).toHaveAccessibleName('Map')
+  })
+})
+
+/** A tilt record the driver has published, as the retained topics arrive: live angles, `ok`. */
+async function receiveLiveTilt() {
+  await receive('renewvan/tilt/tilt/roll_deg', '-2.2')
+  await receive('renewvan/tilt/tilt/pitch_deg', '4')
+  await receive('renewvan/tilt/tilt/status', JSON.stringify('ok'))
+}
+
+/** The tilt driver's retained Device info and health, as it publishes them on connect. */
+async function receiveTiltDevice(health: 'online' | 'offline') {
+  const info = {
+    device: 'tilt',
+    product: 'GY-521 tilt sensor',
+    source: 'MPU-6050 accelerometer (I2C)',
+    publishes: ['tilt'],
+    version: 'v0.3.0',
+  }
+  await receive('renewvan/tilt/info', JSON.stringify(info))
+  await receive('renewvan/tilt/health', health)
+}
+
+describe('App shell Start page tilt', () => {
+  it('shows the live tilt in the middle of the Dial while its driver is online', async () => {
+    await renderAt(KIOSK_WIDTH)
+    await receiveTiltDevice('online')
+    await receiveLiveTilt()
+
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('+4.0°')
+  })
+
+  it('drops the tilt the moment its driver goes offline, though its last angles stay retained', async () => {
+    await renderAt(KIOSK_WIDTH)
+    await receiveTiltDevice('online')
+    await receiveLiveTilt()
+    expect(screen.getByTestId('tilt-pitch')).toBeInTheDocument()
+
+    // The driver dies: the broker's last will flips health, but `status ok` and the angles stay.
+    await receive('renewvan/tilt/health', 'offline')
+
+    expect(screen.queryByTestId('tilt-pitch')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('tilt-card')).not.toBeInTheDocument()
+  })
+
+  it('brings the tilt back when the driver does', async () => {
+    await renderAt(KIOSK_WIDTH)
+    await receiveTiltDevice('offline')
+    await receiveLiveTilt()
+    expect(screen.queryByTestId('tilt-pitch')).not.toBeInTheDocument()
+
+    await receive('renewvan/tilt/health', 'online')
+
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('+4.0°')
+  })
+
+  it('keeps a tilt that works while no tilt Device has announced itself', async () => {
+    // A driver that predates Device info, or health still on its way: no evidence of failure.
+    await renderAt(KIOSK_WIDTH)
+    await receiveLiveTilt()
+
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('+4.0°')
+  })
+
+  it('shows dashes, not frozen angles, on the phone card once the driver is offline', async () => {
+    await renderAt(PHONE_WIDTH)
+    await receiveTiltDevice('online')
+    await receiveLiveTilt()
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('+4.0°')
+
+    await receive('renewvan/tilt/health', 'offline')
+
+    expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('—')
+    expect(screen.getByTestId('tilt-roll')).toHaveTextContent('—')
   })
 })
 

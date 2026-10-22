@@ -9,7 +9,7 @@ import { hasGpsFix, isCompleteGps, type Gps, type Tilt } from '@/types'
 import { VanMarker } from './VanMarker'
 import { useLocationName } from './useLocationName'
 
-export interface GpsPageProps {
+export interface MapPageProps {
   gps: Record<string, Gps>
   /** Tilt records by id; the first one's pitch tilts the van on the map. */
   tilt?: Record<string, Partial<Tilt>>
@@ -22,7 +22,7 @@ const OSM_ATTRIBUTION =
 function EmptyPane({ title, description }: { title: string; description: string }) {
   return (
     <section
-      data-testid="pane-gps"
+      data-testid="pane-map"
       className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-center"
     >
       <Map aria-hidden="true" className="text-muted size-5" />
@@ -38,7 +38,7 @@ function EmptyPane({ title, description }: { title: string; description: string 
  * it is travelling (GPS course, only while moving) and pitches with the tilt device. The map is a
  * live view, not a navigator: it re-centres only when the page remounts.
  */
-export function GpsPage({ gps, tilt = {} }: GpsPageProps) {
+export function MapPage({ gps, tilt = {} }: MapPageProps) {
   // MQTT builds a record up one property per retained message; skip any id whose
   // unconditional fields haven't arrived (see `isCompleteGps`). There is a single
   // GPS device per hub, so the first complete id decides.
@@ -75,7 +75,7 @@ export function GpsPage({ gps, tilt = {} }: GpsPageProps) {
 
 /**
  * The map and readout for a record that has a position. A component of its own because the place
- * name is a hook, which cannot sit after `GpsPage`'s early returns.
+ * name is a hook, which cannot sit after `MapPage`'s early returns.
  */
 function FixView({
   record,
@@ -97,7 +97,7 @@ function FixView({
     // the root stacking context. Isolation caps every Leaflet z-index to this
     // subtree so the map can never paint over anything outside it.
     <section
-      data-testid="pane-gps"
+      data-testid="pane-map"
       className="relative isolate min-h-0 flex-1 overflow-hidden rounded-2xl"
     >
       <MapContainer center={position} zoom={15} scrollWheelZoom={false} className="h-full w-full">
@@ -106,11 +106,11 @@ function FixView({
       </MapContainer>
       {/* Above Leaflet's controls (z 1000) within this stacking context. */}
       <div
-        data-testid="gps-readout"
+        data-testid="map-readout"
         className="absolute bottom-4 left-4 z-1001 flex max-w-[calc(100%-2rem)] flex-col gap-1.5 rounded-xl border border-white/10 bg-black/60 px-4 py-2.5 text-white backdrop-blur-md"
       >
         {placeName && (
-          <span data-testid="gps-place" className="flex items-center gap-1.5 text-sm font-medium">
+          <span data-testid="map-place" className="flex items-center gap-1.5 text-sm font-medium">
             <MapPin aria-hidden="true" className="size-4 shrink-0" />
             <span className="line-clamp-2">{placeName}</span>
           </span>
@@ -130,7 +130,7 @@ function FixView({
           )}
           {heading !== null && (
             <span
-              data-testid="gps-heading"
+              data-testid="map-heading"
               className="flex items-center gap-1 text-sm font-semibold tabular-nums"
             >
               <Navigation

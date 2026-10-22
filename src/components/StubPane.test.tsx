@@ -15,7 +15,7 @@ describe('StubPane', () => {
   })
 
   it('renders the optional icon', () => {
-    render(<StubPane id="gps" title="GPS" icon={<svg data-testid="icon-gps" />} />)
-    expect(screen.getByTestId('icon-gps')).toBeInTheDocument()
+    render(<StubPane id="map" title="Map" icon={<svg data-testid="icon-map" />} />)
+    expect(screen.getByTestId('icon-map')).toBeInTheDocument()
   })
 })

@@ -143,7 +143,7 @@ export function StartPage({
   }
 
   return (
-    <section data-testid="pane-start" className="flex min-h-0 flex-1 flex-col px-8 pb-4">
+    <section data-testid="pane-start" className="flex min-h-0 flex-1 flex-col px-8">
       <Dial
         tanks={tanks}
         batteries={batteries}

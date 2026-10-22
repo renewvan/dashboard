@@ -14,7 +14,7 @@ export interface VanMarkerProps {
   pitch: number | null
 }
 
-const VAN_W = 48
+const VAN_W = 52
 const VAN_H = (VAN_W * 68.002) / 113.312
 
 /** A tight contact shadow plus a soft wide one, so the van lifts off any tile colour. */
