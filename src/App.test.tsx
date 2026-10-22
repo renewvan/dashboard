@@ -117,9 +117,16 @@ function selectedPage() {
   return screen.queryByRole('tab', { selected: true })
 }
 
-/** Taps Network settings in the uplink popover. */
-async function openCellularFromUplink(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByTestId('uplink-status-button'))
+/**
+ * Taps Network settings in the uplink popover. A Settings subpage hides the app header with CSS and
+ * shows its own bar, which carries the same button, so the one to tap is whichever is displayed.
+ */
+async function openNetworkSettingsFromUplink(user: UserEvent) {
+  const shown = screen
+    .getAllByTestId('uplink-status-button')
+    .find((button) => button.closest('.hidden') === null)
+  if (shown === undefined) throw new Error('no uplink button is displayed')
+  await user.click(shown)
   await user.click(await screen.findByRole('button', { name: /network settings/i }))
 }
 
@@ -132,6 +139,11 @@ function currentView() {
 function expectInCellular() {
   expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
   expect(currentView()).toHaveAccessibleName('Cellular')
+}
+
+function expectInConnectivity() {
+  expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
+  expect(currentView()).toHaveAccessibleName('Connectivity')
 }
 
 /** The top list: Settings' own title and its three rows, with no back button above them. */
@@ -542,13 +554,13 @@ describe('App shell header', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
   })
 
-  it('opens Settings › Connectivity › Cellular from the uplink popover CTA', async () => {
+  it('opens Settings › Connectivity from the uplink popover CTA', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
-    await openCellularFromUplink(user)
+    await openNetworkSettingsFromUplink(user)
     expect(selectedPage()).toHaveAccessibleName('Settings')
-    expectInCellular()
-    expect(window.location.search).toBe('?page=settings&view=cellular')
+    expectInConnectivity()
+    expect(window.location.search).toBe('?page=settings&view=connectivity')
   })
 
   it('opens the Settings tree from the rail and walks into a group and back', async () => {
@@ -602,8 +614,8 @@ describe('App shell Settings view in the URL', () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('tab', { name: 'Power' }))
-    await openCellularFromUplink(user)
-    expectInCellular()
+    await openNetworkSettingsFromUplink(user)
+    expectInConnectivity()
 
     await goBack()
     await waitFor(() => expect(selectedPage()).toHaveAccessibleName('Power'))
@@ -611,19 +623,19 @@ describe('App shell Settings view in the URL', () => {
     expect(screen.queryByTestId('pane-settings')).not.toBeInTheDocument()
 
     await goForward()
-    await waitFor(() => expectInCellular())
-    expect(window.location.search).toBe('?page=settings&view=cellular')
+    await waitFor(() => expectInConnectivity())
+    expect(window.location.search).toBe('?page=settings&view=connectivity')
   })
 
   it.each([
     ['kiosk', KIOSK_WIDTH],
     ['phone', PHONE_WIDTH],
-  ])('opens Cellular from the popover CTA on another page (%s)', async (_name, width) => {
+  ])('opens Connectivity from the popover CTA on another page (%s)', async (_name, width) => {
     const user = userEvent.setup()
     await renderAt(width, '/?page=tanks')
-    await openCellularFromUplink(user)
-    expectInCellular()
-    expect(window.location.search).toBe('?page=settings&view=cellular')
+    await openNetworkSettingsFromUplink(user)
+    expectInConnectivity()
+    expect(window.location.search).toBe('?page=settings&view=connectivity')
   })
 
   it('tapping the Settings rail entry from another page drops a stale view', async () => {
@@ -758,9 +770,9 @@ describe('App shell Settings view in the URL', () => {
     await user.click(within(pane).getByRole('button', { name: /^General/ }))
     expect(currentView()).toHaveAccessibleName('General')
 
-    await openCellularFromUplink(user)
-    expectInCellular()
-    expect(window.location.search).toBe('?page=settings&view=cellular')
+    await openNetworkSettingsFromUplink(user)
+    expectInConnectivity()
+    expect(window.location.search).toBe('?page=settings&view=connectivity')
 
     await goBack()
     expect(currentView()).toHaveAccessibleName('General')
