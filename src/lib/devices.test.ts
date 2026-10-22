@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 import { emptyRenewvanBusState, type DeviceInfo, type RenewvanBusState } from '@/types'
-import { deviceRows, devicesSummary, relayDevicesOnline } from './devices'
+import { deviceRows, devicesSummary, relayDevicesOnline, tiltDevicesOffline } from './devices'
 
 function stateWith(partial: Partial<RenewvanBusState>): RenewvanBusState {
   return { ...emptyRenewvanBusState, ...partial }
@@ -291,5 +291,50 @@ describe('relayDevicesOnline', () => {
       tank: { info: tankInfo, health: 'online' as const },
     }
     expect(relayDevicesOnline(stateWith({ devices }))).toBe(false)
+  })
+})
+
+describe('tiltDevicesOffline', () => {
+  const tiltInfo: DeviceInfo = {
+    device: 'tilt',
+    product: 'GY-521 tilt sensor',
+    source: 'MPU-6050 accelerometer (I2C)',
+    publishes: ['tilt'],
+    version: 'v0.3.0',
+  }
+
+  it('is true when the tilt Device is offline: its retained angles are dead', () => {
+    const devices = { tilt: { info: tiltInfo, health: 'offline' as const } }
+    expect(tiltDevicesOffline(stateWith({ devices }))).toBe(true)
+  })
+
+  it('finds the tilt Device by what it publishes, whatever its key', () => {
+    const devices = {
+      imu: { info: { ...tiltInfo, device: 'imu' }, health: 'offline' as const },
+    }
+    expect(tiltDevicesOffline(stateWith({ devices }))).toBe(true)
+  })
+
+  it('is false while the tilt Device is online', () => {
+    const devices = { tilt: { info: tiltInfo, health: 'online' as const } }
+    expect(tiltDevicesOffline(stateWith({ devices }))).toBe(false)
+  })
+
+  it('is false when the health is unknown: only a known failure blanks a working tilt', () => {
+    // Info arrives with `online` on connect, but a record can have info and no health yet, and a
+    // van with no tilt Device record at all still has a tilt that works.
+    expect(tiltDevicesOffline(stateWith({ devices: { tilt: { info: tiltInfo } } }))).toBe(false)
+    expect(
+      tiltDevicesOffline(stateWith({ devices: { tilt: { health: 'offline' as const } } })),
+    ).toBe(false)
+    expect(tiltDevicesOffline(emptyRenewvanBusState)).toBe(false)
+  })
+
+  it('ignores an offline Device that does not publish tilt', () => {
+    const devices = {
+      tilt: { info: tiltInfo, health: 'online' as const },
+      tank: { info: tankInfo, health: 'offline' as const },
+    }
+    expect(tiltDevicesOffline(stateWith({ devices }))).toBe(false)
   })
 })

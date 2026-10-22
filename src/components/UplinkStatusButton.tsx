@@ -13,7 +13,7 @@ import {
   type ConnectionTier,
 } from '@/lib/connection'
 import { formatBytes } from '@/lib/format'
-import { hubRouteText, type HubAddress } from '@/lib/hubAddress'
+import type { HubAddress } from '@/lib/hubAddress'
 import { tailscaleStatusText } from '@/lib/tailscale'
 import type { Router } from '@/types'
 import { IconStatusButton } from './IconStatusButton'
@@ -162,7 +162,6 @@ export function UplinkStatusButton({
       <Section heading="Hub connection">
         <StatusDotRow label="Hub" tone={BUS_TONE[busStatus]} text={busStatusText(busStatus)} />
         <FieldRow label="Address" value={hub?.host ?? null} />
-        <FieldRow label="Via" value={hub ? hubRouteText(hub.route) : null} />
       </Section>
       <Section heading="Remote access">
         <StatusDotRow

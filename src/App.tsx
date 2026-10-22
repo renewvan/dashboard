@@ -16,7 +16,7 @@ import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { SettingsSubView } from '@/components/settings/views'
 import { TanksPage } from '@/components/tanks/TanksPage'
 import { RelaysPage } from '@/components/relays/RelaysPage'
-import { GpsPage } from '@/components/gps/GpsPage'
+import { MapPage } from '@/components/map/MapPage'
 import { StartPage } from '@/components/start/StartPage'
 import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
@@ -26,7 +26,8 @@ import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
-import { deviceRows, relayDevicesOnline } from '@/lib/devices'
+import { deviceRows, relayDevicesOnline, tiltDevicesOffline } from '@/lib/devices'
+import type { RenewvanBusState } from '@/types'
 import { settingsCommands } from '@/lib/settings-commands'
 import { useAutoHide } from '@/hooks/useAutoHide'
 import { useTheme } from '@/hooks/useTheme'
@@ -39,11 +40,14 @@ import { useHubAddress } from '@/hooks/useHubAddress'
 import { useBrokerLink } from '@/hooks/useBrokerLink'
 import { ShellHeaderContext } from '@/components/settings/ShellHeaderContext'
 
+/** No tilt record at all, one stable object so the pages' `tilt` prop does not change every render. */
+const NO_TILT: RenewvanBusState['tilt'] = {}
+
 const NAV_ITEMS: NavItem[] = [
   { id: 'start', label: 'Start', icon: <Gauge className="size-5" /> },
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
   { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
-  { id: 'gps', label: 'GPS', icon: <Map className="size-5" /> },
+  { id: 'map', label: 'Map', icon: <Map className="size-5" /> },
   { id: 'switches', label: 'Relays', icon: <ToggleLeft className="size-5" /> },
   { id: 'heater', label: 'Heater', icon: <Heater className="size-5" /> },
   { id: 'settings', label: 'Settings', icon: <Wrench className="size-5" /> },
@@ -157,6 +161,11 @@ function App() {
   const routerId = Object.keys(state.routers)[0]
   const router = state.routers[routerId]
   const routerUpdatedAt = state.routerUpdatedAt[routerId]
+  // A tilt driver that died leaves its last `ok` and angles retained on the broker, which read as a
+  // live level. Its Device health is the only sign it is gone, so with it offline the pages get no
+  // tilt at all: the Dial falls back to the battery, the phone card shows dashes, the van on the
+  // map stays level.
+  const tilt = tiltDevicesOffline(state) ? NO_TILT : state.tilt
 
   // `state.tanks` / `state.gps` change on every message, so the derived rows are kept by their
   // content: the Settings context only changes when a Device, its state or its entity count does.
@@ -323,7 +332,7 @@ function App() {
             chargers={state.chargers}
             temperatures={state.temperatures}
             gps={state.gps}
-            tilt={state.tilt}
+            tilt={tilt}
             powerSources={startPowerSources}
             isDark={theme === 'dark'}
           />
@@ -339,8 +348,8 @@ function App() {
         )
       case 'tanks':
         return <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
-      case 'gps':
-        return <GpsPage gps={state.gps} tilt={state.tilt} />
+      case 'map':
+        return <MapPage gps={state.gps} tilt={tilt} />
       case 'switches':
         return (
           <RelaysPage

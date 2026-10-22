@@ -25,9 +25,10 @@ reads 5G) while the router feeds, or how the kiosk reaches the hub (`LAN`,
 `TS`, `WAN`, judged from the broker address in `VITE_MQTT_WS_URL`) while it
 does not. Its popover keeps the router and the hub apart: a **Router
 connection** block (network, RSRP, data; only while the router feeds), a **Hub
-connection** block (the Bus link, the hub's address, and whether the kiosk
-reaches it over the local network, Tailscale or remotely) and **Remote access**
-(Tailscale). The router carries no IP on the bus (`router.schema.json` has no
+connection** block (the Bus link and the hub's address) and **Remote access**
+(Tailscale). How the kiosk reaches the hub (local network, Tailscale or remotely)
+is not in the popover: it is the connection-type badge and Settings → Hub's
+"Reached over" row. The router carries no IP on the bus (`router.schema.json` has no
 such field), so the hub's address is the Pi's own: the hub plugin publishes it
 retained to `renewvan/hub/status` (hub `hub-status.schema.json`), read from the
 Pi itself, so it is there with or without a router. How the kiosk reaches the
@@ -37,6 +38,17 @@ the Pi's LAN address and "Tailscale". Until the Pi has published, the broker's
 host stands in for the address.
 _Avoid_: Internet connection, WAN, network status, signal strength (alone —
 it's the whole connection state, including connected/offline/no-service)
+
+**Map page**:
+The `map` page (`MapPage`): a full-bleed MapLibre map of where the hub's GPS fix is, with the van drawn
+on it and a readout of fix quality, satellites, speed and heading. It is a live view, not a
+navigator: it centres once, so the van moves on a still map and the view re-centres only when the
+page remounts. The basemap is **offline**: Protomaps vector tiles read from one regional
+`basemap.pmtiles` on the dashboard's own origin (`/maps/`), with fonts and sprites baked into the
+image, so no tile request ever leaves the LAN (`docs/adr/0001-self-hosted-pmtiles-basemap.md`, how to
+make the file: `docs/offline-map.md`). Outside the file's area, or with no file mounted, the map is an
+empty background with the van on it; nothing falls back to the internet.
+_Avoid_: GPS page (the old name; the page shows a map, the GPS readings are its readout), OpenStreetMap tiles (the data is OSM's, the tiles are ours)
 
 **Router row**:
 The first row of Settings → Connectivity (`ConnectivityView`, page `CellularView`, still

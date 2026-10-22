@@ -644,7 +644,16 @@ describe('useRenewvanBus hub status', () => {
   const send = (payload: string) =>
     messageHandlers[0]('renewvan/hub/status', { toString: () => payload })
 
-  const status = { ip: '192.168.10.50', hostname: 'renewvan' }
+  const status = { ip: '192.168.10.50', hostname: 'renewvan', version: 'v0.4.0' }
+
+  it('keeps the address of a hub plugin that predates the version field, without a version', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify({ ip: '192.168.10.50', hostname: 'renewvan' }))
+    await waitFor(() =>
+      expect(result.current.hubStatus).toEqual({ ip: '192.168.10.50', hostname: 'renewvan' }),
+    )
+  })
 
   it('reads a status that matches the schema', async () => {
     const { result } = renderHook(() => useRenewvanBus())
@@ -656,7 +665,7 @@ describe('useRenewvanBus hub status', () => {
   it('accepts a null ip while the Pi has no default route', async () => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
-    const noRoute = { ip: null, hostname: 'renewvan' }
+    const noRoute = { ip: null, hostname: 'renewvan', version: 'dev' }
     send(JSON.stringify(noRoute))
     await waitFor(() => expect(result.current.hubStatus).toEqual(noRoute))
   })
@@ -680,9 +689,12 @@ describe('useRenewvanBus hub status', () => {
   it.each([
     ['a bare string', '"192.168.10.50"'],
     ['malformed JSON', '{"ip":'],
-    ['a missing hostname', JSON.stringify({ ip: '192.168.10.50' })],
-    ['a missing ip', JSON.stringify({ hostname: 'renewvan' })],
+    ['a missing hostname', JSON.stringify({ ip: '192.168.10.50', version: 'v0.4.0' })],
+    ['a missing ip', JSON.stringify({ hostname: 'renewvan', version: 'v0.4.0' })],
     ['a numeric ip', JSON.stringify({ ...status, ip: 1 })],
+    ['an empty version', JSON.stringify({ ...status, version: '' })],
+    ['a numeric version', JSON.stringify({ ...status, version: 4 })],
+    ['a null version', JSON.stringify({ ...status, version: null })],
     ['an array', JSON.stringify([status])],
   ])('reads %s as no status, so the last address does not stay on screen', async (_, payload) => {
     const { result } = renderHook(() => useRenewvanBus())

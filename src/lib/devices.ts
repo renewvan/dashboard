@@ -180,3 +180,20 @@ export function relayDevicesOnline(state: Pick<RenewvanBusState, 'devices'>): bo
   )
   return relayDevices.length > 0 && relayDevices.every((n) => n.health === 'online')
 }
+
+/**
+ * Whether the tilt angles are known to be dead: a Device whose info says it publishes `tilt` is
+ * `offline`. The angles are retained, and a last will cannot clear them, so a driver that dies
+ * leaves its last `status: ok` and last angles on the broker for ever, indistinguishable from a
+ * live reading; the Device's health is the only thing that says the driver is gone.
+ *
+ * Unlike `relayDevicesOnline` this reads only positive evidence of failure, not the absence of
+ * proof of life. A van whose tilt driver predates Device info, or one with no Device record yet
+ * (health arrives after the retained angles), still has a working tilt, so unknown health, no
+ * Device and an online one all read as not dead. Same join and per-instance limit as `deviceRows`.
+ */
+export function tiltDevicesOffline(state: Pick<RenewvanBusState, 'devices'>): boolean {
+  return Object.values(state.devices).some(
+    (n) => n.info?.publishes?.includes('tilt') && n.health === 'offline',
+  )
+}

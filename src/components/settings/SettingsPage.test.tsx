@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vite-plus/test'
 import { version } from '../../../package.json'
 import type { UserEvent } from '@testing-library/user-event'
 import { renderSettings, settingsRows, type RenderSettingsOptions } from '@/test/renderSettings'
+import type { SettingsContextValue } from './SettingsContext'
 import type { Tank } from '@/types'
 
 const completeTank: Tank = {
@@ -65,7 +66,7 @@ describe('SettingsPage drill-down', () => {
     await user.click(screen.getByRole('button', { name: /^General/ }))
     expect(screen.queryByText(/not available/i)).not.toBeInTheDocument()
     expect(rowNames()).toEqual([
-      'FirmwareDashboard version',
+      'FirmwareHub and dashboard versions',
       'Display & AppearanceTheme, brightness, auto-sleep, layout',
       'AlertsNotifications on',
     ])
@@ -153,8 +154,11 @@ describe('SettingsPage Firmware', () => {
     version: 'v0.8.0',
   }
 
-  async function openFirmware(options: RenderSettingsOptions = {}) {
-    const rendered = renderSettings({}, options)
+  async function openFirmware(
+    options: RenderSettingsOptions = {},
+    overrides: Partial<SettingsContextValue> = {},
+  ) {
+    const rendered = renderSettings(overrides, options)
     await rendered.user.click(screen.getByRole('button', { name: /^General/ }))
     await rendered.user.click(screen.getByRole('button', { name: /^Firmware/ }))
     return rendered
@@ -165,30 +169,36 @@ describe('SettingsPage Firmware', () => {
       .getAllByRole('term')
       .map((term) => [term.textContent, term.nextElementSibling?.textContent])
 
-  it('lists the dashboard first, then one row per Device, worded as on the Devices page', async () => {
-    await openFirmware({
-      bus: {
-        devices: {
-          tank: { info: tankInfo, health: 'online' },
-          temperature: {
-            info: {
-              ...tankInfo,
-              device: 'temperature',
-              product: 'Temperature device',
-              version: 'dev',
+  it('lists the hub first, then the dashboard, then one row per Device', async () => {
+    await openFirmware(
+      {
+        bus: {
+          devices: {
+            tank: { info: tankInfo, health: 'online' },
+            temperature: {
+              info: {
+                ...tankInfo,
+                device: 'temperature',
+                product: 'Temperature device',
+                version: 'dev',
+              },
+              health: 'online',
             },
-            health: 'online',
+            router: {
+              info: { ...tankInfo, device: 'router', product: 'Router bridge', version: 'v0.1.0' },
+              health: 'offline',
+            },
+            gps: { health: 'online' },
           },
-          router: {
-            info: { ...tankInfo, device: 'router', product: 'Router bridge', version: 'v0.1.0' },
-            health: 'offline',
-          },
-          gps: { health: 'online' },
         },
       },
-    })
+      {
+        hubStatus: { ip: '192.168.1.10', hostname: 'renewvan', version: 'v0.4.0-3-g6a77a25-dirty' },
+      },
+    )
 
     expect(rows()).toEqual([
+      ['Hub', 'v0.4.0-3-g6a77a25-dirty'],
       ['Dashboard', version],
       ['GPS', 'Unknown'],
       ['Router', 'offline, last seen v0.1.0'],
@@ -197,10 +207,16 @@ describe('SettingsPage Firmware', () => {
     ])
   })
 
-  it('lists only the dashboard while no Device has reported', async () => {
-    await openFirmware()
+  it.each([
+    ['the hub has not published yet', null],
+    ['the hub plugin predates the version field', { ip: '192.168.1.10', hostname: 'renewvan' }],
+  ])('reads the hub as Unknown while %s', async (_, hubStatus) => {
+    await openFirmware({}, { hubStatus })
 
-    expect(rows()).toEqual([['Dashboard', version]])
+    expect(rows()).toEqual([
+      ['Hub', 'Unknown'],
+      ['Dashboard', version],
+    ])
   })
 
   it('has no drill-in: it is read-only', async () => {
@@ -224,7 +240,7 @@ describe('SettingsPage General groups', () => {
       within(screen.getByRole('region', { name }))
         .getAllByRole('button')
         .map((row) => row.textContent)
-    expect(rowsIn('System')).toEqual(['FirmwareDashboard version'])
+    expect(rowsIn('System')).toEqual(['FirmwareHub and dashboard versions'])
     expect(rowsIn('Preferences')).toEqual([
       'Display & AppearanceTheme, brightness, auto-sleep, layout',
       'AlertsNotifications on',

@@ -28,11 +28,18 @@ export interface TailscaleStatus {
 
 /**
  * The hub plugin's retained status (hub `hub-status.schema.json`): the Pi's own local-network
- * address, read from the Pi itself, so it is there whether or not a router Device is installed.
+ * address, read from the Pi itself, so it is there whether or not a router Device is installed,
+ * and the hub version the Pi was deployed from.
  */
 export interface HubStatus {
   ip: string | null
   hostname: string | null
+  /**
+   * The deployed hub version (`v0.4.0`, `dev`). Absent when the Pi still runs a hub plugin from
+   * before the field existed: the schema requires it, but dropping the whole status for that would
+   * hide the hub's address until the next deploy.
+   */
+  version?: string
 }
 
 export interface RenewvanBus {
@@ -219,9 +226,11 @@ function parseTailscaleStatus(payload: string): TailscaleStatus | null {
 
 /**
  * The hub plugin's retained status (hub `hub-status.schema.json`): a JSON object with `ip` and
- * `hostname`, each a string or null, both required. Same rule as the Tailscale status: an empty
- * payload clears the topic and anything malformed reads as no status, so a stale address is never
- * shown as the hub's.
+ * `hostname`, each a string or null, both required, and a non-empty string `version`. Same rule as
+ * the Tailscale status: an empty payload clears the topic and anything malformed reads as no
+ * status, so a stale address is never shown as the hub's. A payload with no `version` is a hub
+ * plugin older than the field, so it is kept without one; a present but invalid `version` is
+ * malformed.
  */
 function parseHubStatus(payload: string): HubStatus | null {
   const value = parseValue(payload)
@@ -229,7 +238,9 @@ function parseHubStatus(payload: string): HubStatus | null {
   const o = value as Record<string, unknown>
   if (!isStringOrNull(o.ip) || !isStringOrNull(o.hostname)) return null
   // `undefined` fails `isStringOrNull`, so a payload missing either required key is rejected above.
-  return { ip: o.ip, hostname: o.hostname }
+  if (o.version === undefined) return { ip: o.ip, hostname: o.hostname }
+  if (typeof o.version !== 'string' || o.version === '') return null
+  return { ip: o.ip, hostname: o.hostname, version: o.version }
 }
 
 /** An empty payload clears a retained topic; so does anything that is not a valid value. */

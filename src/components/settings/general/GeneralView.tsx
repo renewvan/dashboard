@@ -43,7 +43,7 @@ export function GeneralView({ onOpen }: GeneralViewProps) {
       <Group title="System">
         <GroupRow
           label="Firmware"
-          description="Dashboard version"
+          description="Hub and dashboard versions"
           onOpen={() => onOpen('firmware')}
         />
         <DemoModeRow />

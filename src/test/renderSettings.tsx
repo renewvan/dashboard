@@ -103,7 +103,7 @@ export function renderSettings(
     busStatus: 'connected',
     tailscale: connectedTailscale,
     hub: { host: '192.168.1.10', route: 'local' },
-    hubStatus: { ip: '192.168.1.10', hostname: 'renewvan' },
+    hubStatus: { ip: '192.168.1.10', hostname: 'renewvan', version: 'v0.4.0' },
     broker: { endpoint: '192.168.1.10:9001', protocol: 'WebSocket', authenticated: false },
     brightness: 70,
     autoSleepEnabled: false,
