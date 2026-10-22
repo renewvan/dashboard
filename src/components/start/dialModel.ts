@@ -8,6 +8,7 @@ import {
   type PowerSlot,
   type PowerSource,
   type RingSource,
+  type StartCentre,
 } from '@/hooks/useStartPowerSources'
 import type { Tilt } from '@/types'
 
@@ -66,17 +67,21 @@ export function hasTiltReading(tilt: Partial<Tilt> | undefined): boolean {
   return roll !== null && pitch !== null
 }
 
-/** What fills the middle of the rings: the van's tilt while it has a reading, else the battery. */
-export type CentreKind = 'tilt' | 'battery'
+/**
+ * What fills the middle of the rings: whatever is chosen, except that the tilt, with no usable
+ * reading, gives way to the battery's readout rather than leaving the middle empty.
+ */
+export type CentreKind = 'van' | 'tilt' | 'battery'
 
-export function centreKind(tilt: Partial<Tilt> | undefined): CentreKind {
-  return hasTiltReading(tilt) ? 'tilt' : 'battery'
+export function centreKind(choice: StartCentre, tilt: Partial<Tilt> | undefined): CentreKind {
+  if (choice === 'tilt') return hasTiltReading(tilt) ? 'tilt' : 'battery'
+  return choice
 }
 
 /**
- * The ring indices listed under the arc. While the battery readout fills the middle, the battery is
- * not repeated there; with the tilt in the middle, every ring is listed so the battery % stays
- * visible somewhere.
+ * The ring indices listed under the arc. Only the battery's own readout in the middle takes the
+ * battery out of the list; with the tilt or the van there, every ring is listed so the battery %
+ * stays visible somewhere.
  */
 export function legendIndices(rings: readonly RingSource[], centre: CentreKind): number[] {
   return rings.flatMap((source, index) =>

@@ -48,14 +48,20 @@ describe('ringLabel', () => {
 describe('centreKind', () => {
   it('is the tilt while the van has a usable reading', () => {
     expect(hasTiltReading(OK_TILT)).toBe(true)
-    expect(centreKind(OK_TILT)).toBe('tilt')
+    expect(centreKind('tilt', OK_TILT)).toBe('tilt')
   })
 
   it('falls back to the battery with no record, a half-arrived one, or a sensor error', () => {
-    expect(centreKind(undefined)).toBe('battery')
-    expect(centreKind({ roll_deg: 1 })).toBe('battery')
+    expect(centreKind('tilt', undefined)).toBe('battery')
+    expect(centreKind('tilt', { roll_deg: 1 })).toBe('battery')
     // The device keeps retained angles on the broker while in error: they are stale, not live.
-    expect(centreKind({ ...OK_TILT, status: 'sensor_error' })).toBe('battery')
+    expect(centreKind('tilt', { ...OK_TILT, status: 'sensor_error' })).toBe('battery')
+  })
+
+  it('is the van or the battery readout whenever it is chosen, whatever the tilt is doing', () => {
+    expect(centreKind('van', OK_TILT)).toBe('van')
+    expect(centreKind('van', undefined)).toBe('van')
+    expect(centreKind('battery', OK_TILT)).toBe('battery')
   })
 })
 
@@ -68,6 +74,10 @@ describe('legendIndices', () => {
 
   it('lists every ring while the tilt fills the middle, so the battery % stays visible', () => {
     expect(legendIndices(rings, 'tilt')).toEqual([0, 1, 2])
+  })
+
+  it('lists every ring while the van fills the middle, so the battery % stays visible', () => {
+    expect(legendIndices(rings, 'van')).toEqual([0, 1, 2])
   })
 
   it('drops every ring showing the battery, wherever it sits', () => {

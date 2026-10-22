@@ -16,6 +16,7 @@ describe('parseStartPowerSources', () => {
       right: { source: 'battery-out', fullScaleW: 3000 },
       rings: ['fuel', 'battery', 'black_water'],
       ringUnit: 'litres',
+      centre: 'van',
     }
     expect(parseStartPowerSources(JSON.stringify(stored))).toEqual(stored)
   })
@@ -39,12 +40,18 @@ describe('parseStartPowerSources', () => {
       right: DEFAULT_START_POWER_SOURCES.right,
       rings: DEFAULT_START_POWER_SOURCES.rings,
       ringUnit: DEFAULT_START_POWER_SOURCES.ringUnit,
+      centre: DEFAULT_START_POWER_SOURCES.centre,
     })
   })
 
   it('keeps only the scale of a charging slot saved when it still had a source', () => {
     const stored = { leftBottom: { source: 'battery-in', fullScaleW: 600 } }
     expect(parseStartPowerSources(JSON.stringify(stored)).leftBottom).toEqual({ fullScaleW: 600 })
+  })
+
+  it('keeps the tilt in the middle for a value saved before the centre was a setting, or an unknown one', () => {
+    expect(parseStartPowerSources(JSON.stringify({ ringUnit: 'pct' })).centre).toBe('tilt')
+    expect(parseStartPowerSources(JSON.stringify({ centre: 'boat' })).centre).toBe('tilt')
   })
 
   it('repairs one bad ring without resetting the other two', () => {

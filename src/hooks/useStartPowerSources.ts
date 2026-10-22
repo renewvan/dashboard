@@ -54,6 +54,15 @@ export type RingUnit = 'pct' | 'litres'
 
 export const RING_UNITS: readonly RingUnit[] = ['pct', 'litres']
 
+/**
+ * What fills the middle of the rings: the van's tilt (the battery's readout stands in while the tilt
+ * has no usable reading), the van drawn as the battery gauge, filling and pulsing as it charges, or
+ * the battery's readout.
+ */
+export type StartCentre = 'tilt' | 'van' | 'battery'
+
+export const START_CENTRES: readonly StartCentre[] = ['tilt', 'van', 'battery']
+
 /** The readings of the half-moons: solar and the charger on the left, the outgoing power on the right. */
 export interface StartPowerSources {
   leftTop: PowerSlot
@@ -64,6 +73,8 @@ export interface StartPowerSources {
   rings: [RingSource, RingSource, RingSource]
   /** How a tank ring's value reads. The battery has no volume, so it is always a percentage. */
   ringUnit: RingUnit
+  /** What fills the middle of the rings. */
+  centre: StartCentre
 }
 
 export const MIN_FULL_SCALE_W = 50
@@ -75,6 +86,7 @@ export const DEFAULT_START_POWER_SOURCES: StartPowerSources = {
   right: { source: 'battery-out', fullScaleW: 1000 },
   rings: ['battery', 'fresh_water', 'grey_water'],
   ringUnit: 'pct',
+  centre: 'tilt',
 }
 
 const STORAGE_KEY = 'renewvan-dashboard-start-power-sources'
@@ -91,6 +103,10 @@ function isRingSource(value: unknown): value is RingSource {
 
 function isRingUnit(value: unknown): value is RingUnit {
   return RING_UNITS.some((unit) => unit === value)
+}
+
+function isStartCentre(value: unknown): value is StartCentre {
+  return START_CENTRES.some((centre) => centre === value)
 }
 
 /** Clamps into the allowed range; a scale is a whole number of watts. */
@@ -149,6 +165,7 @@ export function parseStartPowerSources(raw: string | null): StartPowerSources {
     right: slot('right'),
     rings: [ring(0), ring(1), ring(2)],
     ringUnit: isRingUnit(record.ringUnit) ? record.ringUnit : defaults.ringUnit,
+    centre: isStartCentre(record.centre) ? record.centre : defaults.centre,
   }
 }
 
