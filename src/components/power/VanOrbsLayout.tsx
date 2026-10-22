@@ -15,19 +15,19 @@ import { yieldHistoryView } from '@/components/widgets/solar/solarView'
 import type { Solar } from '@/types'
 
 const ICON: Partial<Record<NodeId, ReactNode>> = {
-  solar: <SolarPanel className="size-9" />,
-  alternator: <Engine className="size-9" />,
-  shore: <PlugZap className="size-9" />,
-  loads: <Plug2 className="size-9" />,
-  acLoads: <Plug2 className="size-9" />,
-  dcLoads: <Plug2 className="size-9" />,
+  solar: <SolarPanel className="size-8" />,
+  alternator: <Engine className="size-8" />,
+  shore: <PlugZap className="size-8" />,
+  loads: <Plug2 className="size-8" />,
+  acLoads: <Plug2 className="size-8" />,
+  dcLoads: <Plug2 className="size-8" />,
 }
 
 /**
  * Orb radius in canvas units. Each side column can hold two orbs, so they are sized to stack in the
  * band beside the van, with room for a wire between them and the van.
  */
-const R = 110
+const R = 115
 const CIRC = 2 * Math.PI * R
 const ORB_VALUE = ['text-5xl', 'text-2xl'] as const
 
@@ -153,12 +153,12 @@ function Orb({
       />
       <foreignObject x={x - R} y={y - R} width={R * 2} height={R * 2}>
         <div className="text-foreground flex size-full flex-col items-center justify-center">
-          <span className="mb-1" style={{ color: colour }}>
+          <span className="mb-3" style={{ color: colour }}>
             {ICON[id]}
           </span>
           <Value sizeClass={ORB_VALUE} value={<RollingNumber value={shown} />} unit={p.unit} />
           {history ? (
-            <div className="mt-2 h-9 w-36">{history}</div>
+            <div className="mt-3 h-9 w-36">{history}</div>
           ) : (
             <span className="text-muted mt-1 text-xl">{label}</span>
           )}
