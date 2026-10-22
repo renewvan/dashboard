@@ -25,7 +25,7 @@ describe('SettingsPage top list', () => {
     expect(rowNames()).toEqual([
       'Devices2 devices',
       'GeneralFirmware, display, alerts',
-      'ConnectivityCellular, Hub, Tailscale',
+      'ConnectivityRouter, Hub, Tailscale',
     ])
   })
 
@@ -75,7 +75,7 @@ describe('SettingsPage drill-down', () => {
     expect(screen.queryByText(/not available/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/nothing to configure/i)).not.toBeInTheDocument()
     expect(settingsRows().map((row) => row.textContent)).toEqual([
-      expect.stringMatching(/^Cellular/),
+      expect.stringMatching(/^Router/),
       expect.stringMatching(/^Hub/),
       expect.stringMatching(/^Tailscale/),
     ])

@@ -138,7 +138,7 @@ function currentView() {
 
 function expectInCellular() {
   expect(screen.getByTestId('pane-settings')).toBeInTheDocument()
-  expect(currentView()).toHaveAccessibleName('Cellular')
+  expect(currentView()).toHaveAccessibleName('Router')
 }
 
 function expectInConnectivity() {

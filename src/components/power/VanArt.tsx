@@ -52,18 +52,20 @@ export function VanArt({
   const pulse = clock?.passS ?? pulseSeconds(inputW, flow.peakW)
   const bandH = HEIGHT * 0.2
   // Strong halo while power flows in; a faint one when the van has data but nothing feeds it, so
-  // a discharging van is not dark. No data, no halo.
+  // a discharging van is not dark. No data, no halo. `--van-halo` (global.css) scales the whole
+  // outline glow: 100% as designed, 0% none (the light theme keeps only the drop-shadow below).
   const halo =
     flow.batteryState === 'unknown'
       ? 'none'
       : powered
-        ? `drop-shadow(0 0 2px ${colour}) drop-shadow(0 0 6px ${colour})`
-        : `drop-shadow(0 0 2px color-mix(in oklch, ${colour} 70%, transparent))`
+        ? `drop-shadow(0 0 2px color-mix(in oklch, ${colour} var(--van-halo), transparent)) drop-shadow(0 0 6px color-mix(in oklch, ${colour} var(--van-halo), transparent))`
+        : `drop-shadow(0 0 2px color-mix(in oklch, ${colour} calc(var(--van-halo) * 0.7), transparent))`
   // The Tiles' active-tile shadow (`0 0 22px 2px` accent at 45%), as a shape-following drop-shadow
   // so it traces the van, fill included, instead of its bounding box. Only while power flows in,
-  // like Tiles' `active`. The tight outline glow below is separate.
+  // like Tiles' `active`. The tight outline glow below is separate. Strength comes from the theme
+  // (`--van-*` in global.css): the light theme is much quieter.
   const shadow = powered
-    ? `drop-shadow(0 0 22px color-mix(in oklch, ${colour} 45%, transparent))`
+    ? `drop-shadow(0 0 var(--van-shadow-blur) color-mix(in oklch, ${colour} var(--van-shadow-mix), transparent))`
     : 'none'
   return (
     <div
@@ -94,11 +96,11 @@ export function VanArt({
           </linearGradient>
         </defs>
         <g clipPath="url(#van-body-clip)">
-          <rect x={0} y={0} width={VAN_W} height={VAN_H} fill="var(--surface)" />
+          <rect x={0} y={0} width={VAN_W} height={VAN_H} fill="var(--van-body)" />
           <motion.rect
             x={0}
             width={VAN_W}
-            fill={`color-mix(in oklch, ${colour} 35%, transparent)`}
+            fill={`color-mix(in oklch, ${colour} var(--van-fill-mix), transparent)`}
             initial={{ y: BOTTOM, height: 0 }}
             animate={{ y: BOTTOM - level, height: level }}
             transition={{ type: 'spring', stiffness: 60, damping: 18 }}

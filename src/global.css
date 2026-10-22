@@ -43,6 +43,14 @@
   --warning: oklch(78.19% 0.1616 72.33);
   --warning-foreground: oklch(21.03% 0.0059 72.33);
 
+  /* Van hub (power/VanArt): how strongly the accent paints the fill and glows. A saturated blue
+     over a white surface reads as a stain, so light is much quieter than dark. */
+  --van-fill-mix: 0%;
+  --van-shadow-mix: 45%;
+  --van-shadow-blur: 22px;
+  --van-halo: 0%;
+  --van-body: transparent;
+
   /* Border Radius */
   --radius: 0.25rem;
   --field-radius: 0.25rem;
@@ -87,4 +95,10 @@
   --surface-tertiary-foreground: oklch(99.11% 0.0099 253.83);
   --warning: oklch(82.03% 0.1415 76.34);
   --warning-foreground: oklch(21.03% 0.0059 76.34);
+
+  --van-fill-mix: 35%;
+  --van-shadow-mix: 45%;
+  --van-shadow-blur: 22px;
+  --van-halo: 100%;
+  --van-body: var(--surface);
 }

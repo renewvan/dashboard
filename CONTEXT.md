@@ -19,11 +19,29 @@ can still be online over wifi / LAN / Tailscale, so the icon shows
 **connected** while the **Bus link** or Tailscale is up, **checking** only
 while the Bus link is still connecting, and **offline** only when every path
 is down. There is no wifi/LAN signal on the bus: non-cellular reachability is
-inferred from the Bus link + Tailscale. The Settings → Connectivity Cellular
-row stays cellular-only (`cellularTier`: checking until router data arrives).
-Its popover's Hub dot row reports the bus link.
+inferred from the Bus link + Tailscale. The icon carries a small **connection
+type** badge: the mobile technology (`LTE`, `5G`, `3G`, `2G`; the schema's `nr`
+reads 5G) while the router feeds, or how the kiosk reaches the hub (`LAN`,
+`TS`, `WAN`, judged from the broker address in `VITE_MQTT_WS_URL`) while it
+does not. Its popover keeps the router and the hub apart: a **Router
+connection** block (network, RSRP, data; only while the router feeds), a **Hub
+connection** block (the Bus link, the broker's address, and whether it is
+reached over the local network, Tailscale or remotely) and **Remote access**
+(Tailscale). The router carries no IP on the bus (`router.schema.json` has no
+such field), so the only local address shown is the broker's.
 _Avoid_: Internet connection, WAN, network status, signal strength (alone —
 it's the whole connection state, including connected/offline/no-service)
+
+**Router row**:
+The first row of Settings → Connectivity (`ConnectivityView`, page `CellularView`, still
+`?view=cellular` so links keep working), named for the **Device** that feeds the router entity:
+the one whose retained info `publishes` `router` (`routerDevice`, `lib/routerDevice.ts`),
+shown by its model, `RUT-360`, read out of the Device's `product`
+(`Teltonika RUT-360 router`), or by the whole product when it names no model. The page shows that
+Device (product, status, firmware) above the radio readings. With no router Device and no router
+data the row reads **Not installed**, not "Checking…"; router data with no Device behind it
+(a driver that publishes no info yet) is still shown, under the plain name `Router`.
+_Avoid_: Cellular (the old name; it described the radio, not the hardware or the driver)
 
 **Status button**:
 A header icon button that reports a live condition and opens a detail popover on tap; visually transparent, unlike an action button.

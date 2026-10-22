@@ -35,6 +35,7 @@ import { useNavbarPosition } from '@/hooks/useNavbarPosition'
 import { useStartPowerSources } from '@/hooks/useStartPowerSources'
 import { usePowerLayout } from '@/hooks/usePowerLayout'
 import { useUrlPage } from '@/hooks/useUrlPage'
+import { useHubAddress } from '@/hooks/useHubAddress'
 import { ShellHeaderContext } from '@/components/settings/ShellHeaderContext'
 
 const NAV_ITEMS: NavItem[] = [
@@ -90,6 +91,7 @@ function App() {
   } = useRenewvanBus()
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   const alertHistory = useAlertHistory()
+  const hub = useHubAddress()
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled, demo: demoMode })
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
   // A view (and the tank it shows) belongs to the Settings page: any other page change leaves
@@ -285,6 +287,7 @@ function App() {
           lastReceivedAt={routerUpdatedAt}
           tailscale={tailscale}
           busStatus={status}
+          hub={hub}
           onOpenSettings={() => openSettings('connectivity')}
         />
         <Separator orientation="vertical" className="mx-0.5 h-6" />
@@ -328,7 +331,7 @@ function App() {
       case 'tanks':
         return <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
       case 'gps':
-        return <GpsPage gps={state.gps} />
+        return <GpsPage gps={state.gps} tilt={state.tilt} />
       case 'switches':
         return (
           <RelaysPage

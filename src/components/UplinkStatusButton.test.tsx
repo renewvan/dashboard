@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vite-plus/test'
 import type { ConnectionStatus, RouterHealth, TailscaleStatus } from '@/hooks/useRenewvanBus'
+import type { HubAddress } from '@/lib/hubAddress'
 import type { Router } from '@/types'
 import { UplinkStatusButton } from './UplinkStatusButton'
 
@@ -33,6 +34,8 @@ const liveRouter: Router = {
   data_used_month_rx_b: 385.1 * 1024 * 1024,
 }
 
+const localHub: HubAddress = { host: '192.168.1.10', route: 'local' }
+
 function setup(
   router: Partial<Router> | undefined,
   routerHealth: RouterHealth | null,
@@ -40,6 +43,7 @@ function setup(
   tailscale: TailscaleStatus = connectedTailscale,
   onOpenSettings: () => void = () => {},
   busStatus: ConnectionStatus = 'connected',
+  hub: HubAddress | null = localHub,
 ) {
   render(
     <UplinkStatusButton
@@ -48,6 +52,7 @@ function setup(
       lastReceivedAt={ageMs === null ? undefined : Date.now() - ageMs}
       tailscale={tailscale}
       busStatus={busStatus}
+      hub={hub}
       onOpenSettings={onOpenSettings}
     />,
   )
@@ -110,6 +115,34 @@ describe('UplinkStatusButton icon per tier', () => {
     setup(liveRouter, 'online', 200_000)
     expect(screen.getByTestId('uplink-status-button')).toHaveAttribute('data-state', 'connected')
   })
+
+  describe('connection type badge', () => {
+    const badge = () => screen.queryByTestId('uplink-badge')
+
+    it('names the mobile technology on the cellular bars, without renaming the button', () => {
+      setup(liveRouter, 'online', 30_000)
+      expect(badge()).toHaveTextContent('LTE')
+      expect(screen.getByTestId('uplink-status-button')).toHaveAttribute(
+        'aria-label',
+        'Connection: 4 of 4 bars',
+      )
+    })
+
+    it('reads 5G for the NR radio standard', () => {
+      setup({ ...liveRouter, network_type: 'nr' }, 'online', 30_000)
+      expect(badge()).toHaveTextContent('5G')
+    })
+
+    it('names how the hub is reached while connected without a router feed', () => {
+      setup(undefined, null)
+      expect(badge()).toHaveTextContent('LAN')
+    })
+
+    it('wears no badge when there is no connection to name', () => {
+      setup(liveRouter, 'offline', 30_000, disconnectedTailscale, () => {}, 'disconnected')
+      expect(badge()).not.toBeInTheDocument()
+    })
+  })
 })
 
 describe('UplinkStatusButton popover', () => {
@@ -149,8 +182,10 @@ describe('UplinkStatusButton popover', () => {
 
     expect(await screen.findByText('UNKNOWN · —')).toBeInTheDocument()
     expect(screen.getByText('-85 dBm')).toBeInTheDocument()
-    expect(screen.getByText('Data')).toBeInTheDocument()
-    expect(screen.getByText('—')).toBeInTheDocument()
+    const router = within(screen.getByRole('group', { name: 'Router connection' }))
+    // Every router row stays; the ones the partial record lacks read as a dash.
+    expect(router.getByText('Network').nextSibling).toHaveTextContent('—')
+    expect(router.getByText('Data').nextSibling).toHaveTextContent('—')
     expect(screen.getByText('Tailscale')).toBeInTheDocument()
     expect(screen.getByText('Not installed')).toBeInTheDocument()
   })
@@ -196,5 +231,59 @@ describe('UplinkStatusButton popover', () => {
     await user.click(await screen.findByRole('button', { name: 'Network settings' }))
     expect(onOpenSettings).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('LTE · O2')).not.toBeInTheDocument()
+  })
+
+  describe('router and hub are separate sources', () => {
+    const open = async (...args: Parameters<typeof setup>) => {
+      const user = userEvent.setup()
+      setup(...args)
+      await user.click(screen.getByTestId('uplink-status-button'))
+      await screen.findByRole('dialog')
+    }
+    const group = (name: string) => within(screen.getByRole('group', { name }))
+
+    it('puts the cellular facts under the router and the broker under the hub', async () => {
+      await open(liveRouter, 'online', 30_000)
+
+      const router = group('Router connection')
+      expect(router.getByText('Network').nextSibling).toHaveTextContent('LTE')
+      expect(router.getByText('RSRP').nextSibling).toHaveTextContent('-85 dBm')
+      expect(router.queryByText('Address')).not.toBeInTheDocument()
+
+      const hub = group('Hub connection')
+      expect(hub.getByText('Address').nextSibling).toHaveTextContent('192.168.1.10')
+      expect(hub.getByText('Via').nextSibling).toHaveTextContent('Local network')
+      expect(hub.queryByText('RSRP')).not.toBeInTheDocument()
+    })
+
+    it('keeps Tailscale as its own block, apart from the hub', async () => {
+      await open(liveRouter, 'online', 30_000)
+
+      expect(group('Remote access').getByText('100.64.0.1')).toBeInTheDocument()
+      expect(group('Hub connection').queryByText('100.64.0.1')).not.toBeInTheDocument()
+    })
+
+    it('shows no router block without a router feed, but still the hub address', async () => {
+      await open(undefined, null)
+
+      expect(screen.queryByRole('group', { name: 'Router connection' })).not.toBeInTheDocument()
+      expect(group('Hub connection').getByText('192.168.1.10')).toBeInTheDocument()
+    })
+
+    it('says how the hub is reached: remote, or Tailscale', async () => {
+      await open(undefined, null, null, connectedTailscale, () => {}, 'connected', {
+        host: 'hub.example.com',
+        route: 'remote',
+      })
+      expect(group('Hub connection').getByText('Via').nextSibling).toHaveTextContent('Remote')
+    })
+
+    it('shows dashes, not a made-up address, while no broker is configured', async () => {
+      await open(undefined, null, null, connectedTailscale, () => {}, 'connected', null)
+
+      const hub = group('Hub connection')
+      expect(hub.getByText('Address').nextSibling).toHaveTextContent('—')
+      expect(hub.getByText('Via').nextSibling).toHaveTextContent('—')
+    })
   })
 })
