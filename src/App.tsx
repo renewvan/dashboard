@@ -35,6 +35,7 @@ import { BottomNavBar } from '@/components/BottomNavBar'
 import { useNavbarPosition } from '@/hooks/useNavbarPosition'
 import { useStartPowerSources } from '@/hooks/useStartPowerSources'
 import { usePowerLayout } from '@/hooks/usePowerLayout'
+import { resolveMapIsDark, useMapTheme } from '@/hooks/useMapTheme'
 import { useUrlPage } from '@/hooks/useUrlPage'
 import { useHubAddress } from '@/hooks/useHubAddress'
 import { useBrokerLink } from '@/hooks/useBrokerLink'
@@ -115,6 +116,7 @@ function App() {
   const [navbarPosition, setNavbarPosition] = useNavbarPosition()
   const [startPowerSources, setStartPowerSources] = useStartPowerSources()
   const [powerLayout, setPowerLayout] = usePowerLayout()
+  const [mapTheme, setMapTheme] = useMapTheme()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
   const isBottomBar = !isMobile && navbarPosition === 'bottom'
   // The kiosk navbar's auto-hide lives here, not in the navbar: React Aria renders everything
@@ -226,6 +228,8 @@ function App() {
       setStartPowerSources,
       powerLayout,
       setPowerLayout,
+      mapTheme,
+      setMapTheme,
     }),
     [
       devices,
@@ -261,6 +265,8 @@ function App() {
       setStartPowerSources,
       powerLayout,
       setPowerLayout,
+      mapTheme,
+      setMapTheme,
     ],
   )
 
@@ -349,7 +355,13 @@ function App() {
       case 'tanks':
         return <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
       case 'map':
-        return <MapPage gps={state.gps} tilt={tilt} />
+        return (
+          <MapPage
+            gps={state.gps}
+            tilt={tilt}
+            isDark={resolveMapIsDark(mapTheme, theme === 'dark')}
+          />
+        )
       case 'switches':
         return (
           <RelaysPage
