@@ -44,10 +44,10 @@ Three domain pages, same tabbed navigation at every supported width:
 
 All config is Vite build-time env vars (`VITE_*`), see `.env.example`:
 
-| Variable                                    | Default      | Notes                                                                   |
-| ------------------------------------------- | ------------ | ----------------------------------------------------------------------- |
-| `VITE_MQTT_WS_URL`                          | _(required)_ | Mosquitto's WS listener, browser-reachable, e.g. `ws://<host>:9001`     |
-| `VITE_MQTT_USERNAME` / `VITE_MQTT_PASSWORD` | _(none)_     | Read-scoped credentials; blank while the broker allows anonymous access |
+| Variable                                    | Default      | Notes                                                                                                                                                                             |
+| ------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_MQTT_WS_URL`                          | _(required)_ | Broker WebSocket: `/mqtt` (recommended; the container's nginx proxies it to `mosquitto:9001`, so a browser needs only the page's own port) or a full URL, e.g. `ws://<host>:9001` |
+| `VITE_MQTT_USERNAME` / `VITE_MQTT_PASSWORD` | _(none)_     | Read-scoped credentials; blank while the broker allows anonymous access                                                                                                           |
 
 ## Running
 
