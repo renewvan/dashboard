@@ -28,8 +28,8 @@ export interface UplinkStatusButtonProps {
   /** `useRenewvanBus().status` — the kiosk's MQTT bus link, shown in
    * this popover as a dot row. */
   busStatus: ConnectionStatus
-  /** The broker the kiosk connects to (`hubAddress(VITE_MQTT_WS_URL)`): the hub's address as the
-   * kiosk sees it. Null while no broker is configured. */
+  /** The hub (`hubAddress`): the Pi's own address from `renewvan/hub/status` and how this kiosk
+   * reaches the broker. Null while neither is known. */
   hub: HubAddress | null
   onOpenSettings: () => void
 }

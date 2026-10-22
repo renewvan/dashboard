@@ -240,7 +240,106 @@ describe('Hub', () => {
 
     await open(user, 'Connectivity', 'Hub')
 
-    expect(detailRows()).toEqual([['Bus link', text]])
+    expect(blockRows('Bus link')[0]).toEqual(['Status', text])
+  })
+
+  it('shows how the kiosk reaches the broker, without its login', async () => {
+    const { user } = renderSettings({
+      broker: { endpoint: '192.168.10.50:9001', protocol: 'WebSocket (TLS)', authenticated: true },
+      hub: { host: '192.168.10.50', route: 'tailscale' },
+    })
+
+    await open(user, 'Connectivity', 'Hub')
+
+    expect(blockRows('Bus link')).toEqual([
+      ['Status', 'Connected'],
+      ['Broker', '192.168.10.50:9001'],
+      ['Protocol', 'WebSocket (TLS)'],
+      ['Login', 'Required'],
+      ['Reached over', 'Tailscale'],
+    ])
+  })
+
+  it('says no login is needed when the broker is open', async () => {
+    const { user } = renderSettings()
+
+    await open(user, 'Connectivity', 'Hub')
+
+    expect(blockRows('Bus link')).toContainEqual(['Login', 'None'])
+  })
+
+  it('shows the Pi by the address and name it publishes', async () => {
+    const { user } = renderSettings({
+      hub: { host: '192.168.10.50', route: 'local' },
+      hubStatus: { ip: '192.168.10.50', hostname: 'renewvan' },
+    })
+
+    await open(user, 'Connectivity', 'Hub')
+
+    expect(blockRows('Hub')).toEqual([
+      ['Address', '192.168.10.50'],
+      ['Hostname', 'renewvan'],
+    ])
+  })
+
+  it('shows dashes, not guesses, for everything it has not been told', async () => {
+    const { user } = renderSettings({ hub: null, hubStatus: null, broker: null })
+
+    await open(user, 'Connectivity', 'Hub')
+
+    expect(blockRows('Hub')).toEqual([
+      ['Address', '—'],
+      ['Hostname', '—'],
+    ])
+    expect(blockRows('Bus link').slice(1)).toEqual([
+      ['Broker', '—'],
+      ['Protocol', '—'],
+      ['Login', '—'],
+      ['Reached over', '—'],
+    ])
+  })
+
+  it('counts the Devices on the bus by what they last said', async () => {
+    const { user } = renderSettings(
+      {},
+      {
+        bus: {
+          devices: {
+            ...ROUTER_DEVICES,
+            tank: {
+              health: 'offline',
+              info: { ...ROUTER_DEVICES.router.info!, device: 'tank', publishes: ['tank'] },
+            },
+          },
+        },
+      },
+    )
+
+    await open(user, 'Connectivity', 'Hub')
+
+    expect(blockRows('Devices')).toEqual([
+      ['On the bus', '1 online · 1 offline'],
+      ['Total', '2'],
+    ])
+  })
+
+  it('says None, and 0, while no Device has announced itself', async () => {
+    const { user } = renderSettings()
+
+    await open(user, 'Connectivity', 'Hub')
+
+    expect(blockRows('Devices')).toEqual([
+      ['On the bus', 'None'],
+      ['Total', '0'],
+    ])
+  })
+
+  it('says where the dashboard itself was served from', async () => {
+    const { user } = renderSettings()
+
+    await open(user, 'Connectivity', 'Hub')
+
+    expect(blockRows('Dashboard')).toEqual([['Served from', window.location.host]])
   })
 })
 
@@ -255,7 +354,48 @@ describe('Tailscale', () => {
 
     await open(user, 'Connectivity', 'Tailscale')
 
-    expect(detailRows()).toEqual([['Status', text]])
+    expect(blockRows('Tailscale')).toEqual([['Status', text]])
+  })
+
+  it('shows the node, and where the dashboard and broker answer over the tailnet', async () => {
+    const { user } = renderSettings({ tailscale: { ...connectedTailscale, peers: 2 } })
+
+    await open(user, 'Connectivity', 'Tailscale')
+
+    expect(blockRows('Node')).toEqual([
+      ['Daemon', 'Connected'],
+      ['Address', '100.64.0.1'],
+      ['Hostname', 'renewvan'],
+      ['Peers', '2 peers online'],
+    ])
+    expect(blockRows('Reachable at')).toEqual([
+      ['Dashboard', 'http://100.64.0.1'],
+      ['MQTT', '100.64.0.1:1883'],
+    ])
+  })
+
+  it('says a signed-out node needs a login, with dashes for what it does not have', async () => {
+    const { user } = renderSettings({
+      tailscale: { enabled: true, connected: false, ip: null, hostname: null, peers: 0 },
+    })
+
+    await open(user, 'Connectivity', 'Tailscale')
+
+    expect(blockRows('Node')).toEqual([
+      ['Daemon', 'Needs login'],
+      ['Address', '—'],
+      ['Hostname', '—'],
+      ['Peers', '—'],
+    ])
+    expect(blockRows('Reachable at')).toEqual([['Dashboard', '—']])
+  })
+
+  it('has nothing to report before the first status arrives', async () => {
+    const { user } = renderSettings({ tailscale: null })
+
+    await open(user, 'Connectivity', 'Tailscale')
+
+    expect(blockRows('Node').every(([, value]) => value === '—')).toBe(true)
   })
 })
 

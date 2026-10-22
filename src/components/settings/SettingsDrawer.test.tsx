@@ -121,7 +121,7 @@ describe('drawer navigation', () => {
     await user.click(screen.getByRole('button', { name: /^Connectivity/ }))
     for (const [page, row] of [
       ['Router', 'Operator'],
-      ['Hub', 'Bus link'],
+      ['Hub', 'Broker'],
       ['Tailscale', 'Status'],
     ]) {
       await user.click(

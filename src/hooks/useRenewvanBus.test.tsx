@@ -609,3 +609,71 @@ describe('useRenewvanBus tailscale status', () => {
     await waitFor(() => expect(result.current.tailscale).toBeNull())
   })
 })
+
+describe('useRenewvanBus hub status', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  const send = (payload: string) =>
+    messageHandlers[0]('renewvan/hub/status', { toString: () => payload })
+
+  const status = { ip: '192.168.10.50', hostname: 'renewvan' }
+
+  it('reads a status that matches the schema', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify(status))
+    await waitFor(() => expect(result.current.hubStatus).toEqual(status))
+  })
+
+  it('accepts a null ip while the Pi has no default route', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    const noRoute = { ip: null, hostname: 'renewvan' }
+    send(JSON.stringify(noRoute))
+    await waitFor(() => expect(result.current.hubStatus).toEqual(noRoute))
+  })
+
+  it('carries no key the schema does not define', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify({ ...status, extra: 'x' }))
+    await waitFor(() => expect(result.current.hubStatus).toEqual(status))
+  })
+
+  it('clears the status when the retained topic is cleared', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify(status))
+    await waitFor(() => expect(result.current.hubStatus).toEqual(status))
+    send('')
+    await waitFor(() => expect(result.current.hubStatus).toBeNull())
+  })
+
+  it.each([
+    ['a bare string', '"192.168.10.50"'],
+    ['malformed JSON', '{"ip":'],
+    ['a missing hostname', JSON.stringify({ ip: '192.168.10.50' })],
+    ['a missing ip', JSON.stringify({ hostname: 'renewvan' })],
+    ['a numeric ip', JSON.stringify({ ...status, ip: 1 })],
+    ['an array', JSON.stringify([status])],
+  ])('reads %s as no status, so the last address does not stay on screen', async (_, payload) => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify(status))
+    await waitFor(() => expect(result.current.hubStatus).toEqual(status))
+    send(payload)
+    await waitFor(() => expect(result.current.hubStatus).toBeNull())
+  })
+
+  it('does not mistake the three-segment topic for a Device', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send(JSON.stringify(status))
+    await waitFor(() => expect(result.current.hubStatus).toEqual(status))
+    expect(result.current.state.devices).toEqual({})
+  })
+})

@@ -53,21 +53,53 @@ describe('classifyHost', () => {
 })
 
 describe('hubAddress', () => {
-  it('takes the host out of the broker URL, without scheme or port', () => {
-    expect(hubAddress('ws://192.168.1.10:9001')).toEqual({ host: '192.168.1.10', route: 'local' })
-    expect(hubAddress('wss://hub.example.com/mqtt')).toEqual({
-      host: 'hub.example.com',
+  it("shows the Pi's published address and takes the route from the broker", () => {
+    expect(hubAddress({ ip: '192.168.10.50' }, 'ws://192.168.10.50:9001')).toEqual({
+      host: '192.168.10.50',
+      route: 'local',
+    })
+  })
+
+  it('says Tailscale for a kiosk connected over it, while still showing the Pi LAN address', () => {
+    // The Pi's own address is always its LAN one; only the broker the client reached says how.
+    expect(hubAddress({ ip: '192.168.10.50' }, 'ws://100.115.137.59:9001')).toEqual({
+      host: '192.168.10.50',
+      route: 'tailscale',
+    })
+  })
+
+  it('says remote for a kiosk reaching the hub over the internet', () => {
+    expect(hubAddress({ ip: '192.168.10.50' }, 'wss://hub.example.com/mqtt')).toEqual({
+      host: '192.168.10.50',
       route: 'remote',
     })
   })
 
-  it('shows an IPv6 literal without its brackets', () => {
-    expect(hubAddress('ws://[::1]:9001')).toEqual({ host: '::1', route: 'local' })
+  it('falls back to the broker host while the Pi has not published an address', () => {
+    expect(hubAddress(null, 'ws://192.168.1.10:9001')).toEqual({
+      host: '192.168.1.10',
+      route: 'local',
+    })
+    expect(hubAddress({ ip: null }, 'ws://192.168.1.10:9001')).toEqual({
+      host: '192.168.1.10',
+      route: 'local',
+    })
   })
 
-  it('has no address while the broker is unconfigured or the URL does not parse', () => {
-    expect(hubAddress(undefined)).toBeNull()
-    expect(hubAddress('')).toBeNull()
-    expect(hubAddress('not a url')).toBeNull()
+  it('shows an IPv6 broker without its brackets', () => {
+    expect(hubAddress(null, 'ws://[::1]:9001')).toEqual({ host: '::1', route: 'local' })
+  })
+
+  it('judges the route from the Pi address when no broker URL is configured', () => {
+    expect(hubAddress({ ip: '192.168.10.50' }, undefined)).toEqual({
+      host: '192.168.10.50',
+      route: 'local',
+    })
+  })
+
+  it('has no address while neither the Pi nor the broker is known', () => {
+    expect(hubAddress(null, undefined)).toBeNull()
+    expect(hubAddress({ ip: null }, '')).toBeNull()
+    expect(hubAddress(null, 'not a url')).toBeNull()
   })
 })

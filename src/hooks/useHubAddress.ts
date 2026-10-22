@@ -1,11 +1,13 @@
 import { getEnv } from '@/config/runtimeEnv'
 import { hubAddress, type HubAddress } from '@/lib/hubAddress'
+import type { HubStatus } from './useRenewvanBus'
 
 /**
- * The broker the kiosk is pointed at, as `hubAddress` reads it from `VITE_MQTT_WS_URL`: the hub's
- * address as seen from this kiosk. Read each render, not at module load, because the runtime value
+ * The hub as the Hub connection block shows it: the Pi's own address from the bus
+ * (`renewvan/hub/status`), and how this kiosk reaches the broker from `VITE_MQTT_WS_URL` (see
+ * `hubAddress`). The URL is read each render, not at module load, because the runtime value
  * (`window.__ENV__`, written when the container starts) is not there until the page is.
  */
-export function useHubAddress(): HubAddress | null {
-  return hubAddress(getEnv('VITE_MQTT_WS_URL'))
+export function useHubAddress(hubStatus: HubStatus | null): HubAddress | null {
+  return hubAddress(hubStatus, getEnv('VITE_MQTT_WS_URL'))
 }

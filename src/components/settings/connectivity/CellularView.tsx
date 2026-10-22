@@ -18,13 +18,13 @@ export function CellularView() {
   return (
     <div className="flex flex-col gap-4">
       {device && (
-        <DetailList label="Router device">
+        <DetailList label="Router device" heading="Device">
           <DetailRow label="Product" value={device.info?.product ?? null} />
           <StatusRow label="Status" tone={DEVICE_TONE[device.tone]} text={device.status} />
           <DetailRow label="Firmware" value={device.version} />
         </DetailList>
       )}
-      <DetailList label={routerName(device)}>
+      <DetailList label={routerName(device)} heading="Signal">
         <DetailRow
           label="Operator"
           value={

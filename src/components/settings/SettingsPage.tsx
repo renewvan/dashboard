@@ -3,7 +3,6 @@ import { Button, Drawer, ScrollShadow, Separator } from '@heroui/react'
 import { ArrowLeft, Workflow, SlidersHorizontal, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
-import { useHubAddress } from '@/hooks/useHubAddress'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import { devicesSummary } from '@/lib/devices'
 import { pushSearchParams } from '@/lib/urlHistory'
@@ -76,6 +75,7 @@ export const SettingsPage = memo(function SettingsPage() {
     routerUpdatedAt,
     busStatus,
     tailscale,
+    hub,
     sleepDisplay,
     wakeDisplay,
     unseenAlertCount,
@@ -88,7 +88,6 @@ export const SettingsPage = memo(function SettingsPage() {
     setPowerLayout,
   } = useSettings()
   const isMobile = useIsMobile()
-  const hub = useHubAddress()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
   const navStyle: SettingsNavStyle = isMobile ? 'subpage' : storedNavStyle

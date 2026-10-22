@@ -5,7 +5,7 @@ The touchscreen kiosk UI mounted in the van. It renders live van state (tanks, b
 ## Language
 
 **Bus link**:
-The kiosk's live MQTT-over-WebSocket connection to the van's broker — reported as the Hub dot row inside the uplink popover. Says nothing about the van's internet reachability.
+The kiosk's live MQTT-over-WebSocket connection to the van's broker — reported as the Hub dot row inside the uplink popover and as the first block of the **Hub page**. Says nothing about the van's internet reachability.
 _Avoid_: Connection status, router status, internet connection
 
 **Uplink**:
@@ -25,10 +25,16 @@ reads 5G) while the router feeds, or how the kiosk reaches the hub (`LAN`,
 `TS`, `WAN`, judged from the broker address in `VITE_MQTT_WS_URL`) while it
 does not. Its popover keeps the router and the hub apart: a **Router
 connection** block (network, RSRP, data; only while the router feeds), a **Hub
-connection** block (the Bus link, the broker's address, and whether it is
-reached over the local network, Tailscale or remotely) and **Remote access**
+connection** block (the Bus link, the hub's address, and whether the kiosk
+reaches it over the local network, Tailscale or remotely) and **Remote access**
 (Tailscale). The router carries no IP on the bus (`router.schema.json` has no
-such field), so the only local address shown is the broker's.
+such field), so the hub's address is the Pi's own: the hub plugin publishes it
+retained to `renewvan/hub/status` (hub `hub-status.schema.json`), read from the
+Pi itself, so it is there with or without a router. How the kiosk reaches the
+hub is still judged from the broker it connected to (`VITE_MQTT_WS_URL`), never
+from the Pi's address, which is always its LAN one: a phone on Tailscale shows
+the Pi's LAN address and "Tailscale". Until the Pi has published, the broker's
+host stands in for the address.
 _Avoid_: Internet connection, WAN, network status, signal strength (alone —
 it's the whole connection state, including connected/offline/no-service)
 
@@ -42,6 +48,28 @@ Device (product, status, firmware) above the radio readings. With no router Devi
 data the row reads **Not installed**, not "Checking…"; router data with no Device behind it
 (a driver that publishes no info yet) is still shown, under the plain name `Router`.
 _Avoid_: Cellular (the old name; it described the radio, not the hardware or the driver)
+
+**Hub page**:
+Settings → Connectivity → Hub (`HubView`, `?view=hub`), the hub as this kiosk sees it, in four titled blocks.
+**Bus link**: the live status, the broker's endpoint (`host:port`) and protocol (`WebSocket`, or
+`WebSocket (TLS)` for `wss:`), whether a **Login** is configured, and how the kiosk **reaches** the broker
+(local network, Tailscale or remote). **Hub**: the Pi's own address and hostname, from the hub plugin's
+`renewvan/hub/status`. **Devices**: how many **Device**s are on the bus and what they last said
+(`3 online · 1 offline`), counting only Devices, never an entity type no Device claims. **Dashboard**:
+the address this page was served from. A value not yet known reads as a dash, never a guess. The broker
+is shown only through `brokerLink`, built from the URL's host and scheme and nothing else, and its Login
+is only ever `Required` or `None`: the username, password and any `user:pass@` in `VITE_MQTT_WS_URL` never
+reach the page.
+_Avoid_: Broker page, Hub status (that is the plugin's topic, one block of this page)
+
+**Tailscale page**:
+Settings → Connectivity → Tailscale (`TailscaleView`, `?view=tailscale`): the Status row (its wording is
+the row summary on the Connectivity list), then the **Node** (daemon `Connected`, `Needs login` or `Not
+installed`; address; hostname; peers online) and **Reachable at**, the dashboard (`http://<ip>`) and the
+broker (`<ip>:1883`) over the tailnet, as the Tailscale plugin documents them. The plugin publishes only
+`false`, `null` and `0` while signed out, so those rows read as dashes and Reachable at offers no link
+rather than a dead one.
+_Avoid_: VPN page
 
 **Status button**:
 A header icon button that reports a live condition and opens a detail popover on tap; visually transparent, unlike an action button.

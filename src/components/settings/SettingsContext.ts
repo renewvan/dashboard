@@ -4,10 +4,13 @@ import type {
   ConnectionStatus,
   DisplayPower,
   RouterHealth,
+  HubStatus,
   TailscaleStatus,
 } from '@/hooks/useRenewvanBus'
 import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { Theme } from '@/hooks/useTheme'
+import type { BrokerLink } from '@/lib/brokerLink'
+import type { HubAddress } from '@/lib/hubAddress'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { DeviceRow } from '@/lib/devices'
@@ -29,6 +32,12 @@ export interface SettingsContextValue {
   routerUpdatedAt: number | undefined
   busStatus: ConnectionStatus
   tailscale: TailscaleStatus | null
+  /** The hub as the Hub connection block shows it (`hubAddress`); null while nothing is known. */
+  hub: HubAddress | null
+  /** The Pi's own status (`renewvan/hub/status`): its address and hostname; null until it arrives. */
+  hubStatus: HubStatus | null
+  /** The kiosk's connection to the broker, display-safe (`brokerLink`); null with no broker URL. */
+  broker: BrokerLink | null
   brightness: number | null
   autoSleepEnabled: boolean | null
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null

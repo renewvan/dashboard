@@ -2,8 +2,9 @@
 export type HubRoute = 'local' | 'tailscale' | 'remote'
 
 export interface HubAddress {
-  /** Hostname or IP of the broker, without scheme, port or path. */
+  /** The hub's address as shown: the Pi's own published IP, else the broker's host. */
   host: string
+  /** How this kiosk reaches the broker; see {@link hubAddress}. */
   route: HubRoute
 }
 
@@ -57,12 +58,8 @@ export function classifyHost(host: string): HubRoute {
   return 'remote'
 }
 
-/**
- * The broker the kiosk connects to, from its `VITE_MQTT_WS_URL` (e.g. `ws://192.168.1.10:9001`):
- * the hub's address as the kiosk sees it, which is the only hub address a browser can know. Null
- * while no URL is configured or it does not parse.
- */
-export function hubAddress(url: string | undefined): HubAddress | null {
+/** The host part of a broker URL, without scheme, port, path or IPv6 brackets; null if unusable. */
+function brokerHost(url: string | undefined): string | null {
   if (!url) return null
   let host: string
   try {
@@ -70,8 +67,30 @@ export function hubAddress(url: string | undefined): HubAddress | null {
   } catch {
     return null
   }
-  if (host === '') return null
   // `URL.hostname` keeps the brackets of an IPv6 literal; show it bare, as it is written elsewhere.
   host = host.replace(/^\[|\]$/g, '')
-  return { host, route: classifyHost(host) }
+  return host === '' ? null : host
+}
+
+/**
+ * The hub as the Hub connection block shows it: `host` is the Pi's own local-network address, as
+ * the hub plugin publishes it (`renewvan/hub/status`), and `route` is how this kiosk reaches the
+ * broker, judged from `VITE_MQTT_WS_URL` (e.g. `ws://192.168.1.10:9001`).
+ *
+ * The two come from different places on purpose. The Pi's address is always its LAN one, so
+ * classifying it would say "local network" even for a phone that reached the hub over Tailscale;
+ * only the address the client actually connected to says how it got there.
+ *
+ * With no published address the broker's host stands in for it, so a hub that has not published
+ * yet (or runs without the hub plugin) still shows where the kiosk is connected. Null when neither
+ * is known.
+ */
+export function hubAddress(
+  status: { ip: string | null } | null,
+  brokerUrl: string | undefined,
+): HubAddress | null {
+  const broker = brokerHost(brokerUrl)
+  const host = status?.ip ?? broker
+  if (host === null) return null
+  return { host, route: classifyHost(broker ?? host) }
 }

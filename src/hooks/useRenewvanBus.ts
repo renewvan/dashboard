@@ -26,6 +26,15 @@ export interface TailscaleStatus {
   peers: number
 }
 
+/**
+ * The hub plugin's retained status (hub `hub-status.schema.json`): the Pi's own local-network
+ * address, read from the Pi itself, so it is there whether or not a router Device is installed.
+ */
+export interface HubStatus {
+  ip: string | null
+  hostname: string | null
+}
+
 export interface RenewvanBus {
   state: RenewvanBusState
   status: ConnectionStatus
@@ -34,6 +43,8 @@ export interface RenewvanBus {
   autoSleepEnabled: boolean | null
   autoSleepTimeoutMinutes: AutoSleepTimeoutMinutes | null
   tailscale: TailscaleStatus | null
+  /** The Pi's own address (`renewvan/hub/status`); null until the retained topic arrives. */
+  hubStatus: HubStatus | null
   routerHealth: RouterHealth | null
   /** The shared Demo mode flag (`renewvan/demo/enabled`): true while every client reads the simulated van. */
   demoMode: boolean
@@ -42,7 +53,7 @@ export interface RenewvanBus {
   publish: (topic: string, payload: string) => void
 }
 
-/** The real van's topic root; every host plugin (kiosk, tailscale) lives here, always. */
+/** The real van's topic root; every host plugin (kiosk, tailscale, hub) lives here, always. */
 const REAL_ROOT = 'renewvan'
 /**
  * The simulated van's namespace (hub `docs/demo-mode.md`), under the real root: same shapes as the
@@ -77,14 +88,15 @@ const DEVICE_PATTERN = {
   real: devicePattern(REAL_ROOT, 'demo'),
   demo: devicePattern(DEMO_ROOT, null),
 }
-// The kiosk and tailscale topics are host plugins that no demo device simulates, so they stay on the
-// real root in demo mode: a demo van still dims and sleeps the real screen.
+// The kiosk, tailscale and hub topics are host plugins that no demo device simulates, so they stay
+// on the real root in demo mode: a demo van still dims and sleeps the real screen.
 const KIOSK_PREFIX = `${REAL_ROOT}/kiosk/`
 const TOPIC_DISPLAY_POWER = `${KIOSK_PREFIX}display/power`
 const TOPIC_BRIGHTNESS = `${KIOSK_PREFIX}display/brightness`
 const TOPIC_AUTO_SLEEP_ENABLED = `${KIOSK_PREFIX}display/auto-sleep-enabled`
 const TOPIC_AUTO_SLEEP_TIMEOUT = `${KIOSK_PREFIX}display/auto-sleep-timeout-minutes`
 const TOPIC_TAILSCALE = `${REAL_ROOT}/tailscale/status`
+const TOPIC_HUB_STATUS = `${REAL_ROOT}/hub/status`
 const AUTO_SLEEP_TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 
 /**
@@ -195,6 +207,21 @@ function parseTailscaleStatus(payload: string): TailscaleStatus | null {
   }
 }
 
+/**
+ * The hub plugin's retained status (hub `hub-status.schema.json`): a JSON object with `ip` and
+ * `hostname`, each a string or null, both required. Same rule as the Tailscale status: an empty
+ * payload clears the topic and anything malformed reads as no status, so a stale address is never
+ * shown as the hub's.
+ */
+function parseHubStatus(payload: string): HubStatus | null {
+  const value = parseValue(payload)
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  const o = value as Record<string, unknown>
+  if (!isStringOrNull(o.ip) || !isStringOrNull(o.hostname)) return null
+  // `undefined` fails `isStringOrNull`, so a payload missing either required key is rejected above.
+  return { ip: o.ip, hostname: o.hostname }
+}
+
 /** An empty payload clears a retained topic; so does anything that is not a valid value. */
 function applyDeviceMessage(
   prev: RenewvanBusState,
@@ -301,8 +328,8 @@ function applyMessage(
  * preference: `renewvan/demo/enabled` is retained, `driver-demo` publishes the simulated van while
  * it is `true`, and every client follows it, so toggling in one dashboard shows the demo in all.
  * Each root's entities are accumulated separately and the flag picks which one is exposed, so
- * switching is instant (no reconnect) and real and simulated values can never mix. The kiosk and
- * tailscale host plugins stay on the real root: no demo device simulates them. Demo state is
+ * switching is instant (no reconnect) and real and simulated values can never mix. The kiosk,
+ * tailscale and hub host plugins stay on the real root: no demo device simulates them. Demo state is
  * read-only: while the switch is on, `publish` sends only kiosk commands.
  *
  * Each Device's retained `info` and `health` (`renewvan/<device>/info|health`) accumulate into
@@ -322,6 +349,7 @@ export function useRenewvanBus(): RenewvanBus {
   const [autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes] =
     useState<AutoSleepTimeoutMinutes | null>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
+  const [hubStatus, setHubStatus] = useState<HubStatus | null>(null)
   const clientRef = useRef<MqttClient | null>(null)
 
   // A fresh function every render, so it always reads the current flag; callers that keep it
@@ -403,6 +431,10 @@ export function useRenewvanBus(): RenewvanBus {
         setTailscale(parseTailscaleStatus(payload))
         return
       }
+      if (topic === TOPIC_HUB_STATUS) {
+        setHubStatus(parseHubStatus(payload))
+        return
+      }
       setReal((prev) =>
         applyMessage(prev, topic, payload, ENTITY_PATTERN.real, DEVICE_PATTERN.real),
       )
@@ -424,6 +456,7 @@ export function useRenewvanBus(): RenewvanBus {
       setAutoSleepEnabled(null)
       setAutoSleepTimeoutMinutes(null)
       setTailscale(null)
+      setHubStatus(null)
     }
   }, [])
 
@@ -436,6 +469,7 @@ export function useRenewvanBus(): RenewvanBus {
     autoSleepEnabled,
     autoSleepTimeoutMinutes,
     tailscale,
+    hubStatus,
     routerHealth: state.devices.router?.health ?? null,
     demoMode,
     setDemoMode,
