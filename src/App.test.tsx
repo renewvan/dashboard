@@ -2,6 +2,7 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { toast } from '@heroui/react'
 import type { MqttClient } from 'mqtt'
+import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vite-plus/test'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import App from './App'
@@ -38,6 +39,21 @@ vi.mock('mqtt', () => ({
     },
   },
 }))
+
+// These tests are about the shell (which page opens), not about drawing a map. MapLibre needs WebGL
+// that jsdom does not have, and importing it takes about 1.7 s, longer than a `findBy` waits for the
+// lazy Map page. `MapPage.test.tsx` covers what the page draws.
+vi.mock('react-map-gl/maplibre', () => ({
+  Map: ({ children }: { children?: ReactNode }) => <div data-testid="map">{children}</div>,
+  Marker: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  useMap: () => ({ current: undefined }),
+}))
+vi.mock('maplibre-gl', () => ({
+  addProtocol: vi.fn(),
+  removeProtocol: vi.fn(),
+  setWorkerUrl: vi.fn(),
+}))
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({ default: '/worker.mjs' }))
 
 /** Delivers a retained message to the app as the broker would. */
 async function receive(topic: string, payload: string) {
@@ -336,7 +352,8 @@ describe('App shell URL state', () => {
   it('opens the page named by ?page= on load', async () => {
     await renderAt(KIOSK_WIDTH, '/?page=map')
     expect(selectedPage()).toHaveAccessibleName('Map')
-    expect(screen.getByTestId('pane-map')).toBeInTheDocument()
+    // The Map page loads as its own chunk, so its pane arrives a moment after the shell.
+    expect(await screen.findByTestId('pane-map')).toBeInTheDocument()
   })
 
   it('falls back to Start for an unknown ?page=', async () => {
@@ -350,7 +367,7 @@ describe('App shell URL state', () => {
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('tab', { name: 'Power' }))
     await user.click(screen.getByRole('tab', { name: 'Map' }))
-    expect(screen.getByTestId('pane-map')).toBeInTheDocument()
+    expect(await screen.findByTestId('pane-map')).toBeInTheDocument()
 
     act(() => window.history.back())
     await waitFor(() => expect(screen.getByTestId('pane-power')).toBeInTheDocument())
