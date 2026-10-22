@@ -54,6 +54,15 @@ export type RingUnit = 'pct' | 'litres'
 
 export const RING_UNITS: readonly RingUnit[] = ['pct', 'litres']
 
+/**
+ * What fills the middle of the rings: the van's tilt (the battery's readout stands in while the tilt
+ * has no usable reading), the van drawn as the battery gauge, filling and pulsing as it charges, or
+ * the battery's readout.
+ */
+export type StartCentre = 'tilt' | 'van' | 'battery'
+
+export const START_CENTRES: readonly StartCentre[] = ['tilt', 'van', 'battery']
+
 /** The readings of the half-moons: solar and the charger on the left, the outgoing power on the right. */
 export interface StartPowerSources {
   leftTop: PowerSlot
@@ -64,6 +73,8 @@ export interface StartPowerSources {
   rings: [RingSource, RingSource, RingSource]
   /** How a tank ring's value reads. The battery has no volume, so it is always a percentage. */
   ringUnit: RingUnit
+  /** What fills the middle of the rings. */
+  centre: StartCentre
 }
 
 export const MIN_FULL_SCALE_W = 50
@@ -75,6 +86,7 @@ export const DEFAULT_START_POWER_SOURCES: StartPowerSources = {
   right: { source: 'battery-out', fullScaleW: 1000 },
   rings: ['battery', 'fresh_water', 'grey_water'],
   ringUnit: 'pct',
+  centre: 'tilt',
 }
 
 const STORAGE_KEY = 'renewvan-dashboard-start-power-sources'
@@ -91,6 +103,10 @@ function isRingSource(value: unknown): value is RingSource {
 
 function isRingUnit(value: unknown): value is RingUnit {
   return RING_UNITS.some((unit) => unit === value)
+}
+
+function isStartCentre(value: unknown): value is StartCentre {
+  return START_CENTRES.some((centre) => centre === value)
 }
 
 /** Clamps into the allowed range; a scale is a whole number of watts. */
@@ -149,6 +165,7 @@ export function parseStartPowerSources(raw: string | null): StartPowerSources {
     right: slot('right'),
     rings: [ring(0), ring(1), ring(2)],
     ringUnit: isRingUnit(record.ringUnit) ? record.ringUnit : defaults.ringUnit,
+    centre: isStartCentre(record.centre) ? record.centre : defaults.centre,
   }
 }
 
@@ -172,19 +189,25 @@ export function useStartPowerSources(): [StartPowerSources, (next: StartPowerSou
   return [sources, setSources]
 }
 
+/** The live readings a slot can be taken from; each is `undefined` until its source has published. */
+export interface LiveWatts {
+  /** The solar controller's output. */
+  solarW: number | undefined
+  /** The battery's signed power: positive while it charges. */
+  batteryW: number | undefined
+  /** What the van draws: everything coming in, less what the battery absorbed (the Power page's Loads). */
+  loadW: number | undefined
+}
+
 /** Watts for one slot from the live records; `undefined` while its source has not arrived. */
-export function powerOf(
-  source: PowerSource,
-  solarW: number | undefined,
-  batteryW: number | undefined,
-): number | undefined {
+export function powerOf(source: PowerSource, { solarW, batteryW, loadW }: LiveWatts) {
   switch (source) {
     case 'solar':
       return solarW
     case 'battery-in':
       return batteryW === undefined ? undefined : Math.max(0, batteryW)
     case 'battery-out':
-      return batteryW === undefined ? undefined : Math.max(0, -batteryW)
+      return loadW
     case 'battery-net':
       return batteryW === undefined ? undefined : Math.abs(batteryW)
   }

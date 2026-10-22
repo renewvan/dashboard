@@ -5,7 +5,7 @@ import { arc } from './arcs'
 /** The band's length as a share of the full 270° sweep. */
 const BAND_SHARE = 0.14
 /** One pass at the slowest pace, the same as the Power page's battery at its slowest charge. */
-const PASS_S = pulseSeconds(0, 1)
+const SLOWEST_PASS_S = pulseSeconds(0, 1)
 /** The band is a stack of dashes whose opacity falls off behind its leading edge, so no hard edge. */
 const SLICES = 10
 
@@ -18,6 +18,11 @@ interface BatteryPulseProps {
   litTo: number
   r: number
   stroke: number
+  /**
+   * The loop's pass and phase when it must beat with another band on screen (`pulseClock`). Without
+   * one, a pass at the slowest pace, starting when it mounts.
+   */
+  clock?: { passS: number; delayS: number }
 }
 
 /**
@@ -30,12 +35,13 @@ interface BatteryPulseProps {
  * is normalised to length 100, so the travel is in percent of the lit arc and nothing is measured. A
  * gradient cannot follow an arc, so the fade is a stack of dashes of falling opacity.
  */
-export function BatteryPulse({ from, litTo, r, stroke }: BatteryPulseProps) {
+export function BatteryPulse({ from, litTo, r, stroke, clock }: BatteryPulseProps) {
   const reduce = useReducedMotion()
   if (reduce || litTo <= from) return null
 
   const d = arc(from, litTo, r)
-  const total = PASS_S + PULSE_PAUSE_S
+  const passS = clock?.passS ?? SLOWEST_PASS_S
+  const total = passS + PULSE_PAUSE_S
   // The band's length in path units (the lit arc is 100). A longer arc carries a longer band.
   const band = ((BAND_SHARE * 270) / (litTo - from)) * 100
   const slice = band / SLICES
@@ -64,9 +70,10 @@ export function BatteryPulse({ from, litTo, r, stroke }: BatteryPulseProps) {
             animate={{ strokeDashoffset: [start, end, end] }}
             transition={{
               duration: total,
-              times: [0, PASS_S / total, 1],
+              times: [0, passS / total, 1],
               repeat: Infinity,
               ease: 'linear',
+              delay: clock?.delayS ?? 0,
             }}
           />
         )

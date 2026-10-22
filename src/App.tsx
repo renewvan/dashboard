@@ -285,7 +285,7 @@ function App() {
           lastReceivedAt={routerUpdatedAt}
           tailscale={tailscale}
           busStatus={status}
-          onOpenSettings={() => openSettings('cellular')}
+          onOpenSettings={() => openSettings('connectivity')}
         />
         <Separator orientation="vertical" className="mx-0.5 h-6" />
         <ThemeToggleButton theme={theme} onThemeChange={setTheme} />

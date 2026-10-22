@@ -98,6 +98,29 @@ export function pulseSeconds(watts: number, peakW: number): number {
   return 3.2 - 1.6 * Math.min(1, Math.max(0, watts / peakW))
 }
 
+/** Watts coming into the van from solar, the alternator and shore power. */
+export function inputWatts(flow: Pick<PowerSnapshot, 'edges'>): number {
+  return flow.edges
+    .filter((e) => e.from === 'solar' || e.from === 'alternator' || e.from === 'shore')
+    .reduce((sum, e) => sum + e.watts, 0)
+}
+
+/** The pass of one charging pulse for `watts` of power in, rounded to a tenth of a second. */
+export function pulsePass(watts: number, peakW: number): number {
+  return Math.round(pulseSeconds(watts, peakW) * 10) / 10
+}
+
+/**
+ * Where in its loop a charging pulse of `passS` is at `nowMs`, as the negative delay that starts it
+ * part-way through. The phase comes from the wall clock, so every band with the same pass is on the
+ * same beat however and whenever each was mounted. The pass is rounded (`pulsePass`) so a wobbling
+ * reading does not restart the loop.
+ */
+export function pulseClock(passS: number, nowMs: number = Date.now()) {
+  const periodS = passS + PULSE_PAUSE_S
+  return { passS, delayS: -((nowMs / 1000) % periodS) }
+}
+
 export function buildFlow({
   battery,
   solar,

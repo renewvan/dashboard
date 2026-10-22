@@ -16,6 +16,7 @@ describe('parseStartPowerSources', () => {
       right: { source: 'battery-out', fullScaleW: 3000 },
       rings: ['fuel', 'battery', 'black_water'],
       ringUnit: 'litres',
+      centre: 'van',
     }
     expect(parseStartPowerSources(JSON.stringify(stored))).toEqual(stored)
   })
@@ -39,12 +40,18 @@ describe('parseStartPowerSources', () => {
       right: DEFAULT_START_POWER_SOURCES.right,
       rings: DEFAULT_START_POWER_SOURCES.rings,
       ringUnit: DEFAULT_START_POWER_SOURCES.ringUnit,
+      centre: DEFAULT_START_POWER_SOURCES.centre,
     })
   })
 
   it('keeps only the scale of a charging slot saved when it still had a source', () => {
     const stored = { leftBottom: { source: 'battery-in', fullScaleW: 600 } }
     expect(parseStartPowerSources(JSON.stringify(stored)).leftBottom).toEqual({ fullScaleW: 600 })
+  })
+
+  it('keeps the tilt in the middle for a value saved before the centre was a setting, or an unknown one', () => {
+    expect(parseStartPowerSources(JSON.stringify({ ringUnit: 'pct' })).centre).toBe('tilt')
+    expect(parseStartPowerSources(JSON.stringify({ centre: 'boat' })).centre).toBe('tilt')
   })
 
   it('repairs one bad ring without resetting the other two', () => {
@@ -96,22 +103,27 @@ describe('clampFullScale', () => {
 })
 
 describe('powerOf', () => {
-  it('splits the battery power by direction: charging is positive, load is negative', () => {
-    expect(powerOf('battery-in', undefined, 120)).toBe(120)
-    expect(powerOf('battery-in', undefined, -120)).toBe(0)
-    expect(powerOf('battery-out', undefined, -120)).toBe(120)
-    expect(powerOf('battery-out', undefined, 120)).toBe(0)
-    expect(powerOf('battery-net', undefined, -120)).toBe(120)
+  const none = { solarW: undefined, batteryW: undefined, loadW: undefined }
+
+  it('splits the battery power by direction: charging is positive', () => {
+    expect(powerOf('battery-in', { ...none, batteryW: 120 })).toBe(120)
+    expect(powerOf('battery-in', { ...none, batteryW: -120 })).toBe(0)
+    expect(powerOf('battery-net', { ...none, batteryW: -120 })).toBe(120)
   })
 
   it('reads solar from the controller, not the battery', () => {
-    expect(powerOf('solar', 247, -50)).toBe(247)
+    expect(powerOf('solar', { ...none, solarW: 247, batteryW: -50 })).toBe(247)
+  })
+
+  it('reads the load from the van, not from the battery', () => {
+    expect(powerOf('battery-out', { ...none, batteryW: 9, loadW: 6 })).toBe(6)
+    expect(powerOf('battery-out', { ...none, batteryW: -120, loadW: 120 })).toBe(120)
   })
 
   it('has no value until the source has published, never a made-up zero', () => {
-    expect(powerOf('solar', undefined, 100)).toBeUndefined()
-    expect(powerOf('battery-in', 100, undefined)).toBeUndefined()
-    expect(powerOf('battery-out', 100, undefined)).toBeUndefined()
-    expect(powerOf('battery-net', 100, undefined)).toBeUndefined()
+    expect(powerOf('solar', { ...none, batteryW: 100 })).toBeUndefined()
+    expect(powerOf('battery-in', { ...none, solarW: 100 })).toBeUndefined()
+    expect(powerOf('battery-out', { ...none, solarW: 100, batteryW: 100 })).toBeUndefined()
+    expect(powerOf('battery-net', { ...none, solarW: 100 })).toBeUndefined()
   })
 })

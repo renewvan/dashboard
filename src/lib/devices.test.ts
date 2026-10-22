@@ -49,15 +49,14 @@ describe('deviceRows', () => {
   })
 
   it('joins entities to a Device by the entity types it publishes', () => {
-    const [row] = deviceRows(
+    const row = deviceRows(
       stateWith({
         devices: { tank: { info: tankInfo, health: 'online' } },
         tanks: { fresh: {} as never, grey: {} as never },
         gps: { '0': {} as never },
       }),
-    )
-    expect(row.key).toBe('tank')
-    expect(row.entityCount).toBe(2)
+    ).find((r) => r.key === 'tank')
+    expect(row).toMatchObject({ key: 'tank', entityCount: 2 })
   })
 
   describe('the five states of a Device', () => {
@@ -127,16 +126,16 @@ describe('deviceRows', () => {
       )
       expect(rows).toEqual([
         expect.objectContaining({
+          key: 'domain:gps',
+          name: 'GPS',
+          version: 'Unknown',
+          entityCount: 1,
+        }),
+        expect.objectContaining({
           key: 'domain:tank',
           name: 'Tanks',
           version: 'Unknown',
           status: 'Unknown',
-          entityCount: 1,
-        }),
-        expect.objectContaining({
-          key: 'domain:gps',
-          name: 'GPS',
-          version: 'Unknown',
           entityCount: 1,
         }),
       ])
@@ -157,7 +156,7 @@ describe('deviceRows', () => {
           gps: { '0': {} as never },
         }),
       )
-      expect(rows.map((r) => r.key)).toEqual(['tank', 'domain:gps'])
+      expect(rows.map((r) => r.key)).toEqual(['domain:gps', 'tank'])
     })
 
     it('does not create a row for an entity type with no entities', () => {
@@ -196,7 +195,7 @@ describe('deviceRows', () => {
     ])
   })
 
-  it('lists Devices in a stable order: by key, then fallback rows in the old display order', () => {
+  it('lists Devices and fallback rows together, alphabetically by the name each is shown under', () => {
     const rows = deviceRows(
       stateWith({
         devices: { venus: { health: 'online' }, tank: { health: 'online' } },
@@ -204,7 +203,31 @@ describe('deviceRows', () => {
         tanks: { fresh: {} as never },
       }),
     )
-    expect(rows.map((r) => r.key)).toEqual(['tank', 'venus', 'domain:tank', 'domain:tilt'])
+    // The `tank` Device claims nothing (no info), so the Tanks and Tilt fallbacks stay.
+    expect(rows.map((r) => r.name)).toEqual(['Tank', 'Tanks', 'Tilt', 'Venus'])
+    expect(rows.map((r) => r.key)).toEqual(['tank', 'domain:tank', 'domain:tilt', 'venus'])
+  })
+
+  it('sorts by the name on screen, not the key behind it, and ignores case', () => {
+    const relayInfo: DeviceInfo = {
+      device: 'esp32-relay',
+      product: 'ESP32 16-channel relay board',
+      source: 'ESP32',
+      publishes: ['relay'],
+      version: 'v0.1.0',
+    }
+    const rows = deviceRows(
+      stateWith({
+        // `esp32-relay` is shown as "Relays": it sorts under R, after Mystery, not under E.
+        devices: {
+          'esp32-relay': { info: relayInfo, health: 'online' },
+          mystery: { health: 'online' },
+          gps: { health: 'online' },
+          Zebra: { health: 'online' },
+        },
+      }),
+    )
+    expect(rows.map((r) => r.name)).toEqual(['GPS', 'Mystery', 'Relays', 'Zebra'])
   })
 })
 

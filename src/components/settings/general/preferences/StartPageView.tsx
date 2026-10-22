@@ -12,6 +12,7 @@ import {
   type PowerSource,
   type RingSource,
   type RingUnit,
+  type StartCentre,
   type StartPowerSources,
 } from '@/hooks/useStartPowerSources'
 
@@ -157,6 +158,12 @@ const RING_UNIT_CHOICES: { value: RingUnit; label: string }[] = [
   { value: 'litres', label: 'Liters (\u2113)' },
 ]
 
+const CENTRE_CHOICES: { value: StartCentre; label: string }[] = [
+  { value: 'tilt', label: 'Tilt' },
+  { value: 'van', label: 'Van' },
+  { value: 'battery', label: 'Battery readout' },
+]
+
 interface StartPageViewProps {
   sources: StartPowerSources
   onChange: (sources: StartPowerSources) => void
@@ -170,6 +177,22 @@ interface StartPageViewProps {
 export function StartPageView({ sources, onChange }: StartPageViewProps) {
   return (
     <div className="flex flex-col gap-2">
+      <h2 className="px-1 text-sm font-medium">Centre</h2>
+      <Card>
+        <ChoiceRow
+          label="Shows"
+          choices={CENTRE_CHOICES}
+          value={sources.centre}
+          onChange={(centre) => onChange({ ...sources, centre })}
+        />
+      </Card>
+      <p className="text-muted px-1 text-xs">
+        What fills the middle of the rings. Tilt shows the van&apos;s pitch and roll, and the
+        battery readout while there is no reading. Van draws the van filling as the battery charges.
+        Battery readout shows the charge as a number, and the battery is then left out of the list
+        under the rings.
+      </p>
+      <h2 className="mt-2 px-1 text-sm font-medium">Power Readings</h2>
       {SLOTS.map(({ key, label, hint }) => (
         <SlotCard
           key={key}

@@ -109,28 +109,27 @@ function describeDevice(
 }
 
 /**
- * One row per Device, by key, then one fallback row per entity type with entities that no Device
- * claims by its `publishes` list. Two Devices publishing the same type both show the same
- * instances: per-instance attribution is out of scope.
+ * One row per Device, then one fallback row per entity type with entities that no Device claims by
+ * its `publishes` list, the whole list in alphabetical order of the name it is shown under. Two
+ * Devices publishing the same type both show the same instances: per-instance attribution is out of
+ * scope.
  */
 export function deviceRows(state: RenewvanBusState): DeviceRow[] {
   const claimed = new Set<string>()
-  const rows: DeviceRow[] = Object.keys(state.devices)
-    .sort()
-    .map((key) => {
-      const { info, health } = state.devices[key]
-      for (const type of info?.publishes ?? []) claimed.add(type)
-      const entities = entitiesOf(state, info?.publishes ?? [])
-      return {
-        key,
-        name: deviceName(info?.device ?? key),
-        info,
-        entities,
-        // Without info there is no `publishes`, so how many entities it owns is unknown, not zero.
-        entityCount: info === undefined ? null : entities.reduce((sum, e) => sum + e.ids.length, 0),
-        ...describeDevice(info, health),
-      }
-    })
+  const rows: DeviceRow[] = Object.keys(state.devices).map((key) => {
+    const { info, health } = state.devices[key]
+    for (const type of info?.publishes ?? []) claimed.add(type)
+    const entities = entitiesOf(state, info?.publishes ?? [])
+    return {
+      key,
+      name: deviceName(info?.device ?? key),
+      info,
+      entities,
+      // Without info there is no `publishes`, so how many entities it owns is unknown, not zero.
+      entityCount: info === undefined ? null : entities.reduce((sum, e) => sum + e.ids.length, 0),
+      ...describeDevice(info, health),
+    }
+  })
 
   for (const { type, field, label } of ENTITY_TYPES) {
     if (claimed.has(type)) continue
@@ -145,7 +144,16 @@ export function deviceRows(state: RenewvanBusState): DeviceRow[] {
       ...describeDevice(undefined, undefined),
     })
   }
-  return rows
+  // By the name on screen, not the key behind it (`esp32-relay` reads "Relays"); case and accents do
+  // not matter. Of two rows under one name (a Device and the fallback for what it leaves unclaimed)
+  // the Device comes first, and the key settles any other tie, so the order never flips.
+  const isFallback = (row: DeviceRow) => row.key.startsWith(FALLBACK_PREFIX)
+  return rows.sort(
+    (a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) ||
+      Number(isFallback(a)) - Number(isFallback(b)) ||
+      (a.key < b.key ? -1 : 1),
+  )
 }
 
 /** `1 entity` / `N entities`: the one wording for an entity count on the Devices list and Device page. */

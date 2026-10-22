@@ -9,6 +9,7 @@ import { pushSearchParams } from '@/lib/urlHistory'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 import { AlertsView } from './general/preferences/AlertsView'
 import { AlertsButton } from '@/components/AlertsButton'
+import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { CellularView } from './connectivity/CellularView'
 import { ConnectivityView } from './connectivity/ConnectivityView'
@@ -68,6 +69,11 @@ export const SettingsPage = memo(function SettingsPage() {
     devices,
     tanks,
     displayPower,
+    router,
+    routerHealth,
+    routerUpdatedAt,
+    busStatus,
+    tailscale,
     sleepDisplay,
     wakeDisplay,
     unseenAlertCount,
@@ -234,6 +240,14 @@ export const SettingsPage = memo(function SettingsPage() {
           onBack={() => setView(VIEWS[subpage].parent)}
           action={
             <div className="flex items-center gap-1.5">
+              <UplinkStatusButton
+                router={router}
+                routerHealth={routerHealth}
+                lastReceivedAt={routerUpdatedAt}
+                tailscale={tailscale}
+                busStatus={busStatus}
+                onOpenSettings={() => setView('connectivity')}
+              />
               <AlertsButton onClick={openAlerts} count={unseenAlertCount} active={false} />
               <DisplaySleepButton
                 displayPower={displayPower}

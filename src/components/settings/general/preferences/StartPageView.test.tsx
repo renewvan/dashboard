@@ -65,6 +65,26 @@ describe('Settings › General › Display & Appearance › Start page', () => {
     })
   })
 
+  it('offers the tilt, the van or the battery readout for the middle, defaulting to the tilt', async () => {
+    const { user, value } = renderSettings()
+    await openStartPage(user)
+
+    const group = screen.getByRole('radiogroup', { name: 'Shows' })
+    expect(
+      within(group)
+        .getAllByRole('radio')
+        .map((radio) => radio.textContent),
+    ).toEqual(['Tilt', 'Van', 'Battery readout'])
+    expect(within(group).getByRole('radio', { name: 'Tilt' })).toBeChecked()
+
+    await user.click(within(group).getByRole('radio', { name: 'Battery readout' }))
+
+    expect(value.setStartPowerSources).toHaveBeenCalledExactlyOnceWith({
+      ...DEFAULT_START_POWER_SOURCES,
+      centre: 'battery',
+    })
+  })
+
   it('offers the battery and every fluid for a ring, defaulting to battery, fresh, grey', async () => {
     const { user } = renderSettings()
     await openStartPage(user)
