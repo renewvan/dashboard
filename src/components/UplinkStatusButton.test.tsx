@@ -252,7 +252,7 @@ describe('UplinkStatusButton popover', () => {
 
       const hub = group('Hub connection')
       expect(hub.getByText('Address').nextSibling).toHaveTextContent('192.168.1.10')
-      expect(hub.getByText('Via').nextSibling).toHaveTextContent('Local network')
+      expect(hub.queryByText('Via')).not.toBeInTheDocument()
       expect(hub.queryByText('RSRP')).not.toBeInTheDocument()
     })
 
@@ -270,12 +270,12 @@ describe('UplinkStatusButton popover', () => {
       expect(group('Hub connection').getByText('192.168.1.10')).toBeInTheDocument()
     })
 
-    it('says how the hub is reached: remote, or Tailscale', async () => {
+    it('shows no route row: how the hub is reached lives in Settings, not the popover', async () => {
       await open(undefined, null, null, connectedTailscale, () => {}, 'connected', {
         host: 'hub.example.com',
         route: 'remote',
       })
-      expect(group('Hub connection').getByText('Via').nextSibling).toHaveTextContent('Remote')
+      expect(group('Hub connection').queryByText('Via')).not.toBeInTheDocument()
     })
 
     it('shows dashes, not a made-up address, while no broker is configured', async () => {
@@ -283,7 +283,7 @@ describe('UplinkStatusButton popover', () => {
 
       const hub = group('Hub connection')
       expect(hub.getByText('Address').nextSibling).toHaveTextContent('—')
-      expect(hub.getByText('Via').nextSibling).toHaveTextContent('—')
+      expect(hub.getAllByText('—')).toHaveLength(1)
     })
   })
 })

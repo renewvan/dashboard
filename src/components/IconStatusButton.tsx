@@ -51,14 +51,16 @@ export function IconStatusButton({
         {icon}
       </Button>
       <Popover.Content className="w-64">
-        <Popover.Dialog className="flex flex-col gap-2 text-sm">
+        <Popover.Dialog className="flex max-h-[calc(100dvh-5rem)] flex-col gap-2 text-sm">
           {title && <Popover.Heading className="text-sm font-medium">{title}</Popover.Heading>}
-          {children}
+          <div className="flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain">
+            {children}
+          </div>
           {onOpenSettings && (
             <Button
               variant="outline"
               fullWidth
-              className="mt-4"
+              className="mt-2 min-h-12 shrink-0"
               onPress={() => {
                 setOpen(false)
                 onOpenSettings()

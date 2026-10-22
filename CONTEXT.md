@@ -25,9 +25,10 @@ reads 5G) while the router feeds, or how the kiosk reaches the hub (`LAN`,
 `TS`, `WAN`, judged from the broker address in `VITE_MQTT_WS_URL`) while it
 does not. Its popover keeps the router and the hub apart: a **Router
 connection** block (network, RSRP, data; only while the router feeds), a **Hub
-connection** block (the Bus link, the hub's address, and whether the kiosk
-reaches it over the local network, Tailscale or remotely) and **Remote access**
-(Tailscale). The router carries no IP on the bus (`router.schema.json` has no
+connection** block (the Bus link and the hub's address) and **Remote access**
+(Tailscale). How the kiosk reaches the hub (local network, Tailscale or remotely)
+is not in the popover: it is the connection-type badge and Settings → Hub's
+"Reached over" row. The router carries no IP on the bus (`router.schema.json` has no
 such field), so the hub's address is the Pi's own: the hub plugin publishes it
 retained to `renewvan/hub/status` (hub `hub-status.schema.json`), read from the
 Pi itself, so it is there with or without a router. How the kiosk reaches the
