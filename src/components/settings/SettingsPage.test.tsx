@@ -20,13 +20,14 @@ function rowNames() {
 }
 
 describe('SettingsPage top list', () => {
-  it('lists exactly Devices, General and Connectivity, in that order, with live descriptions', () => {
+  it('lists exactly Devices, General, Connectivity and Van, in that order, with live descriptions', () => {
     renderSettings({}, { bus: { tanks: { fresh: completeTank }, batteries: { '1': {} as never } } })
 
     expect(rowNames()).toEqual([
       'Devices2 devices',
       'GeneralFirmware, display, alerts',
       'ConnectivityRouter, Hub, Tailscale',
+      'VanVehicle information',
     ])
   })
 
@@ -42,7 +43,97 @@ describe('SettingsPage top list', () => {
     renderSettings()
 
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
-    expect(rowNames()).toHaveLength(3)
+    expect(rowNames()).toHaveLength(4)
+  })
+
+  it('keeps General and Connectivity under Hub and puts Van under Advanced, after them', () => {
+    renderSettings()
+
+    const rowsIn = (group: string) =>
+      within(screen.getByRole('region', { name: group }))
+        .getAllByRole('button')
+        .map((row) => row.textContent)
+    expect(rowsIn('Hub')).toEqual([
+      'GeneralFirmware, display, alerts',
+      expect.stringMatching(/^Connectivity/),
+    ])
+    expect(rowsIn('Advanced')).toEqual(['VanVehicle information'])
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(headings).toEqual(['Hub', 'Advanced'])
+  })
+})
+
+describe('SettingsPage Van', () => {
+  const field = (name: string) => screen.getByRole('textbox', { name })
+
+  async function openVan(overrides: Partial<SettingsContextValue> = {}) {
+    const rendered = renderSettings(overrides)
+    await rendered.user.click(screen.getByRole('button', { name: /^Van/ }))
+    return rendered
+  }
+
+  it('opens with Name, Brand, Model, Kms and Plate, in that order, under a Back button to Settings', async () => {
+    await openVan()
+
+    expect(screen.getByRole('heading', { name: 'Van' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+    const labels = ['Name', 'Brand', 'Model', 'Kms', 'Plate']
+    const boxes = screen.getAllByRole('textbox')
+    expect(boxes).toHaveLength(labels.length)
+    expect(boxes).toEqual(labels.map(field))
+  })
+
+  it('shows the stored details', async () => {
+    await openVan({
+      van: { name: 'Bluey', brand: 'Fiat', model: 'Ducato', kms: '120000', plate: '1234 ABC' },
+    })
+
+    expect(field('Name')).toHaveValue('Bluey')
+    expect(field('Plate')).toHaveValue('1234 ABC')
+  })
+
+  it('saves a field once, on Enter, not on every keystroke', async () => {
+    const setVanField = vi.fn()
+    const { user } = await openVan({ setVanField })
+
+    await user.type(field('Model'), 'Ducato')
+    expect(setVanField).not.toHaveBeenCalled()
+
+    await user.keyboard('{Enter}')
+    expect(setVanField).toHaveBeenCalledExactlyOnceWith('model', 'Ducato')
+  })
+
+  it('saves on leaving the field, trimmed', async () => {
+    const setVanField = vi.fn()
+    const { user } = await openVan({ setVanField })
+
+    await user.type(field('Brand'), '  Fiat ')
+    await user.tab()
+
+    expect(setVanField).toHaveBeenCalledExactlyOnceWith('brand', 'Fiat')
+  })
+
+  it('drops the edit on Escape', async () => {
+    const setVanField = vi.fn()
+    const { user } = await openVan({ setVanField })
+
+    await user.type(field('Name'), 'Oops')
+    await user.keyboard('{Escape}')
+
+    expect(setVanField).not.toHaveBeenCalled()
+  })
+
+  it('does not save a field that was not changed', async () => {
+    const setVanField = vi.fn()
+    const { user } = await openVan({
+      setVanField,
+      van: { name: 'Bluey', brand: '', model: '', kms: '', plate: '' },
+    })
+
+    await user.click(field('Name'))
+    await user.tab()
+
+    expect(setVanField).not.toHaveBeenCalled()
   })
 })
 
@@ -91,7 +182,7 @@ describe('SettingsPage navigation bar', () => {
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
 
-    expect(rowNames()).toHaveLength(3)
+    expect(rowNames()).toHaveLength(4)
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
   })
 
@@ -273,8 +364,12 @@ describe('SettingsPage About', () => {
     return rendered
   }
 
-  /** The loaded software licences: one list item per distinct licence text. */
-  const softwareList = () => screen.findByRole('list', { name: 'Software licences' })
+  /**
+   * The loaded software licences: one list item per distinct licence text. They come from a lazy
+   * chunk, so under a loaded test run the default 1s wait is not enough.
+   */
+  const softwareList = () =>
+    screen.findByRole('list', { name: 'Software licences' }, { timeout: 4000 })
 
   it('sits in System between Firmware and the Demo mode switch', async () => {
     const { user } = renderSettings()

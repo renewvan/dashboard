@@ -162,10 +162,10 @@ function expectInConnectivity() {
   expect(currentView()).toHaveAccessibleName('Connectivity')
 }
 
-/** The top list: Settings' own title and its three rows, with no back button above them. */
+/** The top list: Settings' own title and its four rows, with no back button above them. */
 function expectTopList() {
   const pane = screen.getByTestId('pane-settings')
-  expect(within(pane).getAllByRole('button')).toHaveLength(3)
+  expect(within(pane).getAllByRole('button')).toHaveLength(4)
   expect(within(pane).getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
 }
 
@@ -660,7 +660,7 @@ describe('App shell header', () => {
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
 
     const pane = screen.getByTestId('pane-settings')
-    expect(within(pane).getAllByRole('button')).toHaveLength(3)
+    expect(within(pane).getAllByRole('button')).toHaveLength(4)
     expect(within(pane).getByRole('button', { name: /^Devices/ })).toHaveTextContent(
       'No devices connected',
     )
@@ -668,7 +668,27 @@ describe('App shell header', () => {
     await user.click(within(pane).getByRole('button', { name: /^General/ }))
     expect(within(pane).getByRole('heading', { name: 'General' })).toBeVisible()
     await user.click(within(pane).getByRole('button', { name: 'Settings' }))
-    expect(within(pane).getAllByRole('button')).toHaveLength(3)
+    expect(within(pane).getAllByRole('button')).toHaveLength(4)
+  })
+
+  it('keeps the van details typed in Settings › Van across a reload of the app', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    await user.click(
+      within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Van/ }),
+    )
+    await user.type(screen.getByRole('textbox', { name: 'Plate' }), '1234 ABC{Enter}')
+    cleanup()
+
+    // A reload lands on the same app with the stored details and no view in the URL.
+    await renderAt(KIOSK_WIDTH)
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    await user.click(
+      within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Van/ }),
+    )
+
+    expect(screen.getByRole('textbox', { name: 'Plate' })).toHaveValue('1234 ABC')
   })
 
   it('publishes a Display change as a JSON payload on the hyphenated /set topic', async () => {

@@ -44,6 +44,7 @@ import { useNavbarPosition } from '@/hooks/useNavbarPosition'
 import { useStartPowerSources } from '@/hooks/useStartPowerSources'
 import { usePowerLayout } from '@/hooks/usePowerLayout'
 import { resolveMapIsDark, useMapTheme } from '@/hooks/useMapTheme'
+import { useVan } from '@/hooks/useVan'
 import { useUrlPage } from '@/hooks/useUrlPage'
 import { useHubAddress } from '@/hooks/useHubAddress'
 import { useBrokerLink } from '@/hooks/useBrokerLink'
@@ -142,6 +143,7 @@ function App() {
   const [startPowerSources, setStartPowerSources] = useStartPowerSources()
   const [powerLayout, setPowerLayout] = usePowerLayout()
   const [mapTheme, setMapTheme] = useMapTheme()
+  const [van, setVanField] = useVan()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
   const isBottomBar = !isMobile && navbarPosition === 'bottom'
   // The kiosk navbar's auto-hide lives here, not in the navbar: React Aria renders everything
@@ -255,6 +257,8 @@ function App() {
       setPowerLayout,
       mapTheme,
       setMapTheme,
+      van,
+      setVanField,
     }),
     [
       devices,
@@ -292,6 +296,8 @@ function App() {
       setPowerLayout,
       mapTheme,
       setMapTheme,
+      van,
+      setVanField,
     ],
   )
 

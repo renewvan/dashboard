@@ -14,6 +14,7 @@ import type { HubAddress } from '@/lib/hubAddress'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { MapThemeChoice } from '@/hooks/useMapTheme'
+import type { Van } from '@/hooks/useVan'
 import type { DeviceRow } from '@/lib/devices'
 import type { Relay, Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
 
@@ -73,6 +74,9 @@ export interface SettingsContextValue {
   /** The Map page's look: Auto (follow the app theme), Light or Dark; the same instance `App` reads. */
   mapTheme: MapThemeChoice
   setMapTheme: (choice: MapThemeChoice) => void
+  /** The van's details (name, brand, model, kms, plate): kiosk-local, the same instance `App` reads. */
+  van: Van
+  setVanField: (field: keyof Van, value: string) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
   setRelay: (id: string, on: boolean) => void

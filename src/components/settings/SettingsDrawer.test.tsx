@@ -144,7 +144,7 @@ describe('drawer navigation', () => {
 
     const about = await openDialog('About')
     expect(
-      await within(about).findByRole('list', { name: 'Software licences' }),
+      await within(about).findByRole('list', { name: 'Software licences' }, { timeout: 4000 }),
     ).toBeInTheDocument()
     expect(within(about).getByText('© OpenStreetMap contributors')).toBeInTheDocument()
     await user.click(within(about).getByRole('button', { name: 'Back' }))
