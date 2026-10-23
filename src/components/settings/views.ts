@@ -20,6 +20,7 @@ export type SettingsView =
   | 'cellular'
   | 'hub'
   | 'tailscale'
+  | 'van'
 
 /** A view that is a valid `?view=` value: everything below the top list. */
 export type SettingsSubView = Exclude<SettingsView, 'list'>

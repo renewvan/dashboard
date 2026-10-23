@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useState, type ReactNode } from 'react'
-import { Button, Drawer, ScrollShadow, Separator } from '@heroui/react'
-import { ArrowLeft, Workflow, SlidersHorizontal, Wifi } from 'lucide-react'
+import { Button, Drawer, ScrollShadow } from '@heroui/react'
+import { ArrowLeft, Workflow, SlidersHorizontal, Van, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
@@ -18,6 +18,7 @@ import { DisplayView } from './general/preferences/DisplayView'
 import { AboutView } from './general/system/AboutView'
 import { FirmwareView } from './general/system/FirmwareView'
 import { GeneralView } from './general/GeneralView'
+import { Group } from './shared/Group'
 import { GroupRow } from './shared/GroupRow'
 import { HubView } from './connectivity/HubView'
 import { DeviceInfoView } from './devices/DeviceInfoView'
@@ -27,6 +28,7 @@ import { StartPageView } from './general/preferences/StartPageView'
 import { PowerPageView } from './general/preferences/PowerPageView'
 import { MapPageView } from './general/preferences/MapPageView'
 import { useSettings } from './SettingsContext'
+import { VanView } from './advanced/VanView'
 import { TailscaleView } from './connectivity/TailscaleView'
 import { TankSettingsView } from './devices/TankSettingsView'
 import { TanksView } from './devices/TanksView'
@@ -57,6 +59,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   cellular: { title: 'Cellular', parent: 'connectivity' },
   hub: { title: 'Hub', parent: 'connectivity' },
   tailscale: { title: 'Tailscale', parent: 'connectivity' },
+  van: { title: 'Van', parent: 'list' },
 }
 
 const SUB_VIEWS = Object.keys(VIEWS) as SettingsSubView[]
@@ -92,6 +95,8 @@ export const SettingsPage = memo(function SettingsPage() {
     setPowerLayout,
     mapTheme,
     setMapTheme,
+    van,
+    setVanField,
   } = useSettings()
   const isMobile = useIsMobile()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
@@ -204,6 +209,8 @@ export const SettingsPage = memo(function SettingsPage() {
         return <HubView />
       case 'tailscale':
         return <TailscaleView />
+      case 'van':
+        return <VanView van={van} onChange={setVanField} />
     }
   }
 
@@ -217,19 +224,28 @@ export const SettingsPage = memo(function SettingsPage() {
           description={devicesSummary(devices)}
           onOpen={() => setView('devices')}
         />
-        <Separator className="my-1" />
-        <GroupRow
-          icon={<SlidersHorizontal />}
-          label="General"
-          description="Firmware, display, alerts"
-          onOpen={() => setView('general')}
-        />
-        <GroupRow
-          icon={<Wifi />}
-          label="Connectivity"
-          description={`${routerName(routerDevice(devices))}, Hub, Tailscale`}
-          onOpen={() => setView('connectivity')}
-        />
+        <Group title="Hub">
+          <GroupRow
+            icon={<SlidersHorizontal />}
+            label="General"
+            description="Firmware, display, alerts"
+            onOpen={() => setView('general')}
+          />
+          <GroupRow
+            icon={<Wifi />}
+            label="Connectivity"
+            description={`${routerName(routerDevice(devices))}, Hub, Tailscale`}
+            onOpen={() => setView('connectivity')}
+          />
+        </Group>
+        <Group title="Advanced">
+          <GroupRow
+            icon={<Van />}
+            label="Van"
+            description="Vehicle information"
+            onOpen={() => setView('van')}
+          />
+        </Group>
       </div>
     </>
   )
