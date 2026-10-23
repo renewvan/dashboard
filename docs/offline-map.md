@@ -20,18 +20,22 @@ Install the [`pmtiles` CLI](https://docs.protomaps.com/pmtiles/cli) and cut a re
 current Protomaps build (daily builds: <https://maps.protomaps.com/builds>; the style needs a
 version 4 build). A bounding box is `MIN_LON,MIN_LAT,MAX_LON,MAX_LAT`.
 
+**Write the file to `public/maps/basemap.pmtiles` in this repo.** That is where `vp dev` reads it
+(see "Seeing the map in `vp dev`"), it is git-ignored, and the push in section 4 sends the same
+file to the Pi. One file, built once, used everywhere.
+
 Check the size first. `--dry-run` reads only the build's directories (a few MB), prints what the
 extract would transfer and write, and creates no file:
 
 ```bash
-pmtiles extract https://build.protomaps.com/YYYYMMDD.pmtiles basemap.pmtiles \
+pmtiles extract https://build.protomaps.com/YYYYMMDD.pmtiles public/maps/basemap.pmtiles \
   --bbox=-8.7,49.8,1.9,60.9 --maxzoom=14 --dry-run
 ```
 
 Then run the same command without `--dry-run`:
 
 ```bash
-pmtiles extract https://build.protomaps.com/YYYYMMDD.pmtiles basemap.pmtiles \
+pmtiles extract https://build.protomaps.com/YYYYMMDD.pmtiles public/maps/basemap.pmtiles \
   --bbox=-8.7,49.8,1.9,60.9 --maxzoom=14
 ```
 
@@ -187,6 +191,18 @@ bounds, so you can check the file covers where you will be, and the tileset's me
 includes a `version` line (for example `version 4.15.2`; it must start with `4.` for the
 dashboard's style, and is not the `pmtiles spec version: 3` line above it). Both work offline.
 
+**The bounds are what was asked for, not proof that tiles exist there.** Also check that the tile
+under the place you care about is not empty. `pmtiles tile FILE Z X Y` prints that tile's bytes, so
+counting them tells you (0 means the file has nothing there):
+
+```bash
+# Set LAT/LON to a place you will be (here the Freiburg Münster). Prints the bytes of the z14 tile
+# under it: > 0 is a real tile, 0 means the file has nothing there.
+LAT=47.9955 LON=7.8529
+read Z X Y < <(python3 -c "import math;la,lo,z=$LAT,$LON,14;n=2**z;print(z,int((lo+180)/360*n),int((1-math.asinh(math.tan(math.radians(la)))/math.pi)/2*n))")
+pmtiles tile public/maps/basemap.pmtiles $Z $X $Y | wc -c
+```
+
 ## 4. Copy it to the Pi
 
 Use the hub's push script. It verifies the file, replaces the running map safely and checks the
@@ -194,11 +210,12 @@ result. What it needs on the Pi, the path, the `.env` key and the placeholder fi
 side: see the [hub README](https://github.com/renewvan/hub) and do not copy them here.
 
 ```bash
-scripts/push-basemap.sh basemap.pmtiles [--host <ssh-alias>]
+# from the hub checkout, pushing the file you built in the dashboard's public/maps/
+scripts/push-basemap.sh ../dashboard/public/maps/basemap.pmtiles [--host <ssh-alias>]
 ```
 
-(Run from the hub checkout. The script and its README section are specified in the hub's companion
-issue, <https://github.com/renewvan/hub/issues/69>.)
+(The script and its README section are specified in the hub's companion issue,
+<https://github.com/renewvan/hub/issues/69>.)
 
 By hand, the sequence it follows is: copy to a temporary name beside the live file, move it into
 place, restart the dashboard container, then check the result (below). A plain `mv` over the live
@@ -206,7 +223,7 @@ file is not enough, because a single-file mount pins the old file until the cont
 copying over the live file in place would let a map read a half-written archive.
 
 ```bash
-scp basemap.pmtiles <pi>:<basemap path on the Pi>.new
+scp public/maps/basemap.pmtiles <pi>:<basemap path on the Pi>.new
 ssh <pi> 'mv <basemap path on the Pi>.new <basemap path on the Pi> && docker restart renewvan-dashboard'
 ```
 
@@ -242,19 +259,25 @@ reference, not more steps.
 
 ## Seeing the map in `vp dev`
 
-`vp dev` has no nginx, so there is no mounted file. Fonts and sprites already work (Vite serves
-`public/maps/`); only the tiles are missing, so the map is empty and shows the "Offline map
-unavailable" notice until you add them. Cut a small
-extract around where you are testing (a 0.6° x 0.3° box is under 10 MB) and drop it in `public/`:
+`vp dev` has no nginx, so there is no mounted file: Vite serves `public/maps/` as it is. Fonts and
+sprites already work; only the tiles are missing, so the map is empty and shows the "Offline map
+unavailable" notice until `public/maps/basemap.pmtiles` exists.
 
-```bash
-pmtiles extract https://build.protomaps.com/YYYYMMDD.pmtiles public/maps/basemap.pmtiles \
-  --bbox=0.30,50.75,0.90,51.05 --maxzoom=14
-```
+**Build the basemap there in the first place** (section 1 does) and `vp dev`, the Demo mode and the
+push to the Pi all use the same file: no copy, no second extract. `public/maps/basemap.pmtiles` is
+git-ignored (`*.pmtiles`), so it never reaches a commit.
 
-`public/maps/basemap.pmtiles` is git-ignored. Then run `vp dev` with a GPS fix inside the box
-(`renewvan/gps/<id>/latitude` and `longitude`, plus `fix_quality` and `satellites_in_use`), or use
-Demo mode. A fix outside the box shows the empty map with the van on it.
+Then run `vp dev` with a GPS fix inside the file's area (`renewvan/gps/<id>/latitude` and
+`longitude`, plus `fix_quality` and `satellites_in_use`), or use Demo mode. Demo mode drives in
+downtown Freiburg (hub `schema/demo/gps.van.demo.json`, starting at the Münster, 47.9955 N
+7.8529 E), so a Basemap that covers Freiburg draws it. A fix outside the file's area shows the empty
+map with the van on it.
+
+**A file whose bounds cover a place can still have no tiles there.** `pmtiles show` prints the
+extent that was requested, not what was written, and a sparse extract (cut around a route, or a
+different city inside a wide box) passes `pmtiles verify`, reports bounds that include your position,
+and still draws a blank map: the page reads the header and never gets a tile. Check the tile under
+the van before trusting a file (section 3).
 
 `vp dev` can show a blank map after a page reload. Vite sends `Cache-Control: no-cache` for files in
 `public/`, so the browser revalidates each range read, the dev server answers `304`, and the reader
