@@ -190,7 +190,6 @@ describe('Settings Device page: the five states', () => {
       ['Source', '—'],
       ['Firmware version', 'Unknown'],
       ['Board serial', '—'],
-      ['IP address', '—'],
       ['Manufacturer', '—'],
       ['Homepage', '—'],
     ])
@@ -240,7 +239,7 @@ describe('Settings Device page: the five states', () => {
 })
 
 describe('Settings Device page: rows', () => {
-  it('always shows Product, Source, Firmware version, Board serial, IP address, Manufacturer, Homepage, in that order, and no Status', async () => {
+  it('always shows Product, Source, Firmware version, Board serial, Manufacturer, Homepage, in that order, and no Status', async () => {
     await openDeviceInfo({ info: tankInfo, health: 'online' })
 
     expect(deviceRows().map(([label]) => label)).toEqual([
@@ -248,7 +247,6 @@ describe('Settings Device page: rows', () => {
       'Source',
       'Firmware version',
       'Board serial',
-      'IP address',
       'Manufacturer',
       'Homepage',
     ])
@@ -278,8 +276,13 @@ describe('Settings Device page: rows', () => {
 
     const rows = Object.fromEntries(deviceRows())
     expect(rows['Board serial']).toBe('—')
-    expect(rows['IP address']).toBe('—')
     expect(rows['Homepage']).toBe('—')
+  })
+
+  it('hides the IP address row for a Device that reports no address of its own', async () => {
+    await openDeviceInfo({ info: tankInfo, health: 'online' })
+
+    expect(Object.fromEntries(deviceRows())['IP address']).toBeUndefined()
   })
 
   it('shows the IP address a Device with an address of its own reports', async () => {
