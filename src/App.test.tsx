@@ -1167,7 +1167,7 @@ describe('App Alerts toggle', () => {
 
 describe('App shell Relays page', () => {
   const RELAY_INFO = {
-    device: 'esp32-relay',
+    device: 'esp32-16x-relay',
     product: 'ESP32 16-channel relay board',
     source: 'ESP32 with two chained SN74HC595 shift registers',
     publishes: ['relay'],
@@ -1176,8 +1176,8 @@ describe('App shell Relays page', () => {
 
   /** What the relay Device leaves on the bus: its info and health, then a named relay and its state. */
   async function receiveRelayDevice(health: 'online' | 'offline') {
-    await receive('renewvan/esp32-relay/info', JSON.stringify(RELAY_INFO))
-    await receive('renewvan/esp32-relay/health', health)
+    await receive('renewvan/esp32-16x-relay/info', JSON.stringify(RELAY_INFO))
+    await receive('renewvan/esp32-16x-relay/health', health)
     await receive('renewvan/relay/relay_01/name', '"Ceiling lights"')
     await receive('renewvan/relay/relay_01/state', 'false')
   }
@@ -1236,7 +1236,7 @@ describe('App shell Relays page', () => {
 
   it('treats a relay Device with info but no health as not online', async () => {
     await renderAt(KIOSK_WIDTH, '/?page=switches')
-    await receive('renewvan/esp32-relay/info', JSON.stringify(RELAY_INFO))
+    await receive('renewvan/esp32-16x-relay/info', JSON.stringify(RELAY_INFO))
     await receive('renewvan/relay/relay_01/name', '"Ceiling lights"')
     await receive('renewvan/relay/relay_01/state', 'false')
 
@@ -1247,8 +1247,8 @@ describe('App shell Relays page', () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=switches')
     await receive('renewvan/demo/enabled', 'true')
-    await receive('renewvan/demo/esp32-relay/info', JSON.stringify(RELAY_INFO))
-    await receive('renewvan/demo/esp32-relay/health', 'online')
+    await receive('renewvan/demo/esp32-16x-relay/info', JSON.stringify(RELAY_INFO))
+    await receive('renewvan/demo/esp32-16x-relay/health', 'online')
     await receive('renewvan/demo/relay/relay_01/name', '"Ceiling lights"')
     await receive('renewvan/demo/relay/relay_01/state', 'true')
 
@@ -1265,7 +1265,7 @@ describe('App shell Relays page', () => {
     await receiveRelayDevice('online')
 
     await user.click(screen.getByRole('button', { name: /^Devices/ }))
-    await user.click(screen.getByRole('button', { name: /^Relays/ }))
+    await user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
     await user.click(
       within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
         name: /^Relays/,

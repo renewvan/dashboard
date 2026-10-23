@@ -68,11 +68,19 @@ export interface DeviceRow {
   dim: boolean
 }
 
-/** Device keys whose name is not just the key capitalised (acronyms, and a key that names a board). */
-const DEVICE_NAMES: Record<string, string> = { gps: 'GPS', 'esp32-relay': 'Relays' }
+/** Words in a Device key that are acronyms or model names, shown upper-case instead of capitalised. */
+const KEY_ACRONYMS: Record<string, true> = { gps: true, esp32: true }
 
+/** `esp32-16x-relay` → `ESP32 16x Relay`: the key's hyphen-separated words, each capitalised. */
 function deviceName(key: string): string {
-  return DEVICE_NAMES[key.toLowerCase()] ?? key.charAt(0).toUpperCase() + key.slice(1)
+  return key
+    .split('-')
+    .map((word) =>
+      Object.hasOwn(KEY_ACRONYMS, word.toLowerCase())
+        ? word.toUpperCase()
+        : word.charAt(0).toUpperCase() + word.slice(1),
+    )
+    .join(' ')
 }
 
 function entitiesOf(state: RenewvanBusState, types: readonly string[]): DeviceRow['entities'] {
@@ -144,7 +152,7 @@ export function deviceRows(state: RenewvanBusState): DeviceRow[] {
       ...describeDevice(undefined, undefined),
     })
   }
-  // By the name on screen, not the key behind it (`esp32-relay` reads "Relays"); case and accents do
+  // By the name on screen, not the key behind it (`esp32-16x-relay` reads "ESP32 16x Relay"); case and accents do
   // not matter. Of two rows under one name (a Device and the fallback for what it leaves unclaimed)
   // the Device comes first, and the key settles any other tie, so the order never flips.
   const isFallback = (row: DeviceRow) => row.key.startsWith(FALLBACK_PREFIX)
