@@ -178,17 +178,19 @@ describe('deviceRows', () => {
     })
   })
 
-  it('names a Device by its capitalised device key (GPS as an acronym), whatever its product', () => {
+  it('names a Device by its device key, hyphens as spaces, words capitalised (GPS and ESP32 as acronyms), whatever its product', () => {
     const rows = deviceRows(
       stateWith({
         devices: {
           tank: { info: tankInfo },
           mystery: { health: 'online' },
           gps: { health: 'online' },
+          'esp32-16x-relay': { health: 'online' },
         },
       }),
     )
     expect(rows.map((r) => [r.key, r.name])).toEqual([
+      ['esp32-16x-relay', 'ESP32 16x Relay'],
       ['gps', 'GPS'],
       ['mystery', 'Mystery'],
       ['tank', 'Tank'],
@@ -210,7 +212,7 @@ describe('deviceRows', () => {
 
   it('sorts by the name on screen, not the key behind it, and ignores case', () => {
     const relayInfo: DeviceInfo = {
-      device: 'esp32-relay',
+      device: 'esp32-16x-relay',
       product: 'ESP32 16-channel relay board',
       source: 'ESP32',
       publishes: ['relay'],
@@ -218,16 +220,16 @@ describe('deviceRows', () => {
     }
     const rows = deviceRows(
       stateWith({
-        // `esp32-relay` is shown as "Relays": it sorts under R, after Mystery, not under E.
+        // `esp32-16x-relay` is shown as "ESP32 16x Relay": it sorts under E, before GPS and Mystery.
         devices: {
-          'esp32-relay': { info: relayInfo, health: 'online' },
+          'esp32-16x-relay': { info: relayInfo, health: 'online' },
           mystery: { health: 'online' },
           gps: { health: 'online' },
           Zebra: { health: 'online' },
         },
       }),
     )
-    expect(rows.map((r) => r.name)).toEqual(['GPS', 'Mystery', 'Relays', 'Zebra'])
+    expect(rows.map((r) => r.name)).toEqual(['ESP32 16x Relay', 'GPS', 'Mystery', 'Zebra'])
   })
 })
 
@@ -242,7 +244,7 @@ describe('devicesSummary', () => {
 
 describe('relayDevicesOnline', () => {
   const relayInfo: DeviceInfo = {
-    device: 'esp32-relay',
+    device: 'esp32-16x-relay',
     product: 'ESP32 16-channel relay board',
     source: 'ESP32 with two chained SN74HC595 shift registers',
     publishes: ['relay'],
@@ -250,7 +252,7 @@ describe('relayDevicesOnline', () => {
   }
 
   it('is true only when the Device that publishes relay is online', () => {
-    const devices = { 'esp32-relay': { info: relayInfo, health: 'online' as const } }
+    const devices = { 'esp32-16x-relay': { info: relayInfo, health: 'online' as const } }
     expect(relayDevicesOnline(stateWith({ devices }))).toBe(true)
   })
 
@@ -262,12 +264,12 @@ describe('relayDevicesOnline', () => {
   })
 
   it('is false when the relay Device is offline', () => {
-    const devices = { 'esp32-relay': { info: relayInfo, health: 'offline' as const } }
+    const devices = { 'esp32-16x-relay': { info: relayInfo, health: 'offline' as const } }
     expect(relayDevicesOnline(stateWith({ devices }))).toBe(false)
   })
 
   it('is false for a Device with info but no health: half-started is not trusted', () => {
-    const devices = { 'esp32-relay': { info: relayInfo } }
+    const devices = { 'esp32-16x-relay': { info: relayInfo } }
     expect(relayDevicesOnline(stateWith({ devices }))).toBe(false)
   })
 
@@ -279,7 +281,7 @@ describe('relayDevicesOnline', () => {
 
   it('is false while any relay Device is not online, so a stale on is never trusted', () => {
     const devices = {
-      'esp32-relay': { info: relayInfo, health: 'online' as const },
+      'esp32-16x-relay': { info: relayInfo, health: 'online' as const },
       relay: { info: { ...relayInfo, device: 'relay' }, health: 'offline' as const },
     }
     expect(relayDevicesOnline(stateWith({ devices }))).toBe(false)
@@ -287,7 +289,7 @@ describe('relayDevicesOnline', () => {
 
   it('ignores an online Device that does not publish relay when the relay Device is offline', () => {
     const devices = {
-      'esp32-relay': { info: relayInfo, health: 'offline' as const },
+      'esp32-16x-relay': { info: relayInfo, health: 'offline' as const },
       tank: { info: tankInfo, health: 'online' as const },
     }
     expect(relayDevicesOnline(stateWith({ devices }))).toBe(false)

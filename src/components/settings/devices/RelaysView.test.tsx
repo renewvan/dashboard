@@ -7,7 +7,7 @@ import { renderSettings } from '@/test/renderSettings'
 import type { DeviceInfo, Relay } from '@/types'
 
 const relayInfo: DeviceInfo = {
-  device: 'esp32-relay',
+  device: 'esp32-16x-relay',
   product: 'ESP32 16-channel relay board',
   source: 'ESP32 with two chained SN74HC595 shift registers',
   publishes: ['relay'],
@@ -20,10 +20,10 @@ async function openRelays(
   overrides: Partial<SettingsContextValue> = {},
 ) {
   const rendered = renderSettings(overrides, {
-    bus: { relays, devices: { 'esp32-relay': { info: relayInfo, health: 'online' } } },
+    bus: { relays, devices: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } },
   })
   await rendered.user.click(screen.getByRole('button', { name: /^Devices/ }))
-  await rendered.user.click(screen.getByRole('button', { name: /^Relays/ }))
+  await rendered.user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
   await rendered.user.click(
     within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
       name: /^Relays/,
@@ -62,10 +62,10 @@ describe('Settings › Devices › Relays', () => {
   it('says so when no relay has published', async () => {
     const { user } = renderSettings(
       {},
-      { bus: { devices: { 'esp32-relay': { info: relayInfo, health: 'online' } } } },
+      { bus: { devices: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } } },
     )
     await user.click(screen.getByRole('button', { name: /^Devices/ }))
-    await user.click(screen.getByRole('button', { name: /^Relays/ }))
+    await user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
 
     // With no relay on the bus the Device lists no Relays row to open.
     expect(screen.queryByRole('button', { name: /^Relays/ })).not.toBeInTheDocument()
