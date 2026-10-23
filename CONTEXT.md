@@ -46,8 +46,9 @@ navigator: it centres once, so the van moves on a still map and the view re-cent
 page remounts. The basemap is **offline**: Protomaps vector tiles read from one regional
 `basemap.pmtiles` on the dashboard's own origin (`/maps/`), with fonts and sprites baked into the
 image, so no tile request ever leaves the LAN (`docs/adr/0001-self-hosted-pmtiles-basemap.md`, how to
-make the file: `docs/offline-map.md`). Outside the file's area, or with no file mounted, the map is an
-empty background with the van on it; nothing falls back to the internet.
+make the file: `docs/offline-map.md`). Outside the file's area the map is an
+empty background with the van on it; with no readable file mounted it is the same empty map plus a
+small notice that the offline map is unavailable. Nothing falls back to the internet.
 _Avoid_: GPS page (the old name; the page shows a map, the GPS readings are its readout), OpenStreetMap tiles (the data is OSM's, the tiles are ours)
 
 **Router row**:
@@ -94,6 +95,10 @@ _Avoid_: Icon button (ambiguous — could mean an action button)
 **Demo mode**:
 The Settings → General → System → Demo mode switch (like **Navigation style** it is a toggle inline in General and opens no page of its own): one switch **shared by every client on the bus**, not a per-client preference. It publishes `renewvan/demo/enabled/set` (a JSON boolean, not retained) and the hub's `driver-demo`, which always runs and is idle while off, answers by publishing the retained state `renewvan/demo/enabled` and, while it is `true`, the simulated van under `renewvan/demo/<entity>/<id>/<property>` (see hub `docs/demo-mode.md`). Every dashboard follows that retained flag, so toggling in one client shows the demo in all of them, and it survives a reload or a `driver-demo` restart. The switch never changes the view itself: it only asks, and the view changes when the bus reports it did. `useRenewvanBus` subscribes once to `renewvan/#` (the `renewvan/demo/` namespace sits inside it, so a second wildcard would deliver every demo message twice) and keeps the real and demo entities apart, so switching is instant (no reconnect) and real and simulated values cannot mix; the kiosk and tailscale host plugins stay on the real `renewvan/` root because no demo device simulates them, and demo state is read-only (only kiosk commands and the switch itself are published while it is on). Off by default: a real van never silently shows fake data, and a header "Demo" pill is shown while it is on. With no `driver-demo` running the flag is never answered, so the switch does nothing. **Nothing simulated is ever persisted**: demo tank alarms still raise toasts (the alert UI can be developed against them) but are never written to the Alerts page history, and switching the mode neither resolves nor duplicates a real alert's history row. Real devices and the logger keep running throughout, so the real van's history has no gap.
 _Avoid_: Simulation mode, test mode, demo data (the mode is the toggle; the data is the simulated van)
+
+**About**:
+Settings → General → System → About (`AboutView`, `?view=about`), a read-only page beside Firmware with no drill-in and no versions (those stay under **Firmware**), in three short blocks: the data credits of the map (© OpenStreetMap contributors under the ODbL, Protomaps, Natural Earth, and ESA WorldCover as a data source of the map file), the licences of the software that ships in the dashboard (each distinct licence text once, with its packages, from the lazily loaded generated notices) and the asset credits (Noto Sans, the map sprites). It loads its texts only when opened, so it works offline. The Map page's on-screen attribution control is unchanged.
+_Avoid_: Credits page, Licences page (the page is About; credits and licences are what it holds)
 
 **Navigation style**:
 The kiosk-local choice, a toggle inline in Settings → General → Display & Appearance (Appearance group, labelled Navigation style; it opens no page of its own), of how Settings opens its deeper views: **subpage** (the view replaces the page, with a breadcrumb trail) or **drawer** (the view slides in from the right over the page, behind a translucent blurred backdrop). Persisted in `localStorage`, default subpage (an earlier stored value `sheet` still reads as drawer). On a phone (below 800px) Settings always uses subpage, whatever is stored: the toggle shows Subpages selected but disabled, and the stored choice is kept for the kiosk. Says nothing about the app's primary navigation (see **Navbar position**).

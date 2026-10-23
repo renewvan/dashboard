@@ -46,6 +46,7 @@ export function GeneralView({ onOpen }: GeneralViewProps) {
           description="Hub and dashboard versions"
           onOpen={() => onOpen('firmware')}
         />
+        <GroupRow label="About" description="Credits and licences" onOpen={() => onOpen('about')} />
         <DemoModeRow />
       </Group>
       <Group title="Preferences">

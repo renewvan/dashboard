@@ -1,0 +1,147 @@
+{
+  "groups": [
+    {
+      "reason": "Build pipeline of Tailwind (the compiler, the Vite plugin and the bundler and CSS tools they pull in): runs in Node at build time, nothing from it reaches the browser bundle. `tailwindcss` itself is not here: its CSS is inlined into the built stylesheet",
+      "packages": [
+        "@tailwindcss/node",
+        "@tailwindcss/oxide-*",
+        "@tailwindcss/oxide",
+        "@tailwindcss/vite",
+        "lightningcss",
+        "lightningcss-*",
+        "enhanced-resolve",
+        "tapable",
+        "graceful-fs",
+        "jiti",
+        "magic-string",
+        "postcss",
+        "picocolors",
+        "source-map-js",
+        "nanoid",
+        "yaml",
+        "@jridgewell/gen-mapping",
+        "@jridgewell/remapping",
+        "@jridgewell/resolve-uri",
+        "@jridgewell/sourcemap-codec",
+        "@jridgewell/trace-mapping"
+      ]
+    },
+    {
+      "reason": "Vite+ toolchain and its parser (build, lint, format); the platform binaries are one package per OS, so they are patterns",
+      "packages": [
+        "@voidzero-dev/vite-plus-*",
+        "@oxc-project/runtime",
+        "@oxc-project/types",
+        "@yuku-core/binding-*",
+        "@yuku-toolchain/types",
+        "yuku-core",
+        "yuku-parser",
+        "typescript"
+      ]
+    },
+    {
+      "reason": "Type declarations, and install-time native-binary helpers: no code in the bundle",
+      "packages": [
+        "@types/geojson",
+        "@types/node",
+        "@types/react",
+        "@types/react-dom",
+        "@types/readable-stream",
+        "@types/ws",
+        "csstype",
+        "undici-types",
+        "fsevents",
+        "detect-libc"
+      ]
+    },
+    {
+      "reason": "React Spectrum, Radix and their helpers: declared by dependencies, but the bundle never imports them",
+      "packages": [
+        "@adobe/react-spectrum",
+        "@adobe/react-spectrum-ui",
+        "@adobe/react-spectrum-workflow",
+        "@internationalized/date",
+        "@react-aria/color",
+        "@react-aria/ssr",
+        "@react-aria/utils",
+        "@react-spectrum/color",
+        "@react-spectrum/provider",
+        "@react-stately/color",
+        "@react-stately/utils",
+        "@react-types/color",
+        "@react-types/shared",
+        "@spectrum-icons/ui",
+        "@spectrum-icons/workflow",
+        "@radix-ui/primitive",
+        "@radix-ui/react-avatar",
+        "@radix-ui/react-compose-refs",
+        "@radix-ui/react-context",
+        "@radix-ui/react-primitive",
+        "@radix-ui/react-slot",
+        "@radix-ui/react-use-callback-ref",
+        "@radix-ui/react-use-is-hydrated",
+        "@radix-ui/react-use-layout-effect",
+        "@swc/helpers",
+        "aria-hidden",
+        "client-only",
+        "dom-helpers",
+        "input-otp",
+        "react-transition-group",
+        "tslib",
+        "react-is",
+        "prop-types",
+        "loose-envify",
+        "js-tokens",
+        "object-assign",
+        "@vis.gl/react-mapbox"
+      ]
+    },
+    {
+      "reason": "Node-only code of mqtt (TCP/WebSocket servers, CLI): the browser entry point never reaches it",
+      "packages": [
+        "abort-controller",
+        "event-target-shim",
+        "buffer-from",
+        "commist",
+        "concat-stream",
+        "typedarray",
+        "help-me",
+        "ip-address",
+        "minimist",
+        "rfdc",
+        "smart-buffer",
+        "socks",
+        "split2",
+        "ws"
+      ]
+    },
+    {
+      "reason": "Command-line and authoring-time code of maplibre-gl and its parsers (style-spec CLI: sort-object, jsonlint; the protobuf schema compiler): not in the prebuilt browser files",
+      "packages": [
+        "@mapbox/jsonlint-lines-primitives",
+        "require-from-string",
+        "arr-union",
+        "assign-symbols",
+        "bytewise",
+        "bytewise-core",
+        "extend-shallow",
+        "get-value",
+        "is-extendable",
+        "is-plain-object",
+        "isobject",
+        "json-stringify-pretty-compact",
+        "protocol-buffers-schema",
+        "resolve-protobuf-schema",
+        "rw",
+        "set-value",
+        "sort-asc",
+        "sort-desc",
+        "sort-object",
+        "split-string",
+        "typewise",
+        "typewise-core",
+        "union-value"
+      ]
+    }
+  ]
+}

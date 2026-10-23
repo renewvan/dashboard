@@ -67,6 +67,7 @@ describe('SettingsPage drill-down', () => {
     expect(screen.queryByText(/not available/i)).not.toBeInTheDocument()
     expect(rowNames()).toEqual([
       'FirmwareHub and dashboard versions',
+      'AboutCredits and licences',
       'Display & AppearanceTheme, brightness, auto-sleep, layout',
       'AlertsNotifications on',
     ])
@@ -233,14 +234,17 @@ describe('SettingsPage General groups', () => {
     return rendered
   }
 
-  it('puts Firmware under System, and Display & Appearance then Alerts under Preferences', async () => {
+  it('puts Firmware then About under System, and Display & Appearance then Alerts under Preferences', async () => {
     await openGeneral()
 
     const rowsIn = (name: string) =>
       within(screen.getByRole('region', { name }))
         .getAllByRole('button')
         .map((row) => row.textContent)
-    expect(rowsIn('System')).toEqual(['FirmwareHub and dashboard versions'])
+    expect(rowsIn('System')).toEqual([
+      'FirmwareHub and dashboard versions',
+      'AboutCredits and licences',
+    ])
     expect(rowsIn('Preferences')).toEqual([
       'Display & AppearanceTheme, brightness, auto-sleep, layout',
       'AlertsNotifications on',
@@ -258,6 +262,148 @@ describe('SettingsPage General groups', () => {
     expect(screen.getByRole('button', { name: 'General' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Firmware' })).toBeInTheDocument()
     expect(within(screen.getByLabelText('Firmware')).getByText(version)).toBeVisible()
+  })
+})
+
+describe('SettingsPage About', () => {
+  async function openAbout(options: RenderSettingsOptions = {}) {
+    const rendered = renderSettings({}, options)
+    await rendered.user.click(screen.getByRole('button', { name: /^General/ }))
+    await rendered.user.click(screen.getByRole('button', { name: /^About/ }))
+    return rendered
+  }
+
+  /** The loaded software licences: one list item per distinct licence text. */
+  const softwareList = () => screen.findByRole('list', { name: 'Software licences' })
+
+  it('sits in System between Firmware and the Demo mode switch', async () => {
+    const { user } = renderSettings()
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+
+    const system = screen.getByRole('region', { name: 'System' })
+    expect(system).toHaveTextContent(/Firmware.*About.*Demo mode/)
+    expect(within(system).getByRole('switch', { name: /Demo mode/ })).toBeInTheDocument()
+  })
+
+  it('opens under General as a read-only page with no drill-in', async () => {
+    await openAbout()
+
+    expect(screen.getByRole('button', { name: 'General' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'About' })).toBeInTheDocument()
+    await softwareList()
+    expect(settingsRows()).toEqual([])
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('has the three blocks: data credits, software and assets', async () => {
+    await openAbout()
+    await softwareList()
+
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent),
+    ).toEqual(['Data credits', 'Software', 'Assets'])
+  })
+
+  it('credits the map data, linking to the OpenStreetMap copyright page', async () => {
+    await openAbout()
+
+    expect(screen.getByText('© OpenStreetMap contributors')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /openstreetmap\.org\/copyright/ })).toHaveAttribute(
+      'href',
+      'https://www.openstreetmap.org/copyright',
+    )
+    expect(screen.getByText('Protomaps')).toBeInTheDocument()
+    expect(screen.getByText('Natural Earth')).toBeInTheDocument()
+    expect(screen.getByText('ESA WorldCover')).toBeInTheDocument()
+    // A source of the map file, not a layer the dashboard claims to draw.
+    expect(screen.getByText(/a data source of the map file/)).toBeInTheDocument()
+  })
+
+  it('shows each distinct licence text once, with the packages that use it', async () => {
+    await openAbout()
+    const { notices } = await import('@/data/notices.generated')
+
+    const items = within(await softwareList()).getAllByRole('listitem')
+    expect(items).toHaveLength(notices.groups.length)
+    notices.groups.forEach((group, index) => {
+      const item = items[index]
+      expect(within(item).getByRole('heading', { name: group.licence })).toBeInTheDocument()
+      for (const pkg of group.packages) expect(item).toHaveTextContent(pkg.name)
+      // The full text, copyright line included, is in the DOM (the disclosure only folds it).
+      const texts = Array.from(item.querySelectorAll('pre'))
+      expect(texts.map((pre) => pre.textContent?.trim())).toEqual([group.text.trim()])
+    })
+    // The stylesheet packages ship in the built CSS, so they are credited too.
+    const list = await softwareList()
+    expect(list).toHaveTextContent('tailwindcss')
+    expect(list).toHaveTextContent('tw-animate-css')
+  })
+
+  it('folds each long text behind a disclosure', async () => {
+    const { user } = await openAbout()
+    const first = within(await softwareList()).getAllByRole('listitem')[0]
+    const summary = first.querySelector('summary')!
+    const details = first.querySelector('details')!
+
+    expect(details).not.toHaveAttribute('open')
+    await user.click(summary)
+    expect(details).toHaveAttribute('open')
+  })
+
+  it('credits Noto Sans with its copyright line and licence text, and the map sprites', async () => {
+    await openAbout()
+    await softwareList()
+
+    expect(screen.getByText('Noto Sans')).toBeInTheDocument()
+    expect(screen.getByText('Noto Sans').parentElement).toHaveTextContent(
+      'Copyright 2022 The Noto Project Authors (https://github.com/notofonts)',
+    )
+    const texts = screen.getAllByText((_, element) => element?.tagName === 'PRE')
+    expect(
+      texts.some((pre) => /SIL OPEN FONT LICENSE Version 1\.1/.test(pre.textContent ?? '')),
+    ).toBe(true)
+    expect(screen.getByText('Map sprites')).toBeInTheDocument()
+    expect(screen.getByText(/protomaps\/basemaps-assets/)).toBeInTheDocument()
+  })
+
+  it('carries no version rows: versions stay under Firmware', async () => {
+    await openAbout()
+    const { notices } = await import('@/data/notices.generated')
+    const list = await softwareList()
+
+    expect(screen.queryByRole('term')).not.toBeInTheDocument()
+    expect(screen.queryByText(version)).not.toBeInTheDocument()
+    expect(screen.queryByText('Hub')).not.toBeInTheDocument()
+    // Package names are listed bare: no `name@version` or `name version` beside them.
+    const [pkg] = notices.groups[0].packages
+    expect(list).not.toHaveTextContent(`${pkg.name}@${pkg.version}`)
+    expect(list).not.toHaveTextContent(`${pkg.name} ${pkg.version}`)
+  })
+
+  it('leaves Firmware as it was, with the hub and dashboard versions', async () => {
+    const { user } = await openAbout()
+    await softwareList()
+
+    await user.click(screen.getByRole('button', { name: 'General' }))
+    await user.click(screen.getByRole('button', { name: /^Firmware/ }))
+
+    expect(
+      within(screen.getByLabelText('Firmware'))
+        .getAllByRole('term')
+        .map((term) => [term.textContent, term.nextElementSibling?.textContent]),
+    ).toEqual([
+      ['Hub', 'v0.4.0'],
+      ['Dashboard', version],
+    ])
+  })
+
+  it('opens from a ?view=about link, with Back to General', async () => {
+    renderSettings({}, { url: '/?page=settings&view=about' })
+
+    expect(screen.getByRole('heading', { name: 'About' })).toBeInTheDocument()
+    await softwareList()
+    expect(screen.getByRole('button', { name: 'General' })).toBeInTheDocument()
   })
 })
 

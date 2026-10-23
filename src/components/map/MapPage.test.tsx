@@ -1,16 +1,19 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import type { Gps, Tilt } from '@/types'
 import { MapPage } from './MapPage'
 
-// The map's zoom methods, shared so a test can tell which one a button called, and every style the
-// map is handed, in order, so a test can tell which flavor it got and whether it was rebuilt.
+// The map's zoom methods, shared so a test can tell which one a button called, every style the
+// map is handed, in order, so a test can tell which flavor it got and whether it was rebuilt, and
+// the map's event callbacks, so a test can fire the events MapLibre would.
 const map = vi.hoisted(() => ({
   zoomIn: vi.fn(),
   zoomOut: vi.fn(),
   styles: [] as { sprite?: string; layers: unknown[] }[],
+  onError: undefined as undefined | ((e: unknown) => void),
+  onSourceData: undefined as undefined | ((e: unknown) => void),
 }))
 
 // MapLibre needs WebGL, real layout and tile loading; jsdom has none. The page's own logic is which
@@ -20,13 +23,19 @@ vi.mock('react-map-gl/maplibre', () => ({
   Map: ({
     initialViewState,
     mapStyle,
+    onError,
+    onSourceData,
     children,
   }: {
     initialViewState: { longitude: number; latitude: number }
     mapStyle: { sprite?: string; layers: unknown[] }
+    onError?: (e: unknown) => void
+    onSourceData?: (e: unknown) => void
     children: ReactNode
   }) => {
     map.styles.push(mapStyle)
+    map.onError = onError
+    map.onSourceData = onSourceData
     return (
       <div
         data-testid="map"
@@ -79,6 +88,8 @@ beforeEach(() => {
   map.zoomIn.mockReset()
   map.zoomOut.mockReset()
   map.styles.length = 0
+  map.onError = undefined
+  map.onSourceData = undefined
   fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
   vi.stubGlobal('fetch', fetchMock)
 })
@@ -289,5 +300,88 @@ describe('MapPage', () => {
       rerender(<MapPage gps={{ gps0: { ...FIX, latitude: 51.52, longitude: -0.12 } }} />)
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     })
+  })
+})
+
+describe('MapPage basemap notice', () => {
+  // What MapLibre fires on the map for a failure of the basemap file: the source itself failed to
+  // load (pmtiles could not read the header), so the event names the source and carries no tile.
+  const sourceError = (sourceId = 'protomaps') => ({
+    error: new Error('Bad response code: 404'),
+    sourceId,
+  })
+  // A tile of the source failed to load: the event names the source and the tile.
+  const tileError = () => ({ error: new Error('boom'), sourceId: 'protomaps', tile: {} })
+  const fire = (callback: ((e: unknown) => void) | undefined, event: unknown) =>
+    act(() => callback?.(event))
+  const notice = () => screen.queryByTestId('map-notice')
+
+  beforeEach(() => {
+    // The map's errors are logged, as react-map-gl would have; a test has no use for the noise.
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  it('shows no notice while the basemap is fine', () => {
+    renderPage({ gps0: FIX })
+    expect(notice()).not.toBeInTheDocument()
+  })
+
+  it('says the offline map is unavailable when the basemap file cannot be read, keeping the map and the van', () => {
+    renderPage({ gps0: FIX })
+    fire(map.onError, sourceError())
+    expect(notice()).toHaveTextContent('Offline map unavailable')
+    expect(notice()).toHaveTextContent('docs/offline-map.md')
+    expect(screen.getByTestId('map')).toBeInTheDocument()
+    expect(screen.getByTestId('marker')).toBeInTheDocument()
+    expect(screen.getByTestId('map-readout')).toBeInTheDocument()
+  })
+
+  it('stays quiet when only a tile fails, as when the van is outside the extract', () => {
+    renderPage({ gps0: FIX })
+    fire(map.onError, tileError())
+    expect(notice()).not.toBeInTheDocument()
+  })
+
+  it('ignores an error from some other source or from the map itself', () => {
+    renderPage({ gps0: FIX })
+    fire(map.onError, sourceError('elsewhere'))
+    fire(map.onError, { error: new Error('Worker failed to load') })
+    expect(notice()).not.toBeInTheDocument()
+  })
+
+  it('still logs every map error, as react-map-gl would have without a handler', () => {
+    renderPage({ gps0: FIX })
+    const event = tileError()
+    fire(map.onError, event)
+    expect(console.error).toHaveBeenCalledWith(event.error)
+  })
+
+  it('keeps the notice as the van moves', () => {
+    const { rerender } = renderPage({ gps0: FIX })
+    fire(map.onError, sourceError())
+    rerender(<MapPage gps={{ gps0: { ...FIX, latitude: 51.6 } }} />)
+    expect(notice()).toBeInTheDocument()
+  })
+
+  it('takes the notice away once the basemap source loads', () => {
+    renderPage({ gps0: FIX })
+    fire(map.onError, sourceError())
+    fire(map.onSourceData, { sourceId: 'protomaps', sourceDataType: 'content' })
+    expect(notice()).not.toBeInTheDocument()
+  })
+
+  it('keeps the notice through source events that are not a load of the basemap', () => {
+    renderPage({ gps0: FIX })
+    fire(map.onError, sourceError())
+    fire(map.onSourceData, { sourceId: 'elsewhere', sourceDataType: 'content' })
+    fire(map.onSourceData, { sourceId: 'protomaps', sourceDataType: 'metadata' })
+    expect(notice()).toBeInTheDocument()
+  })
+
+  it('shows no notice before a fix, where there is no map to be empty', () => {
+    renderPage({ gps0: { fix_quality: 'no_fix', satellites_in_use: 3 } })
+    expect(map.onError).toBeUndefined()
+    expect(notice()).not.toBeInTheDocument()
   })
 })
