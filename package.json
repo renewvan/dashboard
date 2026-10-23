@@ -12,6 +12,7 @@
     "format:check": "vp fmt --check .",
     "typecheck": "vp check --no-fmt --no-lint",
     "test": "vp test run",
+    "notices": "node scripts/generate-notices.ts",
     "preview": "vp preview",
     "prepare": "vp config"
   },
