@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { Button } from '@heroui/react'
 import { tankSummary } from '@/lib/tank-display'
 import { temperatureSummary } from '@/lib/temperature'
+import { gpsSummary } from '@/lib/gps'
 import { entityCountText, type EntityType, type DeviceRow } from '@/lib/devices'
 import { StatusRow } from '../shared/DetailList'
 import { GroupRow } from '../shared/GroupRow'
@@ -9,12 +10,14 @@ import { useSettings } from '../SettingsContext'
 import { DEVICE_TONE } from './deviceTone'
 import { useReportedTankIds } from './useReportedTankIds'
 import type { SettingsSubView } from '../views'
+import { isCompleteGps } from '@/types'
 
 /** Entity types that have settings of their own; every other type is listed read-only. */
 const ENTITY_VIEW: Partial<Record<EntityType, SettingsSubView>> = {
   tank: 'tanks',
   temperature: 'temperature',
   relay: 'relays',
+  gps: 'gps',
 }
 
 /**
@@ -29,12 +32,13 @@ export function DeviceView({
   row: DeviceRow
   onOpen: (view: SettingsSubView) => void
 }) {
-  const { temperatures } = useSettings()
+  const { temperatures, gps } = useSettings()
   const tankIds = useReportedTankIds()
 
   const describe = (type: EntityType, ids: string[]): string => {
     if (type === 'tank') return tankSummary(tankIds)
     if (type === 'temperature') return temperatureSummary(temperatures)
+    if (type === 'gps') return gpsSummary(Object.values(gps).find(isCompleteGps))
     return entityCountText(ids.length)
   }
 
