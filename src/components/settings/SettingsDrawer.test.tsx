@@ -135,6 +135,22 @@ describe('drawer navigation', () => {
     expect(await openDialog('Connectivity')).toBeInTheDocument()
   })
 
+  it('opens About in its own drawer over General, loading its software licences', async () => {
+    const { user } = renderSettings()
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+    await user.click(
+      await within(await openDialog('General')).findByRole('button', { name: /^About/ }),
+    )
+
+    const about = await openDialog('About')
+    expect(
+      await within(about).findByRole('list', { name: 'Software licences' }),
+    ).toBeInTheDocument()
+    expect(within(about).getByText('© OpenStreetMap contributors')).toBeInTheDocument()
+    await user.click(within(about).getByRole('button', { name: 'Back' }))
+    expect(await openDialog('General')).toBeInTheDocument()
+  })
+
   it('closes the whole drawer on Escape', async () => {
     const { user } = renderSettings()
     await user.click(screen.getByRole('button', { name: /^General/ }))

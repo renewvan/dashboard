@@ -10,6 +10,7 @@ export type SettingsView =
   | 'relays'
   | 'general'
   | 'firmware'
+  | 'about'
   | 'alerts'
   | 'display'
   | 'start-page'
