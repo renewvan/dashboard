@@ -239,7 +239,8 @@ on them. That is the check that matters; a `206` only proves the file is being s
 ## Seeing the map in `vp dev`
 
 `vp dev` has no nginx, so there is no mounted file. Fonts and sprites already work (Vite serves
-`public/maps/`); only the tiles are missing, and the map is empty until you add them. Cut a small
+`public/maps/`); only the tiles are missing, so the map is empty and shows the "Offline map
+unavailable" notice until you add them. Cut a small
 extract around where you are testing (a 0.6° x 0.3° box is under 10 MB) and drop it in `public/`:
 
 ```bash
@@ -259,27 +260,30 @@ commands under "Check it".
 
 ## What the van shows
 
-| Situation                           | Map                                 |
-| ----------------------------------- | ----------------------------------- |
-| Van inside the file's area          | Streets, water, labels, the van     |
-| Van outside the file's area         | Empty background with the van on it |
-| `basemap.pmtiles` not mounted (404) | The same empty map                  |
+| Situation                                          | Map                                                |
+| -------------------------------------------------- | -------------------------------------------------- |
+| Van inside the file's area                         | Streets, water, labels, the van                    |
+| Van outside the file's area                        | Empty background with the van on it, no notice     |
+| `basemap.pmtiles` missing (404) or unreadable file | Empty background with the van on it, and a notice  |
 
-Nothing falls back to the internet. The Map page has no separate "no map file" message: with no
-file, or no tiles under the van, the tiles fail to load and the page shows the style's empty
-background with the van on it. (Until the first GPS fix the page shows its "No GPS data yet." or
-"No GPS fix yet" message instead of any map.)
+Nothing falls back to the internet. When the file itself cannot be read, the Map page keeps the
+empty map and the van and adds a small "Offline map unavailable" notice over it. A van outside the
+file's area is a different case: the file's header reads fine, no tiles exist under the van, and
+there is no notice. (Until the first GPS fix the page shows its "No GPS data yet." or "No GPS fix
+yet" message instead of any map.)
 
-**Not established.** Two other states of a missing map were seen only as HTTP statuses on a real
-Pi, never as what the Map page draws, so this guide does not say what the page does:
-
-- a **zero-byte placeholder file**, which nginx serves as a `200` with 0 bytes;
-- a **missing mount source**, where Docker creates a root-owned directory and nginx answers `301`
-  instead of `404`.
+Observed against `vp dev` through a local server that answered each way (not on a real Pi), the
+notice shows for: a `404`; a `200` of `text/html` (what `vp dev` serves with no file); a `200` or
+`206` with 0 bytes (the zero-byte placeholder); a `301` that lands on a `404`; and a redirect loop.
+It does not show for a `301` that lands on a valid file, which the browser follows. Docker's
+missing-mount directory answers nginx `301` to `…/basemap.pmtiles/`; what that answers next (a
+`403` or `404`, which would show the notice) was not tested.
 
 To update the file, replace it and restart the dashboard container. A kiosk already showing the map
 notices the new file on its next tile read (the reader compares the file's ETag and reloads on a
-change); reloading the page also works.
+change); reloading the page also works. If the file was missing or unreadable when the map opened,
+MapLibre does not retry the failed source: the notice stays until the Map page is opened again
+(navigate away and back) or the page is reloaded.
 
 ## Redistributing a basemap
 
