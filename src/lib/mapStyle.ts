@@ -14,8 +14,8 @@ export const BASEMAP_PMTILES_PATH = '/maps/basemap.pmtiles'
 const GLYPHS_PATH = '/maps/fonts/{fontstack}/{range}.pbf'
 const SPRITE_DIR = '/maps/sprites/v4'
 
-/** The basemap source's name in the style; the layers refer to it. */
-const SOURCE = 'protomaps'
+/** The basemap source's name in the style; the layers refer to it, and so does the map's error handling. */
+export const BASEMAP_SOURCE_ID = 'protomaps'
 
 /**
  * Protomaps' `dark` flavor with the structure lifted, but only part of the way. Stock `dark` keeps
@@ -109,8 +109,10 @@ const ATTRIBUTION =
  * shared). `origin` is the page's origin: MapLibre resolves the glyph and sprite URLs inside a
  * worker, where a bare path has no base to resolve against.
  *
- * Where the van is outside the extract, or the file is missing, the tiles simply fail to load and
- * the map shows the style's empty background with the van on it; nothing falls back to the network.
+ * Where the van is outside the extract, individual tiles are simply absent and the map shows the
+ * style's empty background with the van on it. With the file missing or unreadable the source itself
+ * fails to load: the map looks the same, and `useBasemapUnavailable` tells the page so it can say
+ * why. Either way nothing falls back to the network.
  */
 export function basemapStyle(origin: string, theme: MapTheme): StyleSpecification {
   return {
@@ -118,12 +120,12 @@ export function basemapStyle(origin: string, theme: MapTheme): StyleSpecificatio
     glyphs: `${origin}${GLYPHS_PATH}`,
     sprite: `${origin}${SPRITE_DIR}/${theme}`,
     sources: {
-      [SOURCE]: {
+      [BASEMAP_SOURCE_ID]: {
         type: 'vector',
         url: `pmtiles://${origin}${BASEMAP_PMTILES_PATH}`,
         attribution: ATTRIBUTION,
       },
     },
-    layers: layers(SOURCE, FLAVORS[theme], { lang: 'en' }),
+    layers: layers(BASEMAP_SOURCE_ID, FLAVORS[theme], { lang: 'en' }),
   }
 }

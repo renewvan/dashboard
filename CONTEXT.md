@@ -46,8 +46,9 @@ navigator: it centres once, so the van moves on a still map and the view re-cent
 page remounts. The basemap is **offline**: Protomaps vector tiles read from one regional
 `basemap.pmtiles` on the dashboard's own origin (`/maps/`), with fonts and sprites baked into the
 image, so no tile request ever leaves the LAN (`docs/adr/0001-self-hosted-pmtiles-basemap.md`, how to
-make the file: `docs/offline-map.md`). Outside the file's area, or with no file mounted, the map is an
-empty background with the van on it; nothing falls back to the internet.
+make the file: `docs/offline-map.md`). Outside the file's area the map is an
+empty background with the van on it; with no readable file mounted it is the same empty map plus a
+small notice that the offline map is unavailable. Nothing falls back to the internet.
 _Avoid_: GPS page (the old name; the page shows a map, the GPS readings are its readout), OpenStreetMap tiles (the data is OSM's, the tiles are ours)
 
 **Router row**:
