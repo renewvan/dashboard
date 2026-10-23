@@ -55,7 +55,7 @@ describe('Settings › Devices › GPS', () => {
     expect(row('Fix time')).toBe('2026-10-16 08:01:30 UTC')
   })
 
-  it('lists every satellite under its constellation, strongest first, with the signal in words', async () => {
+  it('charts every satellite under its constellation, strongest first, with the signal in words', async () => {
     await openGps({ van: FIX })
 
     const signal = screen.getByRole('region', { name: 'Satellite signal' })
@@ -73,7 +73,7 @@ describe('Settings › Devices › GPS', () => {
     const unmeasured = screen.getByRole('listitem', {
       name: 'BeiDou 9, No signal, not measured yet',
     })
-    expect(within(unmeasured).getByTestId('signal-bar')).toHaveStyle({ width: '0%' })
+    expect(within(unmeasured).getByTestId('signal-bar')).toHaveStyle({ height: '0%' })
     // 3 of the 4 listed satellites carry a measurement.
     expect(screen.getByText('3 receiving')).toBeInTheDocument()
   })
@@ -83,8 +83,8 @@ describe('Settings › Devices › GPS', () => {
 
     const bar = (name: string) =>
       within(screen.getByRole('listitem', { name })).getByTestId('signal-bar')
-    expect(bar('GPS 15, 44 dB-Hz, strong')).toHaveStyle({ width: '88%' })
-    expect(bar('GLONASS 65, 22 dB-Hz, fair')).toHaveStyle({ width: '44%' })
+    expect(bar('GPS 15, 44 dB-Hz, strong')).toHaveStyle({ height: '88%' })
+    expect(bar('GLONASS 65, 22 dB-Hz, fair')).toHaveStyle({ height: '44%' })
   })
 
   it('still lists satellites when there is no fix, with position rows left as dashes', async () => {

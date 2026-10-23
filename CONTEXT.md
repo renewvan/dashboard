@@ -135,7 +135,7 @@ The Settings view for one Device or fallback row (`?page=settings&view=device&de
 _Avoid_: Node page, Node settings
 
 **Device info page**:
-The Venus-style Settings subpage behind a **Device page**'s Device row (`?page=settings&view=device-info&device=<key>`, titled Device): the **Device info** of that Device. Rows are always Product, Source, Firmware version, Board serial, Manufacturer, Homepage, with `—` for a missing value; Manufacturer reads `renewvan` only when info exists without one, and the Board serial is shown in full here and nowhere else. A Device with no info shows a muted note.
+The Venus-style Settings subpage behind a **Device page**'s Device row (`?page=settings&view=device-info&device=<key>`, titled Device): the **Device info** of that Device. Rows are always Product, Source, Firmware version, Board serial, Manufacturer, Homepage, with `—` for a missing value — plus an IP address row only for a Device that reports an address of its own (`ip`), never a `—`. Manufacturer reads `renewvan` only when info exists without one, and the Board serial is shown in full here and nowhere else. A Device with no info shows a muted note.
 _Avoid_: Device details page
 
 **Tank settings**:

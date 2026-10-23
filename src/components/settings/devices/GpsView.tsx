@@ -42,28 +42,30 @@ function formatFixTime(iso: string | undefined): string | null {
   return `${iso.slice(0, 10)} ${iso.slice(11, 19)} UTC`
 }
 
-function SatelliteRow({ sat }: { sat: GpsSatellite }) {
+/** One bar of the signal chart: the satellite's name and signal stay in the `aria-label`, so the
+ * shape is decoration. The value sits above the bar, the PRN below it. */
+function SatelliteBar({ sat }: { sat: GpsSatellite }) {
   const quality = signalQuality(sat.snr_db)
   return (
     <li
       aria-label={`${satelliteName(sat)}, ${formatSnr(sat.snr_db)}, ${QUALITY_TEXT[quality]}`}
-      className="flex min-h-11 items-center gap-3 px-3.5 py-2"
+      className="flex w-11 shrink-0 flex-col items-center gap-1"
     >
-      <span aria-hidden="true" className="w-10 shrink-0 text-sm tabular-nums">
-        {sat.prn}
+      <span aria-hidden="true" className="text-muted text-xs tabular-nums">
+        {formatSnr(sat.snr_db)}
       </span>
       <div
         aria-hidden="true"
-        className="bg-border/40 h-2.5 min-w-0 flex-1 overflow-hidden rounded-full"
+        className="bg-border/40 flex h-28 w-full items-end overflow-hidden rounded-md"
       >
         <div
           data-testid="signal-bar"
-          className={`h-full rounded-full ${BAR_TONE[quality]}`}
-          style={{ width: `${signalFraction(sat.snr_db) * 100}%` }}
+          className={`w-full rounded-md ${BAR_TONE[quality]}`}
+          style={{ height: `${signalFraction(sat.snr_db) * 100}%` }}
         />
       </div>
-      <span aria-hidden="true" className="text-muted w-20 shrink-0 text-right text-xs tabular-nums">
-        {formatSnr(sat.snr_db)}
+      <span aria-hidden="true" className="text-muted text-sm tabular-nums">
+        {sat.prn}
       </span>
     </li>
   )
@@ -84,9 +86,9 @@ function Satellites({ satellites }: { satellites: GpsSatellite[] }) {
           <h3 className="text-muted px-1 text-xs font-medium tracking-wide uppercase">
             {group.label}
           </h3>
-          <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-2xl border">
+          <ul className="border-border bg-surface flex h-fit items-end gap-2 overflow-x-auto rounded-2xl border p-3.5">
             {group.satellites.map((sat) => (
-              <SatelliteRow key={sat.prn} sat={sat} />
+              <SatelliteBar key={sat.prn} sat={sat} />
             ))}
           </ul>
         </section>
