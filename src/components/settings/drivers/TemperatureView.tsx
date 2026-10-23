@@ -61,7 +61,7 @@ function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSe
   )
 }
 
-/** Settings › Devices › Temperature: rename a sensor and pick its unit. */
+/** Settings › Drivers › Temperature: rename a sensor and pick its unit. */
 export function TemperatureView() {
   const { temperatures } = useSettings()
   const ids = sortedSensorIds(temperatures)

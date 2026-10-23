@@ -1,5 +1,5 @@
 import { cellularTier, busStatusText, uplinkHeadline } from '@/lib/connection'
-import { routerDevice, routerName } from '@/lib/routerDevice'
+import { routerDriver, routerName } from '@/lib/routerDriver'
 import { tailscaleStatusText } from '@/lib/tailscale'
 import { useNow } from '@/hooks/useNow'
 import { GroupRow } from '../shared/GroupRow'
@@ -15,22 +15,22 @@ interface ConnectivityViewProps {
  * so a stale router feed degrades the router headline to Offline with no bus
  * traffic to re-render it.
  *
- * The first row is the router, named for the Device that feeds it (`RUT-360`). With no router
- * Device on the bus and no router data either, nothing is installed to check, so it says so rather
- * than "Checking…" for ever. Router data with no Device behind it (a driver that publishes no info
+ * The first row is the router, named for the Driver that feeds it (`RUT-360`). With no router
+ * Driver on the bus and no router data either, nothing is installed to check, so it says so rather
+ * than "Checking…" for ever. Router data with no Driver behind it (a driver that publishes no info
  * yet) is still shown: live numbers are never hidden for want of a name.
  */
 export function ConnectivityView({ onOpen }: ConnectivityViewProps) {
-  const { devices, router, routerHealth, routerUpdatedAt, busStatus, tailscale } = useSettings()
+  const { drivers, router, routerHealth, routerUpdatedAt, busStatus, tailscale } = useSettings()
   const now = useNow(30_000)
-  const device = routerDevice(devices)
+  const driver = routerDriver(drivers)
   const tier = cellularTier(router?.signal_rsrp_dbm, routerHealth, routerUpdatedAt, now)
-  const installed = device !== undefined || routerUpdatedAt !== undefined
+  const installed = driver !== undefined || routerUpdatedAt !== undefined
 
   return (
     <div className="flex flex-col gap-2">
       <GroupRow
-        label={routerName(device)}
+        label={routerName(driver)}
         description={installed ? uplinkHeadline(router, tier) : 'Not installed'}
         onOpen={() => onOpen('cellular')}
       />

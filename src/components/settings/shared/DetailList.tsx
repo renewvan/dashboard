@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 /**
  * Read-only label/value rows in one bordered panel. A row is never hidden: a missing value renders
  * `—`. `label` is the list's accessible name. `heading` also shows a title above the panel, for a
- * page of several lists where a sighted reader needs to tell them apart (the style of the Device
+ * page of several lists where a sighted reader needs to tell them apart (the style of the Driver
  * page's "Publishes"): `true` shows the label itself, a string shows that instead, for when the
  * accessible name is longer than the title or would only repeat the page's.
  */

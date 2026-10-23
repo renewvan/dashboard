@@ -4,7 +4,7 @@ import type { Tilt } from '@/types'
 import { VanRear, VanSide } from './index.tsx'
 
 export interface TiltWidgetProps {
-  /** Latest tilt record; undefined until the device publishes anything. */
+  /** Latest tilt record; undefined until the driver publishes anything. */
   tilt: Partial<Tilt> | undefined
   /** The small form for the middle of the Dial's rings: a narrow column per van, angle below. */
   compact?: boolean

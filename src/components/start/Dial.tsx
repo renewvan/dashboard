@@ -18,9 +18,9 @@ import {
 } from '@/components/power/flowModel'
 import { VanArt } from '@/components/power/VanArt'
 import { charging } from '@/lib/charging'
+import { primaryBattery } from '@/lib/primaryBattery'
 import { INDOOR_ID, OUTDOOR_ID } from '@/lib/temperature'
 import {
-  isCompleteBattery,
   type Battery as BatteryRecord,
   type Charger,
   type Solar,
@@ -38,6 +38,8 @@ import { centreKind, chargingReading, legendIndices, powerReading, ringLabel } f
 export interface DialProps {
   tanks: Record<string, Partial<Tank>>
   batteries: Record<string, Partial<BatteryRecord>>
+  /** The shared Primary battery choice, `auto` or an instance id (`primaryBattery`). */
+  primaryBatterySelection?: string
   solar: Record<string, Partial<Solar>>
   chargers: Record<string, Partial<Charger>>
   tilt: Record<string, Partial<Tilt>>
@@ -84,6 +86,7 @@ function ringModel(source: RingSource, view: DialView | undefined, unit: RingUni
 export function Dial({
   tanks,
   batteries,
+  primaryBatterySelection,
   solar,
   chargers,
   tilt,
@@ -94,20 +97,20 @@ export function Dial({
 }: DialProps) {
   const present = charging(chargers, IDLE_W)
 
-  const batteryView = batteryDial(batteries)
+  const batteryView = batteryDial(batteries, primaryBatterySelection)
   const firstTilt = Object.values(tilt)[0]
   const centre = centreKind(powerSources.centre, firstTilt)
 
   // The battery ring's band and the van's glow are one charging effect, so they share a pass and a
   // beat, and with the van in the middle one trigger: power coming in, as the van's always been.
   // (The ring alone follows the battery's net power, as it does on the mobile cards.)
-  const flow = flowFromBus(batteries, solar, chargers)
+  const flow = flowFromBus(batteries, solar, chargers, primaryBatterySelection)
   const inputW = inputWatts(flow)
   // The same three readings the Power page draws: its Loads are everything coming in less what the
   // battery absorbed, so a battery that is still charging does not hide a load the sun is covering.
   const live: LiveWatts = {
     solarW: firstSolar(solar)?.power_w,
-    batteryW: Object.values(batteries).find(isCompleteBattery)?.power_w,
+    batteryW: primaryBattery(batteries, primaryBatterySelection)?.battery.power_w,
     loadW: flow.nodes.loads.watts,
   }
   const passS = pulsePass(inputW, flow.peakW)

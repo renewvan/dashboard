@@ -1,7 +1,10 @@
 import { useMemo } from 'react'
 import { Zap } from 'lucide-react'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
-import { isCompleteBattery, type Battery, type Charger, type Solar } from '@/types'
+import type { DriverRow } from '@/lib/drivers'
+import { instanceLabel } from '@/lib/instances'
+import { completeBatteryIds, primaryBattery } from '@/lib/primaryBattery'
+import type { Battery, Charger, Solar } from '@/types'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import { flowFromBus } from './flowModel'
 import { OrbsLayout } from './OrbsLayout'
@@ -11,6 +14,10 @@ import { VanTilesLayout } from './VanTilesLayout'
 
 interface PowerPageProps {
   batteries: Record<string, Partial<Battery>>
+  /** The shared Primary battery choice, `auto` or an instance id (`primaryBattery`). */
+  primaryBatterySelection?: string
+  /** Names the owning Driver in the label of the battery being read; only needed with several batteries. */
+  drivers?: Pick<DriverRow, 'key' | 'name'>[]
   solar: Record<string, Partial<Solar>>
   chargers: Record<string, Partial<Charger>>
   /** Tiles, Orbs, or either around the van: Settings › General › Display & Appearance › Power page. */
@@ -22,11 +29,23 @@ interface PowerPageProps {
  * snapshot is built from the bus and drawn by the chosen layout, so every layout shows
  * the same numbers. The battery is the page's anchor: until it has published, there is nothing
  * to place the sources and loads around, so the page says so instead of drawing numbers it does
- * not have.
+ * not have. With more than one battery it names, under the layout, the instance it reads.
  */
-export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps) {
-  const hasBattery = Object.values(batteries).some(isCompleteBattery)
-  const flow = useMemo(() => flowFromBus(batteries, solar, chargers), [batteries, solar, chargers])
+export function PowerPage({
+  batteries,
+  primaryBatterySelection,
+  drivers = [],
+  solar,
+  chargers,
+  layout,
+}: PowerPageProps) {
+  const primary = primaryBattery(batteries, primaryBatterySelection)
+  const hasBattery = primary !== undefined
+  const flow = useMemo(
+    () => flowFromBus(batteries, solar, chargers, primaryBatterySelection),
+    [batteries, solar, chargers, primaryBatterySelection],
+  )
+  const namesSource = completeBatteryIds(batteries).length > 1 && primary !== undefined
 
   return (
     <section
@@ -53,6 +72,14 @@ export function PowerPage({ batteries, solar, chargers, layout }: PowerPageProps
           <span className="font-semibold">Power</span>
           No data yet
         </div>
+      )}
+      {namesSource && (
+        <p
+          data-testid="power-battery-source"
+          className="text-muted shrink-0 pt-2 text-center text-xs"
+        >
+          Battery: {instanceLabel(primary.id, primary.battery, drivers)}
+        </p>
       )}
     </section>
   )

@@ -13,7 +13,7 @@ export function convertTemperature(celsius: number, unit: TemperatureUnit): numb
 
 /**
  * The sensor's current value in Celsius, or `null` when it must not be
- * shown: status is not 'ok' (the device stops republishing `temperature_c`
+ * shown: status is not 'ok' (the driver stops republishing `temperature_c`
  * but the last retained value stays on the broker, so it would read as
  * live), or the sensor hasn't delivered a value yet.
  */

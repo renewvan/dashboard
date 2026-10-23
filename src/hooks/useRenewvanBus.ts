@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import mqtt, { type MqttClient } from 'mqtt'
-import { emptyRenewvanBusState, type DeviceInfo, type RenewvanBusState } from '@/types'
+import { emptyRenewvanBusState, type DriverInfo, type RenewvanBusState } from '@/types'
 import { getEnv } from '@/config/runtimeEnv'
 
 // Client-side MQTT-over-WebSocket connection to the renewvan bus broker
@@ -28,7 +28,7 @@ export interface TailscaleStatus {
 
 /**
  * The hub plugin's retained status (hub `hub-status.schema.json`): the Pi's own local-network
- * address, read from the Pi itself, so it is there whether or not a router Device is installed,
+ * address, read from the Pi itself, so it is there whether or not a router Driver is installed,
  * and the hub version the Pi was deployed from.
  */
 export interface HubStatus {
@@ -52,6 +52,11 @@ export interface RenewvanBus {
   tailscale: TailscaleStatus | null
   /** The Pi's own address (`renewvan/hub/status`); null until the retained topic arrives. */
   hubStatus: HubStatus | null
+  /**
+   * The shared Primary battery choice (`renewvan/hub/primary-battery`): `auto` or a battery instance id;
+   * null until the retained topic arrives (or while it holds anything else), which reads as `auto`.
+   */
+  primaryBattery: string | null
   routerHealth: RouterHealth | null
   /** The shared Demo mode flag (`renewvan/demo/enabled`): true while every client reads the simulated van. */
   demoMode: boolean
@@ -72,7 +77,7 @@ const DEMO_ROOT = `${REAL_ROOT}/demo`
 const TOPIC_DEMO_ENABLED = `${DEMO_ROOT}/enabled`
 const TOPIC_DEMO_ENABLED_SET = `${TOPIC_DEMO_ENABLED}/set`
 
-// `<id>/<property>` is exactly two segments, so the temperature device's
+// `<id>/<property>` is exactly two segments, so the temperature driver's
 // `<id>/name/set` and `<id>/unit/set` command topics (three) never match.
 function entityPattern(root: string): RegExp {
   return new RegExp(
@@ -82,20 +87,20 @@ function entityPattern(root: string): RegExp {
 const ENTITY_PATTERN = { real: entityPattern(REAL_ROOT), demo: entityPattern(DEMO_ROOT) }
 
 /**
- * `<root>/<device>/info` and `<root>/<device>/health`: three segments, so never an entity topic (four).
- * `demo` sits where a Device key would on the real root and is reserved: it is the simulated van's
- * namespace, never a Device, so the real pattern excludes it and its own `renewvan/demo/health`
- * (a topic retained on real brokers) cannot become a Device.
+ * `<root>/<driver>/info` and `<root>/<driver>/health`: three segments, so never an entity topic (four).
+ * `demo` sits where a Driver key would on the real root and is reserved: it is the simulated van's
+ * namespace, never a Driver, so the real pattern excludes it and its own `renewvan/demo/health`
+ * (a topic retained on real brokers) cannot become a Driver.
  */
-function devicePattern(root: string, reserved: string | null): RegExp {
+function driverPattern(root: string, reserved: string | null): RegExp {
   const key = reserved === null ? '[^/]+' : `(?!${reserved}/)[^/]+`
   return new RegExp(`^${root}/(${key})/(info|health)$`)
 }
-const DEVICE_PATTERN = {
-  real: devicePattern(REAL_ROOT, 'demo'),
-  demo: devicePattern(DEMO_ROOT, null),
+const DRIVER_PATTERN = {
+  real: driverPattern(REAL_ROOT, 'demo'),
+  demo: driverPattern(DEMO_ROOT, null),
 }
-// The kiosk, tailscale and hub topics are host plugins that no demo device simulates, so they stay
+// The kiosk, tailscale and hub topics are host plugins that the demo simulator does not simulate, so they stay
 // on the real root in demo mode: a demo van still dims and sleeps the real screen.
 const KIOSK_PREFIX = `${REAL_ROOT}/kiosk/`
 const TOPIC_DISPLAY_POWER = `${KIOSK_PREFIX}display/power`
@@ -104,6 +109,12 @@ const TOPIC_AUTO_SLEEP_ENABLED = `${KIOSK_PREFIX}display/auto-sleep-enabled`
 const TOPIC_AUTO_SLEEP_TIMEOUT = `${KIOSK_PREFIX}display/auto-sleep-timeout-minutes`
 const TOPIC_TAILSCALE = `${REAL_ROOT}/tailscale/status`
 const TOPIC_HUB_STATUS = `${REAL_ROOT}/hub/status`
+const TOPIC_PRIMARY_BATTERY = `${REAL_ROOT}/hub/primary-battery`
+/**
+ * The one non-kiosk command demo mode lets through besides the demo switch: the Primary battery is a
+ * setting of this kiosk's reading, not a command to a Driver, so it works on the simulated van too.
+ */
+const TOPIC_PRIMARY_BATTERY_SET = `${TOPIC_PRIMARY_BATTERY}/set`
 const AUTO_SLEEP_TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 
 /**
@@ -153,18 +164,18 @@ function optionalIpv4(value: unknown): string | undefined {
 }
 
 /**
- * The dashboard's light structural check of a Device info payload (no schema library): a JSON object
- * with string `device`, `product`, `source` and `version`, and `publishes` a list of strings if
+ * The dashboard's light structural check of a Driver info payload (no schema library): a JSON object
+ * with string `driver`, `product`, `source` and `version`, and `publishes` a list of strings if
  * present. Anything else reads as no info. The optional `manufacturer`, `homepage`,
  * `board_serial` and `ip` are kept only when they are valid (a string; an IPv4 dotted quad for `ip`),
  * and no other key is carried into state.
  */
-function parseDeviceInfo(payload: string): DeviceInfo | undefined {
+function parseDriverInfo(payload: string): DriverInfo | undefined {
   const value = parseValue(payload)
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
   const o = value as Record<string, unknown>
   if (
-    typeof o.device !== 'string' ||
+    typeof o.driver !== 'string' ||
     typeof o.product !== 'string' ||
     typeof o.source !== 'string' ||
     typeof o.version !== 'string'
@@ -172,8 +183,8 @@ function parseDeviceInfo(payload: string): DeviceInfo | undefined {
     return undefined
   }
   if (o.publishes !== undefined && !isStringList(o.publishes)) return undefined
-  const info: DeviceInfo = {
-    device: o.device,
+  const info: DriverInfo = {
+    driver: o.driver,
     product: o.product,
     source: o.source,
     version: o.version,
@@ -198,7 +209,7 @@ function isStringOrNull(value: unknown): value is string | null {
  * The Tailscale plugin's retained status (hub `tailscale-status.schema.json`): a JSON object with
  * boolean `enabled` and `connected`, `ip` and `hostname` a string or null, and `peers` a whole
  * number ≥ 0, all required. An empty payload clears the retained topic, and anything else reads as
- * no status too, like a Device's info: a stale or malformed status must not stay on screen.
+ * no status too, like a Driver's info: a stale or malformed status must not stay on screen.
  */
 function parseTailscaleStatus(payload: string): TailscaleStatus | null {
   const value = parseValue(payload)
@@ -243,17 +254,27 @@ function parseHubStatus(payload: string): HubStatus | null {
   return { ip: o.ip, hostname: o.hostname, version: o.version }
 }
 
+/**
+ * The hub plugin's retained Primary battery choice (hub `hub-primary-battery.schema.json`): a JSON
+ * string, non-empty, either `auto` or a battery instance id. An empty payload clears the topic and
+ * anything else reads as no choice (`auto`).
+ */
+function parsePrimaryBattery(payload: string): string | null {
+  const value = parseValue(payload)
+  return typeof value === 'string' && value !== '' ? value : null
+}
+
 /** An empty payload clears a retained topic; so does anything that is not a valid value. */
-function applyDeviceMessage(
+function applyDriverMessage(
   prev: RenewvanBusState,
   key: string,
   topic: 'info' | 'health',
   payload: string,
 ): RenewvanBusState {
-  const { [key]: current, ...others } = prev.devices
+  const { [key]: current, ...others } = prev.drivers
   const next = { ...current }
   if (topic === 'info') {
-    const info = parseDeviceInfo(payload)
+    const info = parseDriverInfo(payload)
     if (info) next.info = info
     else delete next.info
   } else if (payload === 'online' || payload === 'offline') {
@@ -262,15 +283,15 @@ function applyDeviceMessage(
     delete next.health
   }
   const empty = next.info === undefined && next.health === undefined
-  return { ...prev, devices: empty ? others : { ...others, [key]: next } }
+  return { ...prev, drivers: empty ? others : { ...others, [key]: next } }
 }
 
 /**
- * relay: `state` (a JSON boolean) and the optional `name` (a non-empty JSON string), nothing else.
- * `set` is a four-segment topic, so the broker's echo of our own command reaches this reducer: it
- * must never land as state. An empty payload is a retained-topic clear (ADR 0008): clearing
- * `state` means the relay is gone (not the same as switched off); clearing `name` drops only the
- * label.
+ * relay: `state` (a JSON boolean) and the optional `name` and `driver` (non-empty JSON strings),
+ * nothing else. `set` is a four-segment topic, so the broker's echo of our own command reaches this
+ * reducer: it must never land as state. An empty payload is a retained-topic clear (ADR 0008):
+ * clearing `state` means the relay is gone (not the same as switched off); clearing `name` or
+ * `driver` drops only that label.
  */
 function applyRelayMessage(
   prev: RenewvanBusState,
@@ -278,13 +299,13 @@ function applyRelayMessage(
   property: string,
   value: unknown,
 ): RenewvanBusState {
-  if (property !== 'state' && property !== 'name') return prev
+  if (property !== 'state' && property !== 'name' && property !== 'driver') return prev
   if (value === undefined) {
     if (property === 'state') {
       const { [id]: _removed, ...rest } = prev.relays
       return { ...prev, relays: rest }
     }
-    const { name: _name, ...kept } = prev.relays[id] ?? {}
+    const { [property]: _dropped, ...kept } = prev.relays[id] ?? {}
     return { ...prev, relays: { ...prev.relays, [id]: kept } }
   }
   if (property === 'state') {
@@ -296,7 +317,7 @@ function applyRelayMessage(
     }
   }
   if (typeof value !== 'string' || value === '') return prev
-  return { ...prev, relays: { ...prev.relays, [id]: { ...prev.relays[id], name: value } } }
+  return { ...prev, relays: { ...prev.relays, [id]: { ...prev.relays[id], [property]: value } } }
 }
 
 function applyMessage(
@@ -304,16 +325,25 @@ function applyMessage(
   topic: string,
   payload: string,
   pattern: RegExp,
-  deviceTopicPattern: RegExp,
+  driverTopicPattern: RegExp,
 ): RenewvanBusState {
-  const deviceMatch = deviceTopicPattern.exec(topic)
-  if (deviceMatch) {
-    return applyDeviceMessage(prev, deviceMatch[1], deviceMatch[2] as 'info' | 'health', payload)
+  const driverMatch = driverTopicPattern.exec(topic)
+  if (driverMatch) {
+    return applyDriverMessage(prev, driverMatch[1], driverMatch[2] as 'info' | 'health', payload)
   }
   const match = pattern.exec(topic)
   if (!match) return prev
   const [, domain, id, property] = match
   const value = parseValue(payload)
+  // `driver` and `name` are JSON strings on every entity; an empty payload clears them like any
+  // other property, and anything that is not a string never lands.
+  if (
+    (property === 'driver' || property === 'name') &&
+    value !== undefined &&
+    typeof value !== 'string'
+  ) {
+    return prev
+  }
   if (domain === 'router') {
     return {
       ...prev,
@@ -350,11 +380,11 @@ function applyMessage(
  * it is `true`, and every client follows it, so toggling in one dashboard shows the demo in all.
  * Each root's entities are accumulated separately and the flag picks which one is exposed, so
  * switching is instant (no reconnect) and real and simulated values can never mix. The kiosk,
- * tailscale and hub host plugins stay on the real root: no demo device simulates them. Demo state is
- * read-only: while the switch is on, `publish` sends only kiosk commands.
+ * tailscale and hub host plugins stay on the real root: the demo simulator does not simulate them. Demo state is
+ * read-only: while the switch is on, `publish` sends only kiosk commands and the Primary battery choice.
  *
- * Each Device's retained `info` and `health` (`renewvan/<device>/info|health`) accumulate into
- * `state.devices` per root, and `routerHealth` is read off the router Device's health there.
+ * Each Driver's retained `info` and `health` (`renewvan/<driver>/info|health`) accumulate into
+ * `state.drivers` per root, and `routerHealth` is read off the router Driver's health there.
  */
 export function useRenewvanBus(): RenewvanBus {
   const [real, setReal] = useState<RenewvanBusState>(emptyRenewvanBusState)
@@ -371,12 +401,13 @@ export function useRenewvanBus(): RenewvanBus {
     useState<AutoSleepTimeoutMinutes | null>(null)
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
   const [hubStatus, setHubStatus] = useState<HubStatus | null>(null)
+  const [primaryBattery, setPrimaryBattery] = useState<string | null>(null)
   const clientRef = useRef<MqttClient | null>(null)
 
   // A fresh function every render, so it always reads the current flag; callers that keep it
   // (the shell's settings commands) forward to the latest one.
   const publish = (topic: string, payload: string) => {
-    if (demoMode && !topic.startsWith(KIOSK_PREFIX)) return
+    if (demoMode && !topic.startsWith(KIOSK_PREFIX) && topic !== TOPIC_PRIMARY_BATTERY_SET) return
     clientRef.current?.publish(topic, payload, { qos: 1, retain: false })
   }
 
@@ -456,11 +487,15 @@ export function useRenewvanBus(): RenewvanBus {
         setHubStatus(parseHubStatus(payload))
         return
       }
+      if (topic === TOPIC_PRIMARY_BATTERY) {
+        setPrimaryBattery(parsePrimaryBattery(payload))
+        return
+      }
       setReal((prev) =>
-        applyMessage(prev, topic, payload, ENTITY_PATTERN.real, DEVICE_PATTERN.real),
+        applyMessage(prev, topic, payload, ENTITY_PATTERN.real, DRIVER_PATTERN.real),
       )
       setDemo((prev) =>
-        applyMessage(prev, topic, payload, ENTITY_PATTERN.demo, DEVICE_PATTERN.demo),
+        applyMessage(prev, topic, payload, ENTITY_PATTERN.demo, DRIVER_PATTERN.demo),
       )
     })
 
@@ -478,6 +513,7 @@ export function useRenewvanBus(): RenewvanBus {
       setAutoSleepTimeoutMinutes(null)
       setTailscale(null)
       setHubStatus(null)
+      setPrimaryBattery(null)
     }
   }, [])
 
@@ -491,7 +527,8 @@ export function useRenewvanBus(): RenewvanBus {
     autoSleepTimeoutMinutes,
     tailscale,
     hubStatus,
-    routerHealth: state.devices.router?.health ?? null,
+    primaryBattery,
+    routerHealth: state.drivers.router?.health ?? null,
     demoMode,
     setDemoMode,
     publish,

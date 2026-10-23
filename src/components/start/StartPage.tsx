@@ -29,6 +29,8 @@ import type { DialSize } from './DialReadout'
 export interface StartPageProps {
   tanks: Record<string, Partial<Tank>>
   batteries: Record<string, Partial<BatteryRecord>>
+  /** The shared Primary battery choice, `auto` or an instance id (`primaryBattery`). */
+  primaryBatterySelection?: string
   solar: Record<string, Partial<Solar>>
   chargers: Record<string, Partial<Charger>>
   temperatures: Record<string, Partial<TemperatureSensor>>
@@ -65,6 +67,7 @@ interface DialSlot {
 export function StartPage({
   tanks,
   batteries,
+  primaryBatterySelection,
   solar,
   chargers,
   temperatures,
@@ -99,7 +102,7 @@ export function StartPage({
       label: 'Battery',
       icon: <Battery className="size-4" />,
       size: 'focus',
-      view: batteryDial(batteries),
+      view: batteryDial(batteries, primaryBatterySelection),
     },
     {
       id: 'grey',
@@ -147,6 +150,7 @@ export function StartPage({
       <Dial
         tanks={tanks}
         batteries={batteries}
+        primaryBatterySelection={primaryBatterySelection}
         solar={solar}
         chargers={chargers}
         tilt={tilt}

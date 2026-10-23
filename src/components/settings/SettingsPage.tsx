@@ -4,9 +4,9 @@ import { ArrowLeft, Workflow, SlidersHorizontal, Van, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
-import { devicesSummary } from '@/lib/devices'
+import { driversSummary } from '@/lib/drivers'
 import { pushSearchParams } from '@/lib/urlHistory'
-import { routerDevice, routerName } from '@/lib/routerDevice'
+import { routerDriver, routerName } from '@/lib/routerDriver'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 import { AlertsView } from './general/preferences/AlertsView'
 import { AlertsButton } from '@/components/AlertsButton'
@@ -21,34 +21,38 @@ import { GeneralView } from './general/GeneralView'
 import { Group } from './shared/Group'
 import { GroupRow } from './shared/GroupRow'
 import { HubView } from './connectivity/HubView'
-import { DeviceInfoView } from './devices/DeviceInfoView'
-import { DeviceView } from './devices/DeviceView'
-import { DevicesView } from './devices/DevicesView'
+import { DriverInfoView } from './drivers/DriverInfoView'
+import { DriverView } from './drivers/DriverView'
+import { DriversView } from './drivers/DriversView'
 import { StartPageView } from './general/preferences/StartPageView'
 import { PowerPageView } from './general/preferences/PowerPageView'
 import { MapPageView } from './general/preferences/MapPageView'
 import { useSettings } from './SettingsContext'
 import { VanView } from './advanced/VanView'
 import { TailscaleView } from './connectivity/TailscaleView'
-import { TankSettingsView } from './devices/TankSettingsView'
-import { TanksView } from './devices/TanksView'
-import { useReportedTankIds } from './devices/useReportedTankIds'
-import { RelaysView } from './devices/RelaysView'
-import { TemperatureView } from './devices/TemperatureView'
-import { GpsView } from './devices/GpsView'
+import { TankSettingsView } from './drivers/TankSettingsView'
+import { TanksView } from './drivers/TanksView'
+import { useReportedTankIds } from './drivers/useReportedTankIds'
+import { RelaysView } from './drivers/RelaysView'
+import { TemperatureView } from './drivers/TemperatureView'
+import { GpsView } from './drivers/GpsView'
+import { InstancesView } from './drivers/InstancesView'
 import type { SettingsSubView, SettingsView } from './views'
 import { SettingsNavBar } from './SettingsNavBar'
 import { useHideShellHeader } from './ShellHeaderContext'
 
 const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
-  devices: { title: 'Devices', parent: 'list' },
-  device: { title: 'Device', parent: 'devices' },
-  'device-info': { title: 'Device', parent: 'device' },
-  tanks: { title: 'Tanks', parent: 'devices' },
+  drivers: { title: 'Drivers', parent: 'list' },
+  driver: { title: 'Driver', parent: 'drivers' },
+  'driver-info': { title: 'Driver', parent: 'driver' },
+  tanks: { title: 'Tanks', parent: 'drivers' },
   tank: { title: 'Tank', parent: 'tanks' },
-  temperature: { title: 'Temperature', parent: 'devices' },
-  gps: { title: 'GPS', parent: 'devices' },
-  relays: { title: 'Relays', parent: 'devices' },
+  temperature: { title: 'Temperature', parent: 'drivers' },
+  gps: { title: 'GPS', parent: 'drivers' },
+  relays: { title: 'Relays', parent: 'drivers' },
+  batteries: { title: 'Batteries', parent: 'drivers' },
+  solar: { title: 'Solar', parent: 'drivers' },
+  chargers: { title: 'Chargers', parent: 'drivers' },
   general: { title: 'General', parent: 'list' },
   firmware: { title: 'Firmware', parent: 'general' },
   about: { title: 'About', parent: 'general' },
@@ -76,7 +80,7 @@ const SUB_VIEWS = Object.keys(VIEWS) as SettingsSubView[]
  */
 export const SettingsPage = memo(function SettingsPage() {
   const {
-    devices,
+    drivers,
     tanks,
     displayPower,
     router,
@@ -113,28 +117,28 @@ export const SettingsPage = memo(function SettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content
   const validTankIds = useMemo(() => tankIds, [tankIdsKey])
   const [tankParam] = useUrlParam('tank', validTankIds)
-  // The open Device lives in `?device=`, valid only while it names a reported Device or a fallback row.
-  const deviceKeys = devices.map((row) => row.key)
-  const deviceKeysKey = deviceKeys.join('\u0000')
+  // The open Driver lives in `?driver=`, valid only while it names a reported Driver or a fallback row.
+  const driverKeys = drivers.map((row) => row.key)
+  const driverKeysKey = driverKeys.join('\u0000')
   // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content
-  const validDeviceKeys = useMemo(() => deviceKeys, [deviceKeysKey])
-  const [deviceParam] = useUrlParam('device', validDeviceKeys)
-  const deviceRow = devices.find((row) => row.key === deviceParam)
-  // A tank view without a reported tank has nothing to show: fall back to the tank list; a device
-  // view without a reported Device, to the Devices list.
+  const validDriverKeys = useMemo(() => driverKeys, [driverKeysKey])
+  const [driverParam] = useUrlParam('driver', validDriverKeys)
+  const driverRow = drivers.find((row) => row.key === driverParam)
+  // A tank view without a reported tank has nothing to show: fall back to the tank list; a driver
+  // view without a reported Driver, to the Drivers list.
   const view: SettingsView =
     viewParam === 'tank' && tankParam === null
       ? 'tanks'
-      : (viewParam === 'device' || viewParam === 'device-info') && deviceRow === undefined
-        ? 'devices'
+      : (viewParam === 'driver' || viewParam === 'driver-info') && driverRow === undefined
+        ? 'drivers'
         : (viewParam ?? 'list')
-  // `tank` is titled by the open tank's fluid and `device` by the open Device's label; every other
+  // `tank` is titled by the open tank's fluid and `driver` by the open Driver's label; every other
   // view has a fixed title.
   const titleOf = (id: SettingsSubView): string => {
     const fluid = tankParam === null ? undefined : tanks[tankParam]?.fluid_type
     if (id === 'tank' && fluid) return FLUID_LABELS[fluid]
-    if (id === 'device' && deviceRow) return deviceRow.name
-    if (id === 'cellular') return routerName(routerDevice(devices))
+    if (id === 'driver' && driverRow) return driverRow.name
+    if (id === 'cellular') return routerName(routerDriver(drivers))
     return VIEWS[id].title
   }
   // The drawer is one persistent dialog: navigating deeper swaps its content in place instead
@@ -154,22 +158,22 @@ export const SettingsPage = memo(function SettingsPage() {
     params.set('tank', tankId)
     pushSearchParams(params)
   }, [])
-  // Likewise `view` and `device`.
-  const openDevice = useCallback((deviceKey: string) => {
+  // Likewise `view` and `driver`.
+  const openDriver = useCallback((driverKey: string) => {
     const params = new URLSearchParams(window.location.search)
-    params.set('view', 'device')
-    params.set('device', deviceKey)
+    params.set('view', 'driver')
+    params.set('driver', driverKey)
     pushSearchParams(params)
   }, [])
 
   const content = (id: SettingsSubView): ReactNode => {
     switch (id) {
-      case 'devices':
-        return <DevicesView onOpen={openDevice} />
-      case 'device':
-        return deviceRow === undefined ? null : <DeviceView row={deviceRow} onOpen={setView} />
-      case 'device-info':
-        return deviceRow === undefined ? null : <DeviceInfoView row={deviceRow} />
+      case 'drivers':
+        return <DriversView onOpen={openDriver} />
+      case 'driver':
+        return driverRow === undefined ? null : <DriverView row={driverRow} onOpen={setView} />
+      case 'driver-info':
+        return driverRow === undefined ? null : <DriverInfoView row={driverRow} />
       case 'tanks':
         return <TanksView onOpen={openTank} />
       case 'tank':
@@ -180,6 +184,12 @@ export const SettingsPage = memo(function SettingsPage() {
         return <GpsView />
       case 'relays':
         return <RelaysView />
+      case 'batteries':
+        return <InstancesView type="battery" />
+      case 'solar':
+        return <InstancesView type="solar" />
+      case 'chargers':
+        return <InstancesView type="charger" />
       case 'general':
         return <GeneralView onOpen={setView} />
       case 'firmware':
@@ -224,9 +234,9 @@ export const SettingsPage = memo(function SettingsPage() {
       <div className="flex flex-col gap-2">
         <GroupRow
           icon={<Workflow />}
-          label="Devices"
-          description={devicesSummary(devices)}
-          onOpen={() => setView('devices')}
+          label="Drivers"
+          description={driversSummary(drivers)}
+          onOpen={() => setView('drivers')}
         />
         <Group title="Hub">
           <GroupRow
@@ -238,7 +248,7 @@ export const SettingsPage = memo(function SettingsPage() {
           <GroupRow
             icon={<Wifi />}
             label="Connectivity"
-            description={`${routerName(routerDevice(devices))}, Hub, Tailscale`}
+            description={`${routerName(routerDriver(drivers))}, Hub, Tailscale`}
             onOpen={() => setView('connectivity')}
           />
         </Group>
@@ -294,10 +304,10 @@ export const SettingsPage = memo(function SettingsPage() {
       )}
       {/* Keyed per screen: HeroUI's scroll-driven fade keeps the previous scroller's fully-applied
           start fade when the same element stops overflowing (Chromium leaves the start animation
-          `running` at progress 1), so a short device view inherits the list's top shadow. A fresh
+          `running` at progress 1), so a short driver view inherits the list's top shadow. A fresh
           element starts with an inactive timeline and no fade. */}
       <ScrollShadow
-        key={`${view}:${deviceParam ?? ''}:${tankParam ?? ''}`}
+        key={`${view}:${driverParam ?? ''}:${tankParam ?? ''}`}
         hideScrollBar
         className="min-h-0 flex-1"
       >

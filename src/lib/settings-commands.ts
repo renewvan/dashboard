@@ -14,6 +14,8 @@ const TOPIC_BRIGHTNESS_SET = 'renewvan/kiosk/display/brightness/set'
 const TOPIC_AUTO_SLEEP_ENABLED_SET = 'renewvan/kiosk/display/auto-sleep-enabled/set'
 const TOPIC_AUTO_SLEEP_TIMEOUT_SET = 'renewvan/kiosk/display/auto-sleep-timeout-minutes/set'
 
+const TOPIC_PRIMARY_BATTERY_SET = 'renewvan/hub/primary-battery/set'
+
 const temperatureSetTopic = (id: string, field: 'name' | 'unit') =>
   `renewvan/temperature/${id}/${field}/set`
 
@@ -30,6 +32,8 @@ export interface SettingsCommands {
   /** Sends the TARGET state, never a toggle: a toggle is not idempotent (hub ADR 0013). */
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
+  /** `auto` or a battery instance id; the hub plugin persists it and republishes the retained state. */
+  setPrimaryBattery: (value: string) => void
 }
 
 /** Binds the settings commands to `publish`. Pure: build once, share everywhere. */
@@ -46,5 +50,6 @@ export function settingsCommands(publish: Publish): SettingsCommands {
       publish(temperatureSetTopic(id, 'unit'), JSON.stringify(unit)),
     setRelay: (id, on) => publish(relaySetTopic(id, 'set'), JSON.stringify(on)),
     setRelayName: (id, name) => publish(relaySetTopic(id, 'name/set'), JSON.stringify(name)),
+    setPrimaryBattery: (value) => publish(TOPIC_PRIMARY_BATTERY_SET, JSON.stringify(value)),
   }
 }

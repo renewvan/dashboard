@@ -1,7 +1,7 @@
 import { act, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 import {
-  ROUTER_DEVICES,
+  ROUTER_DRIVERS,
   connectedTailscale,
   liveRouter,
   renderSettings,
@@ -19,7 +19,7 @@ function detailRows() {
   return labels.map((label, i) => [label, values[i]])
 }
 
-/** Rows of one labelled block of the page, so a test about the Device does not read the radio's. */
+/** Rows of one labelled block of the page, so a test about the Driver does not read the radio's. */
 function blockRows(label: string) {
   const block = within(screen.getByLabelText(label))
   const labels = block.getAllByRole('term').map((term) => term.textContent)
@@ -57,10 +57,10 @@ describe('Connectivity', () => {
     expect(screen.getByRole('button', { name: /^Hub/ })).toHaveTextContent(text)
   })
 
-  it('summarises the router row as Checking while its Device is up but no data has arrived', async () => {
+  it('summarises the router row as Checking while its Driver is up but no data has arrived', async () => {
     const { user } = renderSettings(
       { router: undefined, routerUpdatedAt: undefined },
-      { bus: { devices: ROUTER_DEVICES } },
+      { bus: { drivers: ROUTER_DRIVERS } },
     )
 
     await open(user, 'Connectivity')
@@ -148,7 +148,7 @@ describe('Router page', () => {
 })
 
 describe('Router with its driver installed', () => {
-  const installed = { bus: { devices: ROUTER_DEVICES } }
+  const installed = { bus: { drivers: ROUTER_DRIVERS } }
 
   it('is named for the router model the driver reports, in the list and as the page title', async () => {
     const { user } = renderSettings({}, installed)
@@ -169,7 +169,7 @@ describe('Router with its driver installed', () => {
 
     await open(user, 'Connectivity', 'RUT-360')
 
-    expect(blockRows('Router device')).toEqual([
+    expect(blockRows('Router driver')).toEqual([
       ['Product', 'Teltonika RUT-360 router'],
       ['Status', 'Online'],
       ['Firmware', 'v0.2.0'],
@@ -179,12 +179,12 @@ describe('Router with its driver installed', () => {
   it('says offline, last seen, while the driver is down, and keeps the radio readings', async () => {
     const { user } = renderSettings(
       {},
-      { bus: { devices: { router: { ...ROUTER_DEVICES.router, health: 'offline' } } } },
+      { bus: { drivers: { router: { ...ROUTER_DRIVERS.router, health: 'offline' } } } },
     )
 
     await open(user, 'Connectivity', 'RUT-360')
 
-    expect(blockRows('Router device')).toEqual([
+    expect(blockRows('Router driver')).toEqual([
       ['Product', 'Teltonika RUT-360 router'],
       ['Status', 'Offline'],
       ['Firmware', 'offline, last seen v0.2.0'],
@@ -212,16 +212,16 @@ describe('Router with no driver installed', () => {
     expect(screen.getByRole('button', { name: /^Router/ })).toHaveTextContent('Not installed')
   })
 
-  it('shows no Device block on the router page, only the readings as dashes', async () => {
+  it('shows no Driver block on the router page, only the readings as dashes', async () => {
     const { user } = renderSettings(none)
 
     await open(user, 'Connectivity', 'Router')
 
-    expect(screen.queryByLabelText('Router device')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Router driver')).not.toBeInTheDocument()
     expect(detailRows()).toHaveLength(8)
   })
 
-  it('still shows live router data that has no Device behind it, never hiding numbers', async () => {
+  it('still shows live router data that has no Driver behind it, never hiding numbers', async () => {
     const { user } = renderSettings({ router: liveRouter, routerUpdatedAt: Date.now() })
 
     await open(user, 'Connectivity')
@@ -299,16 +299,16 @@ describe('Hub', () => {
     ])
   })
 
-  it('counts the Devices on the bus by what they last said', async () => {
+  it('counts the Drivers on the bus by what they last said', async () => {
     const { user } = renderSettings(
       {},
       {
         bus: {
-          devices: {
-            ...ROUTER_DEVICES,
+          drivers: {
+            ...ROUTER_DRIVERS,
             tank: {
               health: 'offline',
-              info: { ...ROUTER_DEVICES.router.info!, device: 'tank', publishes: ['tank'] },
+              info: { ...ROUTER_DRIVERS.router.info!, driver: 'tank', publishes: ['tank'] },
             },
           },
         },
@@ -317,18 +317,18 @@ describe('Hub', () => {
 
     await open(user, 'Connectivity', 'Hub')
 
-    expect(blockRows('Devices')).toEqual([
+    expect(blockRows('Drivers')).toEqual([
       ['On the bus', '1 online · 1 offline'],
       ['Total', '2'],
     ])
   })
 
-  it('says None, and 0, while no Device has announced itself', async () => {
+  it('says None, and 0, while no Driver has announced itself', async () => {
     const { user } = renderSettings()
 
     await open(user, 'Connectivity', 'Hub')
 
-    expect(blockRows('Devices')).toEqual([
+    expect(blockRows('Drivers')).toEqual([
       ['On the bus', 'None'],
       ['Total', '0'],
     ])

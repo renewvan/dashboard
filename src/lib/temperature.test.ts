@@ -33,7 +33,7 @@ describe('convertTemperature', () => {
 
 describe('temperatureReading', () => {
   it('hides the last retained value once the sensor is no longer ok', () => {
-    // The device skips (does not clear) temperature_c on failure, so the stale
+    // The driver skips (does not clear) temperature_c on failure, so the stale
     // value is still on the bus next to status != ok.
     expect(temperatureReading(ok({ status: 'no_reading' }))).toBeNull()
     expect(temperatureReading(ok({ status: 'disconnected' }))).toBeNull()

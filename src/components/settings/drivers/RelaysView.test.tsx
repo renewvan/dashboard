@@ -4,25 +4,25 @@ import { SettingsPage } from '../SettingsPage'
 import { SettingsProvider } from '../SettingsProvider'
 import type { SettingsContextValue } from '../SettingsContext'
 import { renderSettings } from '@/test/renderSettings'
-import type { DeviceInfo, Relay } from '@/types'
+import type { DriverInfo, Relay } from '@/types'
 
-const relayInfo: DeviceInfo = {
-  device: 'esp32-16x-relay',
+const relayInfo: DriverInfo = {
+  driver: 'esp32-16x-relay',
   product: 'ESP32 16-channel relay board',
   source: 'ESP32 with two chained SN74HC595 shift registers',
   publishes: ['relay'],
   version: 'v0.1.0',
 }
 
-/** Opens Settings › Devices › the relay Device › Relays, with the relays on the bus. */
+/** Opens Settings › Drivers › the relay Driver › Relays, with the relays on the bus. */
 async function openRelays(
   relays: Record<string, Relay>,
   overrides: Partial<SettingsContextValue> = {},
 ) {
   const rendered = renderSettings(overrides, {
-    bus: { relays, devices: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } },
+    bus: { relays, drivers: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } },
   })
-  await rendered.user.click(screen.getByRole('button', { name: /^Devices/ }))
+  await rendered.user.click(screen.getByRole('button', { name: /^Drivers/ }))
   await rendered.user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
   await rendered.user.click(
     within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
@@ -37,7 +37,7 @@ const nameField = (id: string) =>
 
 const PUMP: Relay = { name: 'Water pump', state: false }
 
-describe('Settings › Devices › Relays', () => {
+describe('Settings › Drivers › Relays', () => {
   it('lists a panel per relay by id, sorted, each with its stored name', async () => {
     await openRelays({ relay_10: { name: 'Heater' }, relay_02: PUMP, relay_03: { state: true } })
 
@@ -62,12 +62,12 @@ describe('Settings › Devices › Relays', () => {
   it('says so when no relay has published', async () => {
     const { user } = renderSettings(
       {},
-      { bus: { devices: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } } },
+      { bus: { drivers: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } } },
     )
-    await user.click(screen.getByRole('button', { name: /^Devices/ }))
+    await user.click(screen.getByRole('button', { name: /^Drivers/ }))
     await user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
 
-    // With no relay on the bus the Device lists no Relays row to open.
+    // With no relay on the bus the Driver lists no Relays row to open.
     expect(screen.queryByRole('button', { name: /^Relays/ })).not.toBeInTheDocument()
   })
 

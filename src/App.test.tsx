@@ -386,10 +386,10 @@ async function receiveLiveTilt() {
   await receive('renewvan/tilt/tilt/status', JSON.stringify('ok'))
 }
 
-/** The tilt driver's retained Device info and health, as it publishes them on connect. */
-async function receiveTiltDevice(health: 'online' | 'offline') {
+/** The tilt driver's retained Driver info and health, as it publishes them on connect. */
+async function receiveTiltDriver(health: 'online' | 'offline') {
   const info = {
-    device: 'tilt',
+    driver: 'tilt',
     product: 'GY-521 tilt sensor',
     source: 'MPU-6050 accelerometer (I2C)',
     publishes: ['tilt'],
@@ -402,7 +402,7 @@ async function receiveTiltDevice(health: 'online' | 'offline') {
 describe('App shell Start page tilt', () => {
   it('shows the live tilt in the middle of the Dial while its driver is online', async () => {
     await renderAt(KIOSK_WIDTH)
-    await receiveTiltDevice('online')
+    await receiveTiltDriver('online')
     await receiveLiveTilt()
 
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('+4.0°')
@@ -410,7 +410,7 @@ describe('App shell Start page tilt', () => {
 
   it('drops the tilt the moment its driver goes offline, though its last angles stay retained', async () => {
     await renderAt(KIOSK_WIDTH)
-    await receiveTiltDevice('online')
+    await receiveTiltDriver('online')
     await receiveLiveTilt()
     expect(screen.getByTestId('tilt-pitch')).toBeInTheDocument()
 
@@ -423,7 +423,7 @@ describe('App shell Start page tilt', () => {
 
   it('brings the tilt back when the driver does', async () => {
     await renderAt(KIOSK_WIDTH)
-    await receiveTiltDevice('offline')
+    await receiveTiltDriver('offline')
     await receiveLiveTilt()
     expect(screen.queryByTestId('tilt-pitch')).not.toBeInTheDocument()
 
@@ -432,8 +432,8 @@ describe('App shell Start page tilt', () => {
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('+4.0°')
   })
 
-  it('keeps a tilt that works while no tilt Device has announced itself', async () => {
-    // A driver that predates Device info, or health still on its way: no evidence of failure.
+  it('keeps a tilt that works while no tilt Driver has announced itself', async () => {
+    // A driver that predates Driver info, or health still on its way: no evidence of failure.
     await renderAt(KIOSK_WIDTH)
     await receiveLiveTilt()
 
@@ -442,7 +442,7 @@ describe('App shell Start page tilt', () => {
 
   it('shows dashes, not frozen angles, on the phone card once the driver is offline', async () => {
     await renderAt(PHONE_WIDTH)
-    await receiveTiltDevice('online')
+    await receiveTiltDriver('online')
     await receiveLiveTilt()
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('+4.0°')
 
@@ -661,8 +661,8 @@ describe('App shell header', () => {
 
     const pane = screen.getByTestId('pane-settings')
     expect(within(pane).getAllByRole('button')).toHaveLength(4)
-    expect(within(pane).getByRole('button', { name: /^Devices/ })).toHaveTextContent(
-      'No devices connected',
+    expect(within(pane).getByRole('button', { name: /^Drivers/ })).toHaveTextContent(
+      'No drivers connected',
     )
 
     await user.click(within(pane).getByRole('button', { name: /^General/ }))
@@ -1167,15 +1167,15 @@ describe('App Alerts toggle', () => {
 
 describe('App shell Relays page', () => {
   const RELAY_INFO = {
-    device: 'esp32-16x-relay',
+    driver: 'esp32-16x-relay',
     product: 'ESP32 16-channel relay board',
     source: 'ESP32 with two chained SN74HC595 shift registers',
     publishes: ['relay'],
     version: 'v0.1.0',
   }
 
-  /** What the relay Device leaves on the bus: its info and health, then a named relay and its state. */
-  async function receiveRelayDevice(health: 'online' | 'offline') {
+  /** What the relay Driver leaves on the bus: its info and health, then a named relay and its state. */
+  async function receiveRelayDriver(health: 'online' | 'offline') {
     await receive('renewvan/esp32-16x-relay/info', JSON.stringify(RELAY_INFO))
     await receive('renewvan/esp32-16x-relay/health', health)
     await receive('renewvan/relay/relay_01/name', '"Ceiling lights"')
@@ -1190,7 +1190,7 @@ describe('App shell Relays page', () => {
   it('is named Relays, and shows a relay the bus reports', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
-    await receiveRelayDevice('online')
+    await receiveRelayDriver('online')
 
     await user.click(screen.getByRole('tab', { name: 'Relays' }))
 
@@ -1200,7 +1200,7 @@ describe('App shell Relays page', () => {
   it('publishes the target state as JSON on the relay set topic when a segment is tapped', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=switches')
-    await receiveRelayDevice('online')
+    await receiveRelayDriver('online')
 
     await user.click(lights('On'))
 
@@ -1213,7 +1213,7 @@ describe('App shell Relays page', () => {
   it('settles the control when the relay reports the new state', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=switches')
-    await receiveRelayDevice('online')
+    await receiveRelayDriver('online')
     await user.click(lights('On'))
 
     await receive('renewvan/relay/relay_01/state', 'true')
@@ -1222,10 +1222,10 @@ describe('App shell Relays page', () => {
     expect(lights('On')).toBeEnabled()
   })
 
-  it('reads Unknown and publishes nothing while the relay Device is offline', async () => {
+  it('reads Unknown and publishes nothing while the relay Driver is offline', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=switches')
-    await receiveRelayDevice('offline')
+    await receiveRelayDriver('offline')
 
     expect(lights('On')).toBeDisabled()
     expect(lights('Off')).not.toBeChecked()
@@ -1234,7 +1234,7 @@ describe('App shell Relays page', () => {
     expect(mqtt.publish).not.toHaveBeenCalled()
   })
 
-  it('treats a relay Device with info but no health as not online', async () => {
+  it('treats a relay Driver with info but no health as not online', async () => {
     await renderAt(KIOSK_WIDTH, '/?page=switches')
     await receive('renewvan/esp32-16x-relay/info', JSON.stringify(RELAY_INFO))
     await receive('renewvan/relay/relay_01/name', '"Ceiling lights"')
@@ -1262,9 +1262,9 @@ describe('App shell Relays page', () => {
   it('renames a relay from Settings, publishing a JSON string to name/set', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=settings')
-    await receiveRelayDevice('online')
+    await receiveRelayDriver('online')
 
-    await user.click(screen.getByRole('button', { name: /^Devices/ }))
+    await user.click(screen.getByRole('button', { name: /^Drivers/ }))
     await user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
     await user.click(
       within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
@@ -1282,5 +1282,50 @@ describe('App shell Relays page', () => {
       '"Galley light"',
       { qos: 1, retain: false },
     )
+  })
+
+  describe('the shared Primary battery', () => {
+    async function receiveBank(id: string, soc: number) {
+      await receive(`renewvan/battery/${id}/soc_pct`, String(soc))
+      await receive(`renewvan/battery/${id}/voltage_v`, '13.2')
+      await receive(`renewvan/battery/${id}/current_a`, '1')
+      await receive(`renewvan/battery/${id}/power_w`, '13')
+    }
+
+    it('reads the Power page from the retained choice, Auto (first by id) without one', async () => {
+      await renderAt(KIOSK_WIDTH, '/?page=power')
+      // Arrival order must not decide: `wattcycle` arrives first but `512` sorts first.
+      await receiveBank('wattcycle', 61)
+      await receiveBank('512', 83)
+
+      const power = screen.getByTestId('pane-power')
+      expect(within(power).getByText('83')).toBeInTheDocument()
+
+      await receive('renewvan/hub/primary-battery', '"wattcycle"')
+      expect(within(power).getByText('61')).toBeInTheDocument()
+      expect(within(power).getByTestId('power-battery-source')).toHaveTextContent('wattcycle')
+
+      // A cleared topic reads as Auto again.
+      await receive('renewvan/hub/primary-battery', '')
+      expect(within(power).getByText('83')).toBeInTheDocument()
+      // Drawing a battery makes `motion` warn that jsdom cannot animate a CSS variable colour.
+      consoleWarn.mockClear()
+    })
+
+    it('publishes the choice made in Settings › Drivers › Batteries to the hub set topic', async () => {
+      const user = userEvent.setup()
+      await renderAt(KIOSK_WIDTH, '/?page=settings&view=batteries')
+      await receiveBank('wattcycle', 61)
+      await receiveBank('512', 83)
+
+      const selector = screen.getByRole('radiogroup', { name: 'Primary battery' })
+      await user.click(within(selector).getByRole('radio', { name: '512' }))
+
+      expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+        'renewvan/hub/primary-battery/set',
+        '"512"',
+        { qos: 1, retain: false },
+      )
+    })
   })
 })

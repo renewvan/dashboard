@@ -15,8 +15,18 @@ import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { MapThemeChoice } from '@/hooks/useMapTheme'
 import type { Van } from '@/hooks/useVan'
-import type { DeviceRow } from '@/lib/devices'
-import type { Gps, Relay, Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
+import type { DriverRow } from '@/lib/drivers'
+import type {
+  Battery,
+  Charger,
+  Gps,
+  Relay,
+  Router,
+  Solar,
+  Tank,
+  TemperatureSensor,
+  TemperatureUnit,
+} from '@/types'
 
 /**
  * Everything the Settings page and its views read, built once by `App` from
@@ -24,12 +34,18 @@ import type { Gps, Relay, Router, Tank, TemperatureSensor, TemperatureUnit } fro
  * the bus accumulates entities one property per retained message.
  */
 export interface SettingsContextValue {
-  /** One row per Device, then one fallback row per entity type no Device claims (`deviceRows`). */
-  devices: DeviceRow[]
+  /** One row per Driver, then one fallback row per entity type no Driver claims (`driverRows`). */
+  drivers: DriverRow[]
   tanks: Record<string, Partial<Tank>>
   temperatures: Record<string, Partial<TemperatureSensor>>
   gps: Record<string, Partial<Gps>>
   relays: Record<string, Relay>
+  /** Every instance on the bus, for the instances views; `Partial` for the same reason as `tanks`. */
+  batteries: Record<string, Partial<Battery>>
+  solar: Record<string, Partial<Solar>>
+  chargers: Record<string, Partial<Charger>>
+  /** The shared Primary battery choice (`renewvan/hub/primary-battery`): `auto` or a battery instance id. */
+  primaryBatterySelection: string
   router: Partial<Router> | undefined
   routerHealth: RouterHealth | null
   routerUpdatedAt: number | undefined
@@ -82,6 +98,7 @@ export interface SettingsContextValue {
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
+  setPrimaryBattery: (value: string) => void
 }
 
 export const SettingsContext = createContext<SettingsContextValue | null>(null)

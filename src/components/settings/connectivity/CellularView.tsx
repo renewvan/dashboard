@@ -1,30 +1,30 @@
 import { networkTypeLabel } from '@/lib/connection'
 import { formatBytes, formatUptime } from '@/lib/format'
 import { plmnOperatorName } from '@/lib/plmn'
-import { routerDevice, routerName } from '@/lib/routerDevice'
+import { routerDriver, routerName } from '@/lib/routerDriver'
 import { DetailList, DetailRow, StatusRow } from '../shared/DetailList'
 import { useSettings } from '../SettingsContext'
-import { DEVICE_TONE } from '../devices/deviceTone'
+import { DRIVER_TONE } from '../drivers/driverTone'
 
 /**
- * The router's page: first the Device that feeds it (its product, status and firmware, shown only
+ * The router's page: first the Driver that feeds it (its product, status and firmware, shown only
  * while a router driver has reported), then every field the router reports. The router fills in one
  * property at a time, so each row degrades to a dash on its own.
  */
 export function CellularView() {
-  const { router, devices } = useSettings()
-  const device = routerDevice(devices)
+  const { router, drivers } = useSettings()
+  const driver = routerDriver(drivers)
 
   return (
     <div className="flex flex-col gap-4">
-      {device && (
-        <DetailList label="Router device" heading="Device">
-          <DetailRow label="Product" value={device.info?.product ?? null} />
-          <StatusRow label="Status" tone={DEVICE_TONE[device.tone]} text={device.status} />
-          <DetailRow label="Firmware" value={device.version} />
+      {driver && (
+        <DetailList label="Router driver" heading="Driver">
+          <DetailRow label="Product" value={driver.info?.product ?? null} />
+          <StatusRow label="Status" tone={DRIVER_TONE[driver.tone]} text={driver.status} />
+          <DetailRow label="Firmware" value={driver.version} />
         </DetailList>
       )}
-      <DetailList label={routerName(device)} heading="Signal">
+      <DetailList label={routerName(driver)} heading="Signal">
         <DetailRow
           label="Operator"
           value={

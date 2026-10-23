@@ -106,6 +106,16 @@ describe('buildFlow without an inverter', () => {
     expect(flow.nodes.alternator.present).toBe(false)
   })
 
+  it('reads the battery the selection names, and Auto by sorted id whatever the arrival order', () => {
+    const one = battery(80, 0)
+    const two = battery(40, 0)
+
+    expect(flowFromBus({ b: two, a: one }, {}, {}).soc).toBe(80)
+    expect(flowFromBus({ a: one, b: two }, {}, {}).soc).toBe(80)
+    expect(flowFromBus({ a: one, b: two }, {}, {}, 'b').soc).toBe(40)
+    expect(flowFromBus({ a: one, b: two }, {}, {}, 'gone').soc).toBe(80)
+  })
+
   it('marks nothing present until the battery has published its core measurements', () => {
     const flow = flowFromBus({ house: { soc_pct: 80 } }, {}, {})
 
