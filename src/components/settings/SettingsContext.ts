@@ -16,11 +16,11 @@ import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { MapThemeChoice } from '@/hooks/useMapTheme'
 import type { Van } from '@/hooks/useVan'
 import type { DeviceRow } from '@/lib/devices'
-import type { Relay, Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
+import type { Gps, Relay, Router, Tank, TemperatureSensor, TemperatureUnit } from '@/types'
 
 /**
  * Everything the Settings page and its views read, built once by `App` from
- * its single hook instances. `tanks`, `temperatures` and `router` are `Partial` because
+ * its single hook instances. `tanks`, `temperatures`, `gps` and `router` are `Partial` because
  * the bus accumulates entities one property per retained message.
  */
 export interface SettingsContextValue {
@@ -28,6 +28,7 @@ export interface SettingsContextValue {
   devices: DeviceRow[]
   tanks: Record<string, Partial<Tank>>
   temperatures: Record<string, Partial<TemperatureSensor>>
+  gps: Record<string, Partial<Gps>>
   relays: Record<string, Relay>
   router: Partial<Router> | undefined
   routerHealth: RouterHealth | null

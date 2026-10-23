@@ -65,7 +65,7 @@ export interface RenderSettingsOptions {
   url?: string
   /**
    * What is on the bus. The Devices list is derived from it through the real `deviceRows`, so a test
-   * describes topics and not rows; its `tanks` and `temperatures` also feed the context unless
+   * describes topics and not rows; its `tanks`, `temperatures` and `gps` also feed the context unless
    * `overrides` set them.
    */
   bus?: Partial<RenewvanBusState>
@@ -95,6 +95,7 @@ export function renderSettings(
   const value: SettingsContextValue = {
     devices: deviceRows(state),
     temperatures: state.temperatures,
+    gps: state.gps,
     tanks: state.tanks,
     relays: state.relays,
     router: liveRouter,

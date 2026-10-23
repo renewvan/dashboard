@@ -35,6 +35,7 @@ import { TanksView } from './devices/TanksView'
 import { useReportedTankIds } from './devices/useReportedTankIds'
 import { RelaysView } from './devices/RelaysView'
 import { TemperatureView } from './devices/TemperatureView'
+import { GpsView } from './devices/GpsView'
 import type { SettingsSubView, SettingsView } from './views'
 import { SettingsNavBar } from './SettingsNavBar'
 import { useHideShellHeader } from './ShellHeaderContext'
@@ -46,6 +47,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   tanks: { title: 'Tanks', parent: 'devices' },
   tank: { title: 'Tank', parent: 'tanks' },
   temperature: { title: 'Temperature', parent: 'devices' },
+  gps: { title: 'GPS', parent: 'devices' },
   relays: { title: 'Relays', parent: 'devices' },
   general: { title: 'General', parent: 'list' },
   firmware: { title: 'Firmware', parent: 'general' },
@@ -174,6 +176,8 @@ export const SettingsPage = memo(function SettingsPage() {
         return <TankSettingsView />
       case 'temperature':
         return <TemperatureView />
+      case 'gps':
+        return <GpsView />
       case 'relays':
         return <RelaysView />
       case 'general':

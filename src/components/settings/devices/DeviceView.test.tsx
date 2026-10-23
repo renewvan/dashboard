@@ -401,4 +401,27 @@ describe('Settings Device page: entities', () => {
 
     expect(screen.getByRole('heading', { name: 'Tanks' })).toBeInTheDocument()
   })
+
+  it('summarises the GPS row by the fix when a receiver is publishing, instead of the entity count', async () => {
+    const rendered = renderSettings(
+      {},
+      {
+        bus: { gps: { van: { fix_quality: 'gps', satellites_in_use: 9 } } },
+      },
+    )
+    await openDevices(rendered.user)
+    await rendered.user.click(screen.getByRole('button', { name: /^GPS/ }))
+
+    expect(within(screen.getByRole('list', { name: 'Entities' })).getByText(/9 satellites in use/))
+  })
+
+  it('says no data yet on the GPS row while the bus record is still incomplete', async () => {
+    const rendered = renderSettings({}, { bus: { gps: { van: {} as never } } })
+    await openDevices(rendered.user)
+    await rendered.user.click(screen.getByRole('button', { name: /^GPS/ }))
+
+    expect(
+      within(screen.getByRole('list', { name: 'Entities' })).getByText('No data yet'),
+    ).toBeInTheDocument()
+  })
 })

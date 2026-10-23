@@ -203,6 +203,13 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `derivedDevices`
   const devices = useMemo(() => derivedDevices, [devicesKey])
 
+  // The GPS view shows every satellite's signal, so it needs the live record, but `state.gps` is
+  // a fresh object on every message (every poll, ~3s). Kept by content like `devices`: the
+  // Settings context, and the whole memoised Settings tree, re-render only when a value changes.
+  const gpsKey = JSON.stringify(state.gps)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `state.gps`
+  const gps = useMemo(() => state.gps, [gpsKey])
+
   // `publish` is a fresh function every render (it only closes over the bus's stable client
   // ref), so the commands bind to a forwarder that always calls the latest one.
   const publishRef = useRef(publish)
@@ -225,6 +232,7 @@ function App() {
       devices,
       tanks: state.tanks,
       temperatures: state.temperatures,
+      gps,
       relays: state.relays,
       router,
       routerHealth,
@@ -264,6 +272,7 @@ function App() {
       devices,
       state.tanks,
       state.temperatures,
+      gps,
       state.relays,
       router,
       routerHealth,

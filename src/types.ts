@@ -191,6 +191,7 @@ export function isCompleteCharger(charger: Partial<Charger>): charger is Charger
  * field is present only once fix_quality !== 'no_fix' — see
  * `isCompleteGps` for the render-readiness check and `hasGpsFix` for
  * the separate "is there actually a position to plot" check.
+ * `satellites` is the per-satellite detail behind `avg_snr_db` (hub ADR 0017).
  */
 export type GpsFixQuality =
   | 'no_fix'
@@ -203,12 +204,29 @@ export type GpsFixQuality =
   | 'manual'
   | 'simulation'
 
+export type GpsConstellation = 'gps' | 'glonass' | 'galileo' | 'beidou' | 'qzss' | 'other'
+
+/**
+ * One satellite in view. `snr_db`/`elevation_deg`/`azimuth_deg` are `null`, never 0, when the
+ * receiver has no measurement for a satellite it knows of. `(constellation, prn)` identifies it.
+ */
+export interface GpsSatellite {
+  constellation: GpsConstellation
+  prn: number
+  snr_db: number | null
+  elevation_deg: number | null
+  azimuth_deg: number | null
+}
+
 export interface Gps {
   fix_quality: GpsFixQuality
   satellites_in_use: number
   /** Mean C/N0 (dB-Hz) across tracked satellites; independent of
    * fix_quality. Absent only before the first GSV sentence is decoded. */
   avg_snr_db?: number
+  /** Every satellite in view, any constellation; independent of fix_quality. Absent only before
+   * the first GSV sentence is decoded; `[]` means GSV reported nothing in view. */
+  satellites?: GpsSatellite[]
   latitude?: number
   longitude?: number
   altitude_m?: number
