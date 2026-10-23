@@ -58,7 +58,7 @@ export type TankSeverity = 'danger' | 'warning' | 'success' | 'accent'
 /** Severity of a tank's liquid fill: `danger` while faulted, in the danger
  *  zone, or while the bus holds a committed alarm with no zone info to
  *  say otherwise (config absent, so zone always reads 'normal') --
- *  covers the device's delay holding `alarm` past restore. A caution
+ *  covers the driver's delay holding `alarm` past restore. A caution
  *  zone reading is always `warning` regardless of the committed-alarm bit:
  *  the hub only clears `alarm_state` once level crosses all the way to
  *  restore, so while recovering from danger the bit stays set for the
@@ -103,7 +103,7 @@ export interface TankLevelStatus {
  *  "0%", so it must read Empty here too, not fall through to Low on an
  *  exact-zero check the sensor will rarely ever hit. A committed
  *  alarm_state holds danger past restore (mirrors `tankSeverity`'s own
- *  override, for the same device-side delay) but never overrides a
+ *  override, for the same driver-side delay) but never overrides a
  *  caution reading, which the zone math already places more precisely
  *  than the coarser bit. Returns undefined for a tank with no alarm
  *  configured -- there's no meaningful severity to report, so the

@@ -65,7 +65,7 @@ describe('centreKind', () => {
   it('falls back to the battery with no record, a half-arrived one, or a sensor error', () => {
     expect(centreKind('tilt', undefined)).toBe('battery')
     expect(centreKind('tilt', { roll_deg: 1 })).toBe('battery')
-    // The device keeps retained angles on the broker while in error: they are stale, not live.
+    // The driver keeps retained angles on the broker while in error: they are stale, not live.
     expect(centreKind('tilt', { ...OK_TILT, status: 'sensor_error' })).toBe('battery')
   })
 

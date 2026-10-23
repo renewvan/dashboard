@@ -25,8 +25,8 @@ const TANKS: Record<string, Partial<Tank>> = {
 
 async function openTanks(overrides: Partial<SettingsContextValue> = {}) {
   const rendered = renderSettings(overrides, { bus: { tanks: TANKS as never } })
-  await rendered.user.click(screen.getByRole('button', { name: /^Devices/ }))
-  // Tanks have no Device here, so they sit in a fallback row; open it, then its Tanks entity row.
+  await rendered.user.click(screen.getByRole('button', { name: /^Drivers/ }))
+  // Tanks have no Driver here, so they sit in a fallback row; open it, then its Tanks entity row.
   await rendered.user.click(screen.getByRole('button', { name: /^Tanks/ }))
   await rendered.user.click(
     within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', { name: /^Tanks/ }),
@@ -34,10 +34,10 @@ async function openTanks(overrides: Partial<SettingsContextValue> = {}) {
   return rendered
 }
 
-describe('Settings › Devices › Tanks', () => {
-  it('drills in from a Device page, described by its tank count', async () => {
+describe('Settings › Drivers › Tanks', () => {
+  it('drills in from a Driver page, described by its tank count', async () => {
     const { user } = renderSettings({}, { bus: { tanks: TANKS as never } })
-    await user.click(screen.getByRole('button', { name: /^Devices/ }))
+    await user.click(screen.getByRole('button', { name: /^Drivers/ }))
     await user.click(screen.getByRole('button', { name: /^Tanks/ }))
 
     expect(
@@ -64,22 +64,22 @@ describe('Settings › Devices › Tanks', () => {
     expect(screen.getByText(/No tanks found/)).toBeInTheDocument()
   })
 
-  it('shows the Tanks crumb under Devices', async () => {
+  it('shows the Tanks crumb under Drivers', async () => {
     await openTanks()
 
-    expect(screen.getByRole('button', { name: 'Devices' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Drivers' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Tanks' })).toBeInTheDocument()
   })
 })
 
-describe('Settings › Devices › Tanks › Fresh water', () => {
+describe('Settings › Drivers › Tanks › Fresh water', () => {
   async function openFresh() {
     const rendered = await openTanks()
     await rendered.user.click(screen.getByRole('button', { name: /^Fresh water/ }))
     return rendered
   }
 
-  it('opens under Settings › Devices › Tanks › Fresh water', async () => {
+  it('opens under Settings › Drivers › Tanks › Fresh water', async () => {
     await openFresh()
 
     expect(screen.getByRole('button', { name: 'Tanks' })).toBeInTheDocument()
@@ -117,7 +117,7 @@ describe('Settings › Devices › Tanks › Fresh water', () => {
   })
 })
 
-describe('Settings › Devices › Tanks › unknown tank', () => {
+describe('Settings › Drivers › Tanks › unknown tank', () => {
   it('shows the tank list, not an empty panel, when ?tank= names no reported tank', () => {
     renderSettings(
       {},

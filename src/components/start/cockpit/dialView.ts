@@ -1,8 +1,9 @@
 import { IDLE_W } from '@/components/power/flowModel'
 import { FILL_COLOR } from '@/components/tanks/severity'
 import { tankView } from '@/components/tanks/tankView'
+import { primaryBattery } from '@/lib/primaryBattery'
 import type { TankSeverity } from '@/lib/tank-alarm'
-import { isCompleteBattery, isCompleteTank, type Battery, type Tank } from '@/types'
+import { isCompleteTank, type Battery, type Tank } from '@/types'
 
 /** What one Start-page dial shows. `undefined` from the builders below means "no data yet". */
 export interface DialView {
@@ -59,9 +60,12 @@ function tankColor(
   return severity === 'warning' ? RING_ALERT : RING_OK
 }
 
-/** The first battery that has fully arrived (MQTT builds a record up one property at a time). */
-export function batteryDial(batteries: Record<string, Partial<Battery>>): DialView | undefined {
-  const battery = Object.values(batteries).find(isCompleteBattery)
+/** The Primary battery as a dial (`primaryBattery`: the shared choice, else the first complete one by id). */
+export function batteryDial(
+  batteries: Record<string, Partial<Battery>>,
+  selection?: string,
+): DialView | undefined {
+  const battery = primaryBattery(batteries, selection)?.battery
   if (!battery) return undefined
   const pct = Math.min(100, Math.max(0, battery.soc_pct))
   return {

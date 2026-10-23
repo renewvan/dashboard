@@ -8,6 +8,7 @@
 // does); present, it splits into inverter -> AC loads and battery -> DC loads.
 
 import { chargerWatts } from '@/lib/charging'
+import { primaryBattery } from '@/lib/primaryBattery'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import {
   isCompleteBattery,
@@ -256,9 +257,10 @@ export function flowFromBus(
   batteries: Record<string, Partial<Battery>>,
   solar: Record<string, Partial<Solar>>,
   chargers: Record<string, Partial<Charger>>,
+  selection?: string,
 ): PowerSnapshot {
   return buildFlow({
-    battery: Object.values(batteries).find(isCompleteBattery),
+    battery: primaryBattery(batteries, selection)?.battery,
     solar: firstSolar(solar),
     alternator: chargerOf(chargers, 'alternator'),
     shore: chargerOf(chargers, 'ac'),

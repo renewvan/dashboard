@@ -20,22 +20,22 @@ function rowNames() {
 }
 
 describe('SettingsPage top list', () => {
-  it('lists exactly Devices, General, Connectivity and Van, in that order, with live descriptions', () => {
+  it('lists exactly Drivers, General, Connectivity and Van, in that order, with live descriptions', () => {
     renderSettings({}, { bus: { tanks: { fresh: completeTank }, batteries: { '1': {} as never } } })
 
     expect(rowNames()).toEqual([
-      'Devices2 devices',
+      'Drivers2 drivers',
       'GeneralFirmware, display, alerts',
       'ConnectivityRouter, Hub, Tailscale',
       'VanVehicle information',
     ])
   })
 
-  it('describes Devices as empty before any device has published', () => {
-    renderSettings({ devices: [] })
+  it('describes Drivers as empty before any driver has published', () => {
+    renderSettings({ drivers: [] })
 
-    expect(screen.getByRole('button', { name: /^Devices/ })).toHaveTextContent(
-      'No devices connected',
+    expect(screen.getByRole('button', { name: /^Drivers/ })).toHaveTextContent(
+      'No drivers connected',
     )
   })
 
@@ -138,7 +138,7 @@ describe('SettingsPage Van', () => {
 })
 
 describe('SettingsPage drill-down', () => {
-  it.each(['General', 'Connectivity', 'Devices'])(
+  it.each(['General', 'Connectivity', 'Drivers'])(
     'opens %s with a Back button named Settings in place of the Settings title',
     async (label) => {
       const { user } = renderSettings({}, { bus: { tanks: { fresh: completeTank } } })
@@ -239,8 +239,8 @@ describe('SettingsPage navigation bar', () => {
 
 describe('SettingsPage Firmware', () => {
   const tankInfo = {
-    device: 'tank',
-    product: 'Tank device',
+    driver: 'tank',
+    product: 'Tank driver',
     source: 'ADS1115 (I2C)',
     publishes: ['tank'],
     version: 'v0.8.0',
@@ -261,23 +261,23 @@ describe('SettingsPage Firmware', () => {
       .getAllByRole('term')
       .map((term) => [term.textContent, term.nextElementSibling?.textContent])
 
-  it('lists the hub first, then the dashboard, then one row per Device', async () => {
+  it('lists the hub first, then the dashboard, then one row per Driver', async () => {
     await openFirmware(
       {
         bus: {
-          devices: {
+          drivers: {
             tank: { info: tankInfo, health: 'online' },
             temperature: {
               info: {
                 ...tankInfo,
-                device: 'temperature',
-                product: 'Temperature device',
+                driver: 'temperature',
+                product: 'Temperature driver',
                 version: 'dev',
               },
               health: 'online',
             },
             router: {
-              info: { ...tankInfo, device: 'router', product: 'Router bridge', version: 'v0.1.0' },
+              info: { ...tankInfo, driver: 'router', product: 'Router bridge', version: 'v0.1.0' },
               health: 'offline',
             },
             gps: { health: 'online' },
@@ -312,7 +312,7 @@ describe('SettingsPage Firmware', () => {
   })
 
   it('has no drill-in: it is read-only', async () => {
-    await openFirmware({ bus: { devices: { tank: { info: tankInfo, health: 'online' } } } })
+    await openFirmware({ bus: { drivers: { tank: { info: tankInfo, health: 'online' } } } })
 
     expect(within(screen.getByLabelText('Firmware')).queryByRole('button')).not.toBeInTheDocument()
   })

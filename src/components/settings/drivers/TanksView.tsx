@@ -3,7 +3,7 @@ import { GroupRow } from '../shared/GroupRow'
 import { useSettings } from '../SettingsContext'
 import { useReportedTankIds } from './useReportedTankIds'
 
-/** Settings › Devices › Tanks: one drill-in per reported tank. */
+/** Settings › Drivers › Tanks: one drill-in per reported tank. */
 export function TanksView({ onOpen }: { onOpen: (tankId: string) => void }) {
   const { tanks } = useSettings()
   const ids = useReportedTankIds()

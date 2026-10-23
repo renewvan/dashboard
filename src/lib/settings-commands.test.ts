@@ -88,4 +88,15 @@ describe('settingsCommands', () => {
       '"F"',
     )
   })
+
+  it('publishes the Primary battery choice as a quoted JSON string on the hub set topic', () => {
+    const { publish, commands } = setup()
+
+    commands.setPrimaryBattery('auto')
+    commands.setPrimaryBattery('wattcycle')
+
+    expect(publish).toHaveBeenNthCalledWith(1, 'renewvan/hub/primary-battery/set', '"auto"')
+    expect(publish).toHaveBeenNthCalledWith(2, 'renewvan/hub/primary-battery/set', '"wattcycle"')
+    expect(publish).toHaveBeenCalledTimes(2)
+  })
 })

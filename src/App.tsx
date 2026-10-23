@@ -34,7 +34,8 @@ import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
-import { deviceRows, relayDevicesOnline, tiltDevicesOffline } from '@/lib/devices'
+import { driverRows, relayDriversOnline, tiltDriversOffline } from '@/lib/drivers'
+import { AUTO_PRIMARY_BATTERY } from '@/lib/primaryBattery'
 import type { RenewvanBusState } from '@/types'
 import { settingsCommands } from '@/lib/settings-commands'
 import { useAutoHide } from '@/hooks/useAutoHide'
@@ -117,11 +118,14 @@ function App() {
     autoSleepTimeoutMinutes,
     tailscale,
     hubStatus,
+    primaryBattery,
     routerHealth,
     demoMode,
     setDemoMode,
     publish,
   } = useRenewvanBus()
+  // No retained choice yet (or one that is not a string) reads as Auto.
+  const primaryBatterySelection = primaryBattery ?? AUTO_PRIMARY_BATTERY
   const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
   const alertHistory = useAlertHistory()
   const hub = useHubAddress(hubStatus)
@@ -133,7 +137,7 @@ function App() {
   const goToPage = (id: string) => setActivePage(id, { view: null, tank: null })
   // One history entry for page and view together, so Back returns to the previous page.
   const openSettings = (view: SettingsSubView) => setActivePage('settings', { view, tank: null })
-  // The tank's Configure button: Settings › Devices › Tanks › <tank>, page, view and tank in one entry.
+  // The tank's Configure button: Settings › Drivers › Tanks › <tank>, page, view and tank in one entry.
   const openTankSettings = (tankId: string) =>
     setActivePage('settings', { view: 'tank', tank: tankId })
   const unseenAlertCount = useUnseenAlertCount(activePage)
@@ -191,20 +195,20 @@ function App() {
   const router = state.routers[routerId]
   const routerUpdatedAt = state.routerUpdatedAt[routerId]
   // A tilt driver that died leaves its last `ok` and angles retained on the broker, which read as a
-  // live level. Its Device health is the only sign it is gone, so with it offline the pages get no
+  // live level. Its Driver health is the only sign it is gone, so with it offline the pages get no
   // tilt at all: the Dial falls back to the battery, the phone card shows dashes, the van on the
   // map stays level.
-  const tilt = tiltDevicesOffline(state) ? NO_TILT : state.tilt
+  const tilt = tiltDriversOffline(state) ? NO_TILT : state.tilt
 
   // `state.tanks` / `state.gps` change on every message, so the derived rows are kept by their
-  // content: the Settings context only changes when a Device, its state or its entity count does.
-  const derivedDevices = deviceRows(state)
-  const devicesKey = JSON.stringify(derivedDevices)
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `derivedDevices`
-  const devices = useMemo(() => derivedDevices, [devicesKey])
+  // content: the Settings context only changes when a Driver, its state or its entity count does.
+  const derivedDrivers = driverRows(state)
+  const driversKey = JSON.stringify(derivedDrivers)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `derivedDrivers`
+  const drivers = useMemo(() => derivedDrivers, [driversKey])
 
   // The GPS view shows every satellite's signal, so it needs the live record, but `state.gps` is
-  // a fresh object on every message (every poll, ~3s). Kept by content like `devices`: the
+  // a fresh object on every message (every poll, ~3s). Kept by content like `drivers`: the
   // Settings context, and the whole memoised Settings tree, re-render only when a value changes.
   const gpsKey = JSON.stringify(state.gps)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `state.gps`
@@ -229,11 +233,15 @@ function App() {
   const openAlerts = useCallback(() => goToPageRef.current('alerts'), [])
   const settings = useMemo(
     () => ({
-      devices,
+      drivers,
       tanks: state.tanks,
       temperatures: state.temperatures,
       gps,
       relays: state.relays,
+      batteries: state.batteries,
+      solar: state.solar,
+      chargers: state.chargers,
+      primaryBatterySelection,
       router,
       routerHealth,
       routerUpdatedAt,
@@ -269,11 +277,15 @@ function App() {
       setVanField,
     }),
     [
-      devices,
+      drivers,
       state.tanks,
       state.temperatures,
       gps,
       state.relays,
+      state.batteries,
+      state.solar,
+      state.chargers,
+      primaryBatterySelection,
       router,
       routerHealth,
       routerUpdatedAt,
@@ -374,6 +386,7 @@ function App() {
           <StartPage
             tanks={state.tanks}
             batteries={state.batteries}
+            primaryBatterySelection={primaryBatterySelection}
             solar={state.solar}
             chargers={state.chargers}
             temperatures={state.temperatures}
@@ -387,6 +400,8 @@ function App() {
         return (
           <PowerPage
             batteries={state.batteries}
+            primaryBatterySelection={primaryBatterySelection}
+            drivers={drivers}
             solar={state.solar}
             chargers={state.chargers}
             layout={powerLayout}
@@ -409,7 +424,7 @@ function App() {
         return (
           <RelaysPage
             relays={state.relays}
-            deviceOnline={relayDevicesOnline(state)}
+            driverOnline={relayDriversOnline(state)}
             demo={demoMode}
             onSetRelay={commands.setRelay}
           />

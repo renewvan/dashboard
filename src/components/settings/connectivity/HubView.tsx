@@ -1,5 +1,5 @@
 import { BUS_TONE, busStatusText } from '@/lib/connection'
-import { deviceCounts, deviceCountsText } from '@/lib/hubDevices'
+import { driverCounts, driverCountsText } from '@/lib/hubDrivers'
 import { hubRouteText } from '@/lib/hubAddress'
 import { DetailList, DetailRow, StatusRow } from '../shared/DetailList'
 import { useSettings } from '../SettingsContext'
@@ -7,13 +7,13 @@ import { useSettings } from '../SettingsContext'
 /**
  * The hub as this kiosk sees it, in four blocks: the live link to the broker (the Bus link and how
  * it is made), the Pi that runs it (its own address and name, published by the hub plugin), the
- * Devices on the bus, and where this dashboard was served from. A value that has not arrived reads
+ * Drivers on the bus, and where this dashboard was served from. A value that has not arrived reads
  * as a dash, never a guess. Nothing here can show a credential: the broker's login is only ever a
  * yes or no (see `brokerLink`).
  */
 export function HubView() {
-  const { busStatus, hub, hubStatus, broker, devices } = useSettings()
-  const counts = deviceCounts(devices)
+  const { busStatus, hub, hubStatus, broker, drivers } = useSettings()
+  const counts = driverCounts(drivers)
 
   return (
     <div className="flex flex-col gap-4">
@@ -31,8 +31,8 @@ export function HubView() {
         <DetailRow label="Address" value={hub?.host ?? null} />
         <DetailRow label="Hostname" value={hubStatus?.hostname ?? null} />
       </DetailList>
-      <DetailList label="Devices" heading>
-        <DetailRow label="On the bus" value={deviceCountsText(counts)} />
+      <DetailList label="Drivers" heading>
+        <DetailRow label="On the bus" value={driverCountsText(counts)} />
         <DetailRow label="Total" value={String(counts.total)} />
       </DetailList>
       <DetailList label="Dashboard" heading>

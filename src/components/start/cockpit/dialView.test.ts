@@ -70,6 +70,16 @@ describe('batteryDial', () => {
     expect(view?.pct).toBe(55)
   })
 
+  it('follows the selected battery, and picks by sorted id in Auto whatever the arrival order', () => {
+    const a = battery({ soc_pct: 70 })
+    const b = battery({ soc_pct: 30 })
+
+    expect(batteryDial({ b, a })?.pct).toBe(70)
+    expect(batteryDial({ a, b })?.pct).toBe(70)
+    expect(batteryDial({ a, b }, 'b')?.pct).toBe(30)
+    expect(batteryDial({ a, b }, 'gone')?.pct).toBe(70)
+  })
+
   it('shows a battery whose source publishes only the core fields', () => {
     // A shunt has no temperature probe and no charge stage, so neither optional property is
     // ever published. Captured from a real SmartShunt via Venus OS.

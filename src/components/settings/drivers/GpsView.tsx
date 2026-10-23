@@ -98,7 +98,7 @@ function Satellites({ satellites }: { satellites: GpsSatellite[] }) {
 }
 
 /**
- * Settings › Devices › GPS: the receiver's state and, below it, the signal of every satellite it
+ * Settings › Drivers › GPS: the receiver's state and, below it, the signal of every satellite it
  * sees. Read-only: the GPS entity has no command topics. There is one receiver per van, so the
  * first record whose unconditional fields have arrived is the one shown.
  */

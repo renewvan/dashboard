@@ -20,6 +20,10 @@ export type TankAlarmState = 'ok' | 'alarm'
 export type TankAlarmDirection = 'low' | 'high'
 
 export interface Tank {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
+  /** Human label of the instance, when its Driver publishes one. */
+  name?: string
   fluid_type: FluidType
   capacity_l: number
   /** Raw sender reading. Alarms/thresholds, `tank-alarm.ts`'s severity
@@ -96,6 +100,10 @@ export type ChargeState =
  * consumer must tolerate their absence.
  */
 export interface Battery {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
+  /** Human label of the instance, when its Driver publishes one. */
+  name?: string
   soc_pct: number
   voltage_v: number
   current_a: number
@@ -138,6 +146,10 @@ export type SolarChargeState =
  * so a consumer must tolerate their absence. There is no array nameplate on the wire.
  */
 export interface Solar {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
+  /** Human label of the instance, when its Driver publishes one. */
+  name?: string
   power_w: number
   battery_voltage_v: number
   battery_current_a?: number
@@ -171,6 +183,10 @@ export type ChargerSource = 'ac' | 'alternator' | 'dc' | 'unknown'
  * source. driver-venus publishes no `power_w`, so a consumer derives watts from voltage × current.
  */
 export interface Charger {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
+  /** Human label of the instance, when its Driver publishes one. */
+  name?: string
   voltage_v: number
   current_a?: number
   power_w?: number
@@ -219,6 +235,10 @@ export interface GpsSatellite {
 }
 
 export interface Gps {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
+  /** Human label of the instance, when its Driver publishes one. */
+  name?: string
   fix_quality: GpsFixQuality
   satellites_in_use: number
   /** Mean C/N0 (dB-Hz) across tracked satellites; independent of
@@ -260,12 +280,14 @@ export type TemperatureStatus = 'ok' | 'no_reading' | 'disconnected'
  * DS18B20 probes + the Pi CPU, read by renewvan/driver-temperature).
  * `temperature_c` is ALWAYS Celsius on the wire; `unit` is only the
  * user's display preference, applied by lib/temperature.ts. While
- * `status` is not 'ok' the device stops republishing `temperature_c` but
+ * `status` is not 'ok' the driver stops republishing `temperature_c` but
  * the LAST retained value stays on the broker, so a reading must only
  * be shown when `status === 'ok'` (see {@link temperatureReading}).
  * Same partial-accumulation caveat as {@link isCompleteTank}.
  */
 export interface TemperatureSensor {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
   name: string
   unit: TemperatureUnit
   source: 'w1' | 'cpu'
@@ -280,13 +302,17 @@ export type TiltStatus = 'ok' | 'sensor_error'
 /**
  * Van inclination per hub/schema/tilt.schema.json (read by
  * renewvan/driver-tilt). Angles are in the van frame, already level-zeroed
- * by the device: `roll_deg` positive = left side down, `pitch_deg` positive
- * = nose up. While `status` is 'sensor_error' the device stops republishing
+ * by the driver: `roll_deg` positive = left side down, `pitch_deg` positive
+ * = nose up. While `status` is 'sensor_error' the driver stops republishing
  * angles but the LAST retained values stay on the broker, so an angle must
  * only be shown when `status === 'ok'`. Same partial-accumulation caveat
  * as {@link isCompleteTank}.
  */
 export interface Tilt {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
+  /** Human label of the instance, when its Driver publishes one. */
+  name?: string
   roll_deg: number
   pitch_deg: number
   status: TiltStatus
@@ -298,6 +324,8 @@ export interface Tilt {
  * `name` before its first `state`; a consumer treats a missing `state` as unknown.
  */
 export interface Relay {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
   state?: boolean
   name?: string
 }
@@ -313,6 +341,10 @@ export type NetworkType = '2g' | '3g' | 'lte' | 'nr' | 'unknown'
  * missing fields rather than crashing or hiding).
  */
 export interface Router {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
+  /** Human label of the instance, when its Driver publishes one. */
+  name?: string
   signal_rsrp_dbm: number
   signal_rsrq_db: number
   signal_sinr_db: number
@@ -325,15 +357,15 @@ export interface Router {
   data_used_month_rx_b: number
 }
 
-export type DeviceHealth = 'online' | 'offline'
+export type DriverHealth = 'online' | 'offline'
 
 /**
- * The retained `renewvan/<device>/info` payload (hub `device-info.schema.json`): the Device's manifest
+ * The retained `renewvan/<driver>/info` payload (hub `driver-info.schema.json`): the Driver's manifest
  * plus its build-stamped `version` and optional `board_serial` and `ip`. `publishes` is optional here
  * only because the dashboard's structural check requires it to be a list of strings *if present*.
  */
-export interface DeviceInfo {
-  device: string
+export interface DriverInfo {
+  driver: string
   product: string
   source: string
   version: string
@@ -341,14 +373,14 @@ export interface DeviceInfo {
   manufacturer?: string
   homepage?: string
   board_serial?: string
-  /** The Board's own IPv4 address as of the Device's last connect; only Devices with an address of their own publish it. */
+  /** The Board's own IPv4 address as of the Driver's last connect; only Drivers with an address of their own publish it. */
   ip?: string
 }
 
-/** What the bus has said about one Device: its retained info and its retained health, each optional. */
-export interface DeviceRecord {
-  info?: DeviceInfo
-  health?: DeviceHealth
+/** What the bus has said about one Driver: its retained info and its retained health, each optional. */
+export interface DriverRecord {
+  info?: DriverInfo
+  health?: DriverHealth
 }
 
 /** Live state of the renewvan bus, keyed by entity id within each domain. */
@@ -366,8 +398,8 @@ export interface RenewvanBusState {
    * icon's staleness rule (health offline OR older than 180 s = offline;
    * see lib/connection.ts). */
   routerUpdatedAt: Record<string, number>
-  /** Every Device that has published `info` or `health`, keyed by its `<device>` topic segment. */
-  devices: Record<string, DeviceRecord>
+  /** Every Driver that has published `info` or `health`, keyed by its `<driver>` topic segment. */
+  drivers: Record<string, DriverRecord>
 }
 
 export const emptyRenewvanBusState: RenewvanBusState = {
@@ -381,5 +413,5 @@ export const emptyRenewvanBusState: RenewvanBusState = {
   temperatures: {},
   tilt: {},
   routerUpdatedAt: {},
-  devices: {},
+  drivers: {},
 }

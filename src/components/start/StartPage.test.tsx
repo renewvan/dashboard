@@ -42,6 +42,7 @@ function renderAt(
     gps?: Record<string, Partial<Gps>>
     tilt?: Record<string, Partial<Tilt>>
     powerSources?: StartPowerSources
+    primaryBatterySelection?: string
   },
 ) {
   viewport = stubMatchMedia(width)
@@ -49,6 +50,7 @@ function renderAt(
     <StartPage
       tanks={props.tanks ?? {}}
       batteries={props.batteries ?? {}}
+      primaryBatterySelection={props.primaryBatterySelection}
       solar={props.solar ?? {}}
       chargers={props.chargers ?? {}}
       temperatures={props.temperatures ?? {}}
@@ -105,6 +107,16 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
     expect(screen.queryByText(/to go/)).not.toBeInTheDocument()
     expect(subline('46 / 100 \u2113')).toBeInTheDocument()
     expect(subline('33 / 80 \u2113')).toBeInTheDocument()
+  })
+
+  it('reads the Primary battery: Auto is the first by id, a selection follows it', () => {
+    const batteries = { b: { ...BATTERY, soc_pct: 40 }, a: { ...BATTERY, soc_pct: 78 } }
+    const auto = renderAt(width, { batteries })
+    expect(screen.getByRole('img', { name: 'Battery 78%' })).toBeInTheDocument()
+    auto.unmount()
+
+    renderAt(width, { batteries, primaryBatterySelection: 'b' })
+    expect(screen.getByRole('img', { name: 'Battery 40%' })).toBeInTheDocument()
   })
 
   it('shows "No data yet" instead of a number for a dial whose data has not arrived', () => {
@@ -167,6 +179,26 @@ describe('StartPage kiosk dial', () => {
     })
 
     expect(rings()).toEqual(['Battery 78%', 'Fresh water 46%', 'Grey water 41%'])
+  })
+
+  it('reads the ring and the Battery power from the Primary battery, not the first to arrive', () => {
+    const batteries = { b: { ...BATTERY, soc_pct: 40, power_w: -90 }, a: BATTERY }
+    const auto = renderAt(KIOSK_WIDTH, { tanks: { fresh: tank(), grey: GREY }, batteries })
+    expect(rings()[0]).toBe('Battery 78%')
+    expect(
+      within(screen.getByTestId('start-dial')).getByText('Load').parentElement,
+    ).toHaveTextContent('35W')
+    auto.unmount()
+
+    renderAt(KIOSK_WIDTH, {
+      tanks: { fresh: tank(), grey: GREY },
+      batteries,
+      primaryBatterySelection: 'b',
+    })
+    expect(rings()[0]).toBe('Battery 40%')
+    expect(
+      within(screen.getByTestId('start-dial')).getByText('Load').parentElement,
+    ).toHaveTextContent('90W')
   })
 
   it('draws the rings the user configured, in that order', () => {

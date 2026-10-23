@@ -48,7 +48,7 @@ The "after" figures also reflect the removed pages, so they say nothing about He
 
 These were decided with the spike and are not regressions to fix:
 
-- ~~The Settings page and the Alerts-toggle UI are removed with the other pages.~~ **Ported:** the Settings page is now a HeroUI drill-down (Devices, General, Connectivity), with the Alerts toggle under General → Alerts.
+- ~~The Settings page and the Alerts-toggle UI are removed with the other pages.~~ **Ported:** the Settings page is now a HeroUI drill-down (Drivers, General, Connectivity), with the Alerts toggle under General → Alerts.
 - System fonts replace Inter.
 - Header buttons have no `title` attribute.
 - Keyboard gap: with the `alerts` page open, all tabs get `tabindex="-1"`. `alerts` is reachable only through the header button and `?page=alerts`, not the rail.

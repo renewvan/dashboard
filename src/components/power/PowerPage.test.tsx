@@ -82,6 +82,60 @@ describe('PowerPage', () => {
     },
   )
 
+  describe('with two batteries', () => {
+    const bank = { driver: 'wattcycle', ...battery, soc_pct: 61 }
+    const house = { driver: 'venus', name: 'House', ...battery, soc_pct: 83 }
+    const drivers = [
+      { key: 'venus', name: 'Venus' },
+      { key: 'wattcycle', name: 'WattCycle' },
+    ]
+    const page = (
+      batteries: Record<string, Partial<Battery>>,
+      primaryBatterySelection?: string,
+    ) => (
+      <PowerPage
+        batteries={batteries}
+        primaryBatterySelection={primaryBatterySelection}
+        drivers={drivers}
+        solar={{}}
+        chargers={none}
+        layout="tiles"
+      />
+    )
+
+    it('reads the same battery whichever one arrived first (Auto: first by id)', () => {
+      const first = render(page({ '512': house, wattcycle: bank }, 'auto'))
+      expect(screen.getByText('83')).toBeInTheDocument()
+      first.unmount()
+
+      render(page({ wattcycle: bank, '512': house }, 'auto'))
+      expect(screen.getByText('83')).toBeInTheDocument()
+    })
+
+    it('follows the selected instance and names it under the layout', () => {
+      render(page({ '512': house, wattcycle: bank }, 'wattcycle'))
+
+      expect(screen.getByText('61')).toBeInTheDocument()
+      expect(screen.queryByText('83')).not.toBeInTheDocument()
+      expect(screen.getByTestId('power-battery-source')).toHaveTextContent(
+        'Battery: WattCycle · wattcycle',
+      )
+    })
+
+    it('falls back to Auto while the selected instance is not on the bus', () => {
+      render(page({ '512': house, wattcycle: bank }, 'gone'))
+
+      expect(screen.getByText('83')).toBeInTheDocument()
+      expect(screen.getByTestId('power-battery-source')).toHaveTextContent('Battery: House')
+    })
+
+    it('names nothing with a single battery', () => {
+      render(page({ '512': house }, 'auto'))
+
+      expect(screen.queryByTestId('power-battery-source')).not.toBeInTheDocument()
+    })
+  })
+
   describe('the battery tile in the Tiles layout', () => {
     const tiles = (house: Battery) =>
       render(<PowerPage batteries={{ house }} solar={{}} chargers={none} layout="tiles" />)

@@ -3,8 +3,8 @@ import { NameField } from '../shared/NameField'
 import { useSettings } from '../SettingsContext'
 
 /**
- * The longest name the ESP32 relay device stores, in UTF-8 bytes (hub ADR 0013: 63 by default, 254 to
- * 255 at most). The device silently drops a longer one, so the field refuses to send it.
+ * The longest name the ESP32 relay driver stores, in UTF-8 bytes (hub ADR 0013: 63 by default, 254 to
+ * 255 at most). The driver silently drops a longer one, so the field refuses to send it.
  */
 const RELAY_NAME_MAX_BYTES = 63
 
@@ -30,7 +30,7 @@ function RelayPanel({ id, name }: { id: string; name: string | undefined }) {
   )
 }
 
-/** Settings › Devices › Relays: rename a channel. Switching is on the Relays page, not here. */
+/** Settings › Drivers › Relays: rename a channel. Switching is on the Relays page, not here. */
 export function RelaysView() {
   const { relays } = useSettings()
   // `numeric` keeps relay_9 before relay_10 for an id that is not zero-padded.
@@ -39,7 +39,7 @@ export function RelaysView() {
   if (ids.length === 0) {
     return (
       <p className="border-border bg-surface text-muted rounded-2xl border px-3.5 py-3 text-sm">
-        No relays found. Waiting for the relay device to publish.
+        No relays found. Waiting for the relay driver to publish.
       </p>
     )
   }

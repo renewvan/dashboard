@@ -16,7 +16,7 @@ describe('tiltReading', () => {
     })
   })
 
-  it('hides the last retained angles once the device reports sensor_error', () => {
+  it('hides the last retained angles once the driver reports sensor_error', () => {
     expect(tiltReading({ roll_deg: 1.5, pitch_deg: -2, status: 'sensor_error' })).toEqual({
       roll: null,
       pitch: null,

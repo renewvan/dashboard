@@ -128,16 +128,16 @@ describe('shared demo mode flag', () => {
     await waitFor(() => expect(result.current.routerHealth).toBe('offline'))
   })
 
-  it('reads the demo router Device health through the registry, and an empty payload as no health', async () => {
+  it('reads the demo router Driver health through the registry, and an empty payload as no health', async () => {
     const { result } = await renderBus()
     send(latest(), 'renewvan/router/health', 'online')
     send(latest(), 'renewvan/demo/enabled', 'true')
     send(latest(), 'renewvan/demo/router/health', 'offline')
-    await waitFor(() => expect(result.current.state.devices.router?.health).toBe('offline'))
+    await waitFor(() => expect(result.current.state.drivers.router?.health).toBe('offline'))
     expect(result.current.routerHealth).toBe('offline')
     // driver-demo clears its retained topic (ADR 0008); the real root's 'online' must not show through.
     send(latest(), 'renewvan/demo/router/health', '')
-    await waitFor(() => expect(result.current.state.devices.router).toBeUndefined())
+    await waitFor(() => expect(result.current.state.drivers.router).toBeUndefined())
     expect(result.current.routerHealth).toBeNull()
   })
 
@@ -180,38 +180,38 @@ describe('shared demo mode flag', () => {
     expect(result.current.tailscale?.peers).toBe(2)
   })
 
-  it('keeps each root own Devices separate, so a real Device never shows in demo or back', async () => {
+  it('keeps each root own Drivers separate, so a real Driver never shows in demo or back', async () => {
     const { result } = await renderBus()
     const info = (version: string) =>
-      JSON.stringify({ device: 'tank', product: 'Tank device', source: 'ADS1115', version })
+      JSON.stringify({ driver: 'tank', product: 'Tank driver', source: 'ADS1115', version })
     send(latest(), 'renewvan/tank/info', info('v0.8.0'))
     send(latest(), 'renewvan/tank/health', 'online')
     send(latest(), 'renewvan/demo/tank/info', info('v9.9.9-demo'))
     send(latest(), 'renewvan/demo/venus/health', 'offline')
 
-    await waitFor(() => expect(result.current.state.devices.tank?.info?.version).toBe('v0.8.0'))
-    expect(Object.keys(result.current.state.devices)).toEqual(['tank'])
+    await waitFor(() => expect(result.current.state.drivers.tank?.info?.version).toBe('v0.8.0'))
+    expect(Object.keys(result.current.state.drivers)).toEqual(['tank'])
 
     send(latest(), 'renewvan/demo/enabled', 'true')
     await waitFor(() => expect(result.current.demoMode).toBe(true))
-    expect(result.current.state.devices).toEqual({
+    expect(result.current.state.drivers).toEqual({
       tank: { info: expect.objectContaining({ version: 'v9.9.9-demo' }) },
       venus: { health: 'offline' },
     })
 
     send(latest(), 'renewvan/demo/enabled', 'false')
     await waitFor(() => expect(result.current.demoMode).toBe(false))
-    expect(result.current.state.devices.tank?.info?.version).toBe('v0.8.0')
-    expect(result.current.state.devices.venus).toBeUndefined()
+    expect(result.current.state.drivers.tank?.info?.version).toBe('v0.8.0')
+    expect(result.current.state.drivers.venus).toBeUndefined()
   })
 
-  it('drops every demo Device when driver-demo clears its retained topics', async () => {
+  it('drops every demo Driver when driver-demo clears its retained topics', async () => {
     const { result } = await renderBus()
     send(latest(), 'renewvan/demo/enabled', 'true')
     send(latest(), 'renewvan/demo/venus/health', 'online')
-    await waitFor(() => expect(result.current.state.devices.venus?.health).toBe('online'))
+    await waitFor(() => expect(result.current.state.drivers.venus?.health).toBe('online'))
     send(latest(), 'renewvan/demo/venus/health', '')
-    await waitFor(() => expect(result.current.state.devices).toEqual({}))
+    await waitFor(() => expect(result.current.state.drivers).toEqual({}))
   })
 })
 
@@ -257,6 +257,18 @@ describe('publish while in demo mode', () => {
     act(() => result.current.publish('renewvan/kiosk/display/brightness/set', '50'))
     const sent = latest().publish.mock.calls.map((c) => c[0])
     expect(sent).toEqual(['renewvan/kiosk/display/brightness/set'])
+  })
+
+  it('still publishes the Primary battery choice: it is the kiosk reading, not a Driver command', async () => {
+    const { result } = await renderBus()
+    send(latest(), 'renewvan/demo/enabled', 'true')
+    await waitFor(() => expect(result.current.demoMode).toBe(true))
+    act(() => result.current.publish('renewvan/hub/primary-battery/set', '"512"'))
+    expect(latest().publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/hub/primary-battery/set',
+      '"512"',
+      { qos: 1, retain: false },
+    )
   })
 
   it('never publishes a relay set or name/set: the demo ids overlap the real ids', async () => {

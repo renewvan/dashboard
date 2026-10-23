@@ -1,7 +1,7 @@
 import { Label, Switch } from '@heroui/react'
 
 /**
- * Settings › Devices › Tanks › <tank>. The tank's settings will mirror the device's own
+ * Settings › Drivers › Tanks › <tank>. The tank's settings will mirror the driver's own
  * config (https://github.com/alexsanzder/dbus-ads1115#configuration-parameters); for now
  * only Enabled is shown, and it is read-only: `enabled` is a driver-tank `config.ini` value
  * read at startup, with no wire field or command topic to change it. The whole row is the

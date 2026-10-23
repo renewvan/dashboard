@@ -21,8 +21,8 @@ export const GIVE_UP_MS = 4000
 
 export interface RelaysPageProps {
   relays: Record<string, Relay>
-  /** Every Device that publishes `relay` is online (`relayDevicesOnline`). False reads as Unknown. */
-  deviceOnline: boolean
+  /** Every Driver that publishes `relay` is online (`relayDriversOnline`). False reads as Unknown. */
+  driverOnline: boolean
   /** Demo mode: show the relays, but every control is disabled and nothing is ever sent. */
   demo: boolean
   /** Sends the TARGET state to the relay's `set` topic. */
@@ -65,7 +65,7 @@ function useCommandPhases(
     timers.current.clear()
   }
 
-  // A Device that drops, or Demo mode, ends every command in flight and any open confirmation, so
+  // A Driver that drops, or Demo mode, ends every command in flight and any open confirmation, so
   // no stale target, failure or pump prompt surfaces when it returns. Adjusting state while
   // rendering is React's way to reset on a change.
   if (frozen !== wasFrozen) {
@@ -114,7 +114,7 @@ interface ChannelProps {
   relay: Relay
   /** The glyph for this channel: a configured one, else the neutral one. */
   Icon: LucideIcon
-  /** Device not online, or Demo mode: nothing selected, controls disabled. */
+  /** Driver not online, or Demo mode: nothing selected, controls disabled. */
   frozen: boolean
   phase: Phase | undefined
   onPick: (to: boolean) => void
@@ -179,13 +179,13 @@ function Channel({ id, relay, Icon, frozen, phase, onPick, onRetry }: ChannelPro
 }
 
 /** Banner for the one reason every relay reads Unknown or disabled. */
-function Banner({ demo, deviceOnline }: { demo: boolean; deviceOnline: boolean }) {
-  if (!demo && deviceOnline) return null
+function Banner({ demo, driverOnline }: { demo: boolean; driverOnline: boolean }) {
+  if (!demo && driverOnline) return null
   return (
     <p role="status" className="bg-surface text-muted rounded-xl px-3 py-2 text-xs">
       {demo
         ? 'Demo mode: controls are disabled.'
-        : 'The relay device is not online. Every relay is unknown and its controls are disabled.'}
+        : 'The relay driver is not online. Every relay is unknown and its controls are disabled.'}
     </p>
   )
 }
@@ -203,13 +203,13 @@ interface Confirming {
  */
 export function RelaysPage({
   relays,
-  deviceOnline,
+  driverOnline,
   demo,
   onSetRelay,
   criticalIds = criticalRelayIds,
   icons = relayIcons,
 }: RelaysPageProps) {
-  const frozen = demo || !deviceOnline
+  const frozen = demo || !driverOnline
   const [confirming, setConfirming] = useState<Confirming | null>(null)
   const { phaseOf, request } = useCommandPhases(relays, frozen, onSetRelay, () =>
     setConfirming(null),
@@ -221,7 +221,7 @@ export function RelaysPage({
       <section className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
         <ToggleLeft aria-hidden="true" className="text-muted size-5" />
         <h2 className="text-foreground text-lg font-semibold">No relays yet.</h2>
-        <p className="text-muted text-sm">Waiting for the relay device to publish.</p>
+        <p className="text-muted text-sm">Waiting for the relay driver to publish.</p>
       </section>
     )
   }
@@ -233,7 +233,7 @@ export function RelaysPage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
-      <Banner demo={demo} deviceOnline={deviceOnline} />
+      <Banner demo={demo} driverOnline={driverOnline} />
       <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-3">
         {panelsFor(ids).map((panel) => (
           <section

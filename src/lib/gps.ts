@@ -101,7 +101,7 @@ export function formatSnr(snr: number | null): string {
   return snr === null ? 'No signal' : `${Math.round(snr)} dB-Hz`
 }
 
-/** Headline for the Device page's GPS row, e.g. `9 satellites in use` or `No fix, 5 in view`. */
+/** Headline for the Driver page's GPS row, e.g. `9 satellites in use` or `No fix, 5 in view`. */
 export function gpsSummary(gps: Partial<Gps> | undefined): string {
   if (!gps || gps.fix_quality === undefined) return 'No data yet'
   if (gps.fix_quality === 'no_fix') {

@@ -6,7 +6,7 @@ import type { SettingsContextValue } from '@/components/settings/SettingsContext
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { TailscaleStatus } from '@/hooks/useRenewvanBus'
 import { DEFAULT_START_POWER_SOURCES } from '@/hooks/useStartPowerSources'
-import { deviceRows } from '@/lib/devices'
+import { driverRows } from '@/lib/drivers'
 import { emptyRenewvanBusState, type RenewvanBusState, type Router } from '@/types'
 import { stubMatchMedia } from './matchMedia'
 
@@ -32,14 +32,14 @@ export const liveRouter: Router = {
 
 /**
  * A van with `driver-router` installed: the retained info and health it publishes. Opt in with
- * `renderSettings({}, { bus: { devices: ROUTER_DEVICES } })`; without it the bus has no Devices, so
+ * `renderSettings({}, { bus: { drivers: ROUTER_DRIVERS } })`; without it the bus has no Drivers, so
  * Connectivity names the router plain `Router`.
  */
-export const ROUTER_DEVICES: RenewvanBusState['devices'] = {
+export const ROUTER_DRIVERS: RenewvanBusState['drivers'] = {
   router: {
     health: 'online',
     info: {
-      device: 'router',
+      driver: 'router',
       product: 'Teltonika RUT-360 router',
       source: 'RutOS Data to Server MQTT push feed',
       publishes: ['router'],
@@ -64,8 +64,8 @@ export interface RenderSettingsOptions {
   /** Starting URL, to open on a deep link (default: the Settings top list). */
   url?: string
   /**
-   * What is on the bus. The Devices list is derived from it through the real `deviceRows`, so a test
-   * describes topics and not rows; its `tanks`, `temperatures` and `gps` also feed the context unless
+   * What is on the bus. The Drivers list is derived from it through the real `driverRows`, so a test
+   * describes topics and not rows; its `tanks`, `temperatures`, `gps`, `batteries`, `solar` and `chargers` also feed the context unless
    * `overrides` set them.
    */
   bus?: Partial<RenewvanBusState>
@@ -93,11 +93,15 @@ export function renderSettings(
   })
 
   const value: SettingsContextValue = {
-    devices: deviceRows(state),
+    drivers: driverRows(state),
     temperatures: state.temperatures,
     gps: state.gps,
     tanks: state.tanks,
     relays: state.relays,
+    batteries: state.batteries,
+    solar: state.solar,
+    chargers: state.chargers,
+    primaryBatterySelection: 'auto',
     router: liveRouter,
     routerHealth: 'online',
     routerUpdatedAt: Date.now(),
@@ -137,6 +141,7 @@ export function renderSettings(
     setTemperatureUnit: vi.fn(),
     setRelay: vi.fn(),
     setRelayName: vi.fn(),
+    setPrimaryBattery: vi.fn(),
     ...overrides,
   }
 
