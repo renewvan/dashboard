@@ -1,12 +1,15 @@
 import { createHash } from 'node:crypto'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vite-plus/test'
 import { notices } from '@/data/notices.generated'
 import {
   collectNotices,
   isExcluded,
-  listProductionPackages,
+  listShippedPackages,
   readExcludeList,
   readFallbacks,
+  readIncludeList,
   readLicenceFile,
   type Notices,
   type ProductionPackage,
@@ -21,6 +24,47 @@ const root = process.cwd()
 
 const REGENERATE = 'run `pnpm notices` and commit src/data/notices.generated.ts'
 
+/** Files under `src` with one of the extensions, as paths relative to the root. */
+function sourceFiles(extensions: readonly string[]): string[] {
+  return (readdirSync(join(root, 'src'), { recursive: true }) as string[])
+    .filter((f) => extensions.some((e) => f.endsWith(e)))
+    .map((f) => join('src', f))
+    .sort()
+}
+
+/** `react/jsx-runtime` is package `react`, `@scope/name/x` is `@scope/name`; relative and alias paths are none. */
+function packageOf(specifier: string): string | null {
+  if (/^(\.|\/|node:)/.test(specifier)) return null
+  const parts = specifier.split('/')
+  if (specifier.startsWith('@')) {
+    return parts[0].length > 1 && parts[1] ? `${parts[0]}/${parts[1]}` : null
+  }
+  return parts[0]
+}
+
+/** The installed packages a file imports at run time (`import type` is erased), by bare specifier. */
+function importedPackages(file: string): string[] {
+  const source = readFileSync(join(root, file), 'utf8')
+  const patterns = file.endsWith('.css')
+    ? [/@import\s+['"]([^'"]+)['"]/g]
+    : [
+        /(?:^|\n)\s*(?:import|export)\s+(?!type\b)[^'";]*?\sfrom\s*['"]([^'"]+)['"]/g,
+        /(?:^|\n)\s*import\s*['"]([^'"]+)['"]/g,
+        /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
+      ]
+  return patterns
+    .flatMap((pattern) => [...source.matchAll(pattern)].map((m) => m[1]))
+    .map(packageOf)
+    .filter((name): name is string => name !== null && existsSync(join(root, 'node_modules', name)))
+}
+
+/**
+ * Packages the app imports that are deliberately not credited, each with the reason. The notices
+ * exclude list is a claim about the bundle; this is where it is checked against what the CSS and
+ * the source really import. Empty unless a package is proven not to ship.
+ */
+const IMPORTED_BUT_NOT_CREDITED: Record<string, string> = {}
+
 /** One line per group (licence, a hash of the text, packages): a readable diff when it drifts. */
 function summary(n: Notices): string[] {
   return n.groups.map((g) => {
@@ -31,19 +75,19 @@ function summary(n: Notices): string[] {
 }
 
 describe('checked-in third-party notices', () => {
-  let production: ProductionPackage[]
+  let shipped: ProductionPackage[]
   let exclude: string[]
   let fallbacks: Record<string, string>
 
   beforeAll(() => {
-    production = listProductionPackages(root)
+    shipped = listShippedPackages(root)
     exclude = readExcludeList(root)
     fallbacks = readFallbacks(root)
   }, 30_000)
 
   it(`match the production dependencies (if this fails: ${REGENERATE})`, () => {
     const regenerated = collectNotices({
-      packages: production,
+      packages: shipped,
       exclude,
       fallbacks,
       readLicence: readLicenceFile,
@@ -66,7 +110,7 @@ describe('checked-in third-party notices', () => {
   })
 
   it('give a shipped package with no licence file on disk its checked-in fallback text', () => {
-    const withoutFile = production.filter(
+    const withoutFile = shipped.filter(
       (p) => !isExcluded(p.name, exclude) && readLicenceFile(p.dir) === null,
     )
     // @protomaps/basemaps, pmtiles and murmurhash-js ship and have none; a fallback is only
@@ -82,6 +126,60 @@ describe('checked-in third-party notices', () => {
     const pmtiles = notices.groups.find((g) => g.packages.some((p) => p.name === 'pmtiles'))
     expect(pmtiles?.licence).toBe('BSD-3-Clause')
     expect(pmtiles?.text).toContain('Copyright 2021 Protomaps LLC')
+  })
+
+  it('list the extra packages from the include list, which are not production dependencies', () => {
+    const listed = new Set(notices.groups.flatMap((g) => g.packages.map((p) => p.name)))
+    const included = readIncludeList(root)
+    expect(included.length).toBeGreaterThan(0)
+    for (const { name, reason } of included) {
+      expect(reason, `${name} needs a reason`).not.toBe('')
+      expect(listed.has(name), `${name} is in the notices`).toBe(true)
+    }
+  })
+
+  // The class of bug this guards: a package that is imported (by a stylesheet, or by the source) and
+  // so ends up in the build, but is missing from the notices because the exclude list wrongly
+  // dropped it or because `--prod` never reported it. The imports are read from the files, not
+  // from the lists, so a wrong list cannot hide itself.
+  describe('imports', () => {
+    const credited = (name: string) =>
+      notices.groups.some((g) => g.packages.some((p) => p.name === name))
+
+    // Test files and test helpers are not part of the build.
+    const isShipped = (file: string) =>
+      !/\.test\.tsx?$/.test(file) && !file.startsWith(join('src', 'test') + '/')
+
+    it('of every stylesheet in src name a package that is in the notices', () => {
+      const imported = new Set(sourceFiles(['.css']).flatMap(importedPackages))
+      expect([...imported], 'index.css imports packages').toEqual(
+        expect.arrayContaining(['tailwindcss', 'tw-animate-css']),
+      )
+      const missing = [...imported].filter((n) => !credited(n) && !(n in IMPORTED_BUT_NOT_CREDITED))
+      expect(missing, `imported by a stylesheet, not in the notices (${REGENERATE})`).toEqual([])
+    })
+
+    it('of every non-test source file name a package that is in the notices', () => {
+      const imported = new Set(
+        sourceFiles(['.ts', '.tsx']).filter(isShipped).flatMap(importedPackages),
+      )
+      expect([...imported], 'the source imports packages').toEqual(
+        expect.arrayContaining(['react', 'maplibre-gl']),
+      )
+      const missing = [...imported].filter((n) => !credited(n) && !(n in IMPORTED_BUT_NOT_CREDITED))
+      expect(missing, `imported by the source, not in the notices (${REGENERATE})`).toEqual([])
+    })
+
+    it('keep every deliberate exception a package that really is imported and uncredited', () => {
+      const imported = new Set(
+        sourceFiles(['.css', '.ts', '.tsx']).filter(isShipped).flatMap(importedPackages),
+      )
+      for (const [name, reason] of Object.entries(IMPORTED_BUT_NOT_CREDITED)) {
+        expect(reason, `${name} needs a reason`).not.toBe('')
+        expect(imported.has(name), `${name} is imported`).toBe(true)
+        expect(credited(name), `${name} is uncredited`).toBe(false)
+      }
+    })
   })
 })
 

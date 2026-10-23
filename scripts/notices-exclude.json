@@ -1,13 +1,12 @@
 {
   "groups": [
     {
-      "reason": "Build pipeline (Tailwind, and the bundler and CSS tools it pulls in): runs in Node at build time, nothing from it reaches the browser bundle",
+      "reason": "Build pipeline of Tailwind (the compiler, the Vite plugin and the bundler and CSS tools they pull in): runs in Node at build time, nothing from it reaches the browser bundle. `tailwindcss` itself is not here: its CSS is inlined into the built stylesheet",
       "packages": [
         "@tailwindcss/node",
         "@tailwindcss/oxide-*",
         "@tailwindcss/oxide",
         "@tailwindcss/vite",
-        "tailwindcss",
         "lightningcss",
         "lightningcss-*",
         "enhanced-resolve",
@@ -24,8 +23,7 @@
         "@jridgewell/remapping",
         "@jridgewell/resolve-uri",
         "@jridgewell/sourcemap-codec",
-        "@jridgewell/trace-mapping",
-        "tw-animate-css"
+        "@jridgewell/trace-mapping"
       ]
     },
     {

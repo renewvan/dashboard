@@ -1,10 +1,10 @@
-// Third-party notices: which production packages ship, and the licence text each one asks to keep.
+// Third-party notices: which packages ship, and the licence text each one asks to keep.
 //
 // Shared by the CLI (`scripts/generate-notices.ts`, run as `pnpm notices`) and the drift test
 // (`src/lib/notices.test.ts`). Everything that touches the outside world (the `pnpm` call, reading
 // licence files) is separate from `collectNotices`, the pure part that decides the groups.
 import { execFileSync } from 'node:child_process'
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { join } from 'node:path'
 
 export interface NoticePackage {
@@ -33,6 +33,7 @@ export interface ProductionPackage {
 }
 
 const excludeFile = 'scripts/notices-exclude.json'
+const includeFile = 'scripts/notices-include.json'
 const fallbackDir = 'scripts/notices-fallback'
 
 // ---------------------------------------------------------------------------------------------
@@ -222,6 +223,54 @@ export function listProductionPackages(root: string): ProductionPackage[] {
   return found
 }
 
+/** A package that ships although it is not a production dependency, and why. */
+export interface IncludedPackage {
+  name: string
+  reason: string
+}
+
+/** The checked-in include list: packages that end up in the build but `--prod` does not report. */
+export function readIncludeList(root: string): IncludedPackage[] {
+  const file = JSON.parse(readFileSync(join(root, includeFile), 'utf8')) as {
+    packages: IncludedPackage[]
+  }
+  return file.packages
+}
+
+/** An installed package, resolved from `<root>/node_modules/<name>` (symlinks followed). */
+function resolveInstalled(root: string, name: string): ProductionPackage {
+  const dir = join(root, 'node_modules', name)
+  let manifest: { version: string; license?: string }
+  try {
+    manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+  } catch {
+    throw new Error(
+      `${includeFile} lists ${name}, which is not installed in node_modules (is it still a dependency?)`,
+    )
+  }
+  if (!manifest.license) throw new Error(`${name} declares no "license" in its package.json`)
+  return { name, version: manifest.version, licence: manifest.license, dir: realpathSync(dir) }
+}
+
+/**
+ * Everything that ships: the production dependencies plus the packages in the include list, resolved
+ * from `node_modules`. One entry per name and version; an included package that the exclude list
+ * would drop is a contradiction and throws.
+ */
+export function listShippedPackages(root: string): ProductionPackage[] {
+  const exclude = readExcludeList(root)
+  const shipped = listProductionPackages(root)
+  const known = new Set(shipped.map((p) => `${p.name}@${p.version}`))
+  for (const { name } of readIncludeList(root)) {
+    if (isExcluded(name, exclude)) {
+      throw new Error(`${name} is in both ${includeFile} and ${excludeFile}: it cannot be both`)
+    }
+    const pkg = resolveInstalled(root, name)
+    if (!known.has(`${pkg.name}@${pkg.version}`)) shipped.push(pkg)
+  }
+  return shipped
+}
+
 const licenceFile = /^(licen[sc]e|copying)(?![a-z])/i
 
 /**
@@ -260,7 +309,7 @@ export function readFallbacks(root: string): Record<string, string> {
 /** The whole pipeline, as the CLI runs it. */
 export function generateNotices(root: string): Notices {
   return collectNotices({
-    packages: listProductionPackages(root),
+    packages: listShippedPackages(root),
     exclude: readExcludeList(root),
     fallbacks: readFallbacks(root),
     readLicence: readLicenceFile,

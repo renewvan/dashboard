@@ -1,0 +1,8 @@
+{
+  "packages": [
+    {
+      "name": "tw-animate-css",
+      "reason": "A devDependency, so `pnpm licenses list --prod` does not report it, but src/index.css imports it and its animation rules end up in the built CSS"
+    }
+  ]
+}

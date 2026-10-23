@@ -25,8 +25,8 @@ declared but never imported), and it says nothing about the text.
   (platform binaries differ per OS, and CI is Linux), in groups that each carry a reason. It started
   from a bundle analysis of the real module graph and of the prebuilt files that carry their own
   inlined dependencies (`maplibre-gl`, `mqtt`), because searching the minified bundle for package
-  names finds nothing. Exclusion means proven not imported; anything doubtful stays listed, since
-  over-crediting is safe and under-crediting is not.
+  names finds nothing. Exclusion means proven not shipped, in the JavaScript or in the CSS; anything
+  doubtful stays listed, since over-crediting is safe and under-crediting is not.
 - **Checked-in fallbacks** in `scripts/notices-fallback/<name>.txt` for shipped packages with no
   licence file on disk: `@protomaps/basemaps`, `pmtiles` and `murmurhash-js`. Each is the real upstream
   text and copyright line, with its source and git ref in `sources.json`. A shipped package with no
@@ -39,6 +39,11 @@ declared but never imported), and it says nothing about the text.
   in the main graph imports it statically, so the build emits it as its own chunk (about 110 kB, 15 kB
   gzipped) fetched only when About opens. The first load is unchanged and the chunk is part of the
   image, so About works offline.
+- **A checked-in include list,** `scripts/notices-include.json`: named packages that ship although
+  `--prod` does not report them, each with a reason. Today that is `tw-animate-css`, a devDependency
+  that `src/index.css` imports, so its rules end up in the built stylesheet. They are resolved from
+  `node_modules`, joined to the production packages (`listShippedPackages`) and go through the same
+  `collectNotices`, so the CLI and the drift test share one path. A name in both lists is an error.
 
 ## Consequences
 
@@ -48,8 +53,13 @@ declared but never imported), and it says nothing about the text.
 - A bump that changes a package's licence text or copyright line shows up as a diff in review.
 - The test and the script need `node_modules` installed and `pnpm` (or `vp`) on the PATH; neither
   touches the network.
-- The exclude list is a claim about the bundle, checked once by analysis and not by the test: a
-  package that starts being imported while it is excluded is not caught. Review the list when adding
-  a dependency that the app imports.
+- The exclude list is a claim about the bundle, first made by analysis and now also checked by the
+  test against the imports: every package named by an `@import` in a stylesheet under `src` or by an
+  import in a non-test source file must be in the notices (or be a reasoned exception in the test).
+  That check exists because the first analysis looked only at the JavaScript bundle and missed
+  `tailwindcss` and `tw-animate-css`, whose CSS is inlined into the built stylesheet. A package that
+  ships but is not a production dependency goes in the include list; a package that is imported
+  through some other route (a `require`, a CSS `@plugin`, a runtime-built specifier) is not seen by
+  the test, so review the lists when adding a dependency that the app uses.
 - `murmurhash-js` (MIT) has no licence file, in the package or in its repository; its text is the
   "License (MIT)" section of its README, which is the only text upstream publishes.
