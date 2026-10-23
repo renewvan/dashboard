@@ -7,8 +7,10 @@ import { basemapStyle } from '@/lib/mapStyle'
 import { compassPoint, headingDeg } from '@/lib/vanMarker'
 import { tiltReading } from '@/lib/tilt'
 import { hasGpsFix, isCompleteGps, type Gps, type Tilt } from '@/types'
+import { BasemapNotice } from './BasemapNotice'
 import { VanMarker } from './VanMarker'
 import { useLocationName } from './useLocationName'
+import { useBasemapUnavailable } from './useBasemapUnavailable'
 import { useMapLibreSetup } from './useMapLibreSetup'
 import { ZoomControls } from './ZoomControls'
 import { MAP_GLASS } from './mapGlass'
@@ -106,6 +108,7 @@ function FixView({
     [isDark],
   )
   useMapLibreSetup()
+  const { unavailable, onError, onSourceData } = useBasemapUnavailable()
 
   return (
     // `isolate`: MapLibre's controls and attribution carry their own z-index, which otherwise
@@ -117,12 +120,15 @@ function FixView({
       <MapView
         initialViewState={{ longitude, latitude, zoom: ZOOM }}
         mapStyle={style}
+        onError={onError}
+        onSourceData={onSourceData}
         scrollZoom={false}
         style={{ width: '100%', height: '100%' }}
       >
         <VanMarker longitude={longitude} latitude={latitude} heading={heading} pitch={pitch} />
         <ZoomControls />
       </MapView>
+      {unavailable && <BasemapNotice />}
       {/* Above the map's own controls within this stacking context. */}
       <div
         data-testid="map-readout"

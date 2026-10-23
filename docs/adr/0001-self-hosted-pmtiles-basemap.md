@@ -2,6 +2,10 @@
 
 Status: accepted
 
+Amended 2026-10-23: the last Decision bullet originally said the map is a plain empty map both
+outside the extract and with the file missing. With the file missing or unreadable it now also shows
+a small notice, so a fresh install does not look broken; the Consequences changed to match.
+
 ## Context
 
 The Map page used Leaflet with raster tiles fetched live from `tile.openstreetmap.org`. The kiosk is
@@ -19,8 +23,9 @@ and every view hit a third-party server (whose tile usage policy also discourage
 - **Fonts and sprites are vendored in the image** (`public/maps/`, about 14 MB, SIL OFL), because
   labels and icons need them and they are small and change with the style, not the region.
 - The paths are **fixed and same-origin** (`/maps/...`), like `/mqtt`, so there is no new env var.
-- **Outside the extract, or with the file missing, the map is empty with the van on it.** Nothing
-  falls back to the network.
+- **Outside the extract the map is empty with the van on it; with the file missing or unreadable it
+  is the same empty map plus a small notice** saying the offline map is unavailable. Nothing falls
+  back to the network.
 
 ## Consequences
 
@@ -30,8 +35,8 @@ and every view hit a third-party server (whose tile usage policy also discourage
 - The JS bundle grows by about 970 kB (256 kB gzipped), and MapLibre's worker (519 kB) is a separate
   asset. `useMapLibreSetup` registers it with `setWorkerUrl`: a bundler cannot see that reference,
   and without it the map silently stays blank.
-- An operator must produce and mount a regional extract; a fresh install shows an empty map until
-  they do. `docs/offline-map.md` is the runbook.
+- An operator must produce and mount a regional extract; a fresh install shows an empty map with a
+  notice pointing at `docs/offline-map.md`, the runbook, until they do.
 - Basemap data is OpenStreetMap-derived (ODbL): the attribution control stays visible.
 - Bumping `@protomaps/basemaps` can request new font stacks or sprite names; re-vendor `public/maps/`
   (`public/maps/README.md`).
