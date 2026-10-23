@@ -15,6 +15,7 @@ import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { CellularView } from './connectivity/CellularView'
 import { ConnectivityView } from './connectivity/ConnectivityView'
 import { DisplayView } from './general/preferences/DisplayView'
+import { AboutView } from './general/system/AboutView'
 import { FirmwareView } from './general/system/FirmwareView'
 import { GeneralView } from './general/GeneralView'
 import { GroupRow } from './shared/GroupRow'
@@ -46,6 +47,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   relays: { title: 'Relays', parent: 'devices' },
   general: { title: 'General', parent: 'list' },
   firmware: { title: 'Firmware', parent: 'general' },
+  about: { title: 'About', parent: 'general' },
   alerts: { title: 'Alerts', parent: 'general' },
   display: { title: 'Display & Appearance', parent: 'general' },
   'start-page': { title: 'Start page', parent: 'display' },
@@ -173,6 +175,8 @@ export const SettingsPage = memo(function SettingsPage() {
         return <GeneralView onOpen={setView} />
       case 'firmware':
         return <FirmwareView />
+      case 'about':
+        return <AboutView />
       case 'alerts':
         return <AlertsView />
       case 'display':
