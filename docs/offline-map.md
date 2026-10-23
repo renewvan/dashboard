@@ -183,8 +183,9 @@ pmtiles show basemap.pmtiles
 
 Both exit 0 on a good file and **exit 1 on a killed build or a truncated file** (for example
 `Failed to verify archive, Tile data offset=... out of bounds`). `pmtiles show` also prints the
-tileset `version` (it must start with `4.` for the dashboard's style) and the bounds, so you can
-check the file covers where you will be. Both work offline.
+bounds, so you can check the file covers where you will be, and the tileset's metadata, which
+includes a `version` line (for example `version 4.15.2`; it must start with `4.` for the
+dashboard's style, and is not the `pmtiles spec version: 3` line above it). Both work offline.
 
 ## 4. Copy it to the Pi
 
@@ -235,6 +236,9 @@ tile read and a `304` breaks the reader (see `nginx.conf`).
 
 Then open the Map page with a GPS fix inside the file's area: streets, water and labels with the van
 on them. That is the check that matters; a `206` only proves the file is being served.
+
+That ends the steps: make the file, verify it, copy it, mount it, check it. The sections below are
+reference, not more steps.
 
 ## Seeing the map in `vp dev`
 

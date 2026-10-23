@@ -56,6 +56,8 @@ function Quiet({ children }: { children: ReactNode }) {
   return <p className="text-muted px-1 text-sm">{children}</p>
 }
 
+const LOADING = 'Loading…'
+
 /** A collapsed licence text: native disclosure with a 44px hit area; the text is in the DOM either way. */
 function LicenceText({ text }: { text: string }) {
   return (
@@ -143,47 +145,53 @@ function Software({ state }: { state: TextsState }) {
         </Card>
       ) : (
         <Quiet>
-          {state.status === 'loading' ? 'Loading…' : 'The software licences could not be loaded.'}
+          {state.status === 'loading' ? LOADING : 'The software licences could not be loaded.'}
         </Quiet>
       )}
     </Group>
   )
 }
 
+/** One asset credit: its title, what it is, and its licence text once the texts have loaded. */
+function Asset({
+  title,
+  state,
+  text,
+  children,
+}: {
+  title: string
+  state: TextsState
+  text: (texts: AboutTexts) => string
+  children: ReactNode
+}) {
+  return (
+    <li className="flex flex-col gap-1 px-3.5 pt-3">
+      <span className="text-sm font-medium">{title}</span>
+      <span className="text-muted text-xs">{children}</span>
+      {state.status === 'ready' ? (
+        <LicenceText text={text(state.texts)} />
+      ) : (
+        <p className="text-muted pb-3 text-xs">
+          {state.status === 'loading' ? LOADING : 'The licence text could not be loaded.'}
+        </p>
+      )}
+    </li>
+  )
+}
+
 function Assets({ state }: { state: TextsState }) {
-  const texts = state.status === 'ready' ? state.texts : null
   return (
     <Group title="Assets">
       <Card>
         <ul className="divide-border divide-y">
-          <li className="flex flex-col gap-1 px-3.5 pt-3">
-            <span className="text-sm font-medium">Noto Sans</span>
-            <span className="text-muted text-xs">
-              Map label font, SIL Open Font License 1.1. Copyright 2022 The Noto Project Authors
-              (https://github.com/notofonts)
-            </span>
-            {texts === null ? (
-              <p className="text-muted pb-3 text-xs">
-                {state.status === 'loading' ? 'Loading…' : 'The licence text could not be loaded.'}
-              </p>
-            ) : (
-              <LicenceText text={texts.notoSans} />
-            )}
-          </li>
-          <li className="flex flex-col gap-1 px-3.5 pt-3">
-            <span className="text-sm font-medium">Map sprites</span>
-            <span className="text-muted text-xs">
-              Map icons from protomaps/basemaps-assets, derived from tangrams/icons (MIT, © 2017
-              Mapzen), as that repository states.
-            </span>
-            {texts === null ? (
-              <p className="text-muted pb-3 text-xs">
-                {state.status === 'loading' ? 'Loading…' : 'The licence text could not be loaded.'}
-              </p>
-            ) : (
-              <LicenceText text={texts.sprites} />
-            )}
-          </li>
+          <Asset title="Noto Sans" state={state} text={(texts) => texts.notoSans}>
+            Map label font, SIL Open Font License 1.1. Copyright 2022 The Noto Project Authors
+            (https://github.com/notofonts)
+          </Asset>
+          <Asset title="Map sprites" state={state} text={(texts) => texts.sprites}>
+            Map icons from protomaps/basemaps-assets, derived from tangrams/icons (MIT, © 2017
+            Mapzen), as that repository states.
+          </Asset>
         </ul>
       </Card>
     </Group>

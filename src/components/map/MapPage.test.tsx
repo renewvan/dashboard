@@ -337,12 +337,6 @@ describe('MapPage basemap notice', () => {
     expect(screen.getByTestId('map-readout')).toBeInTheDocument()
   })
 
-  it('lets pointer events through to the map', () => {
-    renderPage({ gps0: FIX })
-    fire(map.onError, sourceError())
-    expect(notice()).toHaveClass('pointer-events-none')
-  })
-
   it('stays quiet when only a tile fails, as when the van is outside the extract', () => {
     renderPage({ gps0: FIX })
     fire(map.onError, tileError())

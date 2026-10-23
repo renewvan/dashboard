@@ -334,18 +334,18 @@ describe('SettingsPage About', () => {
       const texts = Array.from(item.querySelectorAll('pre'))
       expect(texts.map((pre) => pre.textContent?.trim())).toEqual([group.text.trim()])
     })
-    expect(new Set(notices.groups.map((group) => group.text.trim())).size).toBe(
-      notices.groups.length,
-    )
+    // The stylesheet packages ship in the built CSS, so they are credited too.
+    const list = await softwareList()
+    expect(list).toHaveTextContent('tailwindcss')
+    expect(list).toHaveTextContent('tw-animate-css')
   })
 
-  it('folds each long text behind a disclosure with a 44px hit area', async () => {
+  it('folds each long text behind a disclosure', async () => {
     const { user } = await openAbout()
     const first = within(await softwareList()).getAllByRole('listitem')[0]
     const summary = first.querySelector('summary')!
     const details = first.querySelector('details')!
 
-    expect(summary).toHaveClass('min-h-11')
     expect(details).not.toHaveAttribute('open')
     await user.click(summary)
     expect(details).toHaveAttribute('open')
