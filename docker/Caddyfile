@@ -21,11 +21,13 @@
 }
 
 {$DASHBOARD_HOST} {
-    # Leaf certs live 90 days (Caddy's default is 12h). Renewal is automatic and the root the
-    # devices trust is unchanged, so this only means fewer renewals, never a reinstall.
+    # Leaf certs live 90 days (Caddy's default is 12h). sign_with_root makes the root sign them
+    # directly: an intermediate would be a 7-day certificate and clamp every leaf to a week.
+    # Devices trust the same root, so renewals never need a reinstall.
     tls {
         issuer internal {
             lifetime 2160h
+            sign_with_root
         }
     }
 
