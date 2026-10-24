@@ -2,6 +2,7 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Gps, Tilt } from '@/types'
 import { MapPage } from './MapPage'
 
@@ -12,6 +13,8 @@ const map = vi.hoisted(() => ({
   zoomIn: vi.fn(),
   zoomOut: vi.fn(),
   styles: [] as { sprite?: string; layers: unknown[] }[],
+  /** What the page handed the map as its attribution control: `false` is none, `undefined` is unset. */
+  attributionControl: undefined as undefined | false | object,
   onError: undefined as undefined | ((e: unknown) => void),
   onSourceData: undefined as undefined | ((e: unknown) => void),
 }))
@@ -26,14 +29,17 @@ vi.mock('react-map-gl/maplibre', () => ({
     onError,
     onSourceData,
     children,
+    attributionControl,
   }: {
     initialViewState: { longitude: number; latitude: number }
     mapStyle: { sprite?: string; layers: unknown[] }
     onError?: (e: unknown) => void
     onSourceData?: (e: unknown) => void
+    attributionControl?: false | object
     children: ReactNode
   }) => {
     map.styles.push(mapStyle)
+    map.attributionControl = attributionControl
     map.onError = onError
     map.onSourceData = onSourceData
     return (
@@ -41,6 +47,7 @@ vi.mock('react-map-gl/maplibre', () => ({
         data-testid="map"
         data-center={`${initialViewState.latitude},${initialViewState.longitude}`}
       >
+        <div className="maplibregl-ctrl maplibregl-ctrl-attrib" />
         {children}
       </div>
     )
@@ -80,10 +87,13 @@ function renderPage(gps: Record<string, Partial<Gps>>, tilt: Record<string, Part
 }
 
 const fetchMock = vi.fn()
+const KIOSK_WIDTH = 800
+let viewport: MatchMediaStub
 
 // The page asks Nominatim where the van is; no test may reach the network. By default the lookup
 // finds nothing, so a test that does not care about the place name sees the readout without it.
 beforeEach(() => {
+  viewport = stubMatchMedia(KIOSK_WIDTH)
   fetchMock.mockReset()
   map.zoomIn.mockReset()
   map.zoomOut.mockReset()
@@ -97,6 +107,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  viewport.restore()
 })
 
 describe('MapPage zoom buttons', () => {
@@ -119,6 +130,89 @@ describe('MapPage zoom buttons', () => {
     renderPage({})
     expect(screen.queryByRole('button', { name: 'Zoom in' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Zoom out' })).not.toBeInTheDocument()
+  })
+})
+
+describe('MapPage attribution and readout', () => {
+  const JUST_BELOW_KIOSK_WIDTH = 799
+
+  /** MapLibre's (i): its own control, which opens itself a moment after it is added, as the real one does. */
+  const control = () => document.querySelector('.maplibregl-ctrl-attrib') as HTMLElement
+  const maplibreOpens = async () => {
+    await act(async () => {
+      control().classList.add('maplibregl-compact', 'maplibregl-compact-show')
+    })
+  }
+  const userToggles = async () => {
+    await act(async () => {
+      control().classList.toggle('maplibregl-compact-show')
+    })
+  }
+
+  it('asks MapLibre for the round (i) on every size: a compact attribution control', () => {
+    renderPage({ gps0: FIX })
+    expect(map.attributionControl).toEqual({ compact: true })
+
+    cleanup()
+    viewport.setViewportWidth(JUST_BELOW_KIOSK_WIDTH)
+    renderPage({ gps0: FIX })
+    expect(map.attributionControl).toEqual({ compact: true })
+  })
+
+  it('starts the (i) closed: it takes the open state off the first time MapLibre adds it', async () => {
+    renderPage({ gps0: FIX })
+
+    await maplibreOpens()
+
+    expect(control()).not.toHaveClass('maplibregl-compact-show')
+  })
+
+  it('leaves the (i) to the user after that: a tap opens it and it stays open', async () => {
+    renderPage({ gps0: FIX })
+    await maplibreOpens()
+
+    await userToggles()
+
+    expect(control()).toHaveClass('maplibregl-compact-show')
+  })
+
+  it('keeps the kiosk readout whole, with the (i) open or closed', async () => {
+    renderPage({ gps0: FIX })
+    await maplibreOpens()
+    await userToggles()
+
+    const readout = screen.getByTestId('map-readout')
+    expect(readout).toHaveTextContent('62 km/h')
+    expect(readout).toHaveTextContent('9')
+  })
+
+  describe('on a phone', () => {
+    beforeEach(() => {
+      viewport.setViewportWidth(JUST_BELOW_KIOSK_WIDTH)
+    })
+
+    it('shows the whole readout while the (i) is closed', async () => {
+      renderPage({ gps0: { ...FIX, course_deg: 90 } })
+      await maplibreOpens()
+
+      const readout = screen.getByTestId('map-readout')
+      expect(readout).toHaveTextContent('62 km/h')
+      expect(screen.getByLabelText('Satellites in use')).toHaveTextContent('9')
+      expect(screen.getByTestId('map-heading')).toBeInTheDocument()
+    })
+
+    it('shrinks the readout to the pin while the (i) is open, and restores it on close', async () => {
+      renderPage({ gps0: FIX })
+      await maplibreOpens()
+
+      await userToggles()
+      const pin = screen.getByTestId('map-readout')
+      expect(pin).not.toHaveTextContent('km/h')
+      expect(pin).toHaveAccessibleName('GPS fix')
+
+      await userToggles()
+      expect(screen.getByTestId('map-readout')).toHaveTextContent('62 km/h')
+    })
   })
 })
 

@@ -67,7 +67,7 @@ export function PowerPage({
       <section
         aria-label="Power"
         data-testid="pane-power"
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pb-4"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pt-3 pb-4"
       >
         <PhoneCard title="Power" icon={<Zap className="size-4" />}>
           <PowerCard flow={flow} layout={layout} />

@@ -167,11 +167,10 @@ function App() {
   // A page (the Settings subpage) can ask the shell to hide its header, because it shows its own
   // navigation bar in that place.
   const [headerHidden, setHeaderHidden] = useState(false)
-  // On a phone every pane sits under the header's bottom border: give it the same gap the cards keep
-  // between themselves. A Settings subpage hides the header for its own bar, which sits flush, and the
-  // Map is full-bleed: its map runs right up to the header.
-  const panelClass = cn(PANEL_CLASS, insetMotion, isMobile && !headerHidden && 'pt-3!')
-  const flushPanelClass = cn(PANEL_CLASS, insetMotion)
+  // The gap under a phone's header is each page's own scroller's top padding, so it scrolls away with
+  // the content. It must not sit on the panel: padding on a non-scrolling parent stays put, and
+  // scrolled content would clip 12px below the header's border, leaving a dead strip.
+  const panelClass = cn(PANEL_CLASS, insetMotion)
   const navbarInsetStyle = {
     '--navbar-inset-bottom': isBottomBar ? navInset : '0px',
     '--navbar-inset-left': isBottomBar ? '0px' : navInset,
@@ -510,11 +509,7 @@ function App() {
   const panels = (
     <>
       {NAV_ITEMS.map((item) => (
-        <Tabs.Panel
-          key={item.id}
-          id={item.id}
-          className={item.id === 'map' ? flushPanelClass : panelClass}
-        >
+        <Tabs.Panel key={item.id} id={item.id} className={panelClass}>
           {renderPage(item)}
         </Tabs.Panel>
       ))}
