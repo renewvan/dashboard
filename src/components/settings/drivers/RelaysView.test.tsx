@@ -14,7 +14,7 @@ const relayInfo: DriverInfo = {
   version: 'v0.1.0',
 }
 
-/** Opens Settings › Drivers › the relay Driver › Relays, with the relays on the bus. */
+/** Opens Settings › Devices › the relay Driver › Relays, with the relays on the bus. */
 async function openRelays(
   relays: Record<string, Relay>,
   overrides: Partial<SettingsContextValue> = {},
@@ -22,7 +22,7 @@ async function openRelays(
   const rendered = renderSettings(overrides, {
     bus: { relays, drivers: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } },
   })
-  await rendered.user.click(screen.getByRole('button', { name: /^Drivers/ }))
+  await rendered.user.click(screen.getByRole('button', { name: /^Devices/ }))
   await rendered.user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
   await rendered.user.click(
     within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
@@ -37,7 +37,7 @@ const nameField = (id: string) =>
 
 const PUMP: Relay = { name: 'Water pump', state: false }
 
-describe('Settings › Drivers › Relays', () => {
+describe('Settings › Devices › Relays', () => {
   it('lists a panel per relay by id, sorted, each with its stored name', async () => {
     await openRelays({ relay_10: { name: 'Heater' }, relay_02: PUMP, relay_03: { state: true } })
 
@@ -64,7 +64,7 @@ describe('Settings › Drivers › Relays', () => {
       {},
       { bus: { drivers: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } } },
     )
-    await user.click(screen.getByRole('button', { name: /^Drivers/ }))
+    await user.click(screen.getByRole('button', { name: /^Devices/ }))
     await user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
 
     // With no relay on the bus the Driver lists no Relays row to open.

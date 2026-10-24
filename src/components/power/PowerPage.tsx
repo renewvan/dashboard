@@ -1,5 +1,9 @@
 import { useMemo } from 'react'
-import { Zap } from 'lucide-react'
+import { Sun, Zap } from 'lucide-react'
+import { PhoneCard } from '@/components/PhoneCard'
+import { PowerCard } from '@/components/start/PowerCard'
+import { SolarCard } from '@/components/start/SolarCard'
+import { useIsMobile } from '@/hooks/use-media-query'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { DriverRow } from '@/lib/drivers'
 import { instanceLabel } from '@/lib/instances'
@@ -30,6 +34,10 @@ interface PowerPageProps {
  * the same numbers. The battery is the page's anchor: until it has published, there is nothing
  * to place the sources and loads around, so the page says so instead of drawing numbers it does
  * not have. With more than one battery it names, under the layout, the instance it reads.
+ *
+ * On a phone the page is two cards, as the Start page's are: the flow (the chosen layout, sized for
+ * a card) and the solar controller's readings with its harvest history. The kiosk draws the layout
+ * alone, with the harvest inside its Solar tile.
  */
 export function PowerPage({
   batteries,
@@ -46,6 +54,33 @@ export function PowerPage({
     [batteries, solar, chargers, primaryBatterySelection],
   )
   const namesSource = completeBatteryIds(batteries).length > 1 && primary !== undefined
+  const isMobile = useIsMobile()
+  const firstSolarRecord = firstSolar(solar)
+  const sourceNote = namesSource && (
+    <p data-testid="power-battery-source" className="text-muted shrink-0 pt-2 text-center text-xs">
+      Battery: {instanceLabel(primary.id, primary.battery, drivers)}
+    </p>
+  )
+
+  if (isMobile) {
+    return (
+      <section
+        aria-label="Power"
+        data-testid="pane-power"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pb-4"
+      >
+        <PhoneCard title="Power" icon={<Zap className="size-4" />}>
+          <PowerCard flow={flow} layout={layout} />
+          {sourceNote}
+        </PhoneCard>
+        {firstSolarRecord && (
+          <PhoneCard title="Solar" icon={<Sun className="size-4" />}>
+            <SolarCard solar={firstSolarRecord} />
+          </PhoneCard>
+        )}
+      </section>
+    )
+  }
 
   return (
     <section
@@ -73,14 +108,7 @@ export function PowerPage({
           No data yet
         </div>
       )}
-      {namesSource && (
-        <p
-          data-testid="power-battery-source"
-          className="text-muted shrink-0 pt-2 text-center text-xs"
-        >
-          Battery: {instanceLabel(primary.id, primary.battery, drivers)}
-        </p>
-      )}
+      {sourceNote}
     </section>
   )
 }

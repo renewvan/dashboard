@@ -13,6 +13,11 @@ interface DialProps {
   glow: boolean
   /** The battery dial while it charges: a soft band travels along its fill. */
   pulse?: boolean
+  /**
+   * Push the dial down so its arc ends sit on the baseline every dial on the kiosk shares (see
+   * `ARC_END_GAP`). A dial alone in a card has no neighbour to line up with: pass false to centre it.
+   */
+  aligned?: boolean
   className?: string
 }
 
@@ -76,7 +81,15 @@ const TRACK_SEGMENTS = segments(TRACK_R)
  * the whole viewBox because the default (the filled arc's own bounding box) slices the band.
  * The arc ends are offset onto a shared baseline (see `ARC_END_GAP`).
  */
-export function CockpitDial({ view, icon, size, glow, pulse, className }: DialProps) {
+export function CockpitDial({
+  view,
+  icon,
+  size,
+  glow,
+  pulse,
+  aligned = true,
+  className,
+}: DialProps) {
   const uid = useId().replace(/:/g, '')
   const maskId = `cut-${uid}`
   const glowId = `glow-${uid}`
@@ -84,7 +97,14 @@ export function CockpitDial({ view, icon, size, glow, pulse, className }: DialPr
   const wholeSvg = { x: 0, y: 0, width: SIZE, height: SIZE }
 
   return (
-    <div className={cn('relative aspect-square w-full', SIZE_CLASS[size], ARC_END_GAP, className)}>
+    <div
+      className={cn(
+        'relative aspect-square w-full',
+        SIZE_CLASS[size],
+        aligned && ARC_END_GAP,
+        className,
+      )}
+    >
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className="size-full"

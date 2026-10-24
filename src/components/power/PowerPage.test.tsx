@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Battery, Charger, Solar } from '@/types'
 import { PowerPage } from './PowerPage'
 
@@ -10,12 +11,19 @@ class StubResizeObserver {
   disconnect() {}
 }
 
+const KIOSK_WIDTH = 800
+const JUST_BELOW_KIOSK_WIDTH = 799
+
+let viewport: MatchMediaStub
+
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', StubResizeObserver)
+  viewport = stubMatchMedia(KIOSK_WIDTH)
 })
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  viewport.restore()
 })
 
 const battery: Battery = { soc_pct: 83, voltage_v: 13.6, current_a: 69.9, power_w: 950 }
@@ -233,5 +241,63 @@ describe('PowerPage', () => {
         expect(screen.queryByRole('img', { name: /Solar harvest/ })).not.toBeInTheDocument()
       })
     })
+  })
+})
+
+describe('PowerPage on a phone', () => {
+  const history = [2140, 1800, 0, null, 900]
+  const withHistory: Solar = { ...sun, yield_today_wh: 2140, yield_history_wh: history }
+  const phone = (solar: Record<string, Partial<Solar>>, layout: 'tiles' | 'orbs' = 'tiles') => {
+    viewport.setViewportWidth(JUST_BELOW_KIOSK_WIDTH)
+    return render(
+      <PowerPage batteries={{ house: battery }} solar={solar} chargers={none} layout={layout} />,
+    )
+  }
+
+  it('is two cards: the flow, then the solar controller', () => {
+    phone({ roof: withHistory })
+    const page = screen.getByTestId('pane-power')
+
+    const titles = [...page.children].map(
+      (card) => card.querySelector('[class*="card__header"]')?.textContent,
+    )
+    expect(titles).toEqual(['Power', 'Solar'])
+  })
+
+  it('charts the harvest in the Solar card, not inside the flow card', () => {
+    phone({ roof: withHistory }, 'tiles')
+    const [flowCard, solarCard] = [...screen.getByTestId('pane-power').children] as HTMLElement[]
+
+    expect(within(solarCard).getAllByTestId('solar-history-day')).toHaveLength(history.length)
+    expect(within(flowCard).queryByTestId('solar-history-day')).not.toBeInTheDocument()
+  })
+
+  it('draws a card-sized flow in place of the kiosk Tiles grid, which clips at a phone width', () => {
+    phone({ roof: withHistory }, 'tiles')
+
+    expect(screen.getByTestId('power-van-tiles')).toBeInTheDocument()
+    expect(screen.queryByTestId('power-tiles')).not.toBeInTheDocument()
+  })
+
+  it('has no Solar card for a van without a complete solar controller', () => {
+    phone({})
+
+    expect(screen.getByTestId('pane-power').children).toHaveLength(1)
+    expect(screen.queryByTestId('solar-card')).not.toBeInTheDocument()
+  })
+
+  it('says no data yet in the flow card until the battery has published', () => {
+    viewport.setViewportWidth(JUST_BELOW_KIOSK_WIDTH)
+    render(
+      <PowerPage
+        batteries={{ house: { soc_pct: 83 } }}
+        solar={{ roof: withHistory }}
+        chargers={none}
+        layout="orbs"
+      />,
+    )
+
+    expect(screen.getByText('No data yet')).toBeInTheDocument()
+    expect(screen.queryByTestId('power-orbs')).not.toBeInTheDocument()
   })
 })

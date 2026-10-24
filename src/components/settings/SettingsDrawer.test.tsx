@@ -90,10 +90,10 @@ describe('drawer navigation', () => {
       },
     )
 
-    await user.click(screen.getByRole('button', { name: /^Drivers/ }))
+    await user.click(screen.getByRole('button', { name: /^Devices/ }))
     // No Driver publishes info, so the sensor sits in a fallback row: open it, then Temperature.
     await user.click(
-      await within(await openDialog('Drivers')).findByRole('button', { name: /^Temperature/ }),
+      await within(await openDialog('Devices')).findByRole('button', { name: /^Temperature/ }),
     )
     await user.click(
       await within(await screen.findByRole('list', { name: 'Entities' })).findByRole('button', {
@@ -103,8 +103,8 @@ describe('drawer navigation', () => {
     const temperature = await openDialog('Temperature')
     expect(within(temperature).getByRole('textbox', { name: 'Name' })).toHaveValue('Outdoor')
     await user.click(within(temperature).getByRole('button', { name: 'Back' }))
-    expect(await openDialog('Drivers')).toBeInTheDocument()
-    await user.click(within(await openDialog('Drivers')).getByRole('button', { name: 'Close' }))
+    expect(await openDialog('Devices')).toBeInTheDocument()
+    await user.click(within(await openDialog('Devices')).getByRole('button', { name: 'Close' }))
     await expectNoDialog()
 
     await user.click(screen.getByRole('button', { name: /^General/ }))

@@ -49,7 +49,7 @@ export function DisplaySleepButton({ displayPower, onSleep, onWake }: DisplaySle
   return (
     <Button
       isIconOnly
-      variant="tertiary"
+      variant="ghost"
       aria-label={isOn ? 'Sleep display' : 'Wake display'}
       data-testid="display-sleep-button"
       isDisabled={displayPower === null}

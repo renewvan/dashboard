@@ -24,8 +24,8 @@ const indoor: TemperatureSensor = {
 }
 
 /**
- * Opens Settings › Drivers › Temperature. With no Driver publishing info the sensors sit in a fallback
- * row, so the path is the Drivers list, that row, then its Temperature entity row. The row exists
+ * Opens Settings › Devices › Temperature. With no Driver publishing info the sensors sit in a fallback
+ * row, so the path is the Devices list, that row, then its Temperature entity row. The row exists
  * while the bus holds a sensor; `overrides.temperatures` empties what the view reads, not the row.
  */
 async function openTemperature(
@@ -34,7 +34,7 @@ async function openTemperature(
 ) {
   const onBus = Object.keys(temperatures).length > 0 ? temperatures : { probe: {} }
   const rendered = renderSettings(overrides, { bus: { temperatures: onBus as never } })
-  await rendered.user.click(screen.getByRole('button', { name: /^Drivers/ }))
+  await rendered.user.click(screen.getByRole('button', { name: /^Devices/ }))
   await rendered.user.click(screen.getByRole('button', { name: /^Temperature/ }))
   await rendered.user.click(
     within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
@@ -47,13 +47,13 @@ async function openTemperature(
 const nameField = (panel: string) =>
   within(screen.getByRole('group', { name: panel })).getByRole('textbox', { name: 'Name' })
 
-describe('Settings › Drivers › Temperature', () => {
+describe('Settings › Devices › Temperature', () => {
   it('is a drill-in on a Driver page, described by its sensor count', async () => {
     const { user } = renderSettings(
       {},
       { bus: { tanks: { fresh: {} as never }, temperatures: { outdoor, indoor } } },
     )
-    await user.click(screen.getByRole('button', { name: /^Drivers/ }))
+    await user.click(screen.getByRole('button', { name: /^Devices/ }))
     await user.click(screen.getByRole('button', { name: /^Temperature/ }))
 
     const entities = within(screen.getByRole('list', { name: 'Entities' }))
@@ -61,7 +61,7 @@ describe('Settings › Drivers › Temperature', () => {
 
     await user.click(entities.getByRole('button', { name: /^Temperature/ }))
 
-    expect(screen.getByRole('button', { name: 'Drivers' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Devices' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Temperature' })).toBeInTheDocument()
   })
 

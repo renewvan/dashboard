@@ -47,7 +47,7 @@ beforeEach(() => {
   window.localStorage.clear()
 })
 
-/** Settings › Drivers › Batteries, deep-linked. */
+/** Settings › Devices › Batteries, deep-linked. */
 function openBatteries(
   bus: Partial<RenewvanBusState>,
   overrides: Parameters<typeof renderSettings>[0] = {},
@@ -238,7 +238,7 @@ describe('Settings Solar and Chargers views', () => {
 
 describe('Settings Driver page: instances rows', () => {
   async function openVenus(user: UserEvent) {
-    await user.click(screen.getByRole('button', { name: /^Drivers/ }))
+    await user.click(screen.getByRole('button', { name: /^Devices/ }))
     await user.click(screen.getByRole('button', { name: /^Venus/ }))
   }
 
@@ -273,7 +273,7 @@ describe('Settings Driver page: instances rows', () => {
 
     await user.click(screen.getByRole('button', { name: /^Solar/ }))
     expect(screen.getByRole('heading', { name: 'Solar' })).toBeInTheDocument()
-    // Back goes to the Drivers list (the views' parent), as Tanks does.
+    // Back goes to the Devices list (the views' parent), as Tanks does.
     await user.click(
       within(screen.getByRole('navigation', { name: 'Settings navigation' })).getAllByRole(
         'button',

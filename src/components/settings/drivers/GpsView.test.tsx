@@ -27,10 +27,10 @@ const FIX: Gps = {
   ],
 }
 
-/** Opens Settings › Drivers › GPS: Drivers list, the GPS Driver row, then its GPS entity row. */
+/** Opens Settings › Devices › GPS: Devices list, the GPS Driver row, then its GPS entity row. */
 async function openGps(gps: Record<string, Partial<Gps>>) {
   const rendered = renderSettings({}, { bus: { gps: gps as never } })
-  await rendered.user.click(screen.getByRole('button', { name: /^Drivers/ }))
+  await rendered.user.click(screen.getByRole('button', { name: /^Devices/ }))
   await rendered.user.click(screen.getByRole('button', { name: /^GPS/ }))
   await rendered.user.click(
     within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', { name: /^GPS/ }),
@@ -42,7 +42,7 @@ async function openGps(gps: Record<string, Partial<Gps>>) {
 const row = (label: string) =>
   screen.getByText(label, { selector: 'dt' }).parentElement?.querySelector('dd')?.textContent
 
-describe('Settings › Drivers › GPS', () => {
+describe('Settings › Devices › GPS', () => {
   it('shows the receiver state with the units a driver publishes', async () => {
     await openGps({ van: FIX })
 

@@ -30,6 +30,12 @@ const ICON: Partial<Record<NodeId, ReactNode>> = {
 const R = 115
 const CIRC = 2 * Math.PI * R
 const ORB_VALUE = ['text-5xl', 'text-2xl'] as const
+/**
+ * The same, raised for a phone card, where the canvas is drawn at about a third of its size. The
+ * largest that stay inside the ring (230 units across, about 198 of them usable): "1.85 kW" at this
+ * size is 171 units wide, and the widest label, "Alternator" at `text-4xl`, 151.
+ */
+const ORB_VALUE_COMPACT = ['text-6xl', 'text-3xl'] as const
 
 const W = VAN_FRAME.w
 /** Empty space between the roof and the Solar orb above it. */
@@ -108,6 +114,7 @@ function Orb({
   shown,
   peakW,
   history,
+  compact,
 }: {
   id: NodeId
   spot: Spot
@@ -119,6 +126,8 @@ function Orb({
   peakW: number
   /** Drawn in the label's place, at the foot of the orb (the Solar orb's days of harvest). */
   history?: ReactNode
+  /** Phone card: the text is raised, as the canvas is drawn at about a third of its size. */
+  compact: boolean
 }) {
   const { x, y } = spot.c
   const p = formatPower(shown)
@@ -156,11 +165,15 @@ function Orb({
           <span className="mb-3" style={{ color: colour }}>
             {ICON[id]}
           </span>
-          <Value sizeClass={ORB_VALUE} value={<RollingNumber value={shown} />} unit={p.unit} />
+          <Value
+            sizeClass={compact ? ORB_VALUE_COMPACT : ORB_VALUE}
+            value={<RollingNumber value={shown} />}
+            unit={p.unit}
+          />
           {history ? (
             <div className="mt-3 h-9 w-36">{history}</div>
           ) : (
-            <span className="text-muted mt-1 text-xl">{label}</span>
+            <span className={`text-muted mt-1 ${compact ? 'text-4xl' : 'text-xl'}`}>{label}</span>
           )}
         </div>
       </foreignObject>
@@ -175,10 +188,13 @@ const isLoad = (id: NodeId) => (LOAD_IDS as readonly NodeId[]).includes(id)
 export function VanOrbsLayout({
   flow,
   solar,
+  compact = false,
 }: {
   flow: PowerSnapshot
   /** Absent until a solar controller has published its required fields: then no history is drawn. */
   solar?: Solar
+  /** Phone card: raises the orbs' text, as the canvas is drawn at about a third of its size. */
+  compact?: boolean
 }) {
   const solarHistory = yieldHistoryView(solar?.yield_history_wh)
   const sources = (['solar', 'alternator', 'shore'] as const).filter((id) => flow.nodes[id].present)
@@ -229,6 +245,7 @@ export function VanOrbsLayout({
               history={
                 id === 'solar' && solarHistory ? <SolarHistory view={solarHistory} /> : undefined
               }
+              compact={compact}
             />
           ))}
         </svg>

@@ -1,7 +1,9 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Battery, Charger, Gps, Solar, Tank, TemperatureSensor, Tilt } from '@/types'
+import type { PowerLayout } from '@/hooks/usePowerLayout'
 import { DEFAULT_START_POWER_SOURCES, type StartPowerSources } from '@/hooks/useStartPowerSources'
 import { StartPage } from './StartPage'
 
@@ -31,6 +33,7 @@ const BATTERY: Battery = {
 }
 
 let viewport: MatchMediaStub
+const onConfigureTank = vi.fn()
 function renderAt(
   width: number,
   props: {
@@ -42,6 +45,7 @@ function renderAt(
     gps?: Record<string, Partial<Gps>>
     tilt?: Record<string, Partial<Tilt>>
     powerSources?: StartPowerSources
+    powerLayout?: PowerLayout
     primaryBatterySelection?: string
   },
 ) {
@@ -57,7 +61,9 @@ function renderAt(
       gps={props.gps ?? {}}
       tilt={props.tilt ?? {}}
       powerSources={props.powerSources ?? DEFAULT_START_POWER_SOURCES}
+      powerLayout={props.powerLayout ?? 'tiles'}
       isDark
+      onConfigureTank={onConfigureTank}
     />,
   )
 }
@@ -79,6 +85,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  onConfigureTank.mockClear()
   cleanup()
   vi.unstubAllGlobals()
   viewport.restore()
@@ -90,7 +97,7 @@ function subline(text: string) {
 }
 
 describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, width) => {
-  it('shows each dial with its live reading', () => {
+  it('draws the battery as the one cockpit dial, with its live reading', () => {
     renderAt(width, {
       tanks: {
         fresh: tank(),
@@ -100,13 +107,25 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
     })
 
     expect(screen.getByRole('img', { name: 'Battery 78%' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Fresh water 46%' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Grey water 41%' })).toBeInTheDocument()
     expect(subline('13.20V / 35W')).toBeInTheDocument()
     // The runtime estimate is parked: the source publishes it, the dial does not show it.
     expect(screen.queryByText(/to go/)).not.toBeInTheDocument()
-    expect(subline('46 / 100 \u2113')).toBeInTheDocument()
-    expect(subline('33 / 80 \u2113')).toBeInTheDocument()
+    // Only the battery is a dial: the tanks are the Tanks page's own cards.
+    expect(screen.getAllByRole('img')).toHaveLength(1)
+  })
+
+  it('shows each tank as its Tanks-page card, litres and level included', () => {
+    renderAt(width, {
+      tanks: {
+        fresh: tank(),
+        grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 }),
+      },
+    })
+
+    expect(screen.getByText('46%')).toBeInTheDocument()
+    expect(screen.getByText(/46\/100/)).toBeInTheDocument()
+    expect(screen.getByText('41%')).toBeInTheDocument()
+    expect(screen.getByText(/33\/80/)).toBeInTheDocument()
   })
 
   it('reads the Primary battery: Auto is the first by id, a selection follows it', () => {
@@ -119,45 +138,156 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
     expect(screen.getByRole('img', { name: 'Battery 40%' })).toBeInTheDocument()
   })
 
-  it('shows "No data yet" instead of a number for a dial whose data has not arrived', () => {
+  it('shows "No data yet" in the card of a reading whose data has not arrived', () => {
     renderAt(width, { tanks: { fresh: tank() } })
 
-    expect(screen.getByRole('img', { name: 'Fresh water 46%' })).toBeInTheDocument()
+    expect(screen.getByText('46%')).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /^Battery/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('img', { name: /^Grey water/ })).not.toBeInTheDocument()
-    expect(screen.getAllByText('No data yet')).toHaveLength(2)
+    // Battery, grey water and power: one "No data yet" card each.
+    expect(screen.getAllByText('No data yet')).toHaveLength(3)
   })
 
-  it('does not draw a dial from a half-arrived record', () => {
+  it('does not draw anything from a half-arrived record', () => {
     renderAt(width, {
       tanks: { grey: { fluid_type: 'grey_water', capacity_l: 80 } },
       batteries: { house: { soc_pct: 78 } },
     })
 
     expect(screen.queryAllByRole('img')).toHaveLength(0)
-    expect(screen.getAllByText('No data yet')).toHaveLength(3)
+    expect(screen.getAllByText('No data yet')).toHaveLength(4)
   })
 
   it('shows a faulted tank as a fault, with its reason, not as a level', () => {
     renderAt(width, { tanks: { fresh: tank({ status: 'short_circuit', level_pct: 62 }) } })
 
-    expect(screen.getByRole('img', { name: 'Fresh water 0%' })).toBeInTheDocument()
     expect(screen.getByText('Fault')).toBeInTheDocument()
     expect(screen.getByText('Short circuit')).toBeInTheDocument()
+    expect(screen.queryByText(/\u2113/)).not.toBeInTheDocument()
+  })
+
+  it('opens the settings of the tank whose Configure button is tapped', async () => {
+    const user = userEvent.setup()
+    renderAt(width, {
+      tanks: { f1: tank(), g1: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 }) },
+    })
+
+    const buttons = screen.getAllByRole('button', { name: 'Configure' })
+    await user.click(buttons[1])
+    expect(onConfigureTank).toHaveBeenCalledExactlyOnceWith('g1')
   })
 })
 
 describe('StartPage layout', () => {
-  it('puts the battery first on a phone, where order is the reading priority', () => {
+  it('stacks the phone page as cards: weather, power, tilt, battery, fresh water, grey water', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {
       tanks: { fresh: tank(), grey: tank({ fluid_type: 'grey_water' }) },
       batteries: { house: BATTERY },
     })
     const pane = screen.getByTestId('pane-start')
-    const titles = within(pane)
-      .getAllByRole('img')
-      .map((el) => el.getAttribute('aria-label')?.replace(/ \d+%$/, ''))
-    expect(titles).toEqual(['Battery', 'Fresh water', 'Grey water'])
+    const titles = ['Weather', 'Power', 'Tilt', 'Battery', 'Fresh water', 'Grey water'].map(
+      (title) =>
+        within(pane).getByText(title, {
+          selector: '[class*="card__header"], [class*="card__header"] *',
+        }),
+    )
+
+    expect(pane.children).toHaveLength(6)
+    titles.forEach((title, i) => expect(pane.children[i]).toContainElement(title))
+  })
+})
+
+describe('StartPage power card', () => {
+  // What the card draws for each Settings choice. Tiles is a kiosk-width grid that clips in a phone
+  // card, so its choice draws Van tiles: the same flow on a canvas that scales down.
+  const DRAWN: Record<PowerLayout, string> = {
+    tiles: 'power-van-tiles',
+    orbs: 'power-orbs',
+    'van-tiles': 'power-van-tiles',
+    'van-orbs': 'power-van-orbs',
+  }
+  const ALL_IDS = ['power-tiles', 'power-orbs', 'power-van-tiles', 'power-van-orbs']
+
+  it.each(Object.keys(DRAWN) as PowerLayout[])(
+    "draws the layout the Power page's %s setting calls for",
+    (powerLayout) => {
+      renderAt(JUST_BELOW_KIOSK_WIDTH, { batteries: { house: BATTERY }, powerLayout })
+
+      expect(screen.getByTestId(DRAWN[powerLayout])).toBeInTheDocument()
+      for (const other of ALL_IDS.filter((id) => id !== DRAWN[powerLayout])) {
+        expect(screen.queryByTestId(other)).not.toBeInTheDocument()
+      }
+    },
+  )
+
+  it('says no data yet, and draws no layout, before the battery has published', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    const card = screen.getByTestId('pane-start').children[1] as HTMLElement
+
+    expect(within(card).getByText('Power')).toBeInTheDocument()
+    expect(within(card).getByText('No data yet')).toBeInTheDocument()
+    for (const id of ALL_IDS) {
+      expect(screen.queryByTestId(id)).not.toBeInTheDocument()
+    }
+  })
+})
+
+describe('StartPage solar card', () => {
+  const controller = (overrides: Partial<Solar> = {}): Solar => ({
+    power_w: 412,
+    battery_voltage_v: 13.4,
+    yield_today_wh: 2140,
+    ...overrides,
+  })
+
+  it('sits right under the battery dial, with the live watts and the harvest today', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      batteries: { house: BATTERY },
+      solar: { 291: controller() },
+    })
+    const pane = screen.getByTestId('pane-start')
+    const titles = [...pane.children].map((card) => card.querySelector('[class*="card__header"]'))
+    const battery = titles.findIndex((h) => h?.textContent === 'Battery')
+
+    expect(titles[battery + 1]).toHaveTextContent('Solar')
+    expect(screen.getByTestId('solar-watts')).toHaveTextContent('412')
+    expect(screen.getByTestId('solar-yield')).toHaveTextContent('2.1')
+  })
+
+  it('charts the controller’s harvest history, and leaves the chart out without one', () => {
+    const withHistory = renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      solar: { 291: controller({ yield_history_wh: [2140, 1800, 0, null, 900] }) },
+    })
+    expect(screen.getAllByTestId('solar-history-day')).toHaveLength(5)
+    withHistory.unmount()
+
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { solar: { 291: controller() } })
+    expect(screen.getByTestId('solar-card')).toBeInTheDocument()
+    expect(screen.queryByTestId('solar-history-day')).not.toBeInTheDocument()
+  })
+
+  it('charts two weeks of a long log, not the whole month', () => {
+    const month = Array.from({ length: 31 }, (_, i) => 100 + i * 10)
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { solar: { 291: controller({ yield_history_wh: month }) } })
+
+    expect(screen.getAllByTestId('solar-history-day')).toHaveLength(14)
+  })
+
+  it('has no card for a van without a complete solar controller', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { solar: { 291: { power_w: 412 } } })
+
+    expect(screen.queryByTestId('solar-card')).not.toBeInTheDocument()
+  })
+
+  it('keeps the harvest history out of the Power card: it has its own card', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      batteries: { house: BATTERY },
+      solar: { 291: controller({ yield_history_wh: [2140, 1800, 900] }) },
+      powerLayout: 'van-tiles',
+    })
+    const powerCard = screen.getByTestId('power-van-tiles')
+
+    expect(within(powerCard).queryByTestId('solar-history-day')).not.toBeInTheDocument()
+    expect(screen.getAllByTestId('solar-history-day')).toHaveLength(3)
   })
 })
 
@@ -456,6 +586,25 @@ describe('StartPage weather widget', () => {
     },
   )
 
+  it('shows the outlook under the current conditions: today first, then each day high over low', async () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    await screen.findByTestId('weather-outside')
+
+    expect(screen.getByText('Today')).toBeInTheDocument()
+    // The stubbed forecast has three days: today and two named ones, each with a rounded high and low.
+    expect(screen.getByText('18°')).toBeInTheDocument()
+    expect(screen.getByText('16°')).toBeInTheDocument()
+    expect(screen.getByText('13°')).toBeInTheDocument()
+    expect(screen.getAllByText(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/)).toHaveLength(2)
+  })
+
+  it('asks for a week of forecast', async () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    await screen.findByTestId('weather-outside')
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain('forecast_days=7')
+  })
+
   it('shows the outdoor probe as Outside and the indoor probe as Inside', async () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, { temperatures: { outdoor: probe(7.2), indoor: probe(21.6) } })
 
@@ -503,83 +652,5 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage tilt widget (%s)',
 
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('—')
     expect(screen.getByTestId('tilt-roll')).toHaveTextContent('—')
-  })
-})
-
-describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])(
-  'StartPage solar widget (%s)',
-  (_name, width) => {
-    const controller = (overrides: Partial<Solar> = {}): Solar => ({
-      power_w: 412,
-      battery_voltage_v: 13.4,
-      yield_today_wh: 2140,
-      charge_state: 'bulk',
-      ...overrides,
-    })
-
-    it('shows the live watts from the controller', () => {
-      renderAt(width, { solar: { 291: controller() }, batteries: { house: BATTERY } })
-
-      expect(screen.getByTestId('solar-watts')).toHaveTextContent('412')
-    })
-
-    it('shows nothing before a controller has published its required fields', () => {
-      renderAt(width, { solar: { 291: { power_w: 412 } }, batteries: { house: BATTERY } })
-
-      expect(screen.queryByTestId('solar-card')).not.toBeInTheDocument()
-    })
-
-    it('shows a fault instead of the watts', () => {
-      renderAt(width, {
-        solar: { 291: controller({ charge_state: 'fault', power_w: 0 }) },
-        batteries: { house: BATTERY },
-      })
-
-      expect(screen.getByText('Fault')).toBeInTheDocument()
-      expect(screen.queryByTestId('solar-watts')).not.toBeInTheDocument()
-    })
-
-    it('reports the reading to assistive tech as a meter, not as a dial', () => {
-      renderAt(width, { solar: { 291: controller() }, batteries: { house: BATTERY } })
-
-      const meter = screen.getByRole('meter', { name: 'Solar power' })
-      expect(meter).toHaveAttribute('aria-valuenow', '412')
-      expect(meter).toHaveAttribute('aria-valuetext', '412 W')
-      expect(within(screen.getByTestId('solar-card')).queryAllByRole('img')).toHaveLength(0)
-    })
-  },
-)
-
-describe('StartPage solar harvest today', () => {
-  const controller = (overrides: Partial<Solar> = {}): Solar => ({
-    power_w: 412,
-    battery_voltage_v: 13.4,
-    yield_today_wh: 2140,
-    charge_state: 'bulk',
-    ...overrides,
-  })
-
-  it('shows the harvest today on a phone, in the fresh water card', () => {
-    renderAt(JUST_BELOW_KIOSK_WIDTH, {
-      solar: { 291: controller() },
-      batteries: { house: BATTERY },
-    })
-
-    expect(screen.getByTestId('solar-yield')).toHaveTextContent('2.1')
-  })
-
-  it('shows no harvest figure on a phone when the controller does not report one', () => {
-    renderAt(JUST_BELOW_KIOSK_WIDTH, {
-      solar: { 291: controller({ yield_today_wh: undefined }) },
-      batteries: { house: BATTERY },
-    })
-
-    expect(screen.getByTestId('solar-yield')).toHaveTextContent('—')
-  })
-
-  it('leaves the harvest out of the battery dial on the kiosk', () => {
-    renderAt(KIOSK_WIDTH, { solar: { 291: controller() }, batteries: { house: BATTERY } })
-
-    expect(screen.queryByTestId('solar-yield')).not.toBeInTheDocument()
   })
 })

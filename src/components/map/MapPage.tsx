@@ -129,10 +129,12 @@ function FixView({
         <ZoomControls />
       </MapView>
       {unavailable && <BasemapNotice />}
-      {/* Above the map's own controls within this stacking context. */}
+      {/* Above the map's own controls within this stacking context, and above the attribution's
+          row (its licence text must stay fully visible: it is 24px tall, 10px off the bottom, and
+          grows leftward, so at a phone's width it would run under a readout sitting beside it). */}
       <div
         data-testid="map-readout"
-        className={`absolute bottom-4 left-4 z-10 flex max-w-[calc(100%-2rem)] flex-col gap-1.5 px-4 py-2.5 ${MAP_GLASS}`}
+        className={`absolute bottom-12 left-4 z-10 flex max-w-[calc(100%-2rem)] flex-col gap-1.5 px-4 py-2.5 ${MAP_GLASS}`}
       >
         {placeName && (
           <span data-testid="map-place" className="flex items-center gap-1.5 text-sm font-medium">

@@ -138,6 +138,8 @@ function selectedPage() {
  * shows its own bar, which carries the same button, so the one to tap is whichever is displayed.
  */
 async function openNetworkSettingsFromUplink(user: UserEvent) {
+  const menu = screen.queryByRole('button', { name: 'Menu' })
+  if (menu !== null && menu.closest('.hidden') === null) await user.click(menu)
   const shown = screen
     .getAllByTestId('uplink-status-button')
     .find((button) => button.closest('.hidden') === null)
@@ -305,6 +307,7 @@ describe('App shell alerts bell', () => {
   ])('opens the alerts pane with no page selected (%s)', async (_name, width) => {
     const user = userEvent.setup()
     await renderAt(width)
+    if (width === PHONE_WIDTH) await user.click(screen.getByRole('button', { name: 'Menu' }))
     const bell = screen.getByRole('button', { name: /^alerts/i })
     expect(bell).not.toHaveAttribute('aria-current')
     await user.click(bell)
@@ -611,15 +614,20 @@ describe('App shell header', () => {
     expect(window.history.length).toBe(entries)
   })
 
-  it('shows every header control at phone width', async () => {
+  it('keeps only the logo and sleep button in the phone header, the rest behind the menu', async () => {
+    const user = userEvent.setup()
     await renderAt(PHONE_WIDTH)
-    expect(screen.getByRole('link', { name: 'renewvan' })).toBeInTheDocument()
-    expect(screen.getByTestId('clock')).toBeInTheDocument()
+    const header = within(screen.getByRole('banner'))
+    expect(header.getByRole('link', { name: 'renewvan' })).toBeInTheDocument()
+    expect(header.getByTestId('display-sleep-button')).toBeInTheDocument()
+    expect(screen.queryByTestId('clock')).not.toBeInTheDocument()
+    expect(header.queryByTestId('uplink-status-button')).not.toBeInTheDocument()
+    expect(header.queryByRole('button', { name: /^alerts/i })).not.toBeInTheDocument()
+
+    await user.click(header.getByRole('button', { name: 'Menu' }))
     expect(screen.getByTestId('uplink-status-button')).toBeInTheDocument()
-    expect(screen.getByRole('separator')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^alerts/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /switch to .* theme/i })).toBeInTheDocument()
-    expect(screen.getByTestId('display-sleep-button')).toBeInTheDocument()
   })
 
   it('orders the header controls theme, alerts, sleep', async () => {
@@ -661,7 +669,7 @@ describe('App shell header', () => {
 
     const pane = screen.getByTestId('pane-settings')
     expect(within(pane).getAllByRole('button')).toHaveLength(4)
-    expect(within(pane).getByRole('button', { name: /^Drivers/ })).toHaveTextContent(
+    expect(within(pane).getByRole('button', { name: /^Devices/ })).toHaveTextContent(
       'No drivers connected',
     )
 
@@ -1264,7 +1272,7 @@ describe('App shell Relays page', () => {
     await renderAt(KIOSK_WIDTH, '/?page=settings')
     await receiveRelayDriver('online')
 
-    await user.click(screen.getByRole('button', { name: /^Drivers/ }))
+    await user.click(screen.getByRole('button', { name: /^Devices/ }))
     await user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
     await user.click(
       within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
@@ -1312,7 +1320,7 @@ describe('App shell Relays page', () => {
       consoleWarn.mockClear()
     })
 
-    it('publishes the choice made in Settings › Drivers › Batteries to the hub set topic', async () => {
+    it('publishes the choice made in Settings › Devices › Batteries to the hub set topic', async () => {
       const user = userEvent.setup()
       await renderAt(KIOSK_WIDTH, '/?page=settings&view=batteries')
       await receiveBank('wattcycle', 61)

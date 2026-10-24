@@ -32,19 +32,19 @@ function busWith(driver: DriverRecord, key = 'tank'): Partial<RenewvanBusState> 
   return { drivers: { [key]: driver }, tanks: { fresh: completeTank, grey: completeTank } }
 }
 
-async function openDrivers(user: UserEvent) {
-  await user.click(screen.getByRole('button', { name: /^Drivers/ }))
+async function openDevices(user: UserEvent) {
+  await user.click(screen.getByRole('button', { name: /^Devices/ }))
 }
 
-/** Opens Settings › Drivers › <label> for a bus holding one Driver. */
+/** Opens Settings › Devices › <label> for a bus holding one Driver. */
 async function openDriver(driver: DriverRecord, key = 'tank', label = /^Tank/) {
   const rendered = renderSettings({}, { bus: busWith(driver, key) })
-  await openDrivers(rendered.user)
+  await openDevices(rendered.user)
   await rendered.user.click(screen.getByRole('button', { name: label }))
   return rendered
 }
 
-/** Opens Settings › Drivers › <label> › Driver. */
+/** Opens Settings › Devices › <label> › Driver. */
 async function openDriverInfo(driver: DriverRecord, key = 'tank', label = /^Tank/) {
   const rendered = await openDriver(driver, key, label)
   await rendered.user.click(screen.getByRole('button', { name: 'Driver' }))
@@ -64,7 +64,7 @@ beforeEach(() => {
   window.localStorage.clear()
 })
 
-describe('Settings Drivers list', () => {
+describe('Settings Devices list', () => {
   it('lists one row per Driver as <version> · <N entities>, whatever its entity types', async () => {
     const { user } = renderSettings(
       {},
@@ -90,7 +90,7 @@ describe('Settings Drivers list', () => {
         },
       },
     )
-    await openDrivers(user)
+    await openDevices(user)
 
     const list = screen.getByRole('list', { name: 'Published drivers' })
     expect(
@@ -123,7 +123,7 @@ describe('Settings Drivers list', () => {
         },
       },
     )
-    await openDrivers(user)
+    await openDevices(user)
 
     const rows = within(screen.getByRole('list', { name: 'Published drivers' }))
       .getAllByRole('listitem')
@@ -139,7 +139,7 @@ describe('Settings Drivers list', () => {
 
   it('gives entities that no Driver claims a fallback row by entity type', async () => {
     const { user } = renderSettings({}, { bus: { tanks: { fresh: completeTank } } })
-    await openDrivers(user)
+    await openDevices(user)
 
     expect(
       within(screen.getByRole('list', { name: 'Published drivers' }))
@@ -150,7 +150,7 @@ describe('Settings Drivers list', () => {
 
   it('says so when no driver has reported yet', async () => {
     const { user } = renderSettings()
-    await openDrivers(user)
+    await openDevices(user)
 
     expect(screen.getByText(/No drivers connected/)).toBeInTheDocument()
     expect(screen.queryByRole('list', { name: 'Published drivers' })).not.toBeInTheDocument()
@@ -291,19 +291,19 @@ describe('Settings Driver page: rows', () => {
     expect(Object.fromEntries(driverRows())['IP address']).toBe('192.168.10.57')
   })
 
-  it('leaves the Board serial out of the compact Drivers list', async () => {
+  it('leaves the Board serial out of the compact Devices list', async () => {
     const { user } = renderSettings({}, { bus: busWith({ info: tankInfo, health: 'online' }) })
-    await openDrivers(user)
+    await openDevices(user)
 
     expect(screen.queryByText(PI)).not.toBeInTheDocument()
   })
 })
 
 describe('Settings Driver page: navigation', () => {
-  it('titles a Driver page by its name, with a Back button named Drivers', async () => {
+  it('titles a Driver page by its name, with a Back button named Devices', async () => {
     await openDriver({ info: tankInfo, health: 'online' })
 
-    expect(screen.getByRole('button', { name: 'Drivers' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Devices' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Tank' })).toBeInTheDocument()
   })
 
@@ -314,14 +314,14 @@ describe('Settings Driver page: navigation', () => {
     expect(screen.getByRole('button', { name: 'Tank' })).toBeInTheDocument()
   })
 
-  it('walks Driver → Tank → Drivers with Back', async () => {
+  it('walks Driver → Tank → Devices with Back', async () => {
     const { user } = await openDriverInfo({ info: tankInfo, health: 'online' })
 
     await user.click(screen.getByRole('button', { name: 'Tank' }))
     expect(screen.getByRole('heading', { name: 'Tank' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Driver' })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Drivers' }))
+    await user.click(screen.getByRole('button', { name: 'Devices' }))
     expect(screen.getByRole('list', { name: 'Published drivers' })).toBeInTheDocument()
   })
 
@@ -330,7 +330,7 @@ describe('Settings Driver page: navigation', () => {
     expect(screen.getByRole('heading', { name: 'GPS' })).toBeInTheDocument()
   })
 
-  it('falls back to the Drivers list when ?driver= names a Driver that is not reported', () => {
+  it('falls back to the Devices list when ?driver= names a Driver that is not reported', () => {
     renderSettings(
       {},
       {
@@ -341,10 +341,10 @@ describe('Settings Driver page: navigation', () => {
 
     expect(screen.getByRole('list', { name: 'Published drivers' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Driver' })).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Drivers' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Devices' })).toBeInTheDocument()
   })
 
-  it('falls back to the Drivers list when view=driver has no driver at all', () => {
+  it('falls back to the Devices list when view=driver has no driver at all', () => {
     renderSettings({}, { bus: busWith({ info: tankInfo }), url: '/?page=settings&view=driver' })
 
     expect(screen.getByRole('list', { name: 'Published drivers' })).toBeInTheDocument()
@@ -378,9 +378,9 @@ describe('Settings Driver page: navigation', () => {
 
     it('opens Driver in the drawer below the Driver, and Back steps up one level at a time', async () => {
       const { user } = renderSettings({}, { bus: busWith({ info: tankInfo, health: 'online' }) })
-      await openDrivers(user)
+      await openDevices(user)
       await user.click(
-        await within(await screen.findByRole('dialog', { name: 'Drivers' })).findByRole('button', {
+        await within(await screen.findByRole('dialog', { name: 'Devices' })).findByRole('button', {
           name: /^Tank/,
         }),
       )
@@ -412,7 +412,7 @@ describe('Settings Driver page: entities', () => {
         bus: { gps: { van: { fix_quality: 'gps', satellites_in_use: 9 } } },
       },
     )
-    await openDrivers(rendered.user)
+    await openDevices(rendered.user)
     await rendered.user.click(screen.getByRole('button', { name: /^GPS/ }))
 
     expect(within(screen.getByRole('list', { name: 'Entities' })).getByText(/9 satellites in use/))
@@ -420,7 +420,7 @@ describe('Settings Driver page: entities', () => {
 
   it('says no data yet on the GPS row while the bus record is still incomplete', async () => {
     const rendered = renderSettings({}, { bus: { gps: { van: {} as never } } })
-    await openDrivers(rendered.user)
+    await openDevices(rendered.user)
     await rendered.user.click(screen.getByRole('button', { name: /^GPS/ }))
 
     expect(

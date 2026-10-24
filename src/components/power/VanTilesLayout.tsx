@@ -45,6 +45,7 @@ interface Anchor {
 
 const TILE_W = 250
 const TILE_H = 120
+const COMPACT_TILE_H = 210
 /** The Solar tile is taller and wider than the rest: its week of harvest is a row under the value. */
 const SOLAR_TILE_W = 320
 const SOLAR_TILE_H = 210
@@ -62,17 +63,26 @@ const ANCHORS: Partial<Record<NodeId, Anchor>> = {
 export function VanTilesLayout({
   flow,
   solar,
+  compact = false,
 }: {
   flow: PowerSnapshot
   /** Absent until a solar controller has published its required fields: then no history is drawn. */
   solar?: Solar
+  /**
+   * Phone card: the canvas is drawn at about a third of its size, so the tiles' text is raised to
+   * stay readable there.
+   */
+  compact?: boolean
 }) {
   const solarHistory = yieldHistoryView(solar?.yield_history_wh)
   const sources = (['solar', 'alternator', 'shore'] as const).filter((id) => flow.nodes[id].present)
   const out = flow.edges.find((e) => e.to === 'loads')?.watts ?? 0
   const all: NodeId[] = [...sources, 'loads']
   const viewBox = `0 ${VIEW_TOP} ${W} ${VIEW_H}`
-  const solarH = solarHistory ? SOLAR_TILE_H : TILE_H
+  // A phone card draws the canvas at about a quarter of its size, so its tiles are taller to hold a
+  // label large enough to read there. Wires end at a tile's centre line, so they do not move.
+  const tileH = compact ? COMPACT_TILE_H : TILE_H
+  const solarH = solarHistory ? SOLAR_TILE_H : tileH
   const anchorOf = (id: NodeId): Anchor => {
     const a = ANCHORS[id]!
     return id === 'solar' ? { ...a, end: { ...a.end, y: 20 + solarH } } : a
@@ -105,7 +115,7 @@ export function VanTilesLayout({
             const active = watts > IDLE_W
             const isSolar = id === 'solar'
             const w = isSolar ? SOLAR_TILE_W : TILE_W
-            const h = isSolar ? solarH : TILE_H
+            const h = isSolar ? solarH : tileH
             const x = a.side === 'r' ? W - 30 - w : a.side === 'l' ? 30 : a.end.x - w / 2
             const y = a.side === 't' ? 20 : a.end.y - h / 2
             return (
@@ -128,7 +138,9 @@ export function VanTilesLayout({
                       : 'none',
                   }}
                 >
-                  <div className="text-muted mb-2 flex items-center gap-2 text-xl">
+                  <div
+                    className={`text-muted flex items-center ${compact ? 'mb-2 gap-3 text-4xl [&_svg]:size-12' : 'mb-2 gap-2 text-xl'}`}
+                  >
                     {ICON[id]}
                     {n.label}
                   </div>

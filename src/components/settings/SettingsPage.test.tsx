@@ -20,21 +20,21 @@ function rowNames() {
 }
 
 describe('SettingsPage top list', () => {
-  it('lists exactly Drivers, General, Connectivity and Van, in that order, with live descriptions', () => {
+  it('lists exactly Devices, General, Connectivity and Van, in that order, with live descriptions', () => {
     renderSettings({}, { bus: { tanks: { fresh: completeTank }, batteries: { '1': {} as never } } })
 
     expect(rowNames()).toEqual([
-      'Drivers2 drivers',
+      'Devices2 drivers',
       'GeneralFirmware, display, alerts',
       'ConnectivityRouter, Hub, Tailscale',
       'VanVehicle information',
     ])
   })
 
-  it('describes Drivers as empty before any driver has published', () => {
+  it('describes Devices as empty before any driver has published', () => {
     renderSettings({ drivers: [] })
 
-    expect(screen.getByRole('button', { name: /^Drivers/ })).toHaveTextContent(
+    expect(screen.getByRole('button', { name: /^Devices/ })).toHaveTextContent(
       'No drivers connected',
     )
   })
@@ -138,7 +138,7 @@ describe('SettingsPage Van', () => {
 })
 
 describe('SettingsPage drill-down', () => {
-  it.each(['General', 'Connectivity', 'Drivers'])(
+  it.each(['General', 'Connectivity', 'Devices'])(
     'opens %s with a Back button named Settings in place of the Settings title',
     async (label) => {
       const { user } = renderSettings({}, { bus: { tanks: { fresh: completeTank } } })

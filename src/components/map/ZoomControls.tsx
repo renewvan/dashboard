@@ -19,7 +19,7 @@ export function ZoomControls() {
   const { current: map } = useMap()
 
   return (
-    <div className="absolute top-4 right-4 z-10 flex flex-col gap-3">
+    <div className="absolute top-[calc(var(--app-header-height,0px)+1rem)] right-4 z-10 flex flex-col gap-3">
       <Button
         isIconOnly
         variant="secondary"
