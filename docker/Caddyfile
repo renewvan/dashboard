@@ -14,6 +14,12 @@
 # Set DASHBOARD_HOST to the Pi's LAN address or a local name, e.g.
 #   DASHBOARD_HOST=192.168.1.50
 # (IPs work; the cert's SAN will match it, so the browser accepts the name.)
+# Clients that connect by IP send no SNI (curl, Chrome). Without a default, Caddy has no
+# certificate to offer them and the handshake fails with "internal error".
+{
+    default_sni {$DASHBOARD_HOST}
+}
+
 {$DASHBOARD_HOST} {
     tls internal
 
