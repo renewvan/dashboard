@@ -1,0 +1,25 @@
+# TLS terminator for the dashboard, for a LAN-only kiosk served from a Raspberry Pi.
+#
+# Uses Caddy's internal CA (`tls internal`): no public domain, no Let's Encrypt,
+# no port forwarding. Caddy signs the server cert with a local root CA it
+# generates on first start, stored in the caddy-data volume.
+#
+# To make the PWA installable, each client device must trust that root once:
+#   1. Copy the root out of the container:
+#        docker cp renewvan-caddy:/data/caddy/pki/authorities/local/root.crt .
+#   2. Android: Settings -> Security -> Encryption & credentials ->
+#      Install a certificate -> CA certificate -> pick root.crt.
+#      Then open https://<pi-address> in Chrome.
+#
+# Set DASHBOARD_HOST to the Pi's LAN address or a local name, e.g.
+#   DASHBOARD_HOST=192.168.1.50
+# (IPs work; the cert's SAN will match it, so the browser accepts the name.)
+{$DASHBOARD_HOST} {
+    tls internal
+
+    encode zstd gzip
+
+    # Proxy everything to the nginx container, which already serves the SPA,
+    # the /mqtt WebSocket and the /maps/ basemap (including range requests).
+    reverse_proxy dashboard:80
+}
