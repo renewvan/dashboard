@@ -2,6 +2,7 @@ import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, lazyPlugins } from 'vite-plus'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -52,7 +53,19 @@ export default defineConfig({
     '*.{ts,tsx,js,jsx,mjs,cjs}': ['vp lint', 'vp fmt'],
     '*': 'vp fmt --no-error-on-unmatched-pattern',
   },
-  plugins: lazyPlugins(() => [react(), tailwindcss()]),
+  plugins: lazyPlugins(() => [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      manifest: false,
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        navigateFallback: '/index.html',
+      },
+    }),
+  ]),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
