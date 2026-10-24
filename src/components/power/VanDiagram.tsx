@@ -91,7 +91,7 @@ export function VanHub({
     <div className="absolute" style={{ left, top, width }}>
       <VanArt flow={flow} className="w-full" />
       <div className="mt-3 flex items-center justify-center gap-4">
-        <ChargeBar soc={flow.soc} className="w-2/3" />
+        <ChargeBar soc={flow.soc} className="w-full" />
         <span className={`text-foreground tabular-nums ${compact ? 'text-sm' : 'text-xl'}`}>
           {flow.soc === undefined ? '—' : `${Math.round(flow.soc)}%`}
         </span>

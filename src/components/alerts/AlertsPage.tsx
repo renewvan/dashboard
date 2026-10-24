@@ -77,7 +77,7 @@ export function AlertsPage({ entries, onRemove }: AlertsPageProps) {
     <section
       aria-label="Alerts"
       data-testid="pane-alerts"
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4"
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 max-md:pt-3"
     >
       <ul aria-label="Alert history" className="flex flex-col gap-2">
         {entries.map((entry) => {

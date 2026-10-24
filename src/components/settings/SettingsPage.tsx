@@ -316,9 +316,16 @@ export const SettingsPage = memo(function SettingsPage() {
       <ScrollShadow
         key={`${view}:${driverParam ?? ''}:${tankParam ?? ''}`}
         hideScrollBar
-        className={cn('min-h-0 flex-1', subpage !== null && 'mt-3')}
+        className="min-h-0 flex-1"
       >
-        <div className="flex w-full min-w-0 flex-col gap-3">
+        {/* The top gap is padding inside the scroller, so it scrolls away with the content and the
+            content slides flush under the bar; a margin outside would clip it 12px below the bar. */}
+        <div
+          className={cn(
+            'flex w-full min-w-0 flex-col gap-3',
+            (subpage !== null || isMobile) && 'pt-3',
+          )}
+        >
           {subpage === null ? topList : content(subpage)}
         </div>
       </ScrollShadow>

@@ -1,19 +1,20 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { Chip } from '@heroui/react'
-import { MapPin, Map, Navigation, Satellite } from 'lucide-react'
-import { useMemo } from 'react'
+import { Map } from 'lucide-react'
+import { useMemo, useRef } from 'react'
 import { Map as MapView } from 'react-map-gl/maplibre'
+import { useIsMobile } from '@/hooks/use-media-query'
 import { basemapStyle } from '@/lib/mapStyle'
-import { compassPoint, headingDeg } from '@/lib/vanMarker'
+import { headingDeg } from '@/lib/vanMarker'
 import { tiltReading } from '@/lib/tilt'
 import { hasGpsFix, isCompleteGps, type Gps, type Tilt } from '@/types'
 import { BasemapNotice } from './BasemapNotice'
+import { useAttributionOpen } from './useAttributionOpen'
+import { MapReadout } from './MapReadout'
 import { VanMarker } from './VanMarker'
 import { useLocationName } from './useLocationName'
 import { useBasemapUnavailable } from './useBasemapUnavailable'
 import { useMapLibreSetup } from './useMapLibreSetup'
 import { ZoomControls } from './ZoomControls'
-import { MAP_GLASS } from './mapGlass'
 
 export interface MapPageProps {
   gps: Record<string, Gps>
@@ -109,12 +110,20 @@ function FixView({
   )
   useMapLibreSetup()
   const { unavailable, onError, onSourceData } = useBasemapUnavailable()
+  const isMobile = useIsMobile()
+  const section = useRef<HTMLElement>(null)
+  // Whether MapLibre's (i) is open: its credit then takes room beside the readout.
+  const creditsOpen = useAttributionOpen(section)
 
   return (
     // `isolate`: MapLibre's controls and attribution carry their own z-index, which otherwise
     // competes with unrelated page UI (the toast region) in the root stacking context. Isolation
     // caps them to this subtree so the map can never paint over anything outside it.
-    <section data-testid="pane-map" className="relative isolate min-h-0 flex-1 overflow-hidden">
+    <section
+      ref={section}
+      data-testid="pane-map"
+      className="relative isolate min-h-0 flex-1 overflow-hidden"
+    >
       {/* `initialViewState` centres once: the map is a live view, so the van moves on a still map
           and the view only re-centres when the page remounts. */}
       <MapView
@@ -123,53 +132,24 @@ function FixView({
         onError={onError}
         onSourceData={onSourceData}
         scrollZoom={false}
+        // MapLibre's own (i) on every size: `compact` keeps the round button at any width. It would
+        // start open (the credit's text beside the button), so `useAttributionOpen` closes it.
+        attributionControl={{ compact: true }}
         style={{ width: '100%', height: '100%' }}
       >
         <VanMarker longitude={longitude} latitude={latitude} heading={heading} pitch={pitch} />
         <ZoomControls />
       </MapView>
       {unavailable && <BasemapNotice />}
-      {/* Above the map's own controls within this stacking context, and above the attribution's
-          row (its licence text must stay fully visible: it is 24px tall, 10px off the bottom, and
-          grows leftward, so at a phone's width it would run under a readout sitting beside it). */}
-      <div
-        data-testid="map-readout"
-        className={`absolute bottom-12 left-4 z-10 flex max-w-[calc(100%-2rem)] flex-col gap-1.5 px-4 py-2.5 ${MAP_GLASS}`}
-      >
-        {placeName && (
-          <span data-testid="map-place" className="flex items-center gap-1.5 text-sm font-medium">
-            <MapPin aria-hidden="true" className="size-4 shrink-0" />
-            <span className="line-clamp-2">{placeName}</span>
-          </span>
-        )}
-        <div className="flex items-center gap-3">
-          <Chip size="sm" variant="primary" color="success">
-            {record.fix_quality.toUpperCase()}
-          </Chip>
-          <span className="flex items-center gap-1 text-sm">
-            <Satellite aria-hidden="true" className="size-4" />
-            <span aria-label="Satellites in use">{record.satellites_in_use}</span>
-          </span>
-          {record.speed_kmh !== undefined && (
-            <span className="text-sm font-semibold tabular-nums">
-              {record.speed_kmh.toFixed(0)} km/h
-            </span>
-          )}
-          {heading !== null && (
-            <span
-              data-testid="map-heading"
-              className="flex items-center gap-1 text-sm font-semibold tabular-nums"
-            >
-              <Navigation
-                aria-hidden="true"
-                className="size-4"
-                style={{ transform: `rotate(${heading - 45}deg)` }}
-              />
-              {compassPoint(heading)} {heading.toFixed(0)}°
-            </span>
-          )}
-        </div>
-      </div>
+      {/* Bottom-left, where it always was. MapLibre's (i) is bottom-right; on a phone, opening it
+          would run its credit under a whole readout, so the readout shrinks to its GPS badge then. */}
+      <MapReadout
+        record={record}
+        heading={heading}
+        placeName={placeName ?? undefined}
+        compact={isMobile && creditsOpen}
+        className="absolute bottom-2.5 left-2.5"
+      />
     </section>
   )
 }
