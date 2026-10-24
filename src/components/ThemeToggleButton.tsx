@@ -1,10 +1,13 @@
 import { Moon, Sun } from 'lucide-react'
 import { Button } from '@heroui/react'
 import type { Theme } from '@/hooks/useTheme'
+import { MENU_ROW, MENU_ROW_ICON } from './menuRow'
 
 export interface ThemeToggleButtonProps {
   theme: Theme
   onThemeChange: (theme: Theme) => void
+  /** A full-width row (the phone drawer): the icon with the action named beside it. */
+  fullWidth?: boolean
 }
 
 /**
@@ -17,18 +20,35 @@ export interface ThemeToggleButtonProps {
  * current state" convention as `DisplaySleepButton` (`SleepIcon`/`SleepOffIcon`
  * reflect what tapping does, not just display the current on/off).
  */
-export function ThemeToggleButton({ theme, onThemeChange }: ThemeToggleButtonProps) {
+export function ThemeToggleButton({
+  theme,
+  onThemeChange,
+  fullWidth = false,
+}: ThemeToggleButtonProps) {
   const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark'
   const Icon = theme === 'dark' ? Sun : Moon
   return (
     <Button
-      isIconOnly
-      variant="tertiary"
+      isIconOnly={!fullWidth}
+      fullWidth={fullWidth}
+      variant="ghost"
       aria-label={`Switch to ${nextTheme} theme`}
       data-testid="dark-theme-toggle"
+      className={fullWidth ? MENU_ROW : undefined}
       onPress={() => onThemeChange(nextTheme)}
     >
-      <Icon className="size-5" />
+      {fullWidth ? (
+        <span className={MENU_ROW_ICON}>
+          <Icon className="size-5" />
+        </span>
+      ) : (
+        <Icon className="size-5" />
+      )}
+      {fullWidth && (
+        <span className="min-w-0 flex-1 truncate text-left">
+          {nextTheme === 'dark' ? 'Dark theme' : 'Light theme'}
+        </span>
+      )}
     </Button>
   )
 }

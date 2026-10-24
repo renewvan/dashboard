@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Settings } from 'lucide-react'
 import { Button, Popover } from '@heroui/react'
 import type { ButtonProps } from '@heroui/react'
+import { MENU_ROW, MENU_ROW_ICON } from './menuRow'
 
 export interface IconStatusButtonProps extends Omit<ButtonProps, 'children' | 'variant'> {
   /** Caller-built, already-colored icon node (lucide element or inline-SVG span). */
@@ -19,6 +20,12 @@ export interface IconStatusButtonProps extends Omit<ButtonProps, 'children' | 'v
   settingsLabel?: string
   /** When given, adds a settings footer that closes the popover first. */
   onOpenSettings?: () => void
+  /** A full-width row (the phone drawer): the icon with `rowLabel` beside it, left-aligned. */
+  fullWidth?: boolean
+  /** The row's visible text; the accessible name stays `label`. */
+  rowLabel?: string
+  /** The row's trailing detail, such as the signal strength. */
+  rowHint?: string
 }
 
 /**
@@ -41,14 +48,28 @@ export function IconStatusButton({
   children,
   settingsLabel = 'Open settings',
   onOpenSettings,
+  fullWidth = false,
+  rowLabel,
+  rowHint,
   ...rest
 }: IconStatusButtonProps) {
   const [open, setOpen] = useState(false)
 
   return (
     <Popover isOpen={open} onOpenChange={setOpen}>
-      <Button isIconOnly variant="ghost" aria-label={label} {...rest}>
-        {icon}
+      <Button
+        isIconOnly={!fullWidth}
+        fullWidth={fullWidth}
+        variant="ghost"
+        aria-label={label}
+        className={fullWidth ? MENU_ROW : undefined}
+        {...rest}
+      >
+        {fullWidth ? <span className={MENU_ROW_ICON}>{icon}</span> : icon}
+        {fullWidth && (
+          <span className="min-w-0 flex-1 truncate text-left">{rowLabel ?? label}</span>
+        )}
+        {fullWidth && rowHint && <span className="text-muted text-sm">{rowHint}</span>}
       </Button>
       <Popover.Content className="w-64">
         <Popover.Dialog className="flex max-h-[calc(100dvh-5rem)] flex-col gap-2 text-sm">

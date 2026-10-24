@@ -1,4 +1,4 @@
-// Start-page weather card: current conditions + 3-day outlook (today first)
+// Start-page weather card: current conditions + the week's outlook (today first)
 // from Open-Meteo (no API key) at the van's GPS position, plus the van's own
 // Inside/Outside readings from the driver-temperature probes on the bus.
 // Outside shows the outdoor probe and falls back to Open-Meteo's air
@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import { Card } from '@heroui/react'
-import { WeatherIcon } from './WeatherForecast'
+import { WeatherForecast, WeatherIcon } from './WeatherForecast'
 import { parseForecast, type Weather } from './forecast'
 import { INDOOR_ID, OUTDOOR_ID, formatTemperature, temperatureReading } from '@/lib/temperature'
 import type { TemperatureSensor } from '@/types'
@@ -26,7 +26,7 @@ function useWeather(lat: number, lon: number) {
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
           `&current=temperature_2m,weather_code` +
           `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
-          `&timezone=auto&forecast_days=5`
+          `&timezone=auto&forecast_days=7`
         const res = await fetch(url)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const next = parseForecast(await res.json())
@@ -107,7 +107,7 @@ function Loaded({
     : formatTemperature({ temperature_c: weather.temp, status: 'ok', unit: outdoor?.unit })
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-between py-1">
+    <div className="flex h-full min-h-0 flex-col gap-6 py-2">
       <div className="flex min-h-0 items-center justify-around gap-1">
         <WeatherIcon code={weather.code} className="size-12 shrink-0" />
         <div className="flex flex-col items-center" data-testid="weather-outside">
@@ -124,6 +124,7 @@ function Loaded({
           <span className="text-muted mt-1 text-xs leading-none">{indoor?.name ?? 'Inside'}</span>
         </div>
       </div>
+      <WeatherForecast days={weather.days} />
       {usingFallbackLocation && (
         <span className="text-muted text-[9px] leading-none">no GPS fix - fallback location</span>
       )}

@@ -25,15 +25,18 @@ const dayName = (iso: string) =>
 const deg = (n: number) => `${Math.round(n)}°`
 
 export interface WeatherForecastProps {
-  /** Daily outlook, today first; the first four are shown. */
+  /** Daily outlook, today first; every day given is shown. */
   days: Day[]
 }
 
-/** The outlook strip: today (highlighted) and the next three days, each with its icon and high/low. */
+/** The outlook strip: today (highlighted) and the days after it, each with its icon and high/low. */
 export function WeatherForecast({ days }: WeatherForecastProps) {
   return (
-    <div className="grid min-h-0 grid-cols-4 gap-2">
-      {days.slice(0, 4).map((d, i) => (
+    <div
+      className="grid min-h-0 gap-1"
+      style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
+    >
+      {days.map((d, i) => (
         <div
           key={d.date}
           className={cn(

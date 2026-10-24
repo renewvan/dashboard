@@ -349,7 +349,11 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
   )
 }
 
-export function OrbsLayout({ flow }: { flow: PowerSnapshot }) {
+/**
+ * `fit` sizes the box to the diagram's own shape instead of filling its parent, so a card holds it
+ * with no empty margin above or below.
+ */
+export function OrbsLayout({ flow, fit = false }: { flow: PowerSnapshot; fit?: boolean }) {
   const pos = layout(flow)
   // An orb is a box as wide and tall as its circle: wires leave from its extreme left, right, top
   // and bottom points, at its centre.
@@ -359,7 +363,12 @@ export function OrbsLayout({ flow }: { flow: PowerSnapshot }) {
   }
   return (
     <div
-      className="flex min-h-0 w-full flex-1 items-center justify-center"
+      className={
+        fit
+          ? 'flex w-full items-center justify-center'
+          : 'flex min-h-0 w-full flex-1 items-center justify-center'
+      }
+      style={fit ? { aspectRatio: widthFor(flow) / H } : undefined}
       data-testid="power-orbs"
     >
       <svg

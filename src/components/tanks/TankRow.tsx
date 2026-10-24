@@ -19,7 +19,7 @@ export function TankRow({ id, tank, now, onConfigure }: TankCardProps) {
 
   return (
     <Card className="shrink-0 gap-0! p-0!">
-      <Card.Header className="flex-row! items-center justify-between gap-2 px-4 py-3">
+      <Card.Header className="mb-4 flex-row! items-center justify-between gap-2 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <FluidIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
           <span className="truncate">{view.fluidLabel}</span>

@@ -1,5 +1,6 @@
 import { Bell } from 'lucide-react'
 import { Badge, Button } from '@heroui/react'
+import { MENU_ROW, MENU_ROW_ICON } from './menuRow'
 
 export interface AlertsButtonProps {
   /** Navigates to the "Alerts" page (`App.tsx`) — not a popover like `IconStatusButton`, per explicit request. */
@@ -10,6 +11,8 @@ export interface AlertsButtonProps {
    * button (and `aria-current="page"`) so the header bell reads like a
    * selected nav item even though it isn't part of the sidebar's nav list. */
   active: boolean
+  /** A full-width row (the phone drawer): the bell with "Alerts" beside it and the badge at the end. */
+  fullWidth?: boolean
 }
 
 /**
@@ -26,31 +29,58 @@ export interface AlertsButtonProps {
  * always reads unambiguously. The count sits in a `Badge` anchored to
  * the button's top-right corner, capped at `9+`.
  */
-export function AlertsButton({ onClick, count, active }: AlertsButtonProps) {
+export function AlertsButton({ onClick, count, active, fullWidth = false }: AlertsButtonProps) {
+  const label = count > 9 ? '9+' : count
+  // On the kiosk the count is a corner badge on the icon; in a drawer row it ends the row, as a pill.
+  const badge =
+    count <= 0 ? null : fullWidth ? (
+      <span
+        data-testid="alerts-button-badge"
+        className="bg-danger text-danger-foreground min-w-6 rounded-full px-2 py-0.5 text-center text-xs font-semibold"
+      >
+        {label}
+      </span>
+    ) : (
+      <Badge
+        color="danger"
+        variant="primary"
+        size="sm"
+        placement="top-right"
+        data-testid="alerts-button-badge"
+      >
+        {label}
+      </Badge>
+    )
+
+  const button = (
+    <Button
+      isIconOnly={!fullWidth}
+      fullWidth={fullWidth}
+      variant={!active ? 'ghost' : fullWidth ? 'tertiary' : 'primary'}
+      aria-label={count > 0 ? `Alerts, ${count} active` : 'Alerts'}
+      aria-current={active ? 'page' : undefined}
+      data-testid="alerts-button"
+      data-active={active}
+      className={fullWidth ? MENU_ROW : undefined}
+      onPress={onClick}
+    >
+      {fullWidth ? (
+        <span className={MENU_ROW_ICON}>
+          <Bell className={`size-5 ${!active && count > 0 ? 'text-danger' : ''}`} />
+        </span>
+      ) : (
+        <Bell className={`size-5 ${!active && count > 0 ? 'text-danger' : ''}`} />
+      )}
+      {fullWidth && <span className="min-w-0 flex-1 truncate text-left">Alerts</span>}
+      {fullWidth && badge}
+    </Button>
+  )
+
+  if (fullWidth) return button
   return (
     <Badge.Anchor>
-      <Button
-        isIconOnly
-        variant={active ? 'primary' : 'tertiary'}
-        aria-label={count > 0 ? `Alerts, ${count} active` : 'Alerts'}
-        aria-current={active ? 'page' : undefined}
-        data-testid="alerts-button"
-        data-active={active}
-        onPress={onClick}
-      >
-        <Bell className={`size-5 ${!active && count > 0 ? 'text-danger' : ''}`} />
-      </Button>
-      {count > 0 && (
-        <Badge
-          color="danger"
-          variant="primary"
-          size="sm"
-          placement="top-right"
-          data-testid="alerts-button-badge"
-        >
-          {count > 9 ? '9+' : count}
-        </Badge>
-      )}
+      {button}
+      {badge}
     </Badge.Anchor>
   )
 }

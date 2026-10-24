@@ -8,12 +8,13 @@ import {
   useState,
   type CSSProperties,
 } from 'react'
-import { Gauge, Droplet, Wrench, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
+import { Gauge, Droplet, Settings, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
 import lockupDark from '../assets/logo/svg/renewvan-lockup-dark.svg'
 import { cn } from '@/lib/utils'
 import { Clock } from '@/components/Clock'
+import { HeaderMenu } from '@/components/HeaderMenu'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
@@ -78,7 +79,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'map', label: 'Map', icon: <Map className="size-5" /> },
   { id: 'switches', label: 'Relays', icon: <ToggleLeft className="size-5" /> },
   { id: 'heater', label: 'Heater', icon: <Heater className="size-5" /> },
-  { id: 'settings', label: 'Settings', icon: <Wrench className="size-5" /> },
+  { id: 'settings', label: 'Settings', icon: <Settings className="size-5" /> },
 ]
 
 // Reachable via the header's `AlertsButton` + `?page=alerts` deep link
@@ -163,14 +164,18 @@ function App() {
   const insetMotion = navPinned
     ? ''
     : 'transition-[padding] duration-300 motion-reduce:transition-none'
-  const panelClass = cn(PANEL_CLASS, insetMotion)
+  // A page (the Settings subpage) can ask the shell to hide its header, because it shows its own
+  // navigation bar in that place.
+  const [headerHidden, setHeaderHidden] = useState(false)
+  // On a phone every pane sits under the header's bottom border: give it the same gap the cards keep
+  // between themselves. A Settings subpage hides the header for its own bar, which sits flush, and the
+  // Map is full-bleed: its map runs right up to the header.
+  const panelClass = cn(PANEL_CLASS, insetMotion, isMobile && !headerHidden && 'pt-3!')
+  const flushPanelClass = cn(PANEL_CLASS, insetMotion)
   const navbarInsetStyle = {
     '--navbar-inset-bottom': isBottomBar ? navInset : '0px',
     '--navbar-inset-left': isBottomBar ? '0px' : navInset,
   } as CSSProperties
-  // A page (the Settings subpage) can ask the shell to hide its header, because it shows its own
-  // navigation bar in that place.
-  const [headerHidden, setHeaderHidden] = useState(false)
   const headerRef = useRef<HTMLElement>(null)
   useLayoutEffect(() => {
     const header = headerRef.current
@@ -322,24 +327,90 @@ function App() {
     ],
   )
 
-  // The rail spans the full height of the app (header included), so while it is up the header pads
-  // itself clear of it, which pushes the logo to the right; the pages do the same for their edge.
+  const demoBadge = demoMode && (
+    <span className="bg-warning text-warning-foreground rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase">
+      Demo
+    </span>
+  )
+
+  const uplinkProps = {
+    router,
+    routerHealth,
+    lastReceivedAt: routerUpdatedAt,
+    tailscale,
+    busStatus: status,
+    hub,
+    onOpenSettings: () => openSettings('connectivity'),
+  }
+
+  // The kiosk header: a row of icon buttons.
+  const headerControls = (
+    <>
+      {demoBadge}
+      <UplinkStatusButton {...uplinkProps} />
+      <Separator orientation="vertical" className="mx-0.5 h-6" />
+      <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
+      <AlertsButton
+        onClick={() => goToPage('alerts')}
+        count={unseenAlertCount}
+        active={activePage === 'alerts'}
+      />
+    </>
+  )
+
+  // The phone drawer: the same three controls as full-width rows. The rows that navigate close it;
+  // the theme toggle leaves it open so the change can be seen.
+  const menuControls = (close: () => void) => (
+    <>
+      <UplinkStatusButton
+        {...uplinkProps}
+        onOpenSettings={() => {
+          close()
+          uplinkProps.onOpenSettings()
+        }}
+        fullWidth
+      />
+      <ThemeToggleButton theme={theme} onThemeChange={setTheme} fullWidth />
+      <AlertsButton
+        onClick={() => {
+          close()
+          goToPage('alerts')
+        }}
+        count={unseenAlertCount}
+        active={activePage === 'alerts'}
+        fullWidth
+      />
+    </>
+  )
+
+  // The Map runs under its header, so there the header floats over it: out of the layout, with no
+  // surface or border, only a soft scrim fading out below it so the logo and icons stay readable on
+  // any tile. Everywhere else it is a bar above the page.
+  const floatingHeader = activePage === 'map' && !headerHidden
+  // The rail spans the full height of the app (header included), so while it is up the kiosk header
+  // pads itself clear of it, which pushes the logo to the right; the pages do the same for their edge.
   const header = (
     <header
       ref={headerRef}
       className={cn(
-        'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center py-2 pr-4 pl-[calc(1rem+var(--navbar-inset-left))]',
+        isMobile
+          ? 'flex items-center justify-between px-4 py-2'
+          : 'grid grid-cols-[1fr_auto_1fr] items-center py-2 pr-4 pl-[calc(1rem+var(--navbar-inset-left))]',
+        floatingHeader
+          ? 'pointer-events-none absolute inset-x-0 top-0 z-20 bg-linear-to-b from-black/50 to-transparent [&>*]:pointer-events-auto'
+          : 'shrink-0',
         insetMotion,
-        isMobile && 'bg-surface border-border border-b',
+        isMobile && !floatingHeader && 'bg-surface border-border border-b',
         headerHidden && 'hidden',
       )}
     >
+      {isMobile && <HeaderMenu>{menuControls}</HeaderMenu>}
       {/* A real link (so long-press/middle-click behave), but a plain tap is a one-entry SPA
           transition to Start, the same as its nav tab. 44px tall: the touch-target minimum. */}
       <a
         href="?page=start"
         aria-label="renewvan"
-        className="flex h-11 items-center justify-self-start"
+        className={cn('flex h-11 items-center', !isMobile && 'justify-self-start')}
         onClick={(event) => {
           if (event.defaultPrevented || event.button !== 0) return
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
@@ -349,32 +420,26 @@ function App() {
       >
         <img src={theme === 'dark' ? lockupDark : lockupLight} alt="" className="h-10 w-auto" />
       </a>
-      <Clock />
-      <div className="flex items-center justify-end gap-1.5">
-        {/* Not a control: a persistent mark that every number on screen is simulated. */}
-        {demoMode && (
-          <span className="bg-warning text-warning-foreground rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase">
-            Demo
-          </span>
-        )}
-        <UplinkStatusButton
-          router={router}
-          routerHealth={routerHealth}
-          lastReceivedAt={routerUpdatedAt}
-          tailscale={tailscale}
-          busStatus={status}
-          hub={hub}
-          onOpenSettings={() => openSettings('connectivity')}
-        />
-        <Separator orientation="vertical" className="mx-0.5 h-6" />
-        <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
-        <AlertsButton
-          onClick={() => goToPage('alerts')}
-          count={unseenAlertCount}
-          active={activePage === 'alerts'}
-        />
-        <DisplaySleepButton displayPower={displayPower} onSleep={handleSleep} onWake={handleWake} />
-      </div>
+      {!isMobile && <Clock />}
+      {isMobile ? (
+        <div className="flex items-center gap-1.5">
+          {demoBadge}
+          <DisplaySleepButton
+            displayPower={displayPower}
+            onSleep={handleSleep}
+            onWake={handleWake}
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-end gap-1.5">
+          {headerControls}
+          <DisplaySleepButton
+            displayPower={displayPower}
+            onSleep={handleSleep}
+            onWake={handleWake}
+          />
+        </div>
+      )}
     </header>
   )
 
@@ -393,7 +458,9 @@ function App() {
             gps={state.gps}
             tilt={tilt}
             powerSources={startPowerSources}
+            powerLayout={powerLayout}
             isDark={theme === 'dark'}
+            onConfigureTank={openTankSettings}
           />
         )
       case 'power':
@@ -443,7 +510,11 @@ function App() {
   const panels = (
     <>
       {NAV_ITEMS.map((item) => (
-        <Tabs.Panel key={item.id} id={item.id} className={panelClass}>
+        <Tabs.Panel
+          key={item.id}
+          id={item.id}
+          className={item.id === 'map' ? flushPanelClass : panelClass}
+        >
           {renderPage(item)}
         </Tabs.Panel>
       ))}
@@ -489,7 +560,7 @@ function App() {
               onPinnedChange={setNavPinned}
             />
           )}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
             {header}
             {panels}
           </div>

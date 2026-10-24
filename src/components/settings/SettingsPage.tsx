@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useState, type ReactNode } from 'react'
 import { Button, Drawer, ScrollShadow } from '@heroui/react'
 import { ArrowLeft, Workflow, SlidersHorizontal, Van, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
+import { cn } from '@/lib/utils'
 import { useUrlParam } from '@/hooks/useUrlParam'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import { driversSummary } from '@/lib/drivers'
@@ -42,7 +43,7 @@ import { SettingsNavBar } from './SettingsNavBar'
 import { useHideShellHeader } from './ShellHeaderContext'
 
 const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = {
-  drivers: { title: 'Drivers', parent: 'list' },
+  drivers: { title: 'Devices', parent: 'list' },
   driver: { title: 'Driver', parent: 'drivers' },
   'driver-info': { title: 'Driver', parent: 'driver' },
   tanks: { title: 'Tanks', parent: 'drivers' },
@@ -234,7 +235,7 @@ export const SettingsPage = memo(function SettingsPage() {
       <div className="flex flex-col gap-2">
         <GroupRow
           icon={<Workflow />}
-          label="Drivers"
+          label="Devices"
           description={driversSummary(drivers)}
           onOpen={() => setView('drivers')}
         />
@@ -283,16 +284,22 @@ export const SettingsPage = memo(function SettingsPage() {
           onBack={() => setView(VIEWS[subpage].parent)}
           action={
             <div className="flex items-center gap-1.5">
-              <UplinkStatusButton
-                router={router}
-                routerHealth={routerHealth}
-                lastReceivedAt={routerUpdatedAt}
-                tailscale={tailscale}
-                busStatus={busStatus}
-                hub={hub}
-                onOpenSettings={() => setView('connectivity')}
-              />
-              <AlertsButton onClick={openAlerts} count={unseenAlertCount} active={false} />
+              {/* On a phone the bar carries the sleep button alone: the menu drawer and the status
+                  controls are the app header's, which this bar replaces, and they come back with it. */}
+              {!isMobile && (
+                <>
+                  <UplinkStatusButton
+                    router={router}
+                    routerHealth={routerHealth}
+                    lastReceivedAt={routerUpdatedAt}
+                    tailscale={tailscale}
+                    busStatus={busStatus}
+                    hub={hub}
+                    onOpenSettings={() => setView('connectivity')}
+                  />
+                  <AlertsButton onClick={openAlerts} count={unseenAlertCount} active={false} />
+                </>
+              )}
               <DisplaySleepButton
                 displayPower={displayPower}
                 onSleep={sleepDisplay}
@@ -309,7 +316,7 @@ export const SettingsPage = memo(function SettingsPage() {
       <ScrollShadow
         key={`${view}:${driverParam ?? ''}:${tankParam ?? ''}`}
         hideScrollBar
-        className="min-h-0 flex-1"
+        className={cn('min-h-0 flex-1', subpage !== null && 'mt-3')}
       >
         <div className="flex w-full min-w-0 flex-col gap-3">
           {subpage === null ? topList : content(subpage)}
