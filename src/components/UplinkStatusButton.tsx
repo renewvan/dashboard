@@ -32,8 +32,8 @@ export interface UplinkStatusButtonProps {
    * reaches the broker. Null while neither is known. */
   hub: HubAddress | null
   onOpenSettings: () => void
-  /** A full-width row (the phone drawer): the tier icon with its label beside it. */
-  fullWidth?: boolean
+  /** An icon-only tile in the phone drawer's bottom row of three (Connection, Theme, Sleep). */
+  tile?: boolean
 }
 
 interface TierPresentation {
@@ -98,7 +98,7 @@ export function UplinkStatusButton({
   busStatus,
   hub,
   onOpenSettings,
-  fullWidth,
+  tile,
 }: UplinkStatusButtonProps) {
   const now = useNow(30_000)
   const tier = connectionTier({
@@ -138,9 +138,7 @@ export function UplinkStatusButton({
       title={uplinkHeadline(router, tier)}
       onOpenSettings={onOpenSettings}
       settingsLabel="Network settings"
-      fullWidth={fullWidth}
-      rowLabel="Connection"
-      rowHint={badge ?? undefined}
+      tile={tile}
     >
       {tier !== 'checking' && tier !== 'connected' && tier !== 'offline' && (
         <Section heading="Router connection">

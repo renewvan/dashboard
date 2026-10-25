@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react'
+import { lazy, Suspense } from 'react'
 import { Battery, CloudSun, Move3d, Sun, Zap } from 'lucide-react'
 import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { TankRow } from '@/components/tanks/TankRow'
+import { Card } from '@heroui/react'
 import { PhoneCard } from '@/components/PhoneCard'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useNow } from '@/hooks/useNow'
@@ -25,9 +26,17 @@ import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import { CockpitDial } from './cockpit/CockpitDial'
 import { batteryDial } from './cockpit/dialView'
+import { Carousel } from './Carousel'
 import { Dial } from './Dial'
+import { NoData } from './NoData'
 import { PowerCard } from './PowerCard'
 import { SolarCard } from './SolarCard'
+
+// MapLibre is most of the bundle, so the map card loads with its own chunk, as the Map page does.
+const MapPage = lazy(() => import('@/components/map/MapPage').then((m) => ({ default: m.MapPage })))
+
+/** The map card's height: at least the Battery card's (its dial is up to 300px wide and square-ish, plus its title row). */
+const MAP_CARD_HEIGHT = 'h-[360px]'
 
 export interface StartPageProps {
   tanks: Record<string, Partial<Tank>>
@@ -45,6 +54,8 @@ export interface StartPageProps {
   powerLayout: PowerLayout
   /** Glow behind the ring fill: dark theme only. */
   isDark: boolean
+  /** Whether the phone's map card draws the dark map: the Map page's choice, which can differ from the app theme. */
+  mapIsDark: boolean
   /** A tank card's Configure button (phone): opens that tank's settings. */
   onConfigureTank: (id: string) => void
 }
@@ -75,7 +86,7 @@ function tankOf(tanks: Record<string, Partial<Tank>>, fluid: Tank['fluid_type'])
  * kiosk: the weather has no place there and the tilt lives in the Dial.
  *
  * Phone (below 800px, the shell's breakpoint): everything is a card, stacked and scrolling: weather,
- * tilt, the battery's cockpit dial, then fresh and grey water as the Tanks page's own phone cards.
+ * map, a power carousel (the power flow, then the battery's cockpit dial), tilt, then fresh and grey water as the Tanks page's own phone cards.
  * The cockpit dial is the battery's alone here.
  */
 export function StartPage({
@@ -90,6 +101,7 @@ export function StartPage({
   powerSources,
   powerLayout,
   isDark,
+  mapIsDark,
   onConfigureTank,
 }: StartPageProps) {
   const isMobile = useIsMobile()
@@ -121,34 +133,66 @@ export function StartPage({
             <WeatherWidget lat={fix?.latitude} lon={fix?.longitude} temperatures={temperatures} />
           </div>
         </PhoneCard>
-        <PhoneCard title="Power" icon={<Zap className="size-4" />}>
-          <PowerCard flow={flow} layout={powerLayout} />
-        </PhoneCard>
-        <PhoneCard title="Tilt" icon={<Move3d className="size-4" />}>
-          <div className="h-28 w-full">
-            <TiltWidget tilt={firstTilt} />
-          </div>
-        </PhoneCard>
-        <PhoneCard title="Battery" icon={<Battery className="size-4" />}>
-          {battery ? (
-            <CockpitDial
-              view={battery}
-              icon={<Battery className="size-4" />}
-              size="focus"
-              glow={isDark}
-              pulse={battery.charging}
-              aligned={false}
-              className="-mt-1 -mb-[12%] max-w-[300px]"
+        {/* Edge to edge: no title row, no padding. The map is the card. */}
+        <Card className={`${MAP_CARD_HEIGHT} shrink-0 overflow-hidden p-0!`}>
+          <Suspense
+            fallback={
+              <div
+                data-testid="map-card-loading"
+                aria-busy="true"
+                className="text-muted flex size-full items-center justify-center text-sm"
+              >
+                Loading map…
+              </div>
+            }
+          >
+            <MapPage
+              variant="card"
+              gps={gps as Record<string, Gps>}
+              tilt={tilt}
+              isDark={mapIsDark}
             />
-          ) : (
-            <NoData icon={<Battery className="size-4" />} label="Battery" />
-          )}
+          </Suspense>
+        </Card>
+        <PhoneCard title="Energy" icon={<Zap className="size-4" />}>
+          <Carousel
+            label="Energy"
+            slides={[
+              {
+                id: 'flow',
+                label: 'Power flow',
+                content: <PowerCard flow={flow} layout={powerLayout} />,
+              },
+              {
+                id: 'battery',
+                label: 'Battery',
+                content: battery ? (
+                  <CockpitDial
+                    view={battery}
+                    icon={<Battery className="size-4" />}
+                    size="focus"
+                    glow={isDark}
+                    pulse={battery.charging}
+                    aligned={false}
+                    className="mt-3 -mb-[12%] max-w-[300px]"
+                  />
+                ) : (
+                  <NoData icon={<Battery className="size-4" />} label="Battery" />
+                ),
+              },
+            ]}
+          />
         </PhoneCard>
         {firstSolarRecord && (
           <PhoneCard title="Solar" icon={<Sun className="size-4" />}>
             <SolarCard solar={firstSolarRecord} />
           </PhoneCard>
         )}
+        <PhoneCard title="Tilt" icon={<Move3d className="size-4" />}>
+          <div className="h-28 w-full">
+            <TiltWidget tilt={firstTilt} />
+          </div>
+        </PhoneCard>
         {tankRows.map(({ fluid, label, Icon, found }) =>
           found ? (
             <TankRow
@@ -183,18 +227,5 @@ export function StartPage({
         now={now}
       />
     </section>
-  )
-}
-
-function NoData({ icon, label }: { icon: ReactNode; label: string }) {
-  return (
-    <div
-      role="status"
-      className="text-muted flex aspect-square w-full max-w-[260px] flex-col items-center justify-center gap-1 text-center text-sm"
-    >
-      <span aria-hidden="true">{icon}</span>
-      <span className="font-semibold">{label}</span>
-      No data yet
-    </div>
   )
 }

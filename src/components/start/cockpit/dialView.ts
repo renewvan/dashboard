@@ -2,6 +2,7 @@ import { IDLE_W } from '@/components/power/flowModel'
 import { FILL_COLOR } from '@/components/tanks/severity'
 import { tankView } from '@/components/tanks/tankView'
 import { primaryBattery } from '@/lib/primaryBattery'
+import { formatTimeToGo } from '@/lib/time-to-go'
 import type { TankSeverity } from '@/lib/tank-alarm'
 import { isCompleteTank, type Battery, type Tank } from '@/types'
 
@@ -18,6 +19,11 @@ export interface DialView {
   sub: string
   /** Colour the unit letters (`V`, `W`, `ℓ`) of `sub` stronger than the muted numbers. */
   unitsStrong?: boolean
+  /**
+   * The battery's remaining runtime as `formatTimeToGo` writes it (`9d 0h`), shown under the subline.
+   * Only the battery has one, and only while its source publishes the estimate.
+   */
+  timeToGo?: string
   /** The battery is taking charge (above `IDLE_W`, as on the Power page): its dial then shows the travelling band. */
   charging?: boolean
   faulted: boolean
@@ -74,6 +80,7 @@ export function batteryDial(
     color: batteryColor(pct),
     sub: `${battery.voltage_v.toFixed(2)}V / ${Math.round(Math.abs(battery.power_w))}W`,
     unitsStrong: true,
+    timeToGo: battery.time_to_go_s === undefined ? undefined : formatTimeToGo(battery.time_to_go_s),
     charging: battery.power_w > IDLE_W,
     faulted: false,
   }

@@ -1,4 +1,5 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
@@ -6,6 +7,39 @@ import type { Battery, Charger, Gps, Solar, Tank, TemperatureSensor, Tilt } from
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import { DEFAULT_START_POWER_SOURCES, type StartPowerSources } from '@/hooks/useStartPowerSources'
 import { StartPage } from './StartPage'
+
+// `findBy` for the lazy Map chunk: importing it can take longer than the default 1 s under load.
+const LAZY_MAP_WAIT = { timeout: 5_000 }
+
+// The Map card lazy-loads MapLibre, which needs WebGL jsdom does not have (and takes seconds to
+// import). These tests are about where the card sits and what it is handed, not about drawing.
+vi.mock('react-map-gl/maplibre', () => ({
+  Map: ({
+    initialViewState,
+    mapStyle,
+    children,
+  }: {
+    initialViewState: { longitude: number; latitude: number }
+    mapStyle: { sprite?: string }
+    children?: ReactNode
+  }) => (
+    <div
+      data-testid="map"
+      data-center={`${initialViewState.latitude},${initialViewState.longitude}`}
+      data-sprite={mapStyle.sprite}
+    >
+      {children}
+    </div>
+  ),
+  Marker: ({ children }: { children?: ReactNode }) => <div data-testid="marker">{children}</div>,
+  useMap: () => ({ current: undefined }),
+}))
+vi.mock('maplibre-gl', () => ({
+  addProtocol: vi.fn(),
+  removeProtocol: vi.fn(),
+  setWorkerUrl: vi.fn(),
+}))
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({ default: '/worker.mjs' }))
 
 const KIOSK_WIDTH = 800
 const JUST_BELOW_KIOSK_WIDTH = 799
@@ -47,6 +81,7 @@ function renderAt(
     powerSources?: StartPowerSources
     powerLayout?: PowerLayout
     primaryBatterySelection?: string
+    mapIsDark?: boolean
   },
 ) {
   viewport = stubMatchMedia(width)
@@ -63,6 +98,7 @@ function renderAt(
       powerSources={props.powerSources ?? DEFAULT_START_POWER_SOURCES}
       powerLayout={props.powerLayout ?? 'tiles'}
       isDark
+      mapIsDark={props.mapIsDark ?? true}
       onConfigureTank={onConfigureTank}
     />,
   )
@@ -97,23 +133,6 @@ function subline(text: string) {
 }
 
 describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, width) => {
-  it('draws the battery as the one cockpit dial, with its live reading', () => {
-    renderAt(width, {
-      tanks: {
-        fresh: tank(),
-        grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 }),
-      },
-      batteries: { house: BATTERY },
-    })
-
-    expect(screen.getByRole('img', { name: 'Battery 78%' })).toBeInTheDocument()
-    expect(subline('13.20V / 35W')).toBeInTheDocument()
-    // The runtime estimate is parked: the source publishes it, the dial does not show it.
-    expect(screen.queryByText(/to go/)).not.toBeInTheDocument()
-    // Only the battery is a dial: the tanks are the Tanks page's own cards.
-    expect(screen.getAllByRole('img')).toHaveLength(1)
-  })
-
   it('shows each tank as its Tanks-page card, litres and level included', () => {
     renderAt(width, {
       tanks: {
@@ -128,23 +147,39 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
     expect(screen.getByText(/33\/80/)).toBeInTheDocument()
   })
 
+  it('draws the battery as the one cockpit dial, with its live reading', () => {
+    renderAt(width, {
+      tanks: {
+        fresh: tank(),
+        grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 }),
+      },
+      batteries: { house: BATTERY },
+    })
+
+    // The dial is the Energy carousel's second slide, so it is `aria-hidden` until swiped to.
+    expect(screen.getByRole('img', { name: 'Battery 78%', hidden: true })).toBeInTheDocument()
+    expect(subline('13.20V / 35W')).toBeInTheDocument()
+    // Only the battery is a dial: the tanks are the Tanks page's own cards.
+    expect(screen.getAllByRole('img', { name: /^Battery/, hidden: true })).toHaveLength(1)
+  })
+
   it('reads the Primary battery: Auto is the first by id, a selection follows it', () => {
     const batteries = { b: { ...BATTERY, soc_pct: 40 }, a: { ...BATTERY, soc_pct: 78 } }
     const auto = renderAt(width, { batteries })
-    expect(screen.getByRole('img', { name: 'Battery 78%' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Battery 78%', hidden: true })).toBeInTheDocument()
     auto.unmount()
 
     renderAt(width, { batteries, primaryBatterySelection: 'b' })
-    expect(screen.getByRole('img', { name: 'Battery 40%' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Battery 40%', hidden: true })).toBeInTheDocument()
   })
 
   it('shows "No data yet" in the card of a reading whose data has not arrived', () => {
     renderAt(width, { tanks: { fresh: tank() } })
 
     expect(screen.getByText('46%')).toBeInTheDocument()
-    expect(screen.queryByRole('img', { name: /^Battery/ })).not.toBeInTheDocument()
-    // Battery, grey water and power: one "No data yet" card each.
-    expect(screen.getAllByText('No data yet')).toHaveLength(3)
+    expect(screen.queryByRole('img', { name: /^Battery/, hidden: true })).not.toBeInTheDocument()
+    // Power and Battery (the Energy carousel's two slides), then grey water: one each.
+    expect(screen.getAllByText('No data yet', { exact: true })).toHaveLength(3)
   })
 
   it('does not draw anything from a half-arrived record', () => {
@@ -153,7 +188,8 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
       batteries: { house: { soc_pct: 78 } },
     })
 
-    expect(screen.queryAllByRole('img')).toHaveLength(0)
+    expect(screen.queryAllByRole('img', { hidden: true })).toHaveLength(0)
+    // Power, Battery, fresh water and grey water: one "No data yet" each.
     expect(screen.getAllByText('No data yet')).toHaveLength(4)
   })
 
@@ -178,27 +214,107 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
 })
 
 describe('StartPage layout', () => {
-  it('stacks the phone page as cards: weather, power, tilt, battery, fresh water, grey water', () => {
+  it('stacks the phone page as cards: weather, map (no title), energy, solar, tilt, fresh water, grey water', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {
       tanks: { fresh: tank(), grey: tank({ fluid_type: 'grey_water' }) },
       batteries: { house: BATTERY },
+      solar: { 291: { power_w: 412, battery_voltage_v: 13.4, yield_today_wh: 2140 } },
     })
     const pane = screen.getByTestId('pane-start')
-    const titles = ['Weather', 'Power', 'Tilt', 'Battery', 'Fresh water', 'Grey water'].map(
+    const titles = ['Weather', 'Energy', 'Solar', 'Tilt', 'Fresh water', 'Grey water'].map(
       (title) =>
         within(pane).getByText(title, {
           selector: '[class*="card__header"], [class*="card__header"] *',
         }),
     )
 
-    expect(pane.children).toHaveLength(6)
-    titles.forEach((title, i) => expect(pane.children[i]).toContainElement(title))
+    expect(pane.children).toHaveLength(7)
+    // The map card has no title, so it is the one child without a heading: index 1.
+    const cardIndex = [0, 2, 3, 4, 5, 6]
+    titles.forEach((title, i) => expect(pane.children[cardIndex[i]]).toContainElement(title))
   })
 })
 
-describe('StartPage power card', () => {
-  // What the card draws for each Settings choice. Tiles is a kiosk-width grid that clips in a phone
-  // card, so its choice draws Van tiles: the same flow on a canvas that scales down.
+describe('StartPage map card', () => {
+  it('is right after the weather card, and not on the kiosk Dial', async () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    const pane = screen.getByTestId('pane-start')
+    expect(pane.children[0]).toHaveTextContent('Weather')
+    expect(
+      await within(pane.children[1] as HTMLElement).findByTestId('map-card', {}, LAZY_MAP_WAIT),
+    ).toBeVisible()
+    expect(pane.children[2]).toHaveTextContent('Energy')
+
+    cleanup()
+    renderAt(KIOSK_WIDTH, {})
+    expect(screen.queryByTestId('map-card')).not.toBeInTheDocument()
+  })
+
+  it('is edge to edge: no title row, and the map fills the card with no padding', async () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    const map = await screen.findByTestId('map-card', {}, LAZY_MAP_WAIT)
+    const card = screen.getByTestId('pane-start').children[1] as HTMLElement
+    expect(card).toContainElement(map)
+    expect(card.className).toMatch(/\bp-0!/)
+    expect(card).not.toHaveTextContent('Map')
+    expect(map.className).toMatch(/\bsize-full\b/)
+    // The Battery card's dial is at most 300px wide and about square.
+    expect(Number(/h-\[(\d+)px\]/.exec(card.className)?.[1])).toBeGreaterThanOrEqual(300)
+  })
+
+  it('centres on the van, with the van on it, when there is a fix', async () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      gps: { gps0: { fix_quality: 'gps', satellites_in_use: 9, latitude: 51.5, longitude: -0.12 } },
+    })
+    expect(await screen.findByTestId('map', {}, LAZY_MAP_WAIT)).toHaveAttribute(
+      'data-center',
+      '51.5,-0.12',
+    )
+    expect(screen.getByTestId('marker')).toBeInTheDocument()
+    expect(screen.queryByTestId('gps-status')).not.toBeInTheDocument()
+  })
+
+  it('carries the Map page readout: fix quality, satellites and speed', async () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      gps: {
+        gps0: {
+          fix_quality: 'gps',
+          satellites_in_use: 9,
+          latitude: 51.5,
+          longitude: -0.12,
+          speed_kmh: 62.4,
+        },
+      },
+    })
+    const readout = await screen.findByTestId('map-readout', {}, LAZY_MAP_WAIT)
+    expect(readout).toHaveTextContent('GPS')
+    expect(readout).toHaveTextContent('9')
+    expect(readout).toHaveTextContent('62 km/h')
+  })
+
+  it('still draws the map, with a notice and no readout, when there is no GPS', async () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    expect(await screen.findByTestId('map', {}, LAZY_MAP_WAIT)).toBeInTheDocument()
+    expect(screen.getByTestId('gps-status')).toHaveTextContent('No GPS data yet')
+    expect(screen.queryByTestId('map-readout')).not.toBeInTheDocument()
+  })
+
+  it('draws the dark or light map as the Map page setting says, not the app theme', async () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { mapIsDark: true })
+    expect(
+      (await screen.findByTestId('map', {}, LAZY_MAP_WAIT)).getAttribute('data-sprite'),
+    ).toMatch(/\/dark$/)
+    cleanup()
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { mapIsDark: false })
+    expect(
+      (await screen.findByTestId('map', {}, LAZY_MAP_WAIT)).getAttribute('data-sprite'),
+    ).toMatch(/\/light$/)
+  })
+})
+
+describe('StartPage energy card', () => {
+  // What the flow slide draws for each Settings choice. Tiles is a kiosk-width grid that clips in a
+  // phone card, so its choice draws Van tiles: the same flow on a canvas that scales down.
   const DRAWN: Record<PowerLayout, string> = {
     tiles: 'power-van-tiles',
     orbs: 'power-orbs',
@@ -206,6 +322,11 @@ describe('StartPage power card', () => {
     'van-orbs': 'power-van-orbs',
   }
   const ALL_IDS = ['power-tiles', 'power-orbs', 'power-van-tiles', 'power-van-orbs']
+  const energyCard = () => screen.getByTestId('pane-start').children[2] as HTMLElement
+  // The slides are found by their role description: the off-screen one is `aria-hidden`, which
+  // role queries skip even with `hidden: true` once the name filter applies to it.
+  const slidesOf = (card: HTMLElement) =>
+    Array.from(card.querySelectorAll<HTMLElement>('[aria-roledescription="slide"]'))
 
   it.each(Object.keys(DRAWN) as PowerLayout[])(
     "draws the layout the Power page's %s setting calls for",
@@ -219,15 +340,86 @@ describe('StartPage power card', () => {
     },
   )
 
-  it('says no data yet, and draws no layout, before the battery has published', () => {
+  it('says Power: no data yet, and draws no layout, before the battery has published', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {})
-    const card = screen.getByTestId('pane-start').children[1] as HTMLElement
+    const [flow] = slidesOf(energyCard())
 
-    expect(within(card).getByText('Power')).toBeInTheDocument()
-    expect(within(card).getByText('No data yet')).toBeInTheDocument()
+    expect(within(flow).getByText('Power')).toBeInTheDocument()
+    expect(within(flow).getByText('No data yet')).toBeInTheDocument()
     for (const id of ALL_IDS) {
       expect(screen.queryByTestId(id)).not.toBeInTheDocument()
     }
+  })
+
+  it('labels both empty slides the same way: the reading, then "No data yet"', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    const [flow, battery] = slidesOf(energyCard())
+
+    for (const [slide, label] of [
+      [flow, 'Power'],
+      [battery, 'Battery'],
+    ] as const) {
+      const status = within(slide).getByRole('status', { hidden: true })
+      expect(status).toHaveTextContent(`${label}No data yet`)
+    }
+  })
+
+  it('is a carousel of two slides: the power flow, then the battery dial', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { batteries: { house: BATTERY } })
+    const slides = slidesOf(energyCard())
+
+    expect(slides.map((slide) => slide.getAttribute('aria-label'))).toEqual([
+      'Power flow, 1 of 2',
+      'Battery, 2 of 2',
+    ])
+    expect(within(slides[0]).getByTestId(DRAWN.tiles)).toBeInTheDocument()
+    // `hidden`: slide 2 is off screen, so it is `aria-hidden` and its dial is not yet accessible.
+    expect(
+      within(slides[1]).getByRole('img', { name: /^Battery \d+%$/, hidden: true }),
+    ).toBeInTheDocument()
+  })
+
+  it('has one dot per slide, the first current, and no tablist to confuse the navigation tabs', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    const dots = within(energyCard()).getAllByRole('button', { name: /^(Power flow|Battery)$/ })
+
+    expect(dots).toHaveLength(2)
+    expect(dots[0]).toHaveAttribute('aria-current', 'true')
+    expect(dots[1]).not.toHaveAttribute('aria-current')
+    expect(within(energyCard()).queryByRole('tablist')).not.toBeInTheDocument()
+  })
+
+  it('scrolls to a slide when its dot is pressed, and the dot follows the scroll', async () => {
+    const user = userEvent.setup()
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    const track = within(energyCard()).getByTestId('carousel-track')
+    // jsdom has no layout: give the track a width and record where it is asked to scroll.
+    Object.defineProperty(track, 'clientWidth', { configurable: true, value: 300 })
+    const scrollTo = vi.fn((options: ScrollToOptions) => {
+      track.scrollLeft = options.left ?? 0
+      track.dispatchEvent(new Event('scroll'))
+    })
+    track.scrollTo = scrollTo as unknown as typeof track.scrollTo
+
+    await user.click(within(energyCard()).getByRole('button', { name: 'Battery' }))
+    expect(scrollTo).toHaveBeenCalledWith({ left: 300, behavior: 'smooth' })
+    await waitFor(() =>
+      expect(within(energyCard()).getByRole('button', { name: 'Battery' })).toHaveAttribute(
+        'aria-current',
+        'true',
+      ),
+    )
+
+    await user.click(within(energyCard()).getByRole('button', { name: 'Power flow' }))
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 0, behavior: 'smooth' })
+  })
+
+  it('hides the slide that is off screen from assistive technology', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {})
+    const [flow, battery] = slidesOf(energyCard())
+
+    expect(flow).not.toHaveAttribute('aria-hidden')
+    expect(battery).toHaveAttribute('aria-hidden', 'true')
   })
 })
 
@@ -239,16 +431,16 @@ describe('StartPage solar card', () => {
     ...overrides,
   })
 
-  it('sits right under the battery dial, with the live watts and the harvest today', () => {
+  it('sits right under the energy card, with the live watts and the harvest today', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {
       batteries: { house: BATTERY },
       solar: { 291: controller() },
     })
     const pane = screen.getByTestId('pane-start')
     const titles = [...pane.children].map((card) => card.querySelector('[class*="card__header"]'))
-    const battery = titles.findIndex((h) => h?.textContent === 'Battery')
+    const energy = titles.findIndex((h) => h?.textContent === 'Energy')
 
-    expect(titles[battery + 1]).toHaveTextContent('Solar')
+    expect(titles[energy + 1]).toHaveTextContent('Solar')
     expect(screen.getByTestId('solar-watts')).toHaveTextContent('412')
     expect(screen.getByTestId('solar-yield')).toHaveTextContent('2.1')
   })
@@ -278,7 +470,7 @@ describe('StartPage solar card', () => {
     expect(screen.queryByTestId('solar-card')).not.toBeInTheDocument()
   })
 
-  it('keeps the harvest history out of the Power card: it has its own card', () => {
+  it('keeps the harvest history out of the energy card: it has its own card', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {
       batteries: { house: BATTERY },
       solar: { 291: controller({ yield_history_wh: [2140, 1800, 900] }) },

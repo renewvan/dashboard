@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Gps, Tilt } from '@/types'
-import { MapPage } from './MapPage'
+import { MapPage, SHOW_VAN_WITHOUT_FIX } from './MapPage'
 
 // The map's zoom methods, shared so a test can tell which one a button called, every style the
 // map is handed, in order, so a test can tell which flavor it got and whether it was rebuilt, and
@@ -12,6 +12,7 @@ import { MapPage } from './MapPage'
 const map = vi.hoisted(() => ({
   zoomIn: vi.fn(),
   zoomOut: vi.fn(),
+  jumpTo: vi.fn(),
   styles: [] as { sprite?: string; layers: unknown[] }[],
   /** What the page handed the map as its attribution control: `false` is none, `undefined` is unset. */
   attributionControl: undefined as undefined | false | object,
@@ -74,6 +75,19 @@ vi.mock('maplibre-gl', () => ({
 }))
 vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({ default: '/worker.mjs' }))
 
+/**
+ * No van at a real position: either no van at all, or, while `SHOW_VAN_WITHOUT_FIX` is on, the debug
+ * stand-in sitting on the centre the map opened on.
+ */
+function expectNoVanAtAFix() {
+  const marker = screen.queryByTestId('marker')
+  if (!SHOW_VAN_WITHOUT_FIX) {
+    expect(marker).not.toBeInTheDocument()
+    return
+  }
+  expect(marker).toHaveAttribute('data-position', screen.getByTestId('map').dataset.center)
+}
+
 const FIX: Gps = {
   fix_quality: 'gps',
   satellites_in_use: 9,
@@ -97,6 +111,8 @@ beforeEach(() => {
   fetchMock.mockReset()
   map.zoomIn.mockReset()
   map.zoomOut.mockReset()
+  map.jumpTo.mockReset()
+  window.localStorage.clear()
   map.styles.length = 0
   map.onError = undefined
   map.onSourceData = undefined
@@ -126,10 +142,10 @@ describe('MapPage zoom buttons', () => {
     expect(map.zoomIn).toHaveBeenCalledTimes(1)
   })
 
-  it('offers no zoom with no map to zoom: before the first fix', () => {
+  it('still offers zoom before the first fix: the map is there to zoom', () => {
     renderPage({})
-    expect(screen.queryByRole('button', { name: 'Zoom in' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Zoom out' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeInTheDocument()
   })
 })
 
@@ -262,29 +278,77 @@ describe('MapPage theme', () => {
 })
 
 describe('MapPage', () => {
-  it('asks for data when no GPS record has arrived', () => {
+  it('draws the map with a "no data" notice and no van when no GPS record has arrived', () => {
     renderPage({})
-    expect(screen.getByRole('heading', { name: 'No GPS data yet.' })).toBeInTheDocument()
-    expect(screen.queryByTestId('map')).not.toBeInTheDocument()
+    expect(screen.getByTestId('map')).toBeInTheDocument()
+    expect(screen.getByTestId('gps-status')).toHaveTextContent('No GPS data yet')
+    expectNoVanAtAFix()
+    expect(screen.queryByTestId('map-readout')).not.toBeInTheDocument()
   })
 
   it('treats a record still missing its unconditional fields as no data', () => {
     renderPage({ gps0: { latitude: 51.5, longitude: -0.12 } })
-    expect(screen.getByRole('heading', { name: 'No GPS data yet.' })).toBeInTheDocument()
-    expect(screen.queryByTestId('map')).not.toBeInTheDocument()
+    expect(screen.getByTestId('map')).toBeInTheDocument()
+    expect(screen.getByTestId('gps-status')).toHaveTextContent('No GPS data yet')
+    expectNoVanAtAFix()
   })
 
-  it('reports the satellites being tracked while there is no fix, and draws no map', () => {
+  it('reports the satellites being tracked while there is no fix, on a map with no van', () => {
     renderPage({ gps0: { fix_quality: 'no_fix', satellites_in_use: 3 } })
-    expect(screen.getByRole('heading', { name: 'No GPS fix yet' })).toBeInTheDocument()
-    expect(screen.getByText('Tracking 3 satellite(s) — waiting for a fix.')).toBeInTheDocument()
-    expect(screen.queryByTestId('map')).not.toBeInTheDocument()
+    expect(screen.getByTestId('map')).toBeInTheDocument()
+    expect(screen.getByTestId('gps-status')).toHaveTextContent('No GPS fix yet')
+    expect(screen.getByTestId('gps-status')).toHaveTextContent(
+      'Tracking 3 satellite(s) — waiting for a fix.',
+    )
+    expectNoVanAtAFix()
   })
 
   it('does not plot a fix that is missing a coordinate', () => {
     renderPage({ gps0: { fix_quality: 'gps', satellites_in_use: 5, latitude: 51.5 } })
-    expect(screen.getByRole('heading', { name: 'No GPS fix yet' })).toBeInTheDocument()
-    expect(screen.queryByTestId('map')).not.toBeInTheDocument()
+    expect(screen.getByTestId('gps-status')).toHaveTextContent('No GPS fix yet')
+    expectNoVanAtAFix()
+  })
+
+  it('shows no status notice once there is a fix', () => {
+    renderPage({ gps0: FIX })
+    expect(screen.queryByTestId('gps-status')).not.toBeInTheDocument()
+  })
+
+  describe('before a fix, where the map opens', () => {
+    it('on Freiburg Münster when the van has never had a position', () => {
+      renderPage({})
+      expect(screen.getByTestId('map')).toHaveAttribute('data-center', '47.9958,7.8528')
+    })
+
+    it('on the last position a fix reported, from an earlier visit', () => {
+      const { unmount } = renderPage({ gps0: FIX })
+      unmount()
+      renderPage({})
+      expect(screen.getByTestId('map')).toHaveAttribute('data-center', '51.5,-0.12')
+      expectNoVanAtAFix()
+    })
+
+    it('on Freiburg Münster when the stored position is unusable', () => {
+      window.localStorage.setItem('renewvan-dashboard-last-position', '[999, "x"]')
+      renderPage({})
+      expect(screen.getByTestId('map')).toHaveAttribute('data-center', '47.9958,7.8528')
+    })
+
+    it('jumps to the first fix when it arrives, once', () => {
+      const { rerender } = renderPage({})
+      expect(map.jumpTo).not.toHaveBeenCalled()
+      rerender(<MapPage gps={{ gps0: FIX }} />)
+      expect(map.jumpTo).toHaveBeenCalledTimes(1)
+      expect(map.jumpTo).toHaveBeenCalledWith({ center: [-0.12, 51.5], zoom: 15 })
+      rerender(<MapPage gps={{ gps0: { ...FIX, latitude: 51.6 } }} />)
+      expect(map.jumpTo).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not jump when the map opened on a fix: the van moves on a still map', () => {
+      const { rerender } = renderPage({ gps0: FIX })
+      rerender(<MapPage gps={{ gps0: { ...FIX, latitude: 51.6 } }} />)
+      expect(map.jumpTo).not.toHaveBeenCalled()
+    })
   })
 
   it('centres the map and the marker on the fix', () => {
@@ -473,9 +537,9 @@ describe('MapPage basemap notice', () => {
     expect(notice()).toBeInTheDocument()
   })
 
-  it('shows no notice before a fix, where there is no map to be empty', () => {
+  it('shows the notice before a fix too: the map is drawn, so its basemap can be missing', () => {
     renderPage({ gps0: { fix_quality: 'no_fix', satellites_in_use: 3 } })
-    expect(map.onError).toBeUndefined()
-    expect(notice()).not.toBeInTheDocument()
+    fire(map.onError, sourceError())
+    expect(notice()).toBeInTheDocument()
   })
 })

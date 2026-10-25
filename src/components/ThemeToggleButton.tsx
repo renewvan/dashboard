@@ -1,13 +1,16 @@
 import { Moon, Sun } from 'lucide-react'
 import { Button } from '@heroui/react'
 import type { Theme } from '@/hooks/useTheme'
-import { MENU_ROW, MENU_ROW_ICON } from './menuRow'
+import { cn } from '@/lib/utils'
+import { MENU_ROW, MENU_ROW_ICON, MENU_TILE } from './menuStyles'
 
 export interface ThemeToggleButtonProps {
   theme: Theme
   onThemeChange: (theme: Theme) => void
   /** A full-width row (the phone drawer): the icon with the action named beside it. */
   fullWidth?: boolean
+  /** An icon-only tile in the phone drawer's bottom row of three. */
+  tile?: boolean
 }
 
 /**
@@ -24,6 +27,7 @@ export function ThemeToggleButton({
   theme,
   onThemeChange,
   fullWidth = false,
+  tile = false,
 }: ThemeToggleButtonProps) {
   const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark'
   const Icon = theme === 'dark' ? Sun : Moon
@@ -34,7 +38,7 @@ export function ThemeToggleButton({
       variant="ghost"
       aria-label={`Switch to ${nextTheme} theme`}
       data-testid="dark-theme-toggle"
-      className={fullWidth ? MENU_ROW : undefined}
+      className={cn(fullWidth && MENU_ROW, tile && MENU_TILE)}
       onPress={() => onThemeChange(nextTheme)}
     >
       {fullWidth ? (

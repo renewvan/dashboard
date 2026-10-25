@@ -133,6 +133,27 @@ function selectedPage() {
   return screen.queryByRole('tab', { selected: true })
 }
 
+type User = ReturnType<typeof userEvent.setup>
+
+/**
+ * Opens Settings the way the layout offers it: the nav tab on the kiosk, and on a phone, where
+ * Settings is not a bottom-bar tab, the Settings row at the bottom of the hamburger drawer.
+ */
+async function openSettingsPage(user: User) {
+  const tab = screen.queryByRole('tab', { name: 'Settings' })
+  if (tab) {
+    await user.click(tab)
+    return
+  }
+  await user.click(screen.getByRole('button', { name: 'Menu' }))
+  await user.click(await screen.findByTestId('settings-button'))
+}
+
+/** Whether Settings is the page showing: a phone has no Settings tab to read it from. */
+function onSettingsPage() {
+  return screen.queryByTestId('pane-settings') !== null
+}
+
 /**
  * Taps Network settings in the uplink popover. A Settings subpage hides the app header with CSS and
  * shows its own bar, which carries the same button, so the one to tap is whichever is displayed.
@@ -236,6 +257,205 @@ describe('App shell navigation layout', () => {
     expect(lists).toHaveLength(1)
     expect(lists[0]).toHaveAttribute('aria-orientation', 'horizontal')
     expect(screen.getByRole('navigation', { name: 'Primary' })).toContainElement(lists[0])
+  })
+
+  it('keeps Settings out of the phone bottom bar, and in the kiosk rail', async () => {
+    await renderAt(JUST_BELOW_KIOSK_WIDTH)
+    expect(screen.getAllByRole('tab').map((tab) => tab.getAttribute('aria-label'))).toEqual(
+      NAV_LABELS.filter((label) => label !== 'Settings'),
+    )
+
+    cleanup()
+    await renderAt(KIOSK_WIDTH)
+    expect(screen.getByRole('tab', { name: 'Settings' })).toBeInTheDocument()
+  })
+
+  describe('phone drawer', () => {
+    const openDrawer = async (user: User) => {
+      await user.click(screen.getByRole('button', { name: 'Menu' }))
+      return within(await screen.findByRole('dialog'))
+    }
+    it('groups Profile (My Account, My Van, Widgets) and System (Automations, Scenes)', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH)
+      const drawer = await openDrawer(user)
+
+      const groupRows = (name: string) =>
+        within(drawer.getByRole('region', { name }))
+          .getAllByRole('button')
+          .map((button) => button.getAttribute('aria-label'))
+      expect(groupRows('Profile')).toEqual(['My Account', 'My Van', 'Widgets'])
+      expect(groupRows('System')).toEqual(['Automations', 'Scenes'])
+    })
+
+    it('pins Alerts, Settings and then the Connection, Theme and Sleep row to the bottom, in that order', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH)
+      const drawer = await openDrawer(user)
+
+      // Document order is the visual order: a flex row and a column both follow the source.
+      const order = [
+        drawer.getByRole('region', { name: 'System' }),
+        drawer.getByRole('button', { name: /^Alerts/ }),
+        drawer.getByRole('button', { name: 'Settings' }),
+        drawer.getByTestId('uplink-status-button'),
+        drawer.getByRole('button', { name: /^Switch to (light|dark) theme$/ }),
+        drawer.getByTestId('display-sleep-button'),
+      ]
+      order.slice(1).forEach((el, i) => {
+        expect(order[i].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      })
+      // Alerts and Settings are footer rows, not in a group; the three icon buttons share one row.
+      expect(drawer.getByRole('region', { name: 'Profile' })).not.toContainElement(order[1])
+      const row = order[3].parentElement
+      expect(row).toContainElement(order[4])
+      expect(row).toContainElement(order[5])
+      expect(row).not.toContainElement(order[2])
+    })
+
+    it('shows the pages that are not built yet as disabled, and pressing them does nothing', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH, '/?page=power')
+      const drawer = await openDrawer(user)
+
+      for (const name of ['My Account', 'Widgets', 'Automations', 'Scenes']) {
+        const row = drawer.getByRole('button', { name })
+        expect(row).toBeDisabled()
+        // No arrow: a row that opens nothing must not promise a page.
+        expect(row.querySelector('[data-testid="menu-chevron"]')).toBeNull()
+        await user.click(row)
+      }
+
+      expect(window.location.search).toBe('?page=power')
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('marks the rows that open a page with an arrow, and no other', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH)
+      const drawer = await openDrawer(user)
+
+      const withArrow = drawer
+        .getAllByRole('button')
+        .filter((button) => button.querySelector('[data-testid="menu-chevron"]'))
+        .map((button) => button.getAttribute('aria-label'))
+      expect(withArrow).toHaveLength(3)
+      expect(withArrow[0]).toBe('My Van')
+      expect(withArrow[1]).toMatch(/^Alerts/)
+      expect(withArrow[2]).toBe('Settings')
+    })
+
+    it('puts the logo in the drawer header, beside the close button, linked to Start', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH, '/?page=power')
+      const drawer = await openDrawer(user)
+
+      const logo = drawer.getByRole('link', { name: 'renewvan' })
+      expect(logo).toHaveAttribute('href', '?page=start')
+      // The same header row as the close control, with the logo first.
+      const row = logo.parentElement
+      expect(row).toContainElement(drawer.getByRole('button', { name: 'Close' }))
+      expect(
+        logo.compareDocumentPosition(drawer.getByRole('button', { name: 'Close' })) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
+    })
+
+    it('takes the drawer logo to Start and closes the drawer, in one history entry', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH, '/?page=power')
+      const drawer = await openDrawer(user)
+      const before = window.history.length
+
+      await user.click(drawer.getByRole('link', { name: 'renewvan' }))
+
+      expect(window.location.search).toBe('?page=start')
+      expect(window.history.length).toBe(before + 1)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('leaves a modified click on the drawer logo to the browser, as the header logo does', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH, '/?page=power')
+      const drawer = await openDrawer(user)
+
+      await user.keyboard('{Control>}')
+      await user.click(drawer.getByRole('link', { name: 'renewvan' }))
+      await user.keyboard('{/Control}')
+
+      // The SPA did not navigate (the browser would open the link in a new tab) and the drawer stays.
+      expect(window.location.search).toBe('?page=power')
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('closes the drawer when Sleep is pressed, as the display is about to go dark', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH)
+      await receive('renewvan/kiosk/display/power', 'on')
+      const drawer = await openDrawer(user)
+
+      await user.click(drawer.getByTestId('display-sleep-button'))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('has no visible title, only group captions, but the dialog keeps its name for assistive technology', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH)
+      await openDrawer(user)
+
+      const dialog = screen.getByRole('dialog', { name: 'Menu' })
+      // The only headings are the group captions: no "Menu" title above them.
+      const headings = within(dialog)
+        .getAllByRole('heading')
+        .map((heading) => heading.textContent)
+      expect(headings).toEqual(['Profile', 'System'])
+    })
+
+    it('opens Settings › Van from My Van, and closes the drawer', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH, '/?page=power')
+      const drawer = await openDrawer(user)
+
+      await user.click(drawer.getByRole('button', { name: 'My Van' }))
+
+      expect(window.location.search).toBe('?page=settings&view=van')
+      expect(onSettingsPage()).toBe(true)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('opens Settings from its row, closes the drawer, and marks the row as the current page', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH)
+      const drawer = await openDrawer(user)
+      expect(drawer.getByRole('button', { name: 'Settings' })).not.toHaveAttribute('aria-current')
+
+      await user.click(drawer.getByRole('button', { name: 'Settings' }))
+
+      expect(window.location.search).toBe('?page=settings')
+      expect(onSettingsPage()).toBe(true)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      // No bottom tab is selected on Settings: the drawer row is what marks it.
+      expect(selectedPage()).toBeNull()
+      const reopened = await openDrawer(user)
+      expect(reopened.getByRole('button', { name: 'Settings' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+    })
+
+    it('flips the theme from its row and keeps the drawer open to see the change', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH)
+      const drawer = await openDrawer(user)
+      const toggle = () => drawer.getByTestId('dark-theme-toggle')
+      const before = toggle().getAttribute('aria-label')
+
+      await user.click(toggle())
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(toggle().getAttribute('aria-label')).not.toBe(before)
+    })
   })
 
   it('names every nav tab and keeps the primary tabs in order', async () => {
@@ -516,7 +736,7 @@ describe('App shell Tanks page', () => {
 
       await user.click(screen.getAllByRole('button', { name: 'Configure' })[1])
 
-      expect(selectedPage()).toHaveAccessibleName('Settings')
+      expect(onSettingsPage()).toBe(true)
       expect(screen.getByRole('heading', { name: 'Grey water' })).toBeInTheDocument()
       expect(screen.getByRole('switch', { name: 'Enabled' })).toBeDisabled()
       expect(window.location.search).toBe('?page=settings&view=tank&tank=grey')
@@ -614,18 +834,19 @@ describe('App shell header', () => {
     expect(window.history.length).toBe(entries)
   })
 
-  it('keeps only the logo and sleep button in the phone header, the rest behind the menu', async () => {
+  it('keeps only the logo in the phone header, everything else behind the menu', async () => {
     const user = userEvent.setup()
     await renderAt(PHONE_WIDTH)
     const header = within(screen.getByRole('banner'))
     expect(header.getByRole('link', { name: 'renewvan' })).toBeInTheDocument()
-    expect(header.getByTestId('display-sleep-button')).toBeInTheDocument()
     expect(screen.queryByTestId('clock')).not.toBeInTheDocument()
+    expect(header.queryByTestId('display-sleep-button')).not.toBeInTheDocument()
     expect(header.queryByTestId('uplink-status-button')).not.toBeInTheDocument()
     expect(header.queryByRole('button', { name: /^alerts/i })).not.toBeInTheDocument()
 
     await user.click(header.getByRole('button', { name: 'Menu' }))
     expect(screen.getByTestId('uplink-status-button')).toBeInTheDocument()
+    expect(screen.getByTestId('display-sleep-button')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^alerts/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /switch to .* theme/i })).toBeInTheDocument()
   })
@@ -784,14 +1005,14 @@ describe('App shell Settings view in the URL', () => {
     async (_name, width) => {
       const user = userEvent.setup()
       await renderAt(width, '/?page=power')
-      await user.click(screen.getByRole('tab', { name: 'Settings' }))
+      await openSettingsPage(user)
       const pane = screen.getByTestId('pane-settings')
       await user.click(within(pane).getByRole('button', { name: /^Connectivity/ }))
       await user.click(within(pane).getByRole('button', { name: /^Hub/ }))
       expect(window.location.search).toBe('?page=settings&view=hub')
       const before = window.history.length
 
-      await user.click(screen.getByRole('tab', { name: 'Settings' }))
+      await openSettingsPage(user)
 
       expect(window.location.search).toBe('?page=settings')
       expect(window.history.length).toBe(before + 1)
@@ -971,7 +1192,7 @@ describe('App shell navbar position', () => {
     window.localStorage.setItem(POSITION_KEY, 'left')
     const user = userEvent.setup()
     await renderAt(PHONE_WIDTH)
-    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    await openSettingsPage(user)
     const pane = within(screen.getByTestId('pane-settings'))
     await user.click(pane.getByRole('button', { name: /^General/ }))
     await user.click(pane.getByRole('button', { name: /^Display/ }))

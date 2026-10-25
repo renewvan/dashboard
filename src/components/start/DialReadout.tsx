@@ -6,7 +6,7 @@ export type DialSize = 'side' | 'focus'
 
 const READOUT: Record<
   DialSize,
-  { icon: string; label: string; value: string; unit: string; sub: string }
+  { icon: string; label: string; value: string; unit: string; sub: string; togo: string }
 > = {
   side: {
     icon: 'mt-6',
@@ -14,6 +14,7 @@ const READOUT: Record<
     value: 'text-5xl',
     unit: 'text-base',
     sub: 'text-sm pt-3.5',
+    togo: 'mt-1 text-xs',
   },
   focus: {
     icon: 'scale-120',
@@ -21,6 +22,7 @@ const READOUT: Record<
     value: 'mt-2 text-6xl',
     unit: 'text-xl',
     sub: 'mt-3 text-base',
+    togo: 'mt-5 text-sm',
   },
 }
 
@@ -78,6 +80,11 @@ export function DialReadout({
       >
         <DialSub sub={view.sub} unitsStrong={view.unitsStrong} />
       </div>
+      {view.timeToGo && !view.faulted && (
+        <div data-testid="dial-time-to-go" className={cn('text-muted tabular-nums', text.togo)}>
+          <span className="text-foreground font-semibold">{view.timeToGo}</span> to go
+        </div>
+      )}
     </>
   )
 }

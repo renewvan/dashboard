@@ -90,6 +90,18 @@ describe('batteryDial', () => {
     expect(view?.sub).toBe('13.44V / 8W')
   })
 
+  it('carries the remaining runtime as the Power page writes it, when the source publishes one', () => {
+    const view = batteryDial({ '290': battery({ time_to_go_s: 9 * 86_400 + 23 * 3_600 }) })
+    expect(view?.timeToGo).toBe('9d 23h')
+    expect(view?.timeToGo).toBe(formatTimeToGo(9 * 86_400 + 23 * 3_600))
+  })
+
+  it('has no runtime for a source that does not publish one, rather than a made-up zero', () => {
+    expect(batteryDial({ '290': battery() })?.timeToGo).toBeUndefined()
+    // 0 s is a real estimate (empty), distinct from none.
+    expect(batteryDial({ '290': battery({ time_to_go_s: 0 }) })?.timeToGo).toBe('<1m')
+  })
+
   it('paints the battery blue, amber-500 at 40% and below, red at 20% and below', () => {
     const colorAt = (soc_pct: number) => batteryDial({ house: battery({ soc_pct }) })?.color
     expect(colorAt(100)).toBe('var(--accent)')

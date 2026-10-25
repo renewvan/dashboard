@@ -3,10 +3,9 @@ const HOUR_S = 3_600
 const MINUTE_S = 60
 
 /**
- * Remaining runtime as its two largest units, `9d 23h to go` / `5h 12m to go` / `42m to go`.
- * Under a minute reads `<1m`. Truncates, never rounds up: a runtime estimate should not
- * overpromise. Not shown anywhere right now: the battery dial's bottom gap holds the solar
- * readout instead; this returns to the dial when the estimate has a place again.
+ * Remaining runtime as its two largest units, `9d 23h` / `5h 12m` / `42m`. Under a minute reads
+ * `<1m`. Truncates, never rounds up: a runtime estimate should not overpromise. Shown under the
+ * battery dial's subline and beside the battery state on the Power page.
  */
 export function formatTimeToGo(seconds: number): string {
   const d = Math.floor(seconds / DAY_S)

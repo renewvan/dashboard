@@ -33,22 +33,22 @@ export interface WeatherForecastProps {
 export function WeatherForecast({ days }: WeatherForecastProps) {
   return (
     <div
-      className="grid min-h-0 gap-1"
+      className="mx-auto grid min-h-0 w-full gap-0.5"
       style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
     >
       {days.map((d, i) => (
         <div
           key={d.date}
           className={cn(
-            'flex flex-col items-center rounded-lg py-0.5 text-[10px] leading-tight',
-            i === 0 && 'bg-black/30 ring-1 ring-white/10',
+            'flex aspect-square min-w-0 flex-col items-center justify-center rounded-lg px-1 text-[10px] leading-tight',
+            i === 0 && 'bg-black/10 ring-1 ring-white/10',
           )}
         >
           <span className={cn(i !== 0 && 'text-muted')}>{i === 0 ? 'Today' : dayName(d.date)}</span>
           <WeatherIcon code={d.code} className="size-4" />
-          <span className="tabular-nums">
-            {deg(d.max)}
-            <span className="text-muted"> {deg(d.min)}</span>
+          <span className="flex justify-center gap-1 tabular-nums">
+            <span>{deg(d.max)}</span>
+            <span className="text-muted">{deg(d.min)}</span>
           </span>
         </div>
       ))}
