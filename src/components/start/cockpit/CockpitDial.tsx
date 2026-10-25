@@ -178,7 +178,7 @@ export function CockpitDial({
       </svg>
 
       <div
-        className="absolute inset-0 flex flex-col items-center justify-center"
+        className="absolute inset-0 top-5 flex flex-col items-center justify-center"
         aria-hidden="true"
       >
         <DialReadout view={view} icon={icon} size={size} />

@@ -296,8 +296,9 @@ commands under "Check it".
 Nothing falls back to the internet. When the file itself cannot be read, the Map page keeps the
 empty map and the van and adds a small "Offline map unavailable" notice over it. A van outside the
 file's area is a different case: the file's header reads fine, no tiles exist under the van, and
-there is no notice. (Until the first GPS fix the page shows its "No GPS data yet." or "No GPS fix
-yet" message instead of any map.)
+there is no notice. (Until the first GPS fix the map is still drawn, on the last position a fix
+reported (kept in `localStorage`) or on the whole world if there never was one, with a "No GPS data
+yet" or "No GPS fix yet" notice and no van. The first fix moves the map to the van once.)
 
 Observed against `vp dev` through a local server that answered each way (not on a real Pi), the
 notice shows for: a `404`; a `200` of `text/html` (what `vp dev` serves with no file); a `200` or

@@ -126,7 +126,9 @@ function Loaded({
       </div>
       <WeatherForecast days={weather.days} />
       {usingFallbackLocation && (
-        <span className="text-muted text-[9px] leading-none">no GPS fix - fallback location</span>
+        <span className="text-muted text-center text-[9px] leading-none">
+          no GPS fix - fallback location
+        </span>
       )}
     </div>
   )

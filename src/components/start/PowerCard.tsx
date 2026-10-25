@@ -4,6 +4,7 @@ import type { PowerSnapshot } from '@/components/power/flowModel'
 import { OrbsLayout } from '@/components/power/OrbsLayout'
 import { VanOrbsLayout } from '@/components/power/VanOrbsLayout'
 import { VanTilesLayout } from '@/components/power/VanTilesLayout'
+import { NoData } from './NoData'
 
 /**
  * The phone Start page's power card body: the Power page's own flow view, in the layout chosen in
@@ -23,15 +24,7 @@ import { VanTilesLayout } from '@/components/power/VanTilesLayout'
  */
 export function PowerCard({ flow, layout }: { flow: PowerSnapshot; layout: PowerLayout }) {
   if (!flow.nodes.battery.present) {
-    return (
-      <div
-        role="status"
-        className="text-muted flex h-32 w-full flex-col items-center justify-center gap-1 text-center text-sm"
-      >
-        <Zap aria-hidden="true" className="size-5" />
-        No data yet
-      </div>
-    )
+    return <NoData icon={<Zap className="size-4" />} label="Power" />
   }
 
   if (layout === 'orbs') return <OrbsLayout flow={flow} fit />

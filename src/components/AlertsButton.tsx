@@ -1,6 +1,8 @@
 import { Bell } from 'lucide-react'
 import { Badge, Button } from '@heroui/react'
-import { MENU_ROW, MENU_ROW_ICON } from './menuRow'
+import { cn } from '@/lib/utils'
+import { MenuChevron } from './MenuChevron'
+import { MENU_ROW, MENU_ROW_ACTIVE, MENU_ROW_ICON } from './menuStyles'
 
 export interface AlertsButtonProps {
   /** Navigates to the "Alerts" page (`App.tsx`) — not a popover like `IconStatusButton`, per explicit request. */
@@ -56,12 +58,12 @@ export function AlertsButton({ onClick, count, active, fullWidth = false }: Aler
     <Button
       isIconOnly={!fullWidth}
       fullWidth={fullWidth}
-      variant={!active ? 'ghost' : fullWidth ? 'tertiary' : 'primary'}
+      variant={!active || fullWidth ? 'ghost' : 'primary'}
       aria-label={count > 0 ? `Alerts, ${count} active` : 'Alerts'}
       aria-current={active ? 'page' : undefined}
       data-testid="alerts-button"
       data-active={active}
-      className={fullWidth ? MENU_ROW : undefined}
+      className={fullWidth ? cn(MENU_ROW, active && MENU_ROW_ACTIVE) : undefined}
       onPress={onClick}
     >
       {fullWidth ? (
@@ -73,6 +75,7 @@ export function AlertsButton({ onClick, count, active, fullWidth = false }: Aler
       )}
       {fullWidth && <span className="min-w-0 flex-1 truncate text-left">Alerts</span>}
       {fullWidth && badge}
+      {fullWidth && <MenuChevron />}
     </Button>
   )
 

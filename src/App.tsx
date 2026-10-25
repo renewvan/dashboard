@@ -8,13 +8,29 @@ import {
   useState,
   type CSSProperties,
 } from 'react'
-import { Gauge, Droplet, Settings, ToggleLeft, Zap, Heater, Map } from 'lucide-react'
+import {
+  CircleUser,
+  Clapperboard,
+  Gauge,
+  Droplet,
+  Heater,
+  LayoutGrid,
+  Map,
+  Settings,
+  SquareSparkles,
+  ToggleLeft,
+  Van,
+  Zap,
+} from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
 import lockupDark from '../assets/logo/svg/renewvan-lockup-dark.svg'
 import { cn } from '@/lib/utils'
 import { Clock } from '@/components/Clock'
 import { HeaderMenu } from '@/components/HeaderMenu'
+import { LogoLink } from '@/components/LogoLink'
+import { DrawerGroup } from '@/components/DrawerGroup'
+import { DrawerRow } from '@/components/DrawerRow'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
@@ -56,7 +72,7 @@ import { ShellHeaderContext } from '@/components/settings/ShellHeaderContext'
 // instead of with every other page. `MapPage` is a named export, which `lazy` needs as a default.
 const MapPage = lazy(() => import('@/components/map/MapPage').then((m) => ({ default: m.MapPage })))
 
-/** What the Map pane shows for the moment its chunk loads: the same quiet pane as "no fix yet". */
+/** What the Map pane shows for the moment its chunk loads: a quiet pane until the map itself can draw. */
 function MapLoading() {
   return (
     <section
@@ -357,19 +373,50 @@ function App() {
     </>
   )
 
-  // The phone drawer: the same three controls as full-width rows. The rows that navigate close it;
-  // the theme toggle leaves it open so the change can be seen.
+  const logo = theme === 'dark' ? lockupDark : lockupLight
+
+  // The drawer's header row: the logo, linked to Start, beside the close control.
+  const menuLogo = (close: () => void) => (
+    <LogoLink
+      src={logo}
+      onNavigate={() => {
+        close()
+        goToPage('start')
+      }}
+    />
+  )
+
+  // The phone drawer. Body: two groups of rows. Profile has My Account, My Van and Widgets; System
+  // has Automations and Scenes. Only My Van has a page yet: the rest are disabled placeholders.
+  // Footer, pinned to the bottom and in the reverse of reading order: Alerts, Settings (not a
+  // bottom-bar tab on a phone), then a row of icon tiles (Connection, Theme, Sleep). Rows that
+  // navigate close the drawer. The Connection tile opens its popover in place and the theme toggle
+  // leaves the drawer open so the change can be seen; Sleep closes it, as the display goes dark.
   const menuControls = (close: () => void) => (
+    <div className="flex flex-col gap-4">
+      <DrawerGroup title="Profile">
+        <DrawerRow icon={<CircleUser className="size-5" />} label="My Account" disabled />
+        <DrawerRow
+          icon={<Van className="size-5" />}
+          label="My Van"
+          navigates
+          data-testid="my-van-button"
+          onPress={() => {
+            close()
+            openSettings('van')
+          }}
+        />
+        <DrawerRow icon={<LayoutGrid className="size-5" />} label="Widgets" disabled />
+      </DrawerGroup>
+      <DrawerGroup title="System">
+        <DrawerRow icon={<SquareSparkles className="size-5" />} label="Automations" disabled />
+        <DrawerRow icon={<Clapperboard className="size-5" />} label="Scenes" disabled />
+      </DrawerGroup>
+    </div>
+  )
+
+  const menuFooter = (close: () => void) => (
     <>
-      <UplinkStatusButton
-        {...uplinkProps}
-        onOpenSettings={() => {
-          close()
-          uplinkProps.onOpenSettings()
-        }}
-        fullWidth
-      />
-      <ThemeToggleButton theme={theme} onThemeChange={setTheme} fullWidth />
       <AlertsButton
         onClick={() => {
           close()
@@ -379,6 +426,37 @@ function App() {
         active={activePage === 'alerts'}
         fullWidth
       />
+      <DrawerRow
+        icon={<Settings className="size-5" />}
+        label="Settings"
+        navigates
+        active={activePage === 'settings'}
+        data-testid="settings-button"
+        onPress={() => {
+          close()
+          goToPage('settings')
+        }}
+      />
+      <div className="flex w-full gap-2">
+        <UplinkStatusButton
+          {...uplinkProps}
+          onOpenSettings={() => {
+            close()
+            uplinkProps.onOpenSettings()
+          }}
+          tile
+        />
+        <ThemeToggleButton theme={theme} onThemeChange={setTheme} tile />
+        <DisplaySleepButton
+          displayPower={displayPower}
+          onSleep={() => {
+            close()
+            handleSleep()
+          }}
+          onWake={handleWake}
+          tile
+        />
+      </div>
     </>
   )
 
@@ -403,32 +481,19 @@ function App() {
         headerHidden && 'hidden',
       )}
     >
-      {isMobile && <HeaderMenu>{menuControls}</HeaderMenu>}
-      {/* A real link (so long-press/middle-click behave), but a plain tap is a one-entry SPA
-          transition to Start, the same as its nav tab. 44px tall: the touch-target minimum. */}
-      <a
-        href="?page=start"
-        aria-label="renewvan"
-        className={cn('flex h-11 items-center', !isMobile && 'justify-self-start')}
-        onClick={(event) => {
-          if (event.defaultPrevented || event.button !== 0) return
-          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-          event.preventDefault()
-          goToPage('start')
-        }}
-      >
-        <img src={theme === 'dark' ? lockupDark : lockupLight} alt="" className="h-10 w-auto" />
-      </a>
+      {isMobile && (
+        <HeaderMenu logo={menuLogo} footer={menuFooter}>
+          {menuControls}
+        </HeaderMenu>
+      )}
+      <LogoLink
+        src={logo}
+        className={!isMobile ? 'justify-self-start' : undefined}
+        onNavigate={() => goToPage('start')}
+      />
       {!isMobile && <Clock />}
       {isMobile ? (
-        <div className="flex items-center gap-1.5">
-          {demoBadge}
-          <DisplaySleepButton
-            displayPower={displayPower}
-            onSleep={handleSleep}
-            onWake={handleWake}
-          />
-        </div>
+        <div className="flex items-center gap-1.5">{demoBadge}</div>
       ) : (
         <div className="flex items-center justify-end gap-1.5">
           {headerControls}
@@ -459,6 +524,7 @@ function App() {
             powerSources={startPowerSources}
             powerLayout={powerLayout}
             isDark={theme === 'dark'}
+            mapIsDark={resolveMapIsDark(mapTheme, theme === 'dark')}
             onConfigureTank={openTankSettings}
           />
         )
@@ -548,7 +614,7 @@ function App() {
             />
           ) : (
             <Sidebar
-              items={NAV_ITEMS}
+              items={isMobile ? NAV_ITEMS.filter((item) => item.id !== 'settings') : NAV_ITEMS}
               isMobile={isMobile}
               hidden={navHidden}
               pinned={navPinned}

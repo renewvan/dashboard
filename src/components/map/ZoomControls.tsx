@@ -1,6 +1,7 @@
 import { Button } from '@heroui/react'
 import { Minus, Plus } from 'lucide-react'
 import { useMap } from 'react-map-gl/maplibre'
+import { cn } from '@/lib/utils'
 import { MAP_GLASS } from './mapGlass'
 
 // Exactly the readout's glass, border and (lack of) shadow, so the controls and the info box look
@@ -15,11 +16,17 @@ const BUTTON = `size-11! min-h-11! min-w-11! ${MAP_GLASS}`
  *
  * Must sit inside the `<Map>`: `useMap` reads the nearest one.
  */
-export function ZoomControls() {
+export function ZoomControls({ className }: { className?: string }) {
   const { current: map } = useMap()
 
   return (
-    <div className="absolute top-[calc(var(--app-header-height,0px)+1rem)] right-4 z-10 flex flex-col gap-3">
+    <div
+      className={cn(
+        // Default: the Map page, whose header floats over the map, so clear it.
+        'absolute top-[calc(var(--app-header-height,0px)+1rem)] right-4 z-10 flex flex-col gap-3',
+        className,
+      )}
+    >
       <Button
         isIconOnly
         variant="secondary"

@@ -1,6 +1,7 @@
 import type { SVGProps } from 'react'
 import { Button } from '@heroui/react'
 import type { DisplayPower } from '@/hooks/useRenewvanBus'
+import { MENU_TILE } from './menuStyles'
 
 // lucide-react has no "idle/sleeping display" glyph pair distinct from
 // generic power on/off -- these are Material Design Icons' `sleep` and
@@ -26,6 +27,8 @@ export interface DisplaySleepButtonProps {
   displayPower: DisplayPower
   onSleep: () => void
   onWake: () => void
+  /** An icon-only tile in the phone drawer's bottom row of three. */
+  tile?: boolean
 }
 
 /**
@@ -43,7 +46,12 @@ export interface DisplaySleepButtonProps {
  * Disabled until the retained display-power topic arrives
  * (`displayPower === null`).
  */
-export function DisplaySleepButton({ displayPower, onSleep, onWake }: DisplaySleepButtonProps) {
+export function DisplaySleepButton({
+  displayPower,
+  onSleep,
+  onWake,
+  tile = false,
+}: DisplaySleepButtonProps) {
   const isOn = displayPower !== 'off'
   const Icon = isOn ? SleepIcon : SleepOffIcon
   return (
@@ -53,6 +61,7 @@ export function DisplaySleepButton({ displayPower, onSleep, onWake }: DisplaySle
       aria-label={isOn ? 'Sleep display' : 'Wake display'}
       data-testid="display-sleep-button"
       isDisabled={displayPower === null}
+      className={tile ? MENU_TILE : undefined}
       onPress={() => (isOn ? onSleep() : onWake())}
     >
       <Icon className="size-5" />
