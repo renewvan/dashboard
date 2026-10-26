@@ -51,7 +51,8 @@ export function WidgetView({ id, layout, onChange }: WidgetViewProps) {
         </Switch>
       </div>
       <p className="text-muted px-1 text-sm">
-        This changes the Start page on a phone. The kiosk keeps its dial, so nothing changes there.
+        This changes the Start page on a phone, and on the kiosk when its Start view is Masonry. The
+        Cockpit keeps its dial.
       </p>
       {shown && (
         <Group title="Position">

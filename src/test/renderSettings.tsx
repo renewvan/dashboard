@@ -6,6 +6,7 @@ import type { SettingsContextValue } from '@/components/settings/SettingsContext
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { TailscaleStatus } from '@/hooks/useRenewvanBus'
 import { DEFAULT_START_LAYOUT } from '@/hooks/useStartLayout'
+import { DEFAULT_START_VIEW } from '@/hooks/useStartView'
 import { DEFAULT_START_POWER_SOURCES } from '@/hooks/useStartPowerSources'
 import { driverRows } from '@/lib/drivers'
 import { emptyRenewvanBusState, type RenewvanBusState, type Router } from '@/types'
@@ -135,6 +136,10 @@ export function renderSettings(
     setStartPowerSources: vi.fn(),
     startLayout: DEFAULT_START_LAYOUT,
     setStartLayout: vi.fn(),
+    startView: DEFAULT_START_VIEW,
+    setStartView: vi.fn(),
+    startTiles: {},
+    setStartTiles: vi.fn(),
     powerLayout: 'tiles',
     setPowerLayout: vi.fn(),
     mapTheme: 'auto',

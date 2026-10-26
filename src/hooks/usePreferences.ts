@@ -3,6 +3,8 @@ import { useMapTheme } from '@/hooks/useMapTheme'
 import { useNavbarPosition } from '@/hooks/useNavbarPosition'
 import { usePowerLayout } from '@/hooks/usePowerLayout'
 import { useStartLayout } from '@/hooks/useStartLayout'
+import { useStartTiles } from '@/hooks/useStartTiles'
+import { useStartView } from '@/hooks/useStartView'
 import { useStartPowerSources } from '@/hooks/useStartPowerSources'
 import { useTheme } from '@/hooks/useTheme'
 import { useVan } from '@/hooks/useVan'
@@ -21,6 +23,8 @@ export function usePreferences(): {
     | 'navbarPosition'
     | 'startPowerSources'
     | 'startLayout'
+    | 'startView'
+    | 'startTiles'
     | 'powerLayout'
     | 'mapTheme'
     | 'van'
@@ -32,6 +36,8 @@ export function usePreferences(): {
     | 'setNavbarPosition'
     | 'setStartPowerSources'
     | 'setStartLayout'
+    | 'setStartView'
+    | 'setStartTiles'
     | 'setPowerLayout'
     | 'setMapTheme'
     | 'setVanField'
@@ -42,6 +48,8 @@ export function usePreferences(): {
   const [navbarPosition, setNavbarPosition] = useNavbarPosition()
   const [startPowerSources, setStartPowerSources] = useStartPowerSources()
   const [startLayout, setStartLayout] = useStartLayout()
+  const [startView, setStartView] = useStartView()
+  const [startTiles, setStartTiles] = useStartTiles()
   const [powerLayout, setPowerLayout] = usePowerLayout()
   const [mapTheme, setMapTheme] = useMapTheme()
   const [van, setVanField] = useVan()
@@ -52,6 +60,8 @@ export function usePreferences(): {
       navbarPosition,
       startPowerSources,
       startLayout,
+      startView,
+      startTiles,
       powerLayout,
       mapTheme,
       van,
@@ -62,6 +72,8 @@ export function usePreferences(): {
       setNavbarPosition,
       setStartPowerSources,
       setStartLayout,
+      setStartView,
+      setStartTiles,
       setPowerLayout,
       setMapTheme,
       setVanField,

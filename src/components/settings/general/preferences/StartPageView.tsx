@@ -2,6 +2,21 @@ import { Minus, Plus } from 'lucide-react'
 import { Button, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 import { Card, ChoiceRow } from '../../shared/ChoiceRow'
+import { GroupRow } from '../../shared/GroupRow'
+import type { SettingsSubView } from '../../views'
+import { START_TILES } from '@/components/start/widgets/registry'
+import type { StartWidgetId } from '@/hooks/useStartLayout'
+import {
+  TILE_COLUMNS,
+  TILE_ROWS,
+  tileSizeOf,
+  tilesOfLayout,
+  withTileSize,
+  type StartTiles,
+  type TileCols,
+  type TileRows,
+} from '@/hooks/useStartTiles'
+import { START_VIEW_CHOICES, START_VIEW_LABELS, type StartView } from '@/hooks/useStartView'
 import {
   MAX_FULL_SCALE_W,
   MIN_FULL_SCALE_W,
@@ -164,19 +179,32 @@ const CENTRE_CHOICES: { value: StartCentre; label: string }[] = [
   { value: 'battery', label: 'Battery readout' },
 ]
 
+const START_VIEW_OPTIONS = START_VIEW_CHOICES.map((value) => ({
+  value,
+  label: START_VIEW_LABELS[value],
+}))
+
 interface StartPageViewProps {
+  view: StartView
+  onViewChange: (view: StartView) => void
+  sources: StartPowerSources
+  onChange: (sources: StartPowerSources) => void
+  /** The widgets on the Start page, in order: the Masonry's tiles (Energy is two). */
+  layout: readonly StartWidgetId[]
+  tiles: StartTiles
+  onTilesChange: (tiles: StartTiles) => void
+  onOpen: (view: SettingsSubView) => void
+}
+
+interface CockpitSettingsProps {
   sources: StartPowerSources
   onChange: (sources: StartPowerSources) => void
 }
 
-/**
- * Settings › General › Display & Appearance › Start page: where the half-moon readings come from and
- * how many watts fill each band. The left-bottom reading is not chosen: it follows the alternator or
- * the shore charger, whichever the bus reports, so only its band is set here.
- */
-export function StartPageView({ sources, onChange }: StartPageViewProps) {
+/** The Cockpit's own settings: what the Dial's centre, half-moons and rings read. */
+function CockpitSettings({ sources, onChange }: CockpitSettingsProps) {
   return (
-    <div className="flex flex-col gap-2">
+    <>
       <h2 className="px-1 text-sm font-medium">Centre</h2>
       <Card>
         <ChoiceRow
@@ -231,6 +259,119 @@ export function StartPageView({ sources, onChange }: StartPageViewProps) {
           }}
         />
       ))}
+    </>
+  )
+}
+
+const TILE_WIDTH_CHOICES = TILE_COLUMNS.map((cols) => ({
+  value: String(cols),
+  label: String(cols),
+}))
+const TILE_HEIGHT_CHOICES = TILE_ROWS.map((rows) => ({ value: String(rows), label: String(rows) }))
+
+interface MasonrySettingsProps {
+  layout: readonly StartWidgetId[]
+  tiles: StartTiles
+  onTilesChange: (tiles: StartTiles) => void
+  onOpen: (view: SettingsSubView) => void
+}
+
+/** The Masonry's own settings: the order of the widgets, and how many cells each one takes. */
+function MasonrySettings({ layout, tiles, onTilesChange, onOpen }: MasonrySettingsProps) {
+  return (
+    <>
+      <h2 className="px-1 text-sm font-medium">Order</h2>
+      <GroupRow
+        label="Widgets"
+        description="Choose and arrange the widgets"
+        onOpen={() => onOpen('widgets')}
+      />
+      <h2 className="mt-2 px-1 text-sm font-medium">Tile sizes</h2>
+      {tilesOfLayout(layout).map((id) => {
+        const { label } = START_TILES[id]
+        const size = tileSizeOf(tiles, id)
+        return (
+          <div key={id} className="border-border bg-surface overflow-hidden rounded-2xl border">
+            <h3 className="px-3.5 pt-3 text-sm font-medium">{label}</h3>
+            <ChoiceRow
+              label={`${label} width`}
+              choices={TILE_WIDTH_CHOICES}
+              value={String(size.cols)}
+              onChange={(cols) =>
+                onTilesChange(withTileSize(tiles, id, { ...size, cols: Number(cols) as TileCols }))
+              }
+            />
+            <ChoiceRow
+              label={`${label} height`}
+              choices={TILE_HEIGHT_CHOICES}
+              value={String(size.rows)}
+              onChange={(rows) =>
+                onTilesChange(withTileSize(tiles, id, { ...size, rows: Number(rows) as TileRows }))
+              }
+            />
+          </div>
+        )
+      })}
+      <p className="text-muted px-1 text-xs">
+        The grid is four columns wide. Width is how many columns a tile spans and height how many
+        rows (each 150px). Tiles fill the gaps in the order of Widgets, so a small tile can move up
+        beside a large one.
+      </p>
+      <Button
+        variant="secondary"
+        className="min-h-11"
+        isDisabled={Object.keys(tiles).length === 0}
+        onPress={() => onTilesChange({})}
+      >
+        Reset tile sizes
+      </Button>
+    </>
+  )
+}
+
+/**
+ * Settings › General › Display & Appearance › Start page: which Start view the kiosk shows, then
+ * that view's own settings. Cockpit: where the half-moon readings come from and how many watts fill
+ * each band (the left-bottom reading is not chosen: it follows the alternator or the shore
+ * charger, whichever the bus reports, so only its band is set). Masonry: the widgets' order and
+ * the size of each tile.
+ */
+export function StartPageView({
+  view,
+  onViewChange,
+  sources,
+  onChange,
+  layout,
+  tiles,
+  onTilesChange,
+  onOpen,
+}: StartPageViewProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      <h2 className="px-1 text-sm font-medium">View</h2>
+      <Card>
+        <ChoiceRow
+          label="Start view"
+          choices={START_VIEW_OPTIONS}
+          value={view}
+          onChange={onViewChange}
+        />
+      </Card>
+      <p className="text-muted px-1 text-xs">
+        Cockpit is the Dial: power readings round three level rings. Masonry lays the Start-page
+        widgets out on a grid, the Map, Power and Battery larger than the rest. A phone always shows
+        its widgets in a stack.
+      </p>
+      {view === 'cockpit' ? (
+        <CockpitSettings sources={sources} onChange={onChange} />
+      ) : (
+        <MasonrySettings
+          layout={layout}
+          tiles={tiles}
+          onTilesChange={onTilesChange}
+          onOpen={onOpen}
+        />
+      )}
     </div>
   )
 }

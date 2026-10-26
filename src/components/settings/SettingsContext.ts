@@ -14,6 +14,8 @@ import type { HubAddress } from '@/lib/hubAddress'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { StartWidgetId } from '@/hooks/useStartLayout'
+import type { StartTiles } from '@/hooks/useStartTiles'
+import type { StartView } from '@/hooks/useStartView'
 import type { MapThemeChoice } from '@/hooks/useMapTheme'
 import type { Van } from '@/hooks/useVan'
 import type { DriverRow } from '@/lib/drivers'
@@ -81,6 +83,10 @@ export interface SettingsPreferences {
   startPowerSources: StartPowerSources
   /** The phone Start page's widgets, in order; one not listed is not shown. The same instance `App` reads. */
   startLayout: readonly StartWidgetId[]
+  /** The kiosk's Start page, Cockpit or Masonry (a phone always shows its widget stack): the same instance `App` reads. */
+  startView: StartView
+  /** The Masonry's tile sizes, only those changed from the shipped ones: the same instance `App` reads. */
+  startTiles: StartTiles
   /** How the Power page is drawn, Tiles or Orbs: the same instance the Power page reads. */
   powerLayout: PowerLayout
   /** The Map page's look: Auto (follow the app theme), Light or Dark; the same instance `App` reads. */
@@ -103,6 +109,8 @@ export interface SettingsActions {
   setNavbarPosition: (position: NavbarPosition) => void
   setStartPowerSources: (sources: StartPowerSources) => void
   setStartLayout: (layout: readonly StartWidgetId[]) => void
+  setStartView: (view: StartView) => void
+  setStartTiles: (tiles: StartTiles) => void
   setPowerLayout: (layout: PowerLayout) => void
   setMapTheme: (choice: MapThemeChoice) => void
   setVanField: (field: keyof Van, value: string) => void
