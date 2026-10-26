@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
+import { useStoredState } from '@/hooks/useStoredState'
 
 /**
  * What the kiosk knows about its own van: free text the owner types in Settings › Advanced › Van.
@@ -28,10 +29,13 @@ const STORAGE_KEY = 'renewvan-dashboard-van'
 
 const EMPTY_VAN: Van = { name: '', brand: '', model: '', kms: '', plate: '' }
 
-function readStoredVan(): Van {
-  if (typeof window === 'undefined') return EMPTY_VAN
+function serializeVan(van: Van): string {
+  return JSON.stringify(van)
+}
+
+function parseVan(raw: string | null): Van {
   try {
-    const stored: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? 'null')
+    const stored: unknown = JSON.parse(raw ?? 'null')
     if (typeof stored !== 'object' || stored === null) return EMPTY_VAN
     // Field by field, so an edited or older value with a wrong type reads as empty for that field
     // alone instead of discarding the rest.
@@ -55,15 +59,11 @@ function readStoredVan(): Van {
  * keeps the others.
  */
 export function useVan(): [Van, (field: keyof Van, value: string) => void] {
-  const [van, setVan] = useState<Van>(readStoredVan)
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(van))
-  }, [van])
+  const [van, setVan] = useStoredState<Van>(STORAGE_KEY, parseVan, serializeVan)
 
   const setField = useCallback(
     (field: keyof Van, value: string) => setVan((current) => ({ ...current, [field]: value })),
-    [],
+    [setVan],
   )
 
   return [van, setField]

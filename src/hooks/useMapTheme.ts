@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useStoredState } from '@/hooks/useStoredState'
 
 /**
  * Which look the Map page draws: `auto` follows the app's theme (a light app gets the light map, a
@@ -21,9 +21,7 @@ const STORAGE_KEY = 'renewvan-dashboard-map-theme'
 /** Auto, so a kiosk that never touches the setting keeps the map matching the app, as before. */
 const DEFAULT_MAP_THEME: MapThemeChoice = 'auto'
 
-function readStoredMapTheme(): MapThemeChoice {
-  if (typeof window === 'undefined') return DEFAULT_MAP_THEME
-  const stored = window.localStorage.getItem(STORAGE_KEY)
+function parseMapTheme(stored: string | null): MapThemeChoice {
   return MAP_THEME_CHOICES.find((choice) => choice === stored) ?? DEFAULT_MAP_THEME
 }
 
@@ -41,11 +39,5 @@ export function resolveMapIsDark(choice: MapThemeChoice, appIsDark: boolean): bo
  * older value) reads as `auto`.
  */
 export function useMapTheme(): [MapThemeChoice, (choice: MapThemeChoice) => void] {
-  const [choice, setChoice] = useState<MapThemeChoice>(readStoredMapTheme)
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, choice)
-  }, [choice])
-
-  return [choice, setChoice]
+  return useStoredState<MapThemeChoice>(STORAGE_KEY, parseMapTheme)
 }

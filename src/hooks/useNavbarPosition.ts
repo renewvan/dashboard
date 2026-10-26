@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useStoredState } from '@/hooks/useStoredState'
 
 export type NavbarPosition = 'left' | 'bottom'
 
@@ -6,9 +6,7 @@ const STORAGE_KEY = 'renewvan-dashboard-navbar-position'
 
 const DEFAULT_NAVBAR_POSITION: NavbarPosition = 'left'
 
-function readStoredNavbarPosition(): NavbarPosition {
-  if (typeof window === 'undefined') return DEFAULT_NAVBAR_POSITION
-  const stored = window.localStorage.getItem(STORAGE_KEY)
+function parseNavbarPosition(stored: string | null): NavbarPosition {
   return stored === 'left' || stored === 'bottom' ? stored : DEFAULT_NAVBAR_POSITION
 }
 
@@ -22,11 +20,5 @@ function readStoredNavbarPosition(): NavbarPosition {
  * kiosk's choice.
  */
 export function useNavbarPosition(): [NavbarPosition, (position: NavbarPosition) => void] {
-  const [position, setPosition] = useState<NavbarPosition>(readStoredNavbarPosition)
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, position)
-  }, [position])
-
-  return [position, setPosition]
+  return useStoredState<NavbarPosition>(STORAGE_KEY, parseNavbarPosition)
 }
