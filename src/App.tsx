@@ -12,6 +12,7 @@ import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
+import { PageErrorBoundary } from '@/components/PageErrorBoundary'
 import { StubPane } from '@/components/StubPane'
 import { AlertsPage } from '@/components/alerts/AlertsPage'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
@@ -342,11 +343,13 @@ function App() {
     <>
       {NAV_ITEMS.map((item) => (
         <Tabs.Panel key={item.id} id={item.id} className={panelClass}>
-          {renderPage(item)}
+          <PageErrorBoundary name={item.id}>{renderPage(item)}</PageErrorBoundary>
         </Tabs.Panel>
       ))}
       <Tabs.Panel id="alerts" className={panelClass}>
-        <AlertsPage entries={alertHistory.entries} onRemove={alertHistory.remove} />
+        <PageErrorBoundary name="alerts">
+          <AlertsPage entries={alertHistory.entries} onRemove={alertHistory.remove} />
+        </PageErrorBoundary>
       </Tabs.Panel>
     </>
   )
