@@ -1,11 +1,11 @@
 import { FLUID_LABELS } from '@/lib/tank-labels'
 import { GroupRow } from '../shared/GroupRow'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData } from '../SettingsContext'
 import { useReportedTankIds } from './useReportedTankIds'
 
 /** Settings › Drivers › Tanks: one drill-in per reported tank. */
 export function TanksView({ onOpen }: { onOpen: (tankId: string) => void }) {
-  const { tanks } = useSettings()
+  const { tanks } = useSettingsData()
   const ids = useReportedTankIds()
 
   if (ids.length === 0) {

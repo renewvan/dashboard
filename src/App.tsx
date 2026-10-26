@@ -1,27 +1,5 @@
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react'
-import {
-  CircleUser,
-  Clapperboard,
-  Gauge,
-  Droplet,
-  Heater,
-  LayoutGrid,
-  Map,
-  Settings,
-  SquareSparkles,
-  ToggleLeft,
-  Van,
-  Zap,
-} from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
+import { Gauge, Droplet, Heater, Map, Settings, ToggleLeft, Zap } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
 import lockupDark from '../assets/logo/svg/renewvan-lockup-dark.svg'
@@ -29,8 +7,7 @@ import { cn } from '@/lib/utils'
 import { Clock } from '@/components/Clock'
 import { HeaderMenu } from '@/components/HeaderMenu'
 import { LogoLink } from '@/components/LogoLink'
-import { DrawerGroup } from '@/components/DrawerGroup'
-import { DrawerRow } from '@/components/DrawerRow'
+import { DrawerMenuControls, DrawerMenuFooter } from '@/components/DrawerMenuContent'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
@@ -47,22 +24,19 @@ import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertHistory } from '@/hooks/useAlertHistory'
-import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
 import { driverRows, relayDriversOnline, tiltDriversOffline } from '@/lib/drivers'
 import { AUTO_PRIMARY_BATTERY } from '@/lib/primaryBattery'
 import type { RenewvanBusState } from '@/types'
-import { settingsCommands } from '@/lib/settings-commands'
-import { useAutoHide } from '@/hooks/useAutoHide'
-import { useTheme } from '@/hooks/useTheme'
+import { useDisplayCommands } from '@/hooks/useDisplayCommands'
+import { useContentStable, useStableCallback } from '@/hooks/useStable'
+import { useHeaderHeightVar, useShellLayout } from '@/hooks/useShellLayout'
 import { BottomNavBar } from '@/components/BottomNavBar'
-import { useNavbarPosition } from '@/hooks/useNavbarPosition'
-import { useStartPowerSources } from '@/hooks/useStartPowerSources'
-import { usePowerLayout } from '@/hooks/usePowerLayout'
-import { resolveMapIsDark, useMapTheme } from '@/hooks/useMapTheme'
-import { useVan } from '@/hooks/useVan'
+import { resolveMapIsDark } from '@/hooks/useMapTheme'
+import { usePreferences } from '@/hooks/usePreferences'
+import { buildSettings } from '@/components/settings/buildSettings'
 import { useUrlPage } from '@/hooks/useUrlPage'
 import { useHubAddress } from '@/hooks/useHubAddress'
 import { useBrokerLink } from '@/hooks/useBrokerLink'
@@ -103,47 +77,25 @@ const NAV_ITEMS: NavItem[] = [
 // request, so `useUrlPage` needs its own superset of valid ids.
 const PAGE_IDS = [...NAV_ITEMS.map((item) => item.id), 'alerts']
 
-/** Custom property the header publishes on `<html>` so the toast region (portaled to `<body>`, see `main.tsx`) can sit below it. */
-const HEADER_HEIGHT_VAR = '--app-header-height'
-
-// HeroUI's component CSS is unlayered, so utilities need `!` to override its spacing; the shell sizes panes itself.
-// Every panel pads its navbar edge by the inset the `Tabs` root publishes (below), so no page, built
-// or not, runs under the navbar while it is up, and all of them stretch into the space as it slides
-// away.
-const PANEL_CLASS =
-  'm-0! flex min-h-0 min-w-0 flex-1 flex-col p-0! pb-(--navbar-inset-bottom)! pl-(--navbar-inset-left)!'
-
-// The kiosk navbar floats over the panes and never pushes them. The `Tabs` root publishes how much
-// of the pane's edge it currently covers as `--navbar-inset-bottom` / `--navbar-inset-left` (0
-// while it is slid away or on the other side). The rail is 56px wide; the bar is one 56px touch
-// target (an icon over its label; docs/design-principles.md asks for 44px) plus its 1px border,
-// plus the safe-area inset.
-const RAIL_INSET = '56px'
-const BAR_INSET = 'calc(57px + env(safe-area-inset-bottom))'
-
-/** The header's sleep/wake command. Its payload is a bare `on`/`off`, not JSON, so it is not one
- * of the settings commands (`lib/settings-commands.ts`). */
-const TOPIC_DISPLAY_POWER_SET = 'renewvan/kiosk/display/power/set'
-
 function App() {
+  const bus = useRenewvanBus()
   const {
     state,
     status,
     displayPower,
-    brightness,
-    autoSleepEnabled,
-    autoSleepTimeoutMinutes,
     tailscale,
     hubStatus,
     primaryBattery,
     routerHealth,
     demoMode,
-    setDemoMode,
     publish,
-  } = useRenewvanBus()
+  } = bus
   // No retained choice yet (or one that is not a string) reads as Auto.
   const primaryBatterySelection = primaryBattery ?? AUTO_PRIMARY_BATTERY
-  const [alertsEnabled, setAlertsEnabled] = useAlertsEnabled()
+  const prefs = usePreferences()
+  const { theme, navbarPosition, mapTheme, alertsEnabled, startPowerSources, powerLayout } =
+    prefs.preferences
+  const { setTheme } = prefs.actions
   const alertHistory = useAlertHistory()
   const hub = useHubAddress(hubStatus)
   const broker = useBrokerLink()
@@ -158,58 +110,21 @@ function App() {
   const openTankSettings = (tankId: string) =>
     setActivePage('settings', { view: 'tank', tank: tankId })
   const unseenAlertCount = useUnseenAlertCount(activePage)
-  const [theme, setTheme] = useTheme()
   const isMobile = useIsMobile()
-  const [navbarPosition, setNavbarPosition] = useNavbarPosition()
-  const [startPowerSources, setStartPowerSources] = useStartPowerSources()
-  const [powerLayout, setPowerLayout] = usePowerLayout()
-  const [mapTheme, setMapTheme] = useMapTheme()
-  const [van, setVanField] = useVan()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
-  const isBottomBar = !isMobile && navbarPosition === 'bottom'
-  // The kiosk navbar's auto-hide lives here, not in the navbar: React Aria renders everything
-  // inside `Tabs` a second time, hidden, to build its collection, so a hook in the navbar would
-  // run twice and the hidden copy would keep hiding a pinned navbar (and shifting the page).
-  // The pin resets on reload and the phone's bottom bar never hides.
-  const [navPinned, setNavPinned] = useState(false)
-  const navHidden = useAutoHide(!isMobile && !navPinned)
-  // The inset the visible kiosk navbar covers; the phone's bottom bar stays in the layout.
-  const navInset = isMobile || navHidden ? '0px' : isBottomBar ? BAR_INSET : RAIL_INSET
-  // The page and header glide as the navbar slides away or back; a pinned navbar never moves, so
-  // neither do they (pinning leaves them exactly where they are, un-pinning does not animate).
-  const insetMotion = navPinned
-    ? ''
-    : 'transition-[padding] duration-300 motion-reduce:transition-none'
+  const {
+    isBottomBar,
+    navPinned,
+    setNavPinned,
+    navHidden,
+    insetMotion,
+    panelClass,
+    navbarInsetStyle,
+  } = useShellLayout(isMobile, navbarPosition)
   // A page (the Settings subpage) can ask the shell to hide its header, because it shows its own
   // navigation bar in that place.
   const [headerHidden, setHeaderHidden] = useState(false)
-  // The gap under a phone's header is each page's own scroller's top padding, so it scrolls away with
-  // the content. It must not sit on the panel: padding on a non-scrolling parent stays put, and
-  // scrolled content would clip 12px below the header's border, leaving a dead strip.
-  const panelClass = cn(PANEL_CLASS, insetMotion)
-  const navbarInsetStyle = {
-    '--navbar-inset-bottom': isBottomBar ? navInset : '0px',
-    '--navbar-inset-left': isBottomBar ? '0px' : navInset,
-  } as CSSProperties
-  const headerRef = useRef<HTMLElement>(null)
-  useLayoutEffect(() => {
-    const header = headerRef.current
-    if (!header) return
-    const root = document.documentElement
-    // While the Settings subpage's bar replaces the header, the header is `display: none` (its
-    // height reads 0) and the bar publishes its own height instead: never overwrite it.
-    const syncHeaderHeight = () => {
-      if (header.offsetHeight > 0)
-        root.style.setProperty(HEADER_HEIGHT_VAR, `${header.offsetHeight}px`)
-    }
-    syncHeaderHeight()
-    const observer = new ResizeObserver(syncHeaderHeight)
-    observer.observe(header)
-    return () => {
-      observer.disconnect()
-      root.style.removeProperty(HEADER_HEIGHT_VAR)
-    }
-  }, [])
+  const headerRef = useHeaderHeightVar()
   // single router per hub (compose ROUTER_ID) — first id decides; none yet → checking
   const routerId = Object.keys(state.routers)[0]
   const router = state.routers[routerId]
@@ -220,127 +135,33 @@ function App() {
   // map stays level.
   const tilt = tiltDriversOffline(state) ? NO_TILT : state.tilt
 
-  // `state.tanks` / `state.gps` change on every message, so the derived rows are kept by their
-  // content: the Settings context only changes when a Driver, its state or its entity count does.
-  const derivedDrivers = driverRows(state)
-  const driversKey = JSON.stringify(derivedDrivers)
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `derivedDrivers`
-  const drivers = useMemo(() => derivedDrivers, [driversKey])
-
-  // The GPS view shows every satellite's signal, so it needs the live record, but `state.gps` is
-  // a fresh object on every message (every poll, ~3s). Kept by content like `drivers`: the
+  // `state.tanks` / `state.gps` change on every message, so the derived rows and the GPS record
+  // (every satellite's signal, a fresh object every poll, ~3s) are kept by their content: the
   // Settings context, and the whole memoised Settings tree, re-render only when a value changes.
-  const gpsKey = JSON.stringify(state.gps)
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key is the content of `state.gps`
-  const gps = useMemo(() => state.gps, [gpsKey])
+  const drivers = useContentStable(driverRows(state))
+  const gps = useContentStable(state.gps)
 
-  // `publish` is a fresh function every render (it only closes over the bus's stable client
-  // ref), so the commands bind to a forwarder that always calls the latest one.
-  const publishRef = useRef(publish)
-  publishRef.current = publish
-  const commands = useMemo(
-    () => settingsCommands((topic, payload) => publishRef.current(topic, payload)),
-    [],
-  )
+  const { commands, sleepDisplay, wakeDisplay } = useDisplayCommands(publish)
 
-  const handleSleep = useCallback(() => publishRef.current(TOPIC_DISPLAY_POWER_SET, 'off'), [])
-  const handleWake = useCallback(() => publishRef.current(TOPIC_DISPLAY_POWER_SET, 'on'), [])
-
-  // The Settings nav bar's bell: stable like the sleep handlers, so the settings memo only changes
-  // when a value does. `goToPage` closes over `setActivePage`, recreated each render.
-  const goToPageRef = useRef(goToPage)
-  goToPageRef.current = goToPage
-  const openAlerts = useCallback(() => goToPageRef.current('alerts'), [])
-  const settings = useMemo(
-    () => ({
+  // The Settings nav bar's bell: stable like the sleep handlers, so the settings value only changes
+  // when a field does. `goToPage` closes over `setActivePage`, recreated each render.
+  const openAlerts = useStableCallback(() => goToPage('alerts'))
+  const settings = buildSettings({
+    bus,
+    derived: {
       drivers,
-      tanks: state.tanks,
-      temperatures: state.temperatures,
       gps,
-      relays: state.relays,
-      batteries: state.batteries,
-      solar: state.solar,
-      chargers: state.chargers,
-      primaryBatterySelection,
       router,
-      routerHealth,
       routerUpdatedAt,
-      busStatus: status,
-      tailscale,
       hub,
-      hubStatus,
       broker,
-      brightness,
-      autoSleepEnabled,
-      autoSleepTimeoutMinutes,
-      displayPower,
-      sleepDisplay: handleSleep,
-      wakeDisplay: handleWake,
-      unseenAlertCount,
-      openAlerts,
-      ...commands,
-      alertsEnabled,
-      setAlertsEnabled,
-      demoMode,
-      setDemoMode,
-      theme,
-      setTheme,
-      navbarPosition,
-      setNavbarPosition,
-      startPowerSources,
-      setStartPowerSources,
-      powerLayout,
-      setPowerLayout,
-      mapTheme,
-      setMapTheme,
-      van,
-      setVanField,
-    }),
-    [
-      drivers,
-      state.tanks,
-      state.temperatures,
-      gps,
-      state.relays,
-      state.batteries,
-      state.solar,
-      state.chargers,
       primaryBatterySelection,
-      router,
-      routerHealth,
-      routerUpdatedAt,
-      status,
-      tailscale,
-      hub,
-      hubStatus,
-      broker,
-      brightness,
-      autoSleepEnabled,
-      autoSleepTimeoutMinutes,
-      displayPower,
-      handleSleep,
-      handleWake,
       unseenAlertCount,
-      openAlerts,
-      commands,
-      alertsEnabled,
-      setAlertsEnabled,
-      demoMode,
-      setDemoMode,
-      theme,
-      setTheme,
-      navbarPosition,
-      setNavbarPosition,
-      startPowerSources,
-      setStartPowerSources,
-      powerLayout,
-      setPowerLayout,
-      mapTheme,
-      setMapTheme,
-      van,
-      setVanField,
-    ],
-  )
+    },
+    preferences: prefs,
+    commands,
+    handlers: { sleepDisplay, wakeDisplay, openAlerts },
+  })
 
   const demoBadge = demoMode && (
     <span className="bg-warning text-warning-foreground rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase">
@@ -386,78 +207,23 @@ function App() {
     />
   )
 
-  // The phone drawer. Body: two groups of rows. Profile has My Account, My Van and Widgets; System
-  // has Automations and Scenes. Only My Van has a page yet: the rest are disabled placeholders.
-  // Footer, pinned to the bottom and in the reverse of reading order: Alerts, Settings (not a
-  // bottom-bar tab on a phone), then a row of icon tiles (Connection, Theme, Sleep). Rows that
-  // navigate close the drawer. The Connection tile opens its popover in place and the theme toggle
-  // leaves the drawer open so the change can be seen; Sleep closes it, as the display goes dark.
   const menuControls = (close: () => void) => (
-    <div className="flex flex-col gap-4">
-      <DrawerGroup title="Profile">
-        <DrawerRow icon={<CircleUser className="size-5" />} label="My Account" disabled />
-        <DrawerRow
-          icon={<Van className="size-5" />}
-          label="My Van"
-          navigates
-          data-testid="my-van-button"
-          onPress={() => {
-            close()
-            openSettings('van')
-          }}
-        />
-        <DrawerRow icon={<LayoutGrid className="size-5" />} label="Widgets" disabled />
-      </DrawerGroup>
-      <DrawerGroup title="System">
-        <DrawerRow icon={<SquareSparkles className="size-5" />} label="Automations" disabled />
-        <DrawerRow icon={<Clapperboard className="size-5" />} label="Scenes" disabled />
-      </DrawerGroup>
-    </div>
+    <DrawerMenuControls close={close} onOpenVan={() => openSettings('van')} />
   )
 
   const menuFooter = (close: () => void) => (
-    <>
-      <AlertsButton
-        onClick={() => {
-          close()
-          goToPage('alerts')
-        }}
-        count={unseenAlertCount}
-        active={activePage === 'alerts'}
-        fullWidth
-      />
-      <DrawerRow
-        icon={<Settings className="size-5" />}
-        label="Settings"
-        navigates
-        active={activePage === 'settings'}
-        data-testid="settings-button"
-        onPress={() => {
-          close()
-          goToPage('settings')
-        }}
-      />
-      <div className="flex w-full gap-2">
-        <UplinkStatusButton
-          {...uplinkProps}
-          onOpenSettings={() => {
-            close()
-            uplinkProps.onOpenSettings()
-          }}
-          tile
-        />
-        <ThemeToggleButton theme={theme} onThemeChange={setTheme} tile />
-        <DisplaySleepButton
-          displayPower={displayPower}
-          onSleep={() => {
-            close()
-            handleSleep()
-          }}
-          onWake={handleWake}
-          tile
-        />
-      </div>
-    </>
+    <DrawerMenuFooter
+      close={close}
+      activePage={activePage}
+      unseenAlertCount={unseenAlertCount}
+      onGoToPage={goToPage}
+      uplink={uplinkProps}
+      theme={theme}
+      onThemeChange={setTheme}
+      displayPower={displayPower}
+      onSleep={sleepDisplay}
+      onWake={wakeDisplay}
+    />
   )
 
   // The Map runs under its header, so there the header floats over it: out of the layout, with no
@@ -499,8 +265,8 @@ function App() {
           {headerControls}
           <DisplaySleepButton
             displayPower={displayPower}
-            onSleep={handleSleep}
-            onWake={handleWake}
+            onSleep={sleepDisplay}
+            onWake={wakeDisplay}
           />
         </div>
       )}
@@ -563,7 +329,7 @@ function App() {
         )
       case 'settings':
         return (
-          <SettingsProvider value={settings}>
+          <SettingsProvider {...settings}>
             <SettingsPage />
           </SettingsProvider>
         )

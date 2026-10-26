@@ -1,5 +1,5 @@
 import { Label, Switch } from '@heroui/react'
-import { useSettings } from '../../SettingsContext'
+import { useSettingsPreferences, useSettingsActions } from '../../SettingsContext'
 
 /**
  * The Alerts toggle: show or hide live alert toasts. Muting only suppresses
@@ -8,7 +8,8 @@ import { useSettings } from '../../SettingsContext'
  * the padding lives inside the content.
  */
 export function AlertsView() {
-  const { alertsEnabled, setAlertsEnabled } = useSettings()
+  const { alertsEnabled } = useSettingsPreferences()
+  const { setAlertsEnabled } = useSettingsActions()
 
   return (
     <div className="border-border bg-surface overflow-hidden rounded-2xl border">

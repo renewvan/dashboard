@@ -1,7 +1,7 @@
 import { Label, Switch } from '@heroui/react'
 import { Group } from '../shared/Group'
 import { GroupRow } from '../shared/GroupRow'
-import { useSettings } from '../SettingsContext'
+import { useSettingsPreferences, useSettingsActions } from '../SettingsContext'
 import type { SettingsSubView } from '../views'
 
 interface GeneralViewProps {
@@ -13,7 +13,8 @@ interface GeneralViewProps {
  * `Switch.Content`, so the label area toggles too.
  */
 function DemoModeRow() {
-  const { demoMode, setDemoMode } = useSettings()
+  const { demoMode } = useSettingsPreferences()
+  const { setDemoMode } = useSettingsActions()
 
   return (
     <div className="border-border bg-surface overflow-hidden rounded-2xl border">
@@ -36,7 +37,7 @@ function DemoModeRow() {
 
 /** General's groups, System then Preferences: each row opens its own page under a live summary, bar the inline Demo mode switch. */
 export function GeneralView({ onOpen }: GeneralViewProps) {
-  const { alertsEnabled } = useSettings()
+  const { alertsEnabled } = useSettingsPreferences()
 
   return (
     <div className="flex flex-col gap-4">

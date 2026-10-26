@@ -3,7 +3,7 @@ import { formatBytes, formatUptime } from '@/lib/format'
 import { plmnOperatorName } from '@/lib/plmn'
 import { routerDriver, routerName } from '@/lib/routerDriver'
 import { DetailList, DetailRow, StatusRow } from '../shared/DetailList'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData } from '../SettingsContext'
 import { DRIVER_TONE } from '../drivers/driverTone'
 
 /**
@@ -12,7 +12,7 @@ import { DRIVER_TONE } from '../drivers/driverTone'
  * property at a time, so each row degrades to a dash on its own.
  */
 export function CellularView() {
-  const { router, drivers } = useSettings()
+  const { router, drivers } = useSettingsData()
   const driver = routerDriver(drivers)
 
   return (

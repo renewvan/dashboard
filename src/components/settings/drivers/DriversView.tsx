@@ -1,6 +1,6 @@
 import { entityCountText, type DriverRow } from '@/lib/drivers'
 import { GroupRow } from '../shared/GroupRow'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData } from '../SettingsContext'
 import { DRIVER_TONE } from './driverTone'
 
 /**
@@ -20,7 +20,7 @@ function describe(row: DriverRow): string {
  * claims appear as a fallback row by entity type, so a partial rollout never leaves it blank.
  */
 export function DriversView({ onOpen }: { onOpen: (key: string) => void }) {
-  const { drivers } = useSettings()
+  const { drivers } = useSettingsData()
 
   if (drivers.length === 0) {
     return (

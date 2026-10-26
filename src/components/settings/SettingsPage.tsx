@@ -1,9 +1,10 @@
-import { memo, useCallback, useMemo, useState, type ReactNode } from 'react'
+import { memo, useCallback, useState, type ReactNode } from 'react'
 import { Button, Drawer, ScrollShadow } from '@heroui/react'
 import { ArrowLeft, Workflow, SlidersHorizontal, Van, Wifi } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 import { useUrlParam } from '@/hooks/useUrlParam'
+import { useContentStable } from '@/hooks/useStable'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import { driversSummary } from '@/lib/drivers'
 import { pushSearchParams } from '@/lib/urlHistory'
@@ -28,7 +29,7 @@ import { DriversView } from './drivers/DriversView'
 import { StartPageView } from './general/preferences/StartPageView'
 import { PowerPageView } from './general/preferences/PowerPageView'
 import { MapPageView } from './general/preferences/MapPageView'
-import { useSettings } from './SettingsContext'
+import { useSettingsData, useSettingsPreferences, useSettingsActions } from './SettingsContext'
 import { VanView } from './advanced/VanView'
 import { TailscaleView } from './connectivity/TailscaleView'
 import { TankSettingsView } from './drivers/TankSettingsView'
@@ -90,21 +91,19 @@ export const SettingsPage = memo(function SettingsPage() {
     busStatus,
     tailscale,
     hub,
+    unseenAlertCount,
+  } = useSettingsData()
+  const { navbarPosition, startPowerSources, powerLayout, mapTheme, van } = useSettingsPreferences()
+  const {
     sleepDisplay,
     wakeDisplay,
-    unseenAlertCount,
     openAlerts,
-    navbarPosition,
     setNavbarPosition,
-    startPowerSources,
     setStartPowerSources,
-    powerLayout,
     setPowerLayout,
-    mapTheme,
     setMapTheme,
-    van,
     setVanField,
-  } = useSettings()
+  } = useSettingsActions()
   const isMobile = useIsMobile()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
@@ -114,15 +113,10 @@ export const SettingsPage = memo(function SettingsPage() {
   // The open tank lives in `?tank=`, valid only while it names a reported tank.
   const tankIds = useReportedTankIds()
   // `useUrlParam` needs a stable list: keep the array while the set of tanks is unchanged.
-  const tankIdsKey = tankIds.join('\u0000')
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content
-  const validTankIds = useMemo(() => tankIds, [tankIdsKey])
+  const validTankIds = useContentStable(tankIds)
   const [tankParam] = useUrlParam('tank', validTankIds)
   // The open Driver lives in `?driver=`, valid only while it names a reported Driver or a fallback row.
-  const driverKeys = drivers.map((row) => row.key)
-  const driverKeysKey = driverKeys.join('\u0000')
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content
-  const validDriverKeys = useMemo(() => driverKeys, [driverKeysKey])
+  const validDriverKeys = useContentStable(drivers.map((row) => row.key))
   const [driverParam] = useUrlParam('driver', validDriverKeys)
   const driverRow = drivers.find((row) => row.key === driverParam)
   // A tank view without a reported tank has nothing to show: fall back to the tank list; a driver

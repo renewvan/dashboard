@@ -10,7 +10,7 @@ import {
   type SignalQuality,
 } from '@/lib/gps'
 import { DetailList, DetailRow } from '../shared/DetailList'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData } from '../SettingsContext'
 
 /** The bar's colour, from the theme's status tokens. Never the only cue: the row also says it. */
 const BAR_TONE: Record<SignalQuality, string> = {
@@ -103,7 +103,7 @@ function Satellites({ satellites }: { satellites: GpsSatellite[] }) {
  * first record whose unconditional fields have arrived is the one shown.
  */
 export function GpsView() {
-  const { gps } = useSettings()
+  const { gps } = useSettingsData()
   const id = Object.keys(gps).find((key) => isCompleteGps(gps[key]))
   const record: Gps | undefined = id === undefined ? undefined : (gps[id] as Gps)
 

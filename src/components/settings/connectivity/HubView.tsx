@@ -2,7 +2,7 @@ import { BUS_TONE, busStatusText } from '@/lib/connection'
 import { driverCounts, driverCountsText } from '@/lib/hubDrivers'
 import { hubRouteText } from '@/lib/hubAddress'
 import { DetailList, DetailRow, StatusRow } from '../shared/DetailList'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData } from '../SettingsContext'
 
 /**
  * The hub as this kiosk sees it, in four blocks: the live link to the broker (the Bus link and how
@@ -12,7 +12,7 @@ import { useSettings } from '../SettingsContext'
  * yes or no (see `brokerLink`).
  */
 export function HubView() {
-  const { busStatus, hub, hubStatus, broker, drivers } = useSettings()
+  const { busStatus, hub, hubStatus, broker, drivers } = useSettingsData()
   const counts = driverCounts(drivers)
 
   return (

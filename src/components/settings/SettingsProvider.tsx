@@ -1,12 +1,32 @@
 import type { ReactNode } from 'react'
-import { SettingsContext, type SettingsContextValue } from './SettingsContext'
+import { useShallowStable } from '@/hooks/useStable'
+import {
+  SettingsActionsContext,
+  SettingsDataContext,
+  SettingsPreferencesContext,
+  type SettingsActions,
+  type SettingsData,
+  type SettingsPreferences,
+} from './SettingsContext'
 
 interface SettingsProviderProps {
-  /** Built once (memoised) by `App`; tests pass a literal. */
-  value: SettingsContextValue
+  /** Built each render by `App`; tests pass literals. */
+  data: SettingsData
+  preferences: SettingsPreferences
+  actions: SettingsActions
   children: ReactNode
 }
 
-export function SettingsProvider({ value, children }: SettingsProviderProps) {
-  return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>
+export function SettingsProvider({ data, preferences, actions, children }: SettingsProviderProps) {
+  // Each slice keeps its reference until one of its own fields changes.
+  const stableData = useShallowStable(data)
+  const stablePreferences = useShallowStable(preferences)
+  const stableActions = useShallowStable(actions)
+  return (
+    <SettingsActionsContext.Provider value={stableActions}>
+      <SettingsPreferencesContext.Provider value={stablePreferences}>
+        <SettingsDataContext.Provider value={stableData}>{children}</SettingsDataContext.Provider>
+      </SettingsPreferencesContext.Provider>
+    </SettingsActionsContext.Provider>
+  )
 }

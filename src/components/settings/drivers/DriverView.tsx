@@ -6,7 +6,7 @@ import { gpsSummary } from '@/lib/gps'
 import { entityCountText, instanceCountText, type EntityType, type DriverRow } from '@/lib/drivers'
 import { StatusRow } from '../shared/DetailList'
 import { GroupRow } from '../shared/GroupRow'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData } from '../SettingsContext'
 import { DRIVER_TONE } from './driverTone'
 import { useReportedTankIds } from './useReportedTankIds'
 import type { SettingsSubView } from '../views'
@@ -38,7 +38,7 @@ export function DriverView({
   row: DriverRow
   onOpen: (view: SettingsSubView) => void
 }) {
-  const { temperatures, gps } = useSettings()
+  const { temperatures, gps } = useSettingsData()
   const tankIds = useReportedTankIds()
 
   const describe = (type: EntityType, ids: string[]): string => {

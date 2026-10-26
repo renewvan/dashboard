@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 import type { SettingsContextValue } from '../SettingsContext'
 import { SettingsProvider } from '../SettingsProvider'
+import { settingsSlices } from '@/test/settingsSlices'
 import { SettingsPage } from '../SettingsPage'
 import { renderSettings } from '@/test/renderSettings'
 import type { TemperatureSensor } from '@/types'
@@ -131,7 +132,10 @@ describe('Settings › Devices › Temperature', () => {
 
       rerender(
         <SettingsProvider
-          value={{ ...value, temperatures: { outdoor: { ...outdoor, name: 'Roof' } } }}
+          {...settingsSlices({
+            ...value,
+            temperatures: { outdoor: { ...outdoor, name: 'Roof' } },
+          })}
         >
           <SettingsPage />
         </SettingsProvider>,
@@ -160,7 +164,10 @@ describe('Settings › Devices › Temperature', () => {
 
       rerender(
         <SettingsProvider
-          value={{ ...value, temperatures: { outdoor: { ...outdoor, name: 'Awning' } } }}
+          {...settingsSlices({
+            ...value,
+            temperatures: { outdoor: { ...outdoor, name: 'Awning' } },
+          })}
         >
           <SettingsPage />
         </SettingsProvider>,

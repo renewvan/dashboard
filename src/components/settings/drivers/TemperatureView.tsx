@@ -3,7 +3,7 @@ import { ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { formatTemperature, sortedSensorIds } from '@/lib/temperature'
 import type { TemperatureSensor, TemperatureUnit } from '@/types'
 import { NameField } from '../shared/NameField'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData, useSettingsActions } from '../SettingsContext'
 
 const UNITS: TemperatureUnit[] = ['C', 'F']
 
@@ -12,7 +12,7 @@ function isUnit(value: string): value is TemperatureUnit {
 }
 
 function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSensor> }) {
-  const { setTemperatureName, setTemperatureUnit } = useSettings()
+  const { setTemperatureName, setTemperatureUnit } = useSettingsActions()
   const sourceId = useId()
 
   return (
@@ -63,7 +63,7 @@ function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSe
 
 /** Settings › Drivers › Temperature: rename a sensor and pick its unit. */
 export function TemperatureView() {
-  const { temperatures } = useSettings()
+  const { temperatures } = useSettingsData()
   const ids = sortedSensorIds(temperatures)
 
   if (ids.length === 0) {
