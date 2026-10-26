@@ -13,6 +13,7 @@ import type { BrokerLink } from '@/lib/brokerLink'
 import type { HubAddress } from '@/lib/hubAddress'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
+import type { StartWidgetId } from '@/hooks/useStartLayout'
 import type { MapThemeChoice } from '@/hooks/useMapTheme'
 import type { Van } from '@/hooks/useVan'
 import type { DriverRow } from '@/lib/drivers'
@@ -78,6 +79,8 @@ export interface SettingsPreferences {
   navbarPosition: NavbarPosition
   /** The Start page's half-moon sources and scales: the same instance the Start page reads. */
   startPowerSources: StartPowerSources
+  /** The phone Start page's widgets, in order; one not listed is not shown. The same instance `App` reads. */
+  startLayout: readonly StartWidgetId[]
   /** How the Power page is drawn, Tiles or Orbs: the same instance the Power page reads. */
   powerLayout: PowerLayout
   /** The Map page's look: Auto (follow the app theme), Light or Dark; the same instance `App` reads. */
@@ -99,6 +102,7 @@ export interface SettingsActions {
   setTheme: (theme: Theme) => void
   setNavbarPosition: (position: NavbarPosition) => void
   setStartPowerSources: (sources: StartPowerSources) => void
+  setStartLayout: (layout: readonly StartWidgetId[]) => void
   setPowerLayout: (layout: PowerLayout) => void
   setMapTheme: (choice: MapThemeChoice) => void
   setVanField: (field: keyof Van, value: string) => void

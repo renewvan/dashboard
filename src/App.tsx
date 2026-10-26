@@ -94,8 +94,15 @@ function App() {
   // No retained choice yet (or one that is not a string) reads as Auto.
   const primaryBatterySelection = primaryBattery ?? AUTO_PRIMARY_BATTERY
   const prefs = usePreferences()
-  const { theme, navbarPosition, mapTheme, alertsEnabled, startPowerSources, powerLayout } =
-    prefs.preferences
+  const {
+    theme,
+    navbarPosition,
+    mapTheme,
+    alertsEnabled,
+    startPowerSources,
+    startLayout,
+    powerLayout,
+  } = prefs.preferences
   const { setTheme } = prefs.actions
   const alertHistory = useAlertHistory()
   const hub = useHubAddress(hubStatus)
@@ -104,9 +111,10 @@ function App() {
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
   // A view (and the tank it shows) belongs to the Settings page: any other page change leaves
   // both behind (one entry).
-  const goToPage = (id: string) => setActivePage(id, { view: null, tank: null })
+  const goToPage = (id: string) => setActivePage(id, { view: null, tank: null, widget: null })
   // One history entry for page and view together, so Back returns to the previous page.
-  const openSettings = (view: SettingsSubView) => setActivePage('settings', { view, tank: null })
+  const openSettings = (view: SettingsSubView) =>
+    setActivePage('settings', { view, tank: null, widget: null })
   // The tank's Configure button: Settings › Drivers › Tanks › <tank>, page, view and tank in one entry.
   const openTankSettings = (tankId: string) =>
     setActivePage('settings', { view: 'tank', tank: tankId })
@@ -209,7 +217,11 @@ function App() {
   )
 
   const menuControls = (close: () => void) => (
-    <DrawerMenuControls close={close} onOpenVan={() => openSettings('van')} />
+    <DrawerMenuControls
+      close={close}
+      onOpenVan={() => openSettings('van')}
+      onOpenWidgets={() => openSettings('widgets')}
+    />
   )
 
   const menuFooter = (close: () => void) => (
@@ -290,6 +302,7 @@ function App() {
             tilt={tilt}
             powerSources={startPowerSources}
             powerLayout={powerLayout}
+            layout={startLayout}
             isDark={theme === 'dark'}
             mapIsDark={resolveMapIsDark(mapTheme, theme === 'dark')}
             onConfigureTank={openTankSettings}

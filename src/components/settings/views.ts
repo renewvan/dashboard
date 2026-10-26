@@ -17,6 +17,8 @@ export type SettingsView =
   | 'about'
   | 'alerts'
   | 'display'
+  | 'widgets'
+  | 'widget'
   | 'start-page'
   | 'power-page'
   | 'map-page'

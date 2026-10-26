@@ -8,13 +8,16 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 
 /** The phone drawer's body: two groups of rows. Profile has My Account, My Van and Widgets; System
- * has Automations and Scenes. Only My Van has a page yet: the rest are disabled placeholders. */
+ * has Automations and Scenes. My Van and Widgets open their Settings pages; the rest are disabled
+ * placeholders. */
 export function DrawerMenuControls({
   close,
   onOpenVan,
+  onOpenWidgets,
 }: {
   close: () => void
   onOpenVan: () => void
+  onOpenWidgets: () => void
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -30,7 +33,16 @@ export function DrawerMenuControls({
             onOpenVan()
           }}
         />
-        <DrawerRow icon={<LayoutGrid className="size-5" />} label="Widgets" disabled />
+        <DrawerRow
+          icon={<LayoutGrid className="size-5" />}
+          label="Widgets"
+          navigates
+          data-testid="widgets-button"
+          onPress={() => {
+            close()
+            onOpenWidgets()
+          }}
+        />
       </DrawerGroup>
       <DrawerGroup title="System">
         <DrawerRow icon={<SquareSparkles className="size-5" />} label="Automations" disabled />
