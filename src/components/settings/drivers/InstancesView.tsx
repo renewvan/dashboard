@@ -7,7 +7,7 @@ import { formatYield } from '@/components/widgets/solar/solarView'
 import { DetailRow } from '../shared/DetailList'
 import { Card, ChoiceRow } from '../shared/ChoiceRow'
 import { Group } from '../shared/Group'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData, useSettingsActions } from '../SettingsContext'
 
 /** The entity types the generic instances view lists. */
 export type InstanceType = 'battery' | 'solar' | 'charger'
@@ -130,7 +130,7 @@ function InstanceCard({
  * there is more than one battery to choose between.
  */
 export function InstancesView({ type }: { type: InstanceType }) {
-  const { drivers, batteries, solar, chargers } = useSettings()
+  const { drivers, batteries, solar, chargers } = useSettingsData()
   const entries =
     type === 'battery'
       ? entriesOf(batteries, batteryReadings)
@@ -177,7 +177,8 @@ export function InstancesView({ type }: { type: InstanceType }) {
  * while the chosen instance is absent or has not fully arrived.
  */
 function PrimaryBatterySelector({ instances }: { instances: { value: string; label: string }[] }) {
-  const { batteries, primaryBatterySelection, setPrimaryBattery } = useSettings()
+  const { batteries, primaryBatterySelection } = useSettingsData()
+  const { setPrimaryBattery } = useSettingsActions()
   const current = primaryBattery(batteries, primaryBatterySelection)
   const labelOf = (id: string) => instances.find((choice) => choice.value === id)?.label ?? id
   return (

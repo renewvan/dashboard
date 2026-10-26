@@ -3,7 +3,7 @@ import { routerDriver, routerName } from '@/lib/routerDriver'
 import { tailscaleStatusText } from '@/lib/tailscale'
 import { useNow } from '@/hooks/useNow'
 import { GroupRow } from '../shared/GroupRow'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData } from '../SettingsContext'
 import type { SettingsSubView } from '../views'
 
 interface ConnectivityViewProps {
@@ -21,7 +21,7 @@ interface ConnectivityViewProps {
  * yet) is still shown: live numbers are never hidden for want of a name.
  */
 export function ConnectivityView({ onOpen }: ConnectivityViewProps) {
-  const { drivers, router, routerHealth, routerUpdatedAt, busStatus, tailscale } = useSettings()
+  const { drivers, router, routerHealth, routerUpdatedAt, busStatus, tailscale } = useSettingsData()
   const now = useNow(30_000)
   const driver = routerDriver(drivers)
   const tier = cellularTier(router?.signal_rsrp_dbm, routerHealth, routerUpdatedAt, now)

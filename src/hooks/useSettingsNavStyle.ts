@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useStoredState } from '@/hooks/useStoredState'
 
 export type SettingsNavStyle = 'drawer' | 'subpage'
 
@@ -9,9 +9,7 @@ const STORAGE_KEY = 'renewvan-dashboard-settings-nav-style'
  * alternative, pending a real touch-display trial of both. */
 const DEFAULT_NAV_STYLE: SettingsNavStyle = 'subpage'
 
-function readStoredNavStyle(): SettingsNavStyle {
-  if (typeof window === 'undefined') return DEFAULT_NAV_STYLE
-  const stored = window.localStorage.getItem(STORAGE_KEY)
+function parseNavStyle(stored: string | null): SettingsNavStyle {
   // `'sheet'` is what this choice was stored as before it was renamed to drawer; keep
   // honouring it so a kiosk that picked it is not silently reset to subpages.
   if (stored === 'sheet') return 'drawer'
@@ -29,11 +27,5 @@ function readStoredNavStyle(): SettingsNavStyle {
  * overwrite the kiosk's choice.
  */
 export function useSettingsNavStyle(): [SettingsNavStyle, (style: SettingsNavStyle) => void] {
-  const [navStyle, setNavStyle] = useState<SettingsNavStyle>(readStoredNavStyle)
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, navStyle)
-  }, [navStyle])
-
-  return [navStyle, setNavStyle]
+  return useStoredState<SettingsNavStyle>(STORAGE_KEY, parseNavStyle)
 }

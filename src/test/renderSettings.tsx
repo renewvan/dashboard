@@ -9,6 +9,7 @@ import { DEFAULT_START_POWER_SOURCES } from '@/hooks/useStartPowerSources'
 import { driverRows } from '@/lib/drivers'
 import { emptyRenewvanBusState, type RenewvanBusState, type Router } from '@/types'
 import { stubMatchMedia } from './matchMedia'
+import { settingsSlices } from './settingsSlices'
 
 export const connectedTailscale: TailscaleStatus = {
   enabled: true,
@@ -147,7 +148,7 @@ export function renderSettings(
 
   const user = userEvent.setup()
   const result = render(
-    <SettingsProvider value={value}>
+    <SettingsProvider {...settingsSlices(value)}>
       <SettingsPage />
     </SettingsProvider>,
   )

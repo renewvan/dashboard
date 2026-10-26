@@ -1,6 +1,6 @@
 import { version } from '../../../../../package.json'
 import { DetailList, DetailRow } from '../../shared/DetailList'
-import { useSettings } from '../../SettingsContext'
+import { useSettingsData } from '../../SettingsContext'
 
 /**
  * The firmware on the van: the hub (the Pi's compose stack and schema) first, then the dashboard's
@@ -9,7 +9,7 @@ import { useSettings } from '../../SettingsContext'
  * version: before the first message, or from a Pi not yet redeployed. Read-only.
  */
 export function FirmwareView() {
-  const { drivers, hubStatus } = useSettings()
+  const { drivers, hubStatus } = useSettingsData()
 
   return (
     <DetailList label="Firmware">

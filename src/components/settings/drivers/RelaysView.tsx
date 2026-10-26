@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { NameField } from '../shared/NameField'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData, useSettingsActions } from '../SettingsContext'
 
 /**
  * The longest name the ESP32 relay driver stores, in UTF-8 bytes (hub ADR 0013: 63 by default, 254 to
@@ -9,7 +9,7 @@ import { useSettings } from '../SettingsContext'
 const RELAY_NAME_MAX_BYTES = 63
 
 function RelayPanel({ id, name }: { id: string; name: string | undefined }) {
-  const { setRelayName } = useSettings()
+  const { setRelayName } = useSettingsActions()
   const labelId = useId()
 
   return (
@@ -32,7 +32,7 @@ function RelayPanel({ id, name }: { id: string; name: string | undefined }) {
 
 /** Settings › Drivers › Relays: rename a channel. Switching is on the Relays page, not here. */
 export function RelaysView() {
-  const { relays } = useSettings()
+  const { relays } = useSettingsData()
   // `numeric` keeps relay_9 before relay_10 for an id that is not zero-padded.
   const ids = Object.keys(relays).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
 

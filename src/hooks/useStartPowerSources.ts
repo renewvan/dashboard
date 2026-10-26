@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useStoredState } from '@/hooks/useStoredState'
 import type { FluidType } from '@/types'
 
 /**
@@ -169,9 +169,8 @@ export function parseStartPowerSources(raw: string | null): StartPowerSources {
   }
 }
 
-function readStored(): StartPowerSources {
-  if (typeof window === 'undefined') return DEFAULT_START_POWER_SOURCES
-  return parseStartPowerSources(window.localStorage.getItem(STORAGE_KEY))
+function serializeStartPowerSources(sources: StartPowerSources): string {
+  return JSON.stringify(sources)
 }
 
 /**
@@ -180,13 +179,11 @@ function readStored(): StartPowerSources {
  * Start page edits it; the Start page reads the same instance through `App`.
  */
 export function useStartPowerSources(): [StartPowerSources, (next: StartPowerSources) => void] {
-  const [sources, setSources] = useState<StartPowerSources>(readStored)
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sources))
-  }, [sources])
-
-  return [sources, setSources]
+  return useStoredState<StartPowerSources>(
+    STORAGE_KEY,
+    parseStartPowerSources,
+    serializeStartPowerSources,
+  )
 }
 
 /** The live readings a slot can be taken from; each is `undefined` until its source has published. */

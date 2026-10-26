@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 import { SettingsPage } from '../SettingsPage'
 import { SettingsProvider } from '../SettingsProvider'
+import { settingsSlices } from '@/test/settingsSlices'
 import type { SettingsContextValue } from '../SettingsContext'
 import { renderSettings } from '@/test/renderSettings'
 import type { DriverInfo, Relay } from '@/types'
@@ -120,7 +121,9 @@ describe('Settings › Devices › Relays', () => {
       expect(field).toHaveValue('Water pump')
 
       rerender(
-        <SettingsProvider value={{ ...value, relays: { relay_03: { ...PUMP, name: 'Pump' } } }}>
+        <SettingsProvider
+          {...settingsSlices({ ...value, relays: { relay_03: { ...PUMP, name: 'Pump' } } })}
+        >
           <SettingsPage />
         </SettingsProvider>,
       )

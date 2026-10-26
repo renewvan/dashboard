@@ -5,7 +5,7 @@ import {
   tailscaleStatusText,
 } from '@/lib/tailscale'
 import { DetailList, DetailRow, StatusRow } from '../shared/DetailList'
-import { useSettings } from '../SettingsContext'
+import { useSettingsData } from '../SettingsContext'
 
 /**
  * The van's Tailscale node, from the retained status the Tailscale plugin publishes: whether it is
@@ -14,7 +14,7 @@ import { useSettings } from '../SettingsContext'
  * nothing but `false`, `null` and `0` while signed out) reads as a dash rather than a made-up one.
  */
 export function TailscaleView() {
-  const { tailscale } = useSettings()
+  const { tailscale } = useSettingsData()
   const endpoints = tailscaleEndpoints(tailscale)
 
   return (

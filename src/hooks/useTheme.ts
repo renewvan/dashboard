@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useStoredState } from '@/hooks/useStoredState'
 
 export type Theme = 'light' | 'dark'
 
@@ -12,9 +13,7 @@ function isTheme(value: string | null): value is Theme {
   return value === 'light' || value === 'dark'
 }
 
-function readStoredTheme(): Theme {
-  if (typeof window === 'undefined') return DEFAULT_THEME
-  const stored = window.localStorage.getItem(STORAGE_KEY)
+function parseTheme(stored: string | null): Theme {
   return isTheme(stored) ? stored : DEFAULT_THEME
 }
 
@@ -24,10 +23,9 @@ function readStoredTheme(): Theme {
  * `localStorage` so the choice survives a reload/power cycle.
  */
 export function useTheme(): [Theme, (theme: Theme) => void] {
-  const [theme, setTheme] = useState<Theme>(readStoredTheme)
+  const [theme, setTheme] = useStoredState<Theme>(STORAGE_KEY, parseTheme)
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, theme)
     document.documentElement.dataset.theme = theme
   }, [theme])
 

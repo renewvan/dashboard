@@ -7,7 +7,7 @@ import { MAP_THEME_LABELS } from '@/hooks/useMapTheme'
 import { Card, ChoiceRow } from '../../shared/ChoiceRow'
 import { Group } from '../../shared/Group'
 import { GroupRow } from '../../shared/GroupRow'
-import { useSettings } from '../../SettingsContext'
+import { useSettingsPreferences, useSettingsActions } from '../../SettingsContext'
 import type { SettingsSubView } from '../../views'
 
 const TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
@@ -37,7 +37,8 @@ function BrightnessScale() {
 
 /** Label, live `NN%` readout (a dash while unknown) and the slider that drives it. */
 function BrightnessRow() {
-  const { brightness, setBrightness } = useSettings()
+  const { brightness } = useSettingsPreferences()
+  const { setBrightness } = useSettingsActions()
 
   return (
     <div className="px-3.5 py-3">
@@ -68,7 +69,8 @@ function BrightnessRow() {
 
 /** Whole-row switch: padding sits inside `Switch.Content`, so the label area toggles too. */
 function AutoSleepRow() {
-  const { autoSleepEnabled, setAutoSleepEnabled } = useSettings()
+  const { autoSleepEnabled } = useSettingsPreferences()
+  const { setAutoSleepEnabled } = useSettingsActions()
 
   return (
     <Switch
@@ -94,7 +96,8 @@ function AutoSleepRow() {
 
 /** Shown only while auto-sleep is on. Re-tapping the selected value sends nothing. */
 function SleepAfterRow() {
-  const { autoSleepTimeoutMinutes, setAutoSleepTimeoutMinutes } = useSettings()
+  const { autoSleepTimeoutMinutes } = useSettingsPreferences()
+  const { setAutoSleepTimeoutMinutes } = useSettingsActions()
 
   return (
     <div className="flex items-center justify-end gap-3 px-3.5 pb-3">
@@ -144,7 +147,8 @@ const NAV_STYLE_CHOICES: { value: SettingsNavStyle; label: string }[] = [
 
 /** Light or dark: the same choice as the header toggle, applied at once. */
 function ThemeRow() {
-  const { theme, setTheme } = useSettings()
+  const { theme } = useSettingsPreferences()
+  const { setTheme } = useSettingsActions()
   return <ChoiceRow label="Theme" choices={THEME_CHOICES} value={theme} onChange={setTheme} />
 }
 
@@ -174,7 +178,7 @@ export function DisplayView({
   isMobile,
   onOpen,
 }: DisplayViewProps) {
-  const { autoSleepEnabled, mapTheme } = useSettings()
+  const { autoSleepEnabled, mapTheme } = useSettingsPreferences()
 
   return (
     <div className="flex flex-col gap-4">

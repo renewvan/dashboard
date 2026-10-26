@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useStoredState } from '@/hooks/useStoredState'
 
 const STORAGE_KEY = 'renewvan-dashboard-alerts-enabled'
 
 /** On by default: a safety alert must never be silently off on a fresh kiosk. */
 const DEFAULT_ALERTS_ENABLED = true
 
-function readStoredAlertsEnabled(): boolean {
-  if (typeof window === 'undefined') return DEFAULT_ALERTS_ENABLED
-  const stored = window.localStorage.getItem(STORAGE_KEY)
+function parseAlertsEnabled(stored: string | null): boolean {
   return stored === null ? DEFAULT_ALERTS_ENABLED : stored === 'true'
 }
 
@@ -21,11 +19,5 @@ function readStoredAlertsEnabled(): boolean {
  * second one would drift from the toasts).
  */
 export function useAlertsEnabled(): [boolean, (enabled: boolean) => void] {
-  const [enabled, setEnabled] = useState<boolean>(readStoredAlertsEnabled)
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, String(enabled))
-  }, [enabled])
-
-  return [enabled, setEnabled]
+  return useStoredState<boolean>(STORAGE_KEY, parseAlertsEnabled)
 }
