@@ -318,7 +318,7 @@ describe('App shell navigation layout', () => {
       await renderAt(PHONE_WIDTH, '/?page=power')
       const drawer = await openDrawer(user)
 
-      for (const name of ['My Account', 'Widgets', 'Automations', 'Scenes']) {
+      for (const name of ['My Account', 'Automations', 'Scenes']) {
         const row = drawer.getByRole('button', { name })
         expect(row).toBeDisabled()
         // No arrow: a row that opens nothing must not promise a page.
@@ -339,10 +339,11 @@ describe('App shell navigation layout', () => {
         .getAllByRole('button')
         .filter((button) => button.querySelector('[data-testid="menu-chevron"]'))
         .map((button) => button.getAttribute('aria-label'))
-      expect(withArrow).toHaveLength(3)
+      expect(withArrow).toHaveLength(4)
       expect(withArrow[0]).toBe('My Van')
-      expect(withArrow[1]).toMatch(/^Alerts/)
-      expect(withArrow[2]).toBe('Settings')
+      expect(withArrow[1]).toBe('Widgets')
+      expect(withArrow[2]).toMatch(/^Alerts/)
+      expect(withArrow[3]).toBe('Settings')
     })
 
     it('puts the logo in the drawer header, beside the close button, linked to Start', async () => {
@@ -420,6 +421,18 @@ describe('App shell navigation layout', () => {
       await user.click(drawer.getByRole('button', { name: 'My Van' }))
 
       expect(window.location.search).toBe('?page=settings&view=van')
+      expect(onSettingsPage()).toBe(true)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('opens Settings › Widgets from Widgets, and closes the drawer', async () => {
+      const user = userEvent.setup()
+      await renderAt(PHONE_WIDTH, '/?page=power')
+      const drawer = await openDrawer(user)
+
+      await user.click(drawer.getByRole('button', { name: 'Widgets' }))
+
+      expect(window.location.search).toBe('?page=settings&view=widgets')
       expect(onSettingsPage()).toBe(true)
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     })

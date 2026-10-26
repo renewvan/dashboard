@@ -1,4 +1,4 @@
-import { Label, Separator, Slider, Switch, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { Label, Slider, Switch, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
 import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
@@ -165,10 +165,10 @@ interface DisplayViewProps {
 }
 
 /**
- * Settings › General › Display & Appearance, in two groups: Display (the screen: theme,
- * brightness, auto-sleep and its timeout) and Appearance (what the app shows and how it is
- * laid out: Start page, then, below a divider, where the navbar sits and how Settings opens,
- * both chosen inline).
+ * Settings › General › Display & Appearance, in two groups. Appearance (what the app shows and how
+ * it is laid out): Widgets, then a Pages group (Start, Power and Map page) and a Navigation group
+ * (where the navbar sits and how Settings opens, both chosen inline). Display (the screen: theme,
+ * brightness, auto-sleep and its timeout).
  */
 export function DisplayView({
   navStyle,
@@ -182,6 +182,50 @@ export function DisplayView({
 
   return (
     <div className="flex flex-col gap-4">
+      <Group title="Appearance">
+        <GroupRow
+          label="Widgets"
+          description="Choose and arrange the phone Start page"
+          onOpen={() => onOpen('widgets')}
+        />
+        <Group title="Pages" nested>
+          <GroupRow
+            label="Start page"
+            description="Power readings and scales"
+            onOpen={() => onOpen('start-page')}
+          />
+          <GroupRow
+            label="Power page"
+            description="Van tiles or van orbs"
+            onOpen={() => onOpen('power-page')}
+          />
+          <GroupRow
+            label="Map page"
+            description={`Map theme: ${MAP_THEME_LABELS[mapTheme]}`}
+            onOpen={() => onOpen('map-page')}
+          />
+        </Group>
+        <Group title="Navigation" nested>
+          <Card>
+            <ChoiceRow
+              label="Navigation position"
+              choices={NAVBAR_POSITION_CHOICES}
+              value={navbarPosition}
+              onChange={onNavbarPositionChange}
+              isDisabled={isMobile}
+            />
+          </Card>
+          <Card>
+            <ChoiceRow
+              label="Navigation style"
+              choices={NAV_STYLE_CHOICES}
+              value={navStyle}
+              onChange={onNavStyleChange}
+              isDisabled={isMobile}
+            />
+          </Card>
+        </Group>
+      </Group>
       <Group title="Display">
         <Card>
           <ThemeRow />
@@ -192,42 +236,6 @@ export function DisplayView({
         <Card>
           <AutoSleepRow />
           {autoSleepEnabled === true && <SleepAfterRow />}
-        </Card>
-      </Group>
-      <Group title="Appearance">
-        <GroupRow
-          label="Start page"
-          description="Power readings and scales"
-          onOpen={() => onOpen('start-page')}
-        />
-        <GroupRow
-          label="Power page"
-          description="Van tiles or van orbs"
-          onOpen={() => onOpen('power-page')}
-        />
-        <GroupRow
-          label="Map page"
-          description={`Map theme: ${MAP_THEME_LABELS[mapTheme]}`}
-          onOpen={() => onOpen('map-page')}
-        />
-        <Separator className="my-1" />
-        <Card>
-          <ChoiceRow
-            label="Navigation position"
-            choices={NAVBAR_POSITION_CHOICES}
-            value={navbarPosition}
-            onChange={onNavbarPositionChange}
-            isDisabled={isMobile}
-          />
-        </Card>
-        <Card>
-          <ChoiceRow
-            label="Navigation style"
-            choices={NAV_STYLE_CHOICES}
-            value={navStyle}
-            onChange={onNavStyleChange}
-            isDisabled={isMobile}
-          />
         </Card>
       </Group>
     </div>

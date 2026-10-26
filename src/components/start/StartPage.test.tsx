@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Battery, Charger, Gps, Solar, Tank, TemperatureSensor, Tilt } from '@/types'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
+import type { StartWidgetId } from '@/hooks/useStartLayout'
 import { DEFAULT_START_POWER_SOURCES, type StartPowerSources } from '@/hooks/useStartPowerSources'
 import { StartPage } from './StartPage'
 
@@ -82,6 +83,7 @@ function renderAt(
     powerLayout?: PowerLayout
     primaryBatterySelection?: string
     mapIsDark?: boolean
+    layout?: readonly StartWidgetId[]
   },
 ) {
   viewport = stubMatchMedia(width)
@@ -99,6 +101,7 @@ function renderAt(
       powerLayout={props.powerLayout ?? 'tiles'}
       isDark
       mapIsDark={props.mapIsDark ?? true}
+      layout={props.layout}
       onConfigureTank={onConfigureTank}
     />,
   )
@@ -232,6 +235,22 @@ describe('StartPage layout', () => {
     // The map card has no title, so it is the one child without a heading: index 1.
     const cardIndex = [0, 2, 3, 4, 5, 6]
     titles.forEach((title, i) => expect(pane.children[cardIndex[i]]).toContainElement(title))
+  })
+
+  it('shows only the widgets in the layout, in the layout order', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { layout: ['tilt', 'grey-water', 'weather'] })
+    const pane = screen.getByTestId('pane-start')
+
+    expect(pane.children).toHaveLength(3)
+    expect(pane.children[0]).toHaveTextContent('Tilt')
+    expect(pane.children[1]).toHaveTextContent('Grey water')
+    expect(pane.children[2]).toHaveTextContent('Weather')
+    expect(screen.queryByTestId('map-card-loading')).not.toBeInTheDocument()
+  })
+
+  it('draws an empty page when every widget is removed', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { layout: [] })
+    expect(screen.getByTestId('pane-start')).toBeEmptyDOMElement()
   })
 })
 

@@ -41,8 +41,8 @@ describe('Settings › General › Display & Appearance', () => {
       await openDisplay({ autoSleepEnabled: false })
 
       expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
-        'Display',
         'Appearance',
+        'Display',
       ])
       const display = within(screen.getByRole('region', { name: 'Display' }))
       expect(display.getByRole('radiogroup', { name: 'Theme' })).toBeInTheDocument()
@@ -59,22 +59,48 @@ describe('Settings › General › Display & Appearance', () => {
       expect(appearance.getByRole('radiogroup', { name: 'Navigation style' })).toBeInTheDocument()
     })
 
-    it('separates the Start page row from the two navigation toggles', async () => {
+    it('lists Widgets, then Pages and Navigation as groups inside Appearance', async () => {
+      await openDisplay()
+
+      const appearance = within(screen.getByRole('region', { name: 'Appearance' }))
+      expect(appearance.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+        'Pages',
+        'Navigation',
+      ])
+
+      const widgets = appearance.getByRole('button', { name: /^Widgets/ })
+      const pages = appearance.getByRole('region', { name: 'Pages' })
+      const navigation = appearance.getByRole('region', { name: 'Navigation' })
+      const before = (a: Element, b: Element) =>
+        Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+      expect(before(widgets, pages)).toBe(true)
+      expect(before(pages, navigation)).toBe(true)
+
+      expect(
+        within(pages)
+          .getAllByRole('button')
+          .map((row) => row.textContent),
+      ).toEqual([
+        'Start pagePower readings and scales',
+        'Power pageVan tiles or van orbs',
+        expect.stringMatching(/^Map page/),
+      ])
+      expect(
+        within(navigation).getByRole('radiogroup', { name: 'Navigation position' }),
+      ).toBeInTheDocument()
+      expect(
+        within(navigation).getByRole('radiogroup', { name: 'Navigation style' }),
+      ).toBeInTheDocument()
+    })
+
+    it('puts Appearance before Display', async () => {
       await openDisplay()
 
       const appearance = screen.getByRole('region', { name: 'Appearance' })
-      const divider = within(appearance).getByRole('separator')
+      const display = screen.getByRole('region', { name: 'Display' })
       expect(
-        divider.compareDocumentPosition(
-          within(appearance).getByRole('button', { name: /^Start page/ }),
-        ) & Node.DOCUMENT_POSITION_PRECEDING,
+        appearance.compareDocumentPosition(display) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy()
-      for (const name of ['Navigation position', 'Navigation style']) {
-        expect(
-          divider.compareDocumentPosition(within(appearance).getByRole('radiogroup', { name })) &
-            Node.DOCUMENT_POSITION_FOLLOWING,
-        ).toBeTruthy()
-      }
     })
   })
 

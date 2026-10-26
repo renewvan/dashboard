@@ -26,7 +26,11 @@ import { HubView } from './connectivity/HubView'
 import { DriverInfoView } from './drivers/DriverInfoView'
 import { DriverView } from './drivers/DriverView'
 import { DriversView } from './drivers/DriversView'
+import { START_WIDGETS } from '@/components/start/widgets/registry'
+import { START_WIDGET_IDS, type StartWidgetId } from '@/hooks/useStartLayout'
 import { StartPageView } from './general/preferences/StartPageView'
+import { WidgetsView } from './general/preferences/WidgetsView'
+import { WidgetView } from './general/preferences/WidgetView'
 import { PowerPageView } from './general/preferences/PowerPageView'
 import { MapPageView } from './general/preferences/MapPageView'
 import { useSettingsData, useSettingsPreferences, useSettingsActions } from './SettingsContext'
@@ -60,6 +64,8 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   about: { title: 'About', parent: 'general' },
   alerts: { title: 'Alerts', parent: 'general' },
   display: { title: 'Display & Appearance', parent: 'general' },
+  widgets: { title: 'Widgets', parent: 'display' },
+  widget: { title: 'Widget', parent: 'widgets' },
   'start-page': { title: 'Start page', parent: 'display' },
   'power-page': { title: 'Power page', parent: 'display' },
   'map-page': { title: 'Map page', parent: 'display' },
@@ -93,13 +99,15 @@ export const SettingsPage = memo(function SettingsPage() {
     hub,
     unseenAlertCount,
   } = useSettingsData()
-  const { navbarPosition, startPowerSources, powerLayout, mapTheme, van } = useSettingsPreferences()
+  const { navbarPosition, startPowerSources, startLayout, powerLayout, mapTheme, van } =
+    useSettingsPreferences()
   const {
     sleepDisplay,
     wakeDisplay,
     openAlerts,
     setNavbarPosition,
     setStartPowerSources,
+    setStartLayout,
     setPowerLayout,
     setMapTheme,
     setVanField,
@@ -119,20 +127,25 @@ export const SettingsPage = memo(function SettingsPage() {
   const validDriverKeys = useContentStable(drivers.map((row) => row.key))
   const [driverParam] = useUrlParam('driver', validDriverKeys)
   const driverRow = drivers.find((row) => row.key === driverParam)
+  // The open widget lives in `?widget=`, valid only while it names a Start page widget.
+  const [widgetParam] = useUrlParam('widget', START_WIDGET_IDS)
   // A tank view without a reported tank has nothing to show: fall back to the tank list; a driver
-  // view without a reported Driver, to the Drivers list.
+  // view without a reported Driver, to the Drivers list; a widget view without a widget, to Widgets.
   const view: SettingsView =
-    viewParam === 'tank' && tankParam === null
-      ? 'tanks'
-      : (viewParam === 'driver' || viewParam === 'driver-info') && driverRow === undefined
-        ? 'drivers'
-        : (viewParam ?? 'list')
+    viewParam === 'widget' && widgetParam === null
+      ? 'widgets'
+      : viewParam === 'tank' && tankParam === null
+        ? 'tanks'
+        : (viewParam === 'driver' || viewParam === 'driver-info') && driverRow === undefined
+          ? 'drivers'
+          : (viewParam ?? 'list')
   // `tank` is titled by the open tank's fluid and `driver` by the open Driver's label; every other
   // view has a fixed title.
   const titleOf = (id: SettingsSubView): string => {
     const fluid = tankParam === null ? undefined : tanks[tankParam]?.fluid_type
     if (id === 'tank' && fluid) return FLUID_LABELS[fluid]
     if (id === 'driver' && driverRow) return driverRow.name
+    if (id === 'widget' && widgetParam) return START_WIDGETS[widgetParam].label
     if (id === 'cellular') return routerName(routerDriver(drivers))
     return VIEWS[id].title
   }
@@ -151,6 +164,13 @@ export const SettingsPage = memo(function SettingsPage() {
     const params = new URLSearchParams(window.location.search)
     params.set('view', 'tank')
     params.set('tank', tankId)
+    pushSearchParams(params)
+  }, [])
+  // Likewise `view` and `widget`.
+  const openWidget = useCallback((id: StartWidgetId) => {
+    const params = new URLSearchParams(window.location.search)
+    params.set('view', 'widget')
+    params.set('widget', id)
     pushSearchParams(params)
   }, [])
   // Likewise `view` and `driver`.
@@ -203,6 +223,12 @@ export const SettingsPage = memo(function SettingsPage() {
             isMobile={isMobile}
             onOpen={setView}
           />
+        )
+      case 'widgets':
+        return <WidgetsView layout={startLayout} onChange={setStartLayout} onOpen={openWidget} />
+      case 'widget':
+        return widgetParam === null ? null : (
+          <WidgetView id={widgetParam} layout={startLayout} onChange={setStartLayout} />
         )
       case 'start-page':
         return <StartPageView sources={startPowerSources} onChange={setStartPowerSources} />

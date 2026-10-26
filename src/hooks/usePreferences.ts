@@ -2,6 +2,7 @@ import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
 import { useMapTheme } from '@/hooks/useMapTheme'
 import { useNavbarPosition } from '@/hooks/useNavbarPosition'
 import { usePowerLayout } from '@/hooks/usePowerLayout'
+import { useStartLayout } from '@/hooks/useStartLayout'
 import { useStartPowerSources } from '@/hooks/useStartPowerSources'
 import { useTheme } from '@/hooks/useTheme'
 import { useVan } from '@/hooks/useVan'
@@ -19,6 +20,7 @@ export function usePreferences(): {
     | 'theme'
     | 'navbarPosition'
     | 'startPowerSources'
+    | 'startLayout'
     | 'powerLayout'
     | 'mapTheme'
     | 'van'
@@ -29,6 +31,7 @@ export function usePreferences(): {
     | 'setTheme'
     | 'setNavbarPosition'
     | 'setStartPowerSources'
+    | 'setStartLayout'
     | 'setPowerLayout'
     | 'setMapTheme'
     | 'setVanField'
@@ -38,6 +41,7 @@ export function usePreferences(): {
   const [theme, setTheme] = useTheme()
   const [navbarPosition, setNavbarPosition] = useNavbarPosition()
   const [startPowerSources, setStartPowerSources] = useStartPowerSources()
+  const [startLayout, setStartLayout] = useStartLayout()
   const [powerLayout, setPowerLayout] = usePowerLayout()
   const [mapTheme, setMapTheme] = useMapTheme()
   const [van, setVanField] = useVan()
@@ -47,6 +51,7 @@ export function usePreferences(): {
       theme,
       navbarPosition,
       startPowerSources,
+      startLayout,
       powerLayout,
       mapTheme,
       van,
@@ -56,6 +61,7 @@ export function usePreferences(): {
       setTheme,
       setNavbarPosition,
       setStartPowerSources,
+      setStartLayout,
       setPowerLayout,
       setMapTheme,
       setVanField,
