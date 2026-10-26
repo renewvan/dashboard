@@ -4,6 +4,7 @@ import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import type { Theme } from '@/hooks/useTheme'
 import { MAP_THEME_LABELS } from '@/hooks/useMapTheme'
+import { START_VIEW_LABELS } from '@/hooks/useStartView'
 import { Card, ChoiceRow } from '../../shared/ChoiceRow'
 import { Group } from '../../shared/Group'
 import { GroupRow } from '../../shared/GroupRow'
@@ -178,20 +179,20 @@ export function DisplayView({
   isMobile,
   onOpen,
 }: DisplayViewProps) {
-  const { autoSleepEnabled, mapTheme } = useSettingsPreferences()
+  const { autoSleepEnabled, mapTheme, startView } = useSettingsPreferences()
 
   return (
     <div className="flex flex-col gap-4">
       <Group title="Appearance">
         <GroupRow
           label="Widgets"
-          description="Choose and arrange the phone Start page"
+          description="Choose and arrange the Start page widgets"
           onOpen={() => onOpen('widgets')}
         />
         <Group title="Pages" nested>
           <GroupRow
             label="Start page"
-            description="Power readings and scales"
+            description={`Start view: ${START_VIEW_LABELS[startView]}`}
             onOpen={() => onOpen('start-page')}
           />
           <GroupRow

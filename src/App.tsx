@@ -101,6 +101,8 @@ function App() {
     alertsEnabled,
     startPowerSources,
     startLayout,
+    startView,
+    startTiles,
     powerLayout,
   } = prefs.preferences
   const { setTheme } = prefs.actions
@@ -303,6 +305,8 @@ function App() {
             powerSources={startPowerSources}
             powerLayout={powerLayout}
             layout={startLayout}
+            view={startView}
+            tiles={startTiles}
             isDark={theme === 'dark'}
             mapIsDark={resolveMapIsDark(mapTheme, theme === 'dark')}
             onConfigureTank={openTankSettings}

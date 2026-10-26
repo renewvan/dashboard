@@ -51,7 +51,7 @@ describe('Settings › General › Display & Appearance', () => {
 
       const appearance = within(screen.getByRole('region', { name: 'Appearance' }))
       expect(appearance.getAllByRole('button').map((row) => row.textContent)).toContain(
-        'Start pagePower readings and scales',
+        'Start pageStart view: Cockpit',
       )
       expect(
         appearance.getByRole('radiogroup', { name: 'Navigation position' }),
@@ -81,7 +81,7 @@ describe('Settings › General › Display & Appearance', () => {
           .getAllByRole('button')
           .map((row) => row.textContent),
       ).toEqual([
-        'Start pagePower readings and scales',
+        'Start pageStart view: Cockpit',
         'Power pageVan tiles or van orbs',
         expect.stringMatching(/^Map page/),
       ])

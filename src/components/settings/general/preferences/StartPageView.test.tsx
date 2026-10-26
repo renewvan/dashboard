@@ -29,6 +29,97 @@ describe('Settings › General › Display & Appearance › Start page', () => {
     expect(screen.getByRole('status', { name: 'Right full band' })).toHaveTextContent('1000 W')
   })
 
+  it('chooses the Start view, Cockpit selected by default, and sends nothing on a re-tap', async () => {
+    const { user, value } = renderSettings()
+    await openStartPage(user)
+
+    const group = screen.getByRole('radiogroup', { name: 'Start view' })
+    expect(within(group).getByRole('radio', { name: 'Cockpit' })).toBeChecked()
+
+    await user.click(within(group).getByRole('radio', { name: 'Cockpit' }))
+    expect(value.setStartView).not.toHaveBeenCalled()
+
+    await user.click(within(group).getByRole('radio', { name: 'Masonry' }))
+    expect(value.setStartView).toHaveBeenCalledExactlyOnceWith('masonry')
+  })
+
+  it('shows the Cockpit settings, not the tile sizes, while the view is Cockpit', async () => {
+    const { user } = renderSettings()
+    await openStartPage(user)
+
+    expect(screen.getByRole('heading', { name: 'Centre' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Level Rings' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Tile sizes' })).not.toBeInTheDocument()
+  })
+
+  describe('Masonry view', () => {
+    it('drops the Cockpit settings for the order and a size card per tile, Energy being Power and Battery', async () => {
+      const { user } = renderSettings({ startView: 'masonry', startLayout: ['map', 'energy'] })
+      await openStartPage(user)
+
+      for (const name of ['Centre', 'Power Readings', 'Level Rings']) {
+        expect(screen.queryByRole('heading', { name })).not.toBeInTheDocument()
+      }
+      expect(screen.queryByRole('radiogroup', { name: 'Right source' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^Widgets/ })).toBeInTheDocument()
+      const width = screen.getByRole('radiogroup', { name: 'Battery width' })
+      expect(within(width).getByRole('radio', { name: '1' })).toBeChecked()
+      const height = screen.getByRole('radiogroup', { name: 'Battery height' })
+      expect(within(height).getByRole('radio', { name: '2' })).toBeChecked()
+      expect(screen.getByRole('radiogroup', { name: 'Power width' })).toBeInTheDocument()
+      expect(screen.queryByRole('radiogroup', { name: 'Energy width' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('radiogroup', { name: 'Tilt width' })).not.toBeInTheDocument()
+    })
+
+    it('stores a changed size as an override, keeping the other overrides', async () => {
+      const { user, value } = renderSettings({
+        startView: 'masonry',
+        startLayout: ['map', 'energy'],
+        startTiles: { map: { cols: 4, rows: 2 } },
+      })
+      await openStartPage(user)
+
+      const height = screen.getByRole('radiogroup', { name: 'Battery height' })
+      await user.click(within(height).getByRole('radio', { name: '1' }))
+
+      expect(value.setStartTiles).toHaveBeenCalledExactlyOnceWith({
+        map: { cols: 4, rows: 2 },
+        battery: { cols: 1, rows: 1 },
+      })
+    })
+
+    it('drops the override when a size is put back to the shipped one', async () => {
+      const { user, value } = renderSettings({
+        startView: 'masonry',
+        startLayout: ['energy'],
+        startTiles: { battery: { cols: 1, rows: 1 } },
+      })
+      await openStartPage(user)
+
+      const height = screen.getByRole('radiogroup', { name: 'Battery height' })
+      await user.click(within(height).getByRole('radio', { name: '2' }))
+
+      expect(value.setStartTiles).toHaveBeenCalledExactlyOnceWith({})
+    })
+
+    it('resets every size, the button off while none is changed', async () => {
+      const first = renderSettings({ startView: 'masonry' })
+      await openStartPage(first.user)
+      expect(screen.getByRole('button', { name: 'Reset tile sizes' })).toBeDisabled()
+    })
+
+    it('resets every changed size', async () => {
+      const { user, value } = renderSettings({
+        startView: 'masonry',
+        startTiles: { tilt: { cols: 2, rows: 1 } },
+      })
+      await openStartPage(user)
+
+      await user.click(screen.getByRole('button', { name: 'Reset tile sizes' }))
+      expect(value.setStartTiles).toHaveBeenCalledExactlyOnceWith({})
+    })
+  })
+
   it('changes only the touched slot, keeping the others', async () => {
     const { user, value } = renderSettings()
     await openStartPage(user)

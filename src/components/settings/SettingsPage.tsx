@@ -99,8 +99,16 @@ export const SettingsPage = memo(function SettingsPage() {
     hub,
     unseenAlertCount,
   } = useSettingsData()
-  const { navbarPosition, startPowerSources, startLayout, powerLayout, mapTheme, van } =
-    useSettingsPreferences()
+  const {
+    navbarPosition,
+    startPowerSources,
+    startLayout,
+    startView,
+    startTiles,
+    powerLayout,
+    mapTheme,
+    van,
+  } = useSettingsPreferences()
   const {
     sleepDisplay,
     wakeDisplay,
@@ -108,6 +116,8 @@ export const SettingsPage = memo(function SettingsPage() {
     setNavbarPosition,
     setStartPowerSources,
     setStartLayout,
+    setStartView,
+    setStartTiles,
     setPowerLayout,
     setMapTheme,
     setVanField,
@@ -231,7 +241,18 @@ export const SettingsPage = memo(function SettingsPage() {
           <WidgetView id={widgetParam} layout={startLayout} onChange={setStartLayout} />
         )
       case 'start-page':
-        return <StartPageView sources={startPowerSources} onChange={setStartPowerSources} />
+        return (
+          <StartPageView
+            view={startView}
+            onViewChange={setStartView}
+            layout={startLayout}
+            tiles={startTiles}
+            onTilesChange={setStartTiles}
+            onOpen={setView}
+            sources={startPowerSources}
+            onChange={setStartPowerSources}
+          />
+        )
       case 'power-page':
         return <PowerPageView layout={powerLayout} onChange={setPowerLayout} />
       case 'map-page':

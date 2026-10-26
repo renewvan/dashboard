@@ -15,6 +15,8 @@ const PREFERENCE_KEYS = [
   'navbarPosition',
   'startPowerSources',
   'startLayout',
+  'startView',
+  'startTiles',
   'powerLayout',
   'mapTheme',
   'van',

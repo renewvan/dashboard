@@ -6,6 +6,8 @@ import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Battery, Charger, Gps, Solar, Tank, TemperatureSensor, Tilt } from '@/types'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { StartWidgetId } from '@/hooks/useStartLayout'
+import type { StartTiles } from '@/hooks/useStartTiles'
+import type { StartView } from '@/hooks/useStartView'
 import { DEFAULT_START_POWER_SOURCES, type StartPowerSources } from '@/hooks/useStartPowerSources'
 import { StartPage } from './StartPage'
 
@@ -84,6 +86,8 @@ function renderAt(
     primaryBatterySelection?: string
     mapIsDark?: boolean
     layout?: readonly StartWidgetId[]
+    view?: StartView
+    tiles?: StartTiles
   },
 ) {
   viewport = stubMatchMedia(width)
@@ -102,6 +106,8 @@ function renderAt(
       isDark
       mapIsDark={props.mapIsDark ?? true}
       layout={props.layout}
+      view={props.view}
+      tiles={props.tiles}
       onConfigureTank={onConfigureTank}
     />,
   )
@@ -254,6 +260,55 @@ describe('StartPage layout', () => {
   })
 })
 
+describe('StartPage masonry view', () => {
+  it('draws the tiles in layout order on a grid, the Map, Power and Battery taking more cells, with no Dial', () => {
+    renderAt(KIOSK_WIDTH, { view: 'masonry', layout: ['tilt', 'map', 'energy', 'weather'] })
+    const pane = screen.getByTestId('pane-start')
+
+    // Energy is two tiles here, Power then Battery.
+    expect(pane.children).toHaveLength(5)
+    expect(pane.children[0]).toHaveTextContent('Tilt')
+    expect(pane.children[1]).toHaveClass('col-span-2', 'row-span-2')
+    expect(pane.children[2]).toHaveTextContent('Power')
+    expect(pane.children[2]).toHaveClass('row-span-2')
+    expect(pane.children[3]).toHaveTextContent('Battery')
+    expect(pane.children[3]).toHaveClass('row-span-2')
+    expect(pane.children[4]).toHaveTextContent('Weather')
+    expect(pane.children[4]).not.toHaveClass('col-span-2', 'row-span-2')
+    expect(screen.queryByRole('img', { name: /battery/i })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('carousel-track')).not.toBeInTheDocument()
+  })
+
+  it('draws a tile at the size the user chose, the rest at their shipped size', () => {
+    renderAt(KIOSK_WIDTH, {
+      view: 'masonry',
+      layout: ['tilt', 'energy'],
+      tiles: { battery: { cols: 1, rows: 1 }, tilt: { cols: 3, rows: 2 } },
+    })
+    const pane = screen.getByTestId('pane-start')
+
+    expect(pane.children[0]).toHaveClass('col-span-3', 'row-span-2')
+    expect(pane.children[1]).toHaveClass('row-span-2')
+    expect(pane.children[2]).toHaveClass('col-span-1', 'row-span-1')
+  })
+
+  it('keeps Energy one carousel card for a phone, whatever the view is', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { view: 'masonry', layout: ['tilt', 'energy'] })
+    const pane = screen.getByTestId('pane-start')
+
+    expect(pane.children).toHaveLength(2)
+    expect(pane).not.toHaveClass('grid')
+    expect(pane.children[1]).toHaveTextContent('Energy')
+    expect(screen.getByTestId('carousel-track')).toBeInTheDocument()
+  })
+
+  it('keeps the Cockpit as the kiosk default', () => {
+    renderAt(KIOSK_WIDTH, { layout: ['tilt'] })
+    expect(screen.getByTestId('pane-start')).not.toHaveClass('grid')
+    expect(screen.queryByText('Weather')).not.toBeInTheDocument()
+  })
+})
+
 describe('StartPage map card', () => {
   it('is right after the weather card, and not on the kiosk Dial', async () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {})
@@ -275,6 +330,9 @@ describe('StartPage map card', () => {
     const card = screen.getByTestId('pane-start').children[1] as HTMLElement
     expect(card).toContainElement(map)
     expect(card.className).toMatch(/\bp-0!/)
+    // The card is rounded, the full-bleed page is not: the map takes the card's corners, so the
+    // WebGL canvas is clipped by them.
+    expect(map).toHaveClass('rounded-[inherit]')
     expect(card).not.toHaveTextContent('Map')
     expect(map.className).toMatch(/\bsize-full\b/)
     // The Battery card's dial is at most 300px wide and about square.

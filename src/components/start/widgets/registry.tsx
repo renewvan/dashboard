@@ -1,9 +1,12 @@
 import type { ComponentType } from 'react'
 import { CloudSun, Droplet, Droplets, Map as MapIcon, Move3d, Sun, Zap } from 'lucide-react'
 import type { StartWidgetId } from '@/hooks/useStartLayout'
+import type { StartTileId } from '@/hooks/useStartTiles'
+import { BatteryCard } from './BatteryCard'
 import { EnergyCard } from './EnergyCard'
 import { FreshWaterCard, GreyWaterCard } from './FluidTankCard'
 import { MapCard } from './MapCard'
+import { PowerFlowCard } from './PowerFlowCard'
 import { SolarYieldCard } from './SolarYieldCard'
 import { TiltCard } from './TiltCard'
 import { WeatherCard } from './WeatherCard'
@@ -39,4 +42,22 @@ export const START_WIDGETS: Record<StartWidgetId, StartWidgetDefinition> = {
     icon: Droplets,
     Component: GreyWaterCard,
   },
+}
+
+/**
+ * What the kiosk's Masonry grid draws, by tile. The same components as `START_WIDGETS`, except
+ * that Energy (a carousel on a phone) is two tiles, Power and Battery, each a card of its own.
+ */
+export const START_TILES: Record<
+  StartTileId,
+  { label: string; Component: ComponentType<StartWidgetProps> }
+> = {
+  weather: START_WIDGETS.weather,
+  map: START_WIDGETS.map,
+  power: { label: 'Power', Component: PowerFlowCard },
+  battery: { label: 'Battery', Component: BatteryCard },
+  solar: START_WIDGETS.solar,
+  tilt: START_WIDGETS.tilt,
+  'fresh-water': START_WIDGETS['fresh-water'],
+  'grey-water': START_WIDGETS['grey-water'],
 }

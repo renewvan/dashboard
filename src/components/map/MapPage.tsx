@@ -142,7 +142,7 @@ function MapScene({
       data-testid={isCard ? 'map-card' : 'pane-map'}
       className={
         isCard
-          ? 'relative isolate size-full overflow-hidden'
+          ? 'relative isolate size-full overflow-hidden rounded-[inherit]'
           : 'relative isolate min-h-0 flex-1 overflow-hidden'
       }
     >
