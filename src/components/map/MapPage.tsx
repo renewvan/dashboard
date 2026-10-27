@@ -15,6 +15,7 @@ import { VanMarker } from './VanMarker'
 import { useLocationName } from './useLocationName'
 import { useBasemapUnavailable } from './useBasemapUnavailable'
 import { useMapLibreSetup } from './useMapLibreSetup'
+import { RecenterButton } from './RecenterButton'
 import { ZoomControls } from './ZoomControls'
 
 export interface MapPageProps {
@@ -196,6 +197,11 @@ function MapScene({
           )
         )}
         <RecentreOnFirstFix position={position} openedWithPosition={openedWithPosition} />
+        <RecenterButton
+          position={position}
+          zoom={ZOOM}
+          className={isCard ? 'top-3 left-3' : undefined}
+        />
         <ZoomControls className={isCard ? 'top-3 right-3' : undefined} />
       </MapView>
       {unavailable && <BasemapNotice />}
