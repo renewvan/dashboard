@@ -2,7 +2,6 @@ import type { ComponentProps } from 'react'
 import { CircleUser, Clapperboard, LayoutGrid, Settings, SquareSparkles, Van } from 'lucide-react'
 import { DrawerGroup } from '@/components/DrawerGroup'
 import { DrawerRow } from '@/components/DrawerRow'
-import { AlertsButton } from '@/components/AlertsButton'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
@@ -55,7 +54,6 @@ export function DrawerMenuControls({
 interface DrawerMenuFooterProps {
   close: () => void
   activePage: string
-  unseenAlertCount: number
   onGoToPage: (id: string) => void
   uplink: ComponentProps<typeof UplinkStatusButton>
   theme: ComponentProps<typeof ThemeToggleButton>['theme']
@@ -66,7 +64,7 @@ interface DrawerMenuFooterProps {
 }
 
 /**
- * The phone drawer's footer, pinned to the bottom and in the reverse of reading order: Alerts,
+ * The phone drawer's footer, pinned to the bottom and in the reverse of reading order:
  * Settings (not a bottom-bar tab on a phone), then a row of icon tiles (Connection, Theme, Sleep).
  * Rows that navigate close the drawer. The Connection tile opens its popover in place and the theme
  * toggle leaves the drawer open so the change can be seen; Sleep closes it, as the display goes dark.
@@ -74,7 +72,6 @@ interface DrawerMenuFooterProps {
 export function DrawerMenuFooter({
   close,
   activePage,
-  unseenAlertCount,
   onGoToPage,
   uplink,
   theme,
@@ -85,15 +82,6 @@ export function DrawerMenuFooter({
 }: DrawerMenuFooterProps) {
   return (
     <>
-      <AlertsButton
-        onClick={() => {
-          close()
-          onGoToPage('alerts')
-        }}
-        count={unseenAlertCount}
-        active={activePage === 'alerts'}
-        fullWidth
-      />
       <DrawerRow
         icon={<Settings className="size-5" />}
         label="Settings"

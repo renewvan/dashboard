@@ -12,10 +12,18 @@ export interface Van {
   model: string
   kms: string
   plate: string
+  /** The van's colour on the map, `#rrggbb`; empty is the theme accent (the default blue). */
+  color: string
 }
 
 /** The fields in the order Settings shows them. */
-export const VAN_FIELDS: readonly (keyof Van)[] = ['name', 'brand', 'model', 'kms', 'plate']
+export const VAN_FIELDS: readonly Exclude<keyof Van, 'color'>[] = [
+  'name',
+  'brand',
+  'model',
+  'kms',
+  'plate',
+]
 
 export const VAN_LABELS: Record<keyof Van, string> = {
   name: 'Name',
@@ -23,11 +31,26 @@ export const VAN_LABELS: Record<keyof Van, string> = {
   model: 'Model',
   kms: 'Kms',
   plate: 'Plate',
+  color: 'Colour',
 }
 
 const STORAGE_KEY = 'renewvan-dashboard-van'
 
-const EMPTY_VAN: Van = { name: '', brand: '', model: '', kms: '', plate: '' }
+/** Swatches Settings offers beside the default blue and the free picker. */
+export const VAN_COLOR_PRESETS: readonly string[] = [
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#a855f7',
+  '#ec4899',
+  '#e5e7eb',
+  '#1f2937',
+]
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/i
+
+const EMPTY_VAN: Van = { name: '', brand: '', model: '', kms: '', plate: '', color: '' }
 
 function serializeVan(van: Van): string {
   return JSON.stringify(van)
@@ -47,6 +70,7 @@ function parseVan(raw: string | null): Van {
       model: read('model'),
       kms: read('kms'),
       plate: read('plate'),
+      color: HEX_COLOR.test(read('color')) ? read('color') : '',
     }
   } catch {
     return EMPTY_VAN

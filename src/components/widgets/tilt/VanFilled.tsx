@@ -3,7 +3,7 @@ import { VAN_SIDE_PATH } from './VanSide'
 
 // A solid side-view van (nose RIGHT) on the same 113.312 x 68.002 canvas as `VanSide`, for places
 // the stroked outline is too faint to read: the map marker. The body is `color`, the windows are
-// `glass`, the tyres `outline`, the wheel hubs light, and `VanSide`'s own outline path is stroked
+// `glass`, the tyres `outline`, the wheel hubs light, a white headlight and red taillight on the ends, and `VanSide`'s own outline path is stroked
 // over it in `outline` so the doors, panels and bumpers keep the weight they have everywhere else.
 
 interface Props {
@@ -31,6 +31,15 @@ const TYRES = [
   'M33.979 56.782 C33.979 62.288 29.405 66.752 23.763 66.752 C18.12 66.752 13.546 62.288 13.546 56.782 C13.546 51.276 18.12 46.813 23.763 46.813 C29.405 46.813 33.979 51.276 33.979 56.782 Z',
   'M94.463 56.782 C94.463 62.288 89.554 66.752 84.246 66.752 C78.938 66.752 74.03 62.288 74.03 56.782 C74.03 51.276 78.938 46.813 84.246 46.813 C89.554 46.813 94.463 51.276 94.463 56.782 Z',
 ]
+// Front (right) headlight and rear (left) taillight, filling the light housings the outline already
+// draws, so the outline stays on top and they read as part of the van.
+const HEADLIGHT =
+  'M108.68 37.752 L100.702 37.752 C99.486 37.752 98.878 38.286 98.878 39.356 L98.878 42.061 C98.878 43.13 99.486 43.664 100.702 43.664 L108.68 43.664 Z'
+const TAILLIGHT =
+  'M3.682 34.672 L8.268 34.672 C9.484 34.672 10.092 35.927 10.092 38.437 L10.092 44.786 C10.092 47.296 9.484 48.551 8.268 48.551 L3.682 48.551 Z'
+export const HEADLIGHT_COLOR = '#ffffff'
+export const TAILLIGHT_COLOR = '#ef4444'
+
 const HUBS: [number, number][] = [
   [23.763, 56.782],
   [84.246, 56.782],
@@ -47,8 +56,10 @@ export function VanFilled({ color, outline, glass, className, style }: Props) {
       {TYRES.map((d) => (
         <path key={d} d={d} fill={outline} />
       ))}
+      <path d={HEADLIGHT} fill={HEADLIGHT_COLOR} />
+      <path d={TAILLIGHT} fill={TAILLIGHT_COLOR} />
       {HUBS.map(([cx, cy]) => (
-        <circle key={cx} cx={cx} cy={cy} r={4.2} fill="white" />
+        <circle key={cx} cx={cx} cy={cy} r={4.2} fill="#9e9e9eff" />
       ))}
       <path
         d={VAN_SIDE_PATH}

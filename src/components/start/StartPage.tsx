@@ -66,6 +66,7 @@ export function StartPage({
   powerLayout,
   isDark,
   mapIsDark,
+  vanColor,
   onConfigureTank,
   layout = DEFAULT_START_LAYOUT,
   view = DEFAULT_START_VIEW,
@@ -87,6 +88,7 @@ export function StartPage({
       powerLayout,
       isDark,
       mapIsDark,
+      vanColor,
       now,
       onConfigureTank,
     }

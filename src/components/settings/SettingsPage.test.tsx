@@ -85,11 +85,29 @@ describe('SettingsPage Van', () => {
 
   it('shows the stored details', async () => {
     await openVan({
-      van: { name: 'Bluey', brand: 'Fiat', model: 'Ducato', kms: '120000', plate: '1234 ABC' },
+      van: {
+        name: 'Bluey',
+        brand: 'Fiat',
+        model: 'Ducato',
+        kms: '120000',
+        plate: '1234 ABC',
+        color: '',
+      },
     })
 
     expect(field('Name')).toHaveValue('Bluey')
     expect(field('Plate')).toHaveValue('1234 ABC')
+  })
+
+  it('picks the van colour from a swatch, and the default blue clears it', async () => {
+    const setVanField = vi.fn()
+    const { user } = await openVan({ setVanField })
+
+    await user.click(screen.getByRole('radio', { name: '#ef4444' }))
+    expect(setVanField).toHaveBeenLastCalledWith('color', '#ef4444')
+
+    await user.click(screen.getByRole('radio', { name: 'Default blue' }))
+    expect(setVanField).toHaveBeenLastCalledWith('color', '')
   })
 
   it('saves a field once, on Enter, not on every keystroke', async () => {
@@ -127,7 +145,7 @@ describe('SettingsPage Van', () => {
     const setVanField = vi.fn()
     const { user } = await openVan({
       setVanField,
-      van: { name: 'Bluey', brand: '', model: '', kms: '', plate: '' },
+      van: { name: 'Bluey', brand: '', model: '', kms: '', plate: '', color: '' },
     })
 
     await user.click(field('Name'))

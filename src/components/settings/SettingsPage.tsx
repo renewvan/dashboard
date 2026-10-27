@@ -12,6 +12,7 @@ import { routerDriver, routerName } from '@/lib/routerDriver'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 import { AlertsView } from './general/preferences/AlertsView'
 import { AlertsButton } from '@/components/AlertsButton'
+import { DemoBadge } from '@/components/DemoBadge'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { CellularView } from './connectivity/CellularView'
@@ -108,6 +109,7 @@ export const SettingsPage = memo(function SettingsPage() {
     powerLayout,
     mapTheme,
     van,
+    demoMode,
   } = useSettingsPreferences()
   const {
     sleepDisplay,
@@ -325,27 +327,29 @@ export const SettingsPage = memo(function SettingsPage() {
           onBack={() => setView(VIEWS[subpage].parent)}
           action={
             <div className="flex items-center gap-1.5">
-              {/* On a phone the bar carries the sleep button alone: the menu drawer and the status
-                  controls are the app header's, which this bar replaces, and they come back with it. */}
+              {demoMode && <DemoBadge />}
+              {/* On a phone the bar carries the alerts button alone: the menu drawer and the other
+                  status controls are the app header's, which this bar replaces, and they come back
+                  with it. Sleep lives in the drawer there. */}
               {!isMobile && (
-                <>
-                  <UplinkStatusButton
-                    router={router}
-                    routerHealth={routerHealth}
-                    lastReceivedAt={routerUpdatedAt}
-                    tailscale={tailscale}
-                    busStatus={busStatus}
-                    hub={hub}
-                    onOpenSettings={() => setView('connectivity')}
-                  />
-                  <AlertsButton onClick={openAlerts} count={unseenAlertCount} active={false} />
-                </>
+                <UplinkStatusButton
+                  router={router}
+                  routerHealth={routerHealth}
+                  lastReceivedAt={routerUpdatedAt}
+                  tailscale={tailscale}
+                  busStatus={busStatus}
+                  hub={hub}
+                  onOpenSettings={() => setView('connectivity')}
+                />
               )}
-              <DisplaySleepButton
-                displayPower={displayPower}
-                onSleep={sleepDisplay}
-                onWake={wakeDisplay}
-              />
+              <AlertsButton onClick={openAlerts} count={unseenAlertCount} active={false} />
+              {!isMobile && (
+                <DisplaySleepButton
+                  displayPower={displayPower}
+                  onSleep={sleepDisplay}
+                  onWake={wakeDisplay}
+                />
+              )}
             </div>
           }
         />

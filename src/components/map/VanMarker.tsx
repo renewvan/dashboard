@@ -10,6 +10,8 @@ export interface VanMarkerProps {
   heading: number | null
   /** Nose-up pitch in degrees from the tilt device; null without a usable reading. */
   pitch: number | null
+  /** Body colour (any CSS colour); the theme accent when absent. */
+  color?: string
 }
 
 const VAN_W = 58
@@ -20,12 +22,12 @@ const VAN_SHADOW =
   'drop-shadow(0 1px 1px rgba(15,23,42,0.55)) drop-shadow(0 5px 6px rgba(15,23,42,0.35))'
 
 /**
- * The van on the map: the blue side-view van (`VanFilled`, the theme accent), nothing around it. It
+ * The van on the map: the side-view van (`VanFilled`, the owner's colour or else the theme accent), nothing around it. It
  * mirrors to face the way it is heading and pitches with the tilt device, pivoting on its wheels as
  * the tilt widget does. The marker's children are ordinary React, so it re-renders with the heading
  * and pitch like any other component.
  */
-export function VanMarker({ longitude, latitude, heading, pitch }: VanMarkerProps) {
+export function VanMarker({ longitude, latitude, heading, pitch, color }: VanMarkerProps) {
   const left = facesLeft(heading)
   // The mirror (`scaleX(-1)`) on the wrapper also flips the child's rotation, so a left-facing
   // van's nose-up pitch is still the plain clockwise value: it turns counter-clockwise on screen.
@@ -43,9 +45,9 @@ export function VanMarker({ longitude, latitude, heading, pitch }: VanMarkerProp
         }}
       >
         <VanFilled
-          color="var(--accent)"
+          color={color || 'var(--accent)'}
           outline="#0f172a"
-          glass="#e0f2fe"
+          glass="#9e9e9eff"
           style={{
             display: 'block',
             width: '100%',

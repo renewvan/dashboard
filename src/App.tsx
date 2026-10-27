@@ -10,6 +10,7 @@ import { LogoLink } from '@/components/LogoLink'
 import { DrawerMenuControls, DrawerMenuFooter } from '@/components/DrawerMenuContent'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
+import { DemoBadge } from '@/components/DemoBadge'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { PageErrorBoundary } from '@/components/PageErrorBoundary'
@@ -104,6 +105,7 @@ function App() {
     startView,
     startTiles,
     powerLayout,
+    van,
   } = prefs.preferences
   const { setTheme } = prefs.actions
   const alertHistory = useAlertHistory()
@@ -174,11 +176,7 @@ function App() {
     handlers: { sleepDisplay, wakeDisplay, openAlerts },
   })
 
-  const demoBadge = demoMode && (
-    <span className="bg-warning text-warning-foreground rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase">
-      Demo
-    </span>
-  )
+  const demoBadge = demoMode && <DemoBadge />
 
   const uplinkProps = {
     router,
@@ -230,7 +228,6 @@ function App() {
     <DrawerMenuFooter
       close={close}
       activePage={activePage}
-      unseenAlertCount={unseenAlertCount}
       onGoToPage={goToPage}
       uplink={uplinkProps}
       theme={theme}
@@ -274,7 +271,14 @@ function App() {
       />
       {!isMobile && <Clock />}
       {isMobile ? (
-        <div className="flex items-center gap-1.5">{demoBadge}</div>
+        <div className="flex items-center gap-1.5">
+          {demoBadge}
+          <AlertsButton
+            onClick={() => goToPage('alerts')}
+            count={unseenAlertCount}
+            active={activePage === 'alerts'}
+          />
+        </div>
       ) : (
         <div className="flex items-center justify-end gap-1.5">
           {headerControls}
@@ -309,6 +313,7 @@ function App() {
             tiles={startTiles}
             isDark={theme === 'dark'}
             mapIsDark={resolveMapIsDark(mapTheme, theme === 'dark')}
+            vanColor={van.color}
             onConfigureTank={openTankSettings}
           />
         )
@@ -333,6 +338,7 @@ function App() {
               gps={state.gps}
               tilt={tilt}
               isDark={resolveMapIsDark(mapTheme, theme === 'dark')}
+              vanColor={van.color}
             />
           </Suspense>
         )

@@ -15,6 +15,7 @@ import { VanMarker } from './VanMarker'
 import { useLocationName } from './useLocationName'
 import { useBasemapUnavailable } from './useBasemapUnavailable'
 import { useMapLibreSetup } from './useMapLibreSetup'
+import { RecenterButton } from './RecenterButton'
 import { ZoomControls } from './ZoomControls'
 
 export interface MapPageProps {
@@ -29,6 +30,8 @@ export interface MapPageProps {
    * the same as the page's.
    */
   variant?: 'page' | 'card'
+  /** The van marker's body colour; the theme accent when empty. */
+  vanColor?: string
 }
 
 /** Close enough to read streets, for a van that has a position. */
@@ -55,7 +58,13 @@ const DEFAULT_VIEW = { longitude: 7.8528, latitude: 47.9958, zoom: ZOOM }
  * live view, not a navigator: it re-centres only when the page remounts, or once when the first
  * fix arrives on a map that opened without one.
  */
-export function MapPage({ gps, tilt = {}, isDark = true, variant = 'page' }: MapPageProps) {
+export function MapPage({
+  gps,
+  tilt = {},
+  isDark = true,
+  variant = 'page',
+  vanColor,
+}: MapPageProps) {
   // MQTT builds a record up one property per retained message; skip any id whose
   // unconditional fields haven't arrived (see `isCompleteGps`). There is a single
   // GPS device per hub, so the first complete id decides.
@@ -66,7 +75,14 @@ export function MapPage({ gps, tilt = {}, isDark = true, variant = 'page' }: Map
     record && hasGpsFix(record) ? [record.latitude as number, record.longitude as number] : null
 
   return (
-    <MapScene record={record} position={position} tilt={tilt} isDark={isDark} variant={variant} />
+    <MapScene
+      record={record}
+      position={position}
+      tilt={tilt}
+      isDark={isDark}
+      variant={variant}
+      vanColor={vanColor}
+    />
   )
 }
 
@@ -96,12 +112,14 @@ function MapScene({
   tilt,
   isDark,
   variant,
+  vanColor,
 }: {
   record: Gps | undefined
   position: LatLon | null
   tilt: Record<string, Partial<Tilt>>
   isDark: boolean
   variant: 'page' | 'card'
+  vanColor?: string
 }) {
   const isCard = variant === 'card'
   const heading = record ? headingDeg(record.course_deg, record.speed_kmh) : null
@@ -160,7 +178,13 @@ function MapScene({
         style={{ width: '100%', height: '100%' }}
       >
         {longitude !== undefined && latitude !== undefined ? (
-          <VanMarker longitude={longitude} latitude={latitude} heading={heading} pitch={pitch} />
+          <VanMarker
+            longitude={longitude}
+            latitude={latitude}
+            heading={heading}
+            pitch={pitch}
+            color={vanColor}
+          />
         ) : (
           SHOW_VAN_WITHOUT_FIX && (
             <VanMarker
@@ -168,10 +192,16 @@ function MapScene({
               latitude={initialView.latitude}
               heading={heading}
               pitch={pitch}
+              color={vanColor}
             />
           )
         )}
         <RecentreOnFirstFix position={position} openedWithPosition={openedWithPosition} />
+        <RecenterButton
+          position={position}
+          zoom={ZOOM}
+          className={isCard ? 'top-3 left-3' : undefined}
+        />
         <ZoomControls className={isCard ? 'top-3 right-3' : undefined} />
       </MapView>
       {unavailable && <BasemapNotice />}
