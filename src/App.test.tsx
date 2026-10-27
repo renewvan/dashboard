@@ -288,7 +288,7 @@ describe('App shell navigation layout', () => {
       expect(groupRows('System')).toEqual(['Automations', 'Scenes'])
     })
 
-    it('pins Alerts, Settings and then the Connection, Theme and Sleep row to the bottom, in that order', async () => {
+    it('pins Settings and then the Connection, Theme and Sleep row to the bottom, in that order', async () => {
       const user = userEvent.setup()
       await renderAt(PHONE_WIDTH)
       const drawer = await openDrawer(user)
@@ -296,7 +296,6 @@ describe('App shell navigation layout', () => {
       // Document order is the visual order: a flex row and a column both follow the source.
       const order = [
         drawer.getByRole('region', { name: 'System' }),
-        drawer.getByRole('button', { name: /^Alerts/ }),
         drawer.getByRole('button', { name: 'Settings' }),
         drawer.getByTestId('uplink-status-button'),
         drawer.getByRole('button', { name: /^Switch to (light|dark) theme$/ }),
@@ -305,12 +304,13 @@ describe('App shell navigation layout', () => {
       order.slice(1).forEach((el, i) => {
         expect(order[i].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
       })
-      // Alerts and Settings are footer rows, not in a group; the three icon buttons share one row.
+      // Settings is a footer row, not in a group; the three icon buttons share one row.
       expect(drawer.getByRole('region', { name: 'Profile' })).not.toContainElement(order[1])
-      const row = order[3].parentElement
+      const row = order[2].parentElement
+      expect(row).toContainElement(order[3])
       expect(row).toContainElement(order[4])
-      expect(row).toContainElement(order[5])
-      expect(row).not.toContainElement(order[2])
+      expect(row).not.toContainElement(order[1])
+      expect(drawer.queryByRole('button', { name: /^Alerts/ })).not.toBeInTheDocument()
     })
 
     it('shows the pages that are not built yet as disabled, and pressing them does nothing', async () => {
@@ -339,11 +339,7 @@ describe('App shell navigation layout', () => {
         .getAllByRole('button')
         .filter((button) => button.querySelector('[data-testid="menu-chevron"]'))
         .map((button) => button.getAttribute('aria-label'))
-      expect(withArrow).toHaveLength(4)
-      expect(withArrow[0]).toBe('My Van')
-      expect(withArrow[1]).toBe('Widgets')
-      expect(withArrow[2]).toMatch(/^Alerts/)
-      expect(withArrow[3]).toBe('Settings')
+      expect(withArrow).toEqual(['My Van', 'Widgets', 'Settings'])
     })
 
     it('puts the logo in the drawer header, beside the close button, linked to Start', async () => {
@@ -540,7 +536,6 @@ describe('App shell alerts bell', () => {
   ])('opens the alerts pane with no page selected (%s)', async (_name, width) => {
     const user = userEvent.setup()
     await renderAt(width)
-    if (width === PHONE_WIDTH) await user.click(screen.getByRole('button', { name: 'Menu' }))
     const bell = screen.getByRole('button', { name: /^alerts/i })
     expect(bell).not.toHaveAttribute('aria-current')
     await user.click(bell)
@@ -847,7 +842,7 @@ describe('App shell header', () => {
     expect(window.history.length).toBe(entries)
   })
 
-  it('keeps only the logo in the phone header, everything else behind the menu', async () => {
+  it('keeps the logo and the alerts bell in the phone header, everything else behind the menu', async () => {
     const user = userEvent.setup()
     await renderAt(PHONE_WIDTH)
     const header = within(screen.getByRole('banner'))
@@ -855,12 +850,11 @@ describe('App shell header', () => {
     expect(screen.queryByTestId('clock')).not.toBeInTheDocument()
     expect(header.queryByTestId('display-sleep-button')).not.toBeInTheDocument()
     expect(header.queryByTestId('uplink-status-button')).not.toBeInTheDocument()
-    expect(header.queryByRole('button', { name: /^alerts/i })).not.toBeInTheDocument()
+    expect(header.getByRole('button', { name: /^alerts/i })).toBeInTheDocument()
 
     await user.click(header.getByRole('button', { name: 'Menu' }))
     expect(screen.getByTestId('uplink-status-button')).toBeInTheDocument()
     expect(screen.getByTestId('display-sleep-button')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^alerts/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /switch to .* theme/i })).toBeInTheDocument()
   })
 
