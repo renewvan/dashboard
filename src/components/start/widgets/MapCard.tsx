@@ -10,7 +10,7 @@ const MapPage = lazy(() => import('@/components/map/MapPage').then((m) => ({ def
 const MAP_CARD_HEIGHT = 'h-[360px]'
 
 /** Edge to edge: no title row, no padding. The map is the card. */
-export function MapCard({ gps, tilt, mapIsDark }: StartWidgetProps) {
+export function MapCard({ gps, tilt, mapIsDark, vanColor }: StartWidgetProps) {
   return (
     <Card className={`${MAP_CARD_HEIGHT} shrink-0 overflow-hidden p-0!`}>
       <Suspense
@@ -24,7 +24,13 @@ export function MapCard({ gps, tilt, mapIsDark }: StartWidgetProps) {
           </div>
         }
       >
-        <MapPage variant="card" gps={gps as Record<string, Gps>} tilt={tilt} isDark={mapIsDark} />
+        <MapPage
+          variant="card"
+          gps={gps as Record<string, Gps>}
+          tilt={tilt}
+          isDark={mapIsDark}
+          vanColor={vanColor}
+        />
       </Suspense>
     </Card>
   )

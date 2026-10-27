@@ -30,6 +30,8 @@ export interface StartWidgetProps {
   isDark: boolean
   /** Whether the map widget draws the dark map: the Map page's choice, which can differ from the app theme. */
   mapIsDark: boolean
+  /** The van marker's colour on the map widget; empty is the theme accent. */
+  vanColor?: string
   /** The current time, refreshed slowly; tank severity reads it. */
   now: Date
   /** A tank widget's Configure button: opens that tank's settings. */

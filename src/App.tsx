@@ -104,6 +104,7 @@ function App() {
     startView,
     startTiles,
     powerLayout,
+    van,
   } = prefs.preferences
   const { setTheme } = prefs.actions
   const alertHistory = useAlertHistory()
@@ -309,6 +310,7 @@ function App() {
             tiles={startTiles}
             isDark={theme === 'dark'}
             mapIsDark={resolveMapIsDark(mapTheme, theme === 'dark')}
+            vanColor={van.color}
             onConfigureTank={openTankSettings}
           />
         )
@@ -333,6 +335,7 @@ function App() {
               gps={state.gps}
               tilt={tilt}
               isDark={resolveMapIsDark(mapTheme, theme === 'dark')}
+              vanColor={van.color}
             />
           </Suspense>
         )
