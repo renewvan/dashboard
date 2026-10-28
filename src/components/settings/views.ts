@@ -12,6 +12,8 @@ export type SettingsView =
   | 'batteries'
   | 'solar'
   | 'chargers'
+  | 'instance'
+  | 'instance-history'
   | 'general'
   | 'firmware'
   | 'about'

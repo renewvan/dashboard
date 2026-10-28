@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { instanceLabel, ownerName } from './instances'
+import { instanceKey, instanceLabel, ownerName, parseInstanceKey } from './instances'
 
 const drivers = [
   { key: 'venus', name: 'Venus' },
@@ -34,5 +34,16 @@ describe('ownerName', () => {
   it('resolves the Driver by key, or is undefined for a legacy instance', () => {
     expect(ownerName({ driver: 'wattcycle' }, drivers)).toBe('WattCycle')
     expect(ownerName({}, drivers)).toBeUndefined()
+  })
+})
+
+describe('instanceKey', () => {
+  it('round-trips a type and an id, including an id with a colon', () => {
+    expect(parseInstanceKey(instanceKey('solar', '291'))).toEqual({ type: 'solar', id: '291' })
+    expect(parseInstanceKey(instanceKey('charger', 'a:b'))).toEqual({ type: 'charger', id: 'a:b' })
+  })
+
+  it.each(['', 'solar', 'solar:', ':291', 'tank:1'])('reads %j as no instance', (key) => {
+    expect(parseInstanceKey(key)).toBeUndefined()
   })
 })

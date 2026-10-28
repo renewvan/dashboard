@@ -11,12 +11,13 @@ export function PowerFlowCard({
   chargers,
   primaryBatterySelection,
   powerLayout,
+  onOpenInstance,
 }: StartWidgetProps) {
   const flow = flowFromBus(batteries, solar, chargers, primaryBatterySelection)
 
   return (
     <PhoneCard title="Power" icon={<Zap className="size-4" />}>
-      <PowerCard flow={flow} layout={powerLayout} />
+      <PowerCard flow={flow} layout={powerLayout} onOpenInstance={onOpenInstance} />
     </PhoneCard>
   )
 }

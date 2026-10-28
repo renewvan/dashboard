@@ -100,9 +100,15 @@ describe('drawer navigation', () => {
         name: /^Temperature/,
       }),
     )
-    const temperature = await openDialog('Temperature')
-    expect(within(temperature).getByRole('textbox', { name: 'Name' })).toHaveValue('Outdoor')
-    await user.click(within(temperature).getByRole('button', { name: 'Back' }))
+    await user.click(
+      within(await openDialog('Temperature')).getByRole('button', { name: /^Outdoor/ }),
+    )
+    const sensor = await openDialog('Outdoor')
+    expect(within(sensor).getByRole('textbox', { name: 'Name' })).toHaveValue('Outdoor')
+    await user.click(within(sensor).getByRole('button', { name: 'Back' }))
+    await user.click(within(await openDialog('Temperature')).getByRole('button', { name: 'Back' }))
+    // The list steps back to the Driver page it was opened from (the fallback row, Temperature).
+    await user.click(within(await openDialog('Temperature')).getByRole('button', { name: 'Back' }))
     expect(await openDialog('Devices')).toBeInTheDocument()
     await user.click(within(await openDialog('Devices')).getByRole('button', { name: 'Close' }))
     await expectNoDialog()

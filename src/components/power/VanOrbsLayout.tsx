@@ -6,9 +6,10 @@
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { Engine, Plug2, PlugZap, SolarPanel, type LucideIcon } from 'lucide-react'
-import { formatPower, IDLE_W, type NodeId, type PowerSnapshot } from './flowModel'
+import { formatPower, IDLE_W, sourceOpener, type NodeId, type PowerSnapshot } from './flowModel'
 import { RollingNumber, Value } from './PowerValue'
 import { PortDomes, VanHub, Wire } from './VanDiagram'
+import { SourceTarget } from './SourceTarget'
 import { VAN_FRAME, wirePath, type Point, type PortSide } from './vanGeometry'
 import { SolarHistory } from '@/components/widgets/solar/SolarHistory'
 import { yieldHistoryView } from '@/components/widgets/solar/solarView'
@@ -123,6 +124,7 @@ function Orb({
   peakW,
   history,
   compact,
+  onPress,
 }: {
   id: NodeId
   spot: Spot
@@ -136,6 +138,8 @@ function Orb({
   history?: ReactNode
   /** Phone card: the text is raised, as the canvas is drawn at about a third of its size. */
   compact: boolean
+  /** Opens the device behind the orb; absent, the orb is a readout. */
+  onPress: (() => void) | undefined
 }) {
   const { x, y } = spot.c
   const p = formatPower(shown)
@@ -170,7 +174,11 @@ function Orb({
         style={{ filter: active ? `drop-shadow(0 0 5px ${colour})` : 'none' }}
       />
       <foreignObject x={x - R} y={y - R} width={R * 2} height={R * 2}>
-        <div className="text-foreground flex size-full flex-col items-center justify-center">
+        <SourceTarget
+          onPress={onPress}
+          label={`${label}: ${p.value} ${p.unit}`.trim()}
+          className="text-foreground flex size-full flex-col items-center justify-center rounded-full"
+        >
           {Icon && (
             <Icon
               className={`${compact ? `${ICON_SIZE_COMPACT} mb-2` : `${ICON_SIZE} mb-3`}`}
@@ -183,7 +191,7 @@ function Orb({
             unit={p.unit}
           />
           {history && <div className="mt-3 h-9 w-36">{history}</div>}
-        </div>
+        </SourceTarget>
       </foreignObject>
       {!history && (
         // The label sits outside the ring, above it, or below it for the lower orb of a stacked
@@ -213,12 +221,15 @@ export function VanOrbsLayout({
   flow,
   solar,
   compact = false,
+  onOpenInstance,
 }: {
   flow: PowerSnapshot
   /** Absent until a solar controller has published its required fields: then no history is drawn. */
   solar?: Solar
   /** Phone card: raises the orbs' text, as the canvas is drawn at about a third of its size. */
   compact?: boolean
+  /** Opens a source's device in Settings (its `instanceKey`); absent, the sources are readouts. */
+  onOpenInstance?: (key: string) => void
 }) {
   const solarHistory = yieldHistoryView(solar?.yield_history_wh)
   const sources = (['solar', 'alternator', 'shore'] as const).filter((id) => flow.nodes[id].present)
@@ -241,22 +252,20 @@ export function VanOrbsLayout({
       className="flex min-h-0 flex-1 items-center justify-center pb-16"
     >
       <div className="relative h-full max-w-full" style={{ aspectRatio: `${W} / ${VIEW_H}` }}>
-        <svg
-          viewBox={VIEW_BOX}
-          className="absolute inset-0 size-full overflow-visible"
-          aria-hidden="true"
-        >
-          {all.map((id) => {
-            const s = spotOf(id)
-            return (
-              <Wire
-                key={id}
-                d={wirePath(edge(s), s.port, s.side, isLoad(id))}
-                watts={wattsOf(id)}
-                peakW={flow.peakW}
-              />
-            )
-          })}
+        <svg viewBox={VIEW_BOX} className="absolute inset-0 size-full overflow-visible">
+          <g aria-hidden="true">
+            {all.map((id) => {
+              const s = spotOf(id)
+              return (
+                <Wire
+                  key={id}
+                  d={wirePath(edge(s), s.port, s.side, isLoad(id))}
+                  watts={wattsOf(id)}
+                  peakW={flow.peakW}
+                />
+              )
+            })}
+          </g>
           {all.map((id) => (
             <Orb
               key={id}
@@ -270,11 +279,13 @@ export function VanOrbsLayout({
                 id === 'solar' && solarHistory ? <SolarHistory view={solarHistory} /> : undefined
               }
               compact={compact}
+              onPress={sourceOpener(flow, id, onOpenInstance)}
             />
           ))}
         </svg>
         <VanHub
           flow={flow}
+          onPress={sourceOpener(flow, 'battery', onOpenInstance)}
           left={`${(VAN_X / W) * 100}%`}
           top={`${((VAN_Y - VIEW_TOP) / VIEW_H) * 100}%`}
           width={`${(VAN_W_UNITS / W) * 100}%`}

@@ -22,19 +22,28 @@ import { NoData } from './NoData'
  * The van layouts fill a box of the card's height and keep their own aspect ratio inside it; the
  * orbs diagram sizes its own box to its shape (`fit`), so it leaves no empty margin.
  */
-export function PowerCard({ flow, layout }: { flow: PowerSnapshot; layout: PowerLayout }) {
+export function PowerCard({
+  flow,
+  layout,
+  onOpenInstance,
+}: {
+  flow: PowerSnapshot
+  layout: PowerLayout
+  /** Opens a source's device in Settings (its `instanceKey`); absent, the sources are readouts. */
+  onOpenInstance?: (key: string) => void
+}) {
   if (!flow.nodes.battery.present) {
     return <NoData icon={<Zap className="size-4" />} label="Power" />
   }
 
-  if (layout === 'orbs') return <OrbsLayout flow={flow} fit />
+  if (layout === 'orbs') return <OrbsLayout flow={flow} fit onOpenInstance={onOpenInstance} />
 
   return (
     <div className="flex w-full flex-col" style={{ height: '16rem' }}>
       {layout === 'van-orbs' ? (
-        <VanOrbsLayout flow={flow} compact />
+        <VanOrbsLayout flow={flow} compact onOpenInstance={onOpenInstance} />
       ) : (
-        <VanTilesLayout flow={flow} compact />
+        <VanTilesLayout flow={flow} compact onOpenInstance={onOpenInstance} />
       )}
     </div>
   )

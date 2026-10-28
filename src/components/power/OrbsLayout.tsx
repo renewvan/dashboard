@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import {
   formatPower,
+  sourceOpener,
   PULSE_PAUSE_S,
   pulseSeconds,
   type FlowNode,
@@ -24,6 +25,7 @@ import {
 } from './flowModel'
 import { PowerLinks, type LinkBox } from './PowerLinks'
 import { RollingNumber, Value } from './PowerValue'
+import { SourceTarget } from './SourceTarget'
 
 /** Number and unit sizes of an orb's reading: the Tiles' ratio, in the diagram's own units. */
 const ORB_VALUE = ['text-8xl', 'text-5xl'] as const
@@ -252,7 +254,18 @@ function BatteryFill({
   )
 }
 
-function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Pos }) {
+function Orb({
+  node,
+  flow,
+  pos,
+  onPress,
+}: {
+  node: FlowNode
+  flow: PowerSnapshot
+  pos: Pos
+  /** Opens the device behind the orb; absent, the orb is a readout. */
+  onPress: (() => void) | undefined
+}) {
   const reduce = useReducedMotion()
   const { x, y } = pos
   const isBattery = node.id === 'battery'
@@ -317,7 +330,11 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
         style={{ filter: !isBattery || charging ? `drop-shadow(0 0 6px ${colour})` : 'none' }}
       />
       <foreignObject x={x - R} y={y - R} width={R * 2} height={R * 2}>
-        <div className="text-foreground flex size-full flex-col items-center justify-center">
+        <SourceTarget
+          onPress={onPress}
+          label={`${node.label}: ${p.value} ${p.unit}`.trim()}
+          className="text-foreground flex size-full flex-col items-center justify-center rounded-full"
+        >
           <span className="mb-4" style={{ color: colour }}>
             {ICONS[node.id]}
           </span>
@@ -335,7 +352,7 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
           ) : (
             <Value sizeClass={ORB_VALUE} value={<RollingNumber value={w} />} unit={p.unit} />
           )}
-        </div>
+        </SourceTarget>
       </foreignObject>
       <text
         x={side === 'left' ? x - R - 28 : side === 'right' ? x + R + 28 : x}
@@ -353,7 +370,16 @@ function Orb({ node, flow, pos }: { node: FlowNode; flow: PowerSnapshot; pos: Po
  * `fit` sizes the box to the diagram's own shape instead of filling its parent, so a card holds it
  * with no empty margin above or below.
  */
-export function OrbsLayout({ flow, fit = false }: { flow: PowerSnapshot; fit?: boolean }) {
+export function OrbsLayout({
+  flow,
+  fit = false,
+  onOpenInstance,
+}: {
+  flow: PowerSnapshot
+  fit?: boolean
+  /** Opens a source's device in Settings (its `instanceKey`); absent, the sources are readouts. */
+  onOpenInstance?: (key: string) => void
+}) {
   const pos = layout(flow)
   // An orb is a box as wide and tall as its circle: wires leave from its extreme left, right, top
   // and bottom points, at its centre.
@@ -386,7 +412,13 @@ export function OrbsLayout({ flow, fit = false }: { flow: PowerSnapshot; fit?: b
         {(Object.values(flow.nodes) as FlowNode[])
           .filter((n) => n.present && pos[n.id])
           .map((n) => (
-            <Orb key={n.id} node={n} flow={flow} pos={pos[n.id]!} />
+            <Orb
+              key={n.id}
+              node={n}
+              flow={flow}
+              pos={pos[n.id]!}
+              onPress={sourceOpener(flow, n.id, onOpenInstance)}
+            />
           ))}
       </svg>
     </div>

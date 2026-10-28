@@ -8,9 +8,10 @@
 
 import type { ReactNode } from 'react'
 import { Engine, Plug2, PlugZap, SolarPanel } from 'lucide-react'
-import { formatPower, IDLE_W, type NodeId, type PowerSnapshot } from './flowModel'
+import { formatPower, IDLE_W, sourceOpener, type NodeId, type PowerSnapshot } from './flowModel'
 import { RollingNumber, Value } from './PowerValue'
 import { PortDomes, VanHub, Wire } from './VanDiagram'
+import { SourceTarget } from './SourceTarget'
 import { VAN_FRAME, wirePath, type Point, type PortSide } from './vanGeometry'
 import { SolarHistory } from '@/components/widgets/solar/SolarHistory'
 import { yieldHistoryView } from '@/components/widgets/solar/solarView'
@@ -64,6 +65,7 @@ export function VanTilesLayout({
   flow,
   solar,
   compact = false,
+  onOpenInstance,
 }: {
   flow: PowerSnapshot
   /** Absent until a solar controller has published its required fields: then no history is drawn. */
@@ -73,6 +75,8 @@ export function VanTilesLayout({
    * stay readable there.
    */
   compact?: boolean
+  /** Opens a source's device in Settings (its `instanceKey`); absent, the sources are readouts. */
+  onOpenInstance?: (key: string) => void
 }) {
   const solarHistory = yieldHistoryView(solar?.yield_history_wh)
   const sources = (['solar', 'alternator', 'shore'] as const).filter((id) => flow.nodes[id].present)
@@ -93,20 +97,22 @@ export function VanTilesLayout({
       className="flex min-h-0 flex-1 items-center justify-center pb-16"
     >
       <div className="relative h-full max-w-full" style={{ aspectRatio: `${W} / ${VIEW_H}` }}>
-        <svg viewBox={viewBox} className="absolute inset-0 size-full" aria-hidden="true">
-          {all.map((id) => {
-            const a = anchorOf(id)
-            const isLoad = id === 'loads'
-            const watts = isLoad ? out : (flow.nodes[id].watts ?? 0)
-            return (
-              <Wire
-                key={id}
-                d={wirePath(a.end, a.port, a.side, isLoad)}
-                watts={watts}
-                peakW={flow.peakW}
-              />
-            )
-          })}
+        <svg viewBox={viewBox} className="absolute inset-0 size-full">
+          <g aria-hidden="true">
+            {all.map((id) => {
+              const a = anchorOf(id)
+              const isLoad = id === 'loads'
+              const watts = isLoad ? out : (flow.nodes[id].watts ?? 0)
+              return (
+                <Wire
+                  key={id}
+                  d={wirePath(a.end, a.port, a.side, isLoad)}
+                  watts={watts}
+                  peakW={flow.peakW}
+                />
+              )
+            })}
+          </g>
           {all.map((id) => {
             const a = anchorOf(id)
             const n = flow.nodes[id]
@@ -129,8 +135,9 @@ export function VanTilesLayout({
                 // clips it flat, leaving a hard-edged square at the corners.
                 className="overflow-visible"
               >
-                <div
-                  className="bg-surface flex size-full flex-col justify-center rounded-3xl border-2 px-5"
+                <SourceTarget
+                  onPress={sourceOpener(flow, id, onOpenInstance)}
+                  className="bg-surface flex size-full flex-col justify-center rounded-3xl border-2 px-5 text-left"
                   style={{
                     borderColor: active ? 'var(--accent)' : 'var(--border)',
                     boxShadow: active
@@ -154,13 +161,14 @@ export function VanTilesLayout({
                       <SolarHistory view={solarHistory} />
                     </div>
                   ) : null}
-                </div>
+                </SourceTarget>
               </foreignObject>
             )
           })}
         </svg>
         <VanHub
           flow={flow}
+          onPress={sourceOpener(flow, 'battery', onOpenInstance)}
           left={`${(VAN_BOX.x / W) * 100}%`}
           top={`${((VAN_BOX.y - VIEW_TOP) / VIEW_H) * 100}%`}
           width={`${(VAN_BOX.w / W) * 100}%`}

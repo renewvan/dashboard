@@ -1507,6 +1507,7 @@ describe('App shell Relays page', () => {
         name: /^Relays/,
       }),
     )
+    await user.click(screen.getByRole('button', { name: /^Ceiling lights/ }))
     const field = within(screen.getByRole('group', { name: 'relay_01' })).getByRole('textbox', {
       name: 'Name',
     })

@@ -115,13 +115,23 @@ function App() {
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
   // A view (and the tank it shows) belongs to the Settings page: any other page change leaves
   // both behind (one entry).
-  const goToPage = (id: string) => setActivePage(id, { view: null, tank: null, widget: null })
+  const goToPage = (id: string) =>
+    setActivePage(id, { view: null, tank: null, widget: null, instance: null, driver: null })
   // One history entry for page and view together, so Back returns to the previous page.
   const openSettings = (view: SettingsSubView) =>
-    setActivePage('settings', { view, tank: null, widget: null })
+    setActivePage('settings', { view, tank: null, widget: null, instance: null, driver: null })
   // The tank's Configure button: Settings › Drivers › Tanks › <tank>, page, view and tank in one entry.
   const openTankSettings = (tankId: string) =>
-    setActivePage('settings', { view: 'tank', tank: tankId })
+    setActivePage('settings', { view: 'tank', tank: tankId, instance: null, driver: null })
+  // A power-flow source's tap: Settings › Devices › <type> › <device>, page, view and instance in one entry.
+  const openInstanceSettings = (key: string) =>
+    setActivePage('settings', {
+      view: 'instance',
+      instance: key,
+      tank: null,
+      widget: null,
+      driver: null,
+    })
   const unseenAlertCount = useUnseenAlertCount(activePage)
   const isMobile = useIsMobile()
   // Derived at render and never written: the stored kiosk choice survives a phone visit.
@@ -315,6 +325,7 @@ function App() {
             mapIsDark={resolveMapIsDark(mapTheme, theme === 'dark')}
             vanColor={van.color}
             onConfigureTank={openTankSettings}
+            onOpenInstance={openInstanceSettings}
           />
         )
       case 'power':
@@ -326,6 +337,7 @@ function App() {
             solar={state.solar}
             chargers={state.chargers}
             layout={powerLayout}
+            onOpenInstance={openInstanceSettings}
           />
         )
       case 'tanks':

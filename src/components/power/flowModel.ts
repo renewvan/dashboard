@@ -8,11 +8,13 @@
 // does); present, it splits into inverter -> AC loads and battery -> DC loads.
 
 import { chargerWatts } from '@/lib/charging'
+import { instanceKey } from '@/lib/instances'
 import { primaryBattery } from '@/lib/primaryBattery'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import {
   isCompleteBattery,
   isCompleteCharger,
+  isCompleteSolar,
   type Battery,
   type Charger,
   type Solar,
@@ -28,6 +30,9 @@ export type NodeId =
   | 'acLoads'
   | 'dcLoads'
 
+/** The nodes fed by a device of their own, which a tap on the node opens in Settings. */
+export type SourceId = 'solar' | 'alternator' | 'shore'
+
 export interface FlowNode {
   id: NodeId
   label: string
@@ -36,6 +41,8 @@ export interface FlowNode {
   /** Whether the van has this source at all (an absent alternator/shore is not drawn). */
   present: boolean
   sub?: string
+  /** The `instanceKey` of the device behind a source, when the flow was built from the bus. */
+  instance?: string
 }
 
 export interface FlowEdge {
@@ -74,6 +81,8 @@ export interface FlowInput {
   inverter?: InverterInput
   /** DC loads in watts; only meaningful alongside an inverter (otherwise all load is "Loads"). */
   dcLoadsW?: number
+  /** The `instanceKey` of the device behind each source, so a node can open its device. */
+  instances?: Partial<Record<SourceId | 'battery', string>>
 }
 
 /** Below this the link is drawn idle: shunts jitter around zero and would flicker the particles. */
@@ -129,6 +138,7 @@ export function buildFlow({
   shore,
   inverter,
   dcLoadsW,
+  instances,
 }: FlowInput): PowerSnapshot {
   const b = battery && isCompleteBattery(battery) ? battery : undefined
   const solarW = solar ? Math.max(0, solar.power_w) : undefined
@@ -187,6 +197,7 @@ export function buildFlow({
         label: 'Solar',
         watts: solarW === undefined ? undefined : Math.round(solarW),
         present: solar !== undefined,
+        instance: instances?.solar,
         sub:
           solar?.yield_today_wh === undefined
             ? undefined
@@ -197,12 +208,14 @@ export function buildFlow({
         label: 'Alternator',
         watts: altW === undefined ? undefined : Math.round(altW),
         present: alternator !== undefined,
+        instance: instances?.alternator,
       },
       shore: {
         id: 'shore',
         label: 'Shore',
         watts: shoreW === undefined ? undefined : Math.round(shoreW),
         present: shore !== undefined,
+        instance: instances?.shore,
       },
       inverter: {
         id: 'inverter',
@@ -216,6 +229,7 @@ export function buildFlow({
         label: 'Battery',
         watts: batteryW === undefined ? undefined : Math.round(batteryW),
         present: b !== undefined,
+        instance: instances?.battery,
       },
       loads: {
         id: 'loads',
@@ -246,11 +260,12 @@ export function buildFlow({
   }
 }
 
-/** First complete charger of a given source. */
-function chargerOf(chargers: Record<string, Partial<Charger>>, source: Charger['source']) {
-  return Object.values(chargers).find(
-    (c): c is Charger => isCompleteCharger(c) && c.source === source,
-  )
+/** Id of the first complete charger of a given source. */
+function chargerIdOf(chargers: Record<string, Partial<Charger>>, source: Charger['source']) {
+  return Object.keys(chargers).find((id) => {
+    const c = chargers[id]
+    return isCompleteCharger(c) && c.source === source
+  })
 }
 
 export function flowFromBus(
@@ -259,12 +274,37 @@ export function flowFromBus(
   chargers: Record<string, Partial<Charger>>,
   selection?: string,
 ): PowerSnapshot {
+  // The same pick `firstSolar` makes, by id: the node and its device must be one instance.
+  const solarId = Object.keys(solar).find((id) => isCompleteSolar(solar[id]))
+  const alternatorId = chargerIdOf(chargers, 'alternator')
+  const shoreId = chargerIdOf(chargers, 'ac')
+  const primary = primaryBattery(batteries, selection)
   return buildFlow({
-    battery: primaryBattery(batteries, selection)?.battery,
+    battery: primary?.battery,
     solar: firstSolar(solar),
-    alternator: chargerOf(chargers, 'alternator'),
-    shore: chargerOf(chargers, 'ac'),
+    alternator: alternatorId === undefined ? undefined : (chargers[alternatorId] as Charger),
+    shore: shoreId === undefined ? undefined : (chargers[shoreId] as Charger),
+    instances: {
+      battery: primary === undefined ? undefined : instanceKey('battery', primary.id),
+      solar: solarId === undefined ? undefined : instanceKey('solar', solarId),
+      alternator: alternatorId === undefined ? undefined : instanceKey('charger', alternatorId),
+      shore: shoreId === undefined ? undefined : instanceKey('charger', shoreId),
+    },
   })
+}
+
+/**
+ * What a tap on `id` does: open the device behind that source in Settings. `undefined` when the
+ * layout was given no way to open one or the node has no device (the loads, a flow not built from
+ * the bus), so the node stays a plain readout.
+ */
+export function sourceOpener(
+  flow: PowerSnapshot,
+  id: NodeId,
+  onOpenInstance: ((key: string) => void) | undefined,
+): (() => void) | undefined {
+  const key = flow.nodes[id].instance
+  return onOpenInstance && key !== undefined ? () => onOpenInstance(key) : undefined
 }
 
 /** 1850 -> "1.85 kW", 640 -> "640 W": same unit switch the rest of the app uses for big readings. */

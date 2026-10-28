@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Battery, Charger, Solar } from '@/types'
@@ -299,5 +300,48 @@ describe('PowerPage on a phone', () => {
 
     expect(screen.getByText('No data yet')).toBeInTheDocument()
     expect(screen.queryByTestId('power-orbs')).not.toBeInTheDocument()
+  })
+
+  describe('opening a source', () => {
+    const mains: Charger = { voltage_v: 13.8, power_w: 400, source: 'ac' }
+    const props = {
+      batteries: { house: battery },
+      solar: { roof: sun },
+      chargers: { mains },
+    }
+
+    it.each(['tiles', 'orbs', 'van-tiles', 'van-orbs'] as const)(
+      'opens the solar controller and the shore charger in the %s layout',
+      async (layout) => {
+        const onOpenInstance = vi.fn()
+        render(<PowerPage {...props} layout={layout} onOpenInstance={onOpenInstance} />)
+
+        await userEvent.click(screen.getByRole('button', { name: /Solar/ }))
+        await userEvent.click(screen.getByRole('button', { name: /Shore/ }))
+
+        expect(onOpenInstance.mock.calls).toEqual([['solar:roof'], ['charger:mains']])
+      },
+    )
+
+    it.each(['tiles', 'orbs', 'van-tiles', 'van-orbs'] as const)(
+      'opens the battery in the %s layout',
+      async (layout) => {
+        const onOpenInstance = vi.fn()
+        render(<PowerPage {...props} layout={layout} onOpenInstance={onOpenInstance} />)
+
+        await userEvent.click(screen.getByRole('button', { name: /Battery/ }))
+
+        expect(onOpenInstance).toHaveBeenCalledExactlyOnceWith('battery:house')
+      },
+    )
+
+    it.each(['tiles', 'orbs', 'van-tiles', 'van-orbs'] as const)(
+      'draws plain readouts in the %s layout when nothing can open a device',
+      (layout) => {
+        render(<PowerPage {...props} layout={layout} />)
+
+        expect(screen.queryByRole('button', { name: /Solar/ })).not.toBeInTheDocument()
+      },
+    )
   })
 })

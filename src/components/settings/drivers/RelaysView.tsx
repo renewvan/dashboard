@@ -1,4 +1,7 @@
 import { useId } from 'react'
+import { instanceKey } from '@/lib/instances'
+import { EntityCard } from '../shared/EntityCard'
+import { relaySummary } from './entitySummary'
 import { NameField } from '../shared/NameField'
 import { useSettingsData, useSettingsActions } from '../SettingsContext'
 
@@ -7,6 +10,13 @@ import { useSettingsData, useSettingsActions } from '../SettingsContext'
  * 255 at most). The driver silently drops a longer one, so the field refuses to send it.
  */
 const RELAY_NAME_MAX_BYTES = 63
+
+/** Settings › Devices › Relays › <channel> › Details: rename the channel. */
+export function RelayDetails({ id }: { id: string }) {
+  const { relays } = useSettingsData()
+  if (relays[id] === undefined) return null
+  return <RelayPanel id={id} name={relays[id].name} />
+}
 
 function RelayPanel({ id, name }: { id: string; name: string | undefined }) {
   const { setRelayName } = useSettingsActions()
@@ -30,8 +40,8 @@ function RelayPanel({ id, name }: { id: string; name: string | undefined }) {
   )
 }
 
-/** Settings › Drivers › Relays: rename a channel. Switching is on the Relays page, not here. */
-export function RelaysView() {
+/** Settings › Devices › Relays: one card per channel, each opening its Details. Switching is on the Relays page. */
+export function RelaysView({ onOpen }: { onOpen: (key: string) => void }) {
   const { relays } = useSettingsData()
   // `numeric` keeps relay_9 before relay_10 for an id that is not zero-padded.
   const ids = Object.keys(relays).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
@@ -45,10 +55,17 @@ export function RelaysView() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <ul aria-label="Relays" className="flex flex-col gap-2">
       {ids.map((id) => (
-        <RelayPanel key={id} id={id} name={relays[id].name} />
+        <li key={id}>
+          <EntityCard
+            label={relays[id].name || id}
+            subtitle={relays[id].name ? id : undefined}
+            summary={relaySummary(relays[id])}
+            onOpen={() => onOpen(instanceKey('relay', id))}
+          />
+        </li>
       ))}
-    </div>
+    </ul>
   )
 }

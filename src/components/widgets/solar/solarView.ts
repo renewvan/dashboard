@@ -81,3 +81,17 @@ export function yieldAxis(referenceWh: number): { maxKwh: number; ticks: number[
     ticks: Array.from({ length: AXIS_INTERVALS + 1 }, (_, i) => (maxKwh * i) / AXIS_INTERVALS),
   }
 }
+
+/** Days of the controller's log the Solar history page lists: a month, the most a controller keeps. */
+export const HISTORY_PAGE_DAYS = 30
+
+/**
+ * A history day for a list: `Today`, `Yesterday`, then the date (`Mon 27 Oct`) counted back from
+ * `now`. The controller's own day boundary is not on the bus, so this counts calendar days.
+ */
+export function historyDayLabel(daysAgo: number, now: Date): string {
+  if (daysAgo === 0) return 'Today'
+  if (daysAgo === 1) return 'Yesterday'
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo)
+  return day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}

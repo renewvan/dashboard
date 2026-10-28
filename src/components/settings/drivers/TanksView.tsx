@@ -1,5 +1,6 @@
 import { FLUID_LABELS } from '@/lib/tank-labels'
-import { GroupRow } from '../shared/GroupRow'
+import { EntityCard } from '../shared/EntityCard'
+import { tankSummary } from './entitySummary'
 import { useSettingsData } from '../SettingsContext'
 import { useReportedTankIds } from './useReportedTankIds'
 
@@ -22,9 +23,9 @@ export function TanksView({ onOpen }: { onOpen: (tankId: string) => void }) {
         const tank = tanks[id]
         return (
           <li key={id}>
-            <GroupRow
+            <EntityCard
               label={tank.fluid_type ? FLUID_LABELS[tank.fluid_type] : id}
-              description={`${tank.capacity_l} ℓ`}
+              summary={tankSummary(tank)}
               onOpen={() => onOpen(id)}
             />
           </li>

@@ -51,3 +51,9 @@ export function temperatureSummary(sensors: Record<string, unknown>): string {
   if (count === 0) return 'No sensors found'
   return count === 1 ? '1 sensor' : `${count} sensors`
 }
+
+/** The name a sensor is listed and titled by: its own, else where it reads from. */
+export function sensorLabel(id: string, sensor: Partial<TemperatureSensor>): string {
+  if (sensor.name) return sensor.name
+  return sensor.source === 'cpu' ? 'Pi CPU' : (sensor.serial ?? id)
+}

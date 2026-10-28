@@ -58,53 +58,30 @@ function openBatteries(
   })
 }
 
-const card = (name: string) => screen.getByRole('group', { name })
-const readings = (name: string) =>
-  Object.fromEntries(
-    within(card(name))
-      .getAllByRole('term')
-      .map((term) => [term.textContent, term.nextElementSibling?.textContent]),
-  )
+/** A device's row: its title on the left, its short summary on the right. */
+const row = (name: string | RegExp) => screen.getByRole('button', { name })
 
 describe('Settings Batteries view', () => {
-  it('lists every battery with its label, owning Driver and live readings', () => {
+  it('lists every battery as a row: its label, owning Driver and a short summary', () => {
     openBatteries({ batteries: { '512': house, wattcycle: bank } })
 
     expect(screen.getByRole('heading', { name: 'Batteries' })).toBeInTheDocument()
-    expect(within(card('Venus · 512')).getByText('Driver: Venus')).toBeInTheDocument()
-    expect(readings('Venus · 512')).toEqual({
-      'State of charge': '83 %',
-      Voltage: '13.27 V',
-      Current: '-2.6 A',
-      Power: '-35 W',
-      Temperature: '21.5 °C',
-      'Time to go': '5h 12m',
-    })
-    // A name wins over the Driver and id; temperature and time to go appear only when published.
-    expect(within(card('Bank')).getByText('Driver: Wattcycle')).toBeInTheDocument()
-    expect(Object.keys(readings('Bank'))).toEqual([
-      'State of charge',
-      'Voltage',
-      'Current',
-      'Power',
-    ])
+    expect(row(/^Venus · 512/)).toHaveTextContent('Venus · 512Driver: Venus83%13.27V-2.6A')
+    // A name wins over the Driver and id.
+    expect(row(/^Bank/)).toHaveTextContent('BankDriver: Wattcycle61%13.10V1.0A')
   })
 
-  it('shows dashes, never a number it does not have, for a battery still missing measurements', () => {
+  it('leaves out a figure it does not have, for a battery still missing measurements', () => {
     openBatteries({ batteries: { '512': { soc_pct: 70 } as Battery } })
 
-    expect(readings('512')).toEqual({
-      'State of charge': '70 %',
-      Voltage: '—',
-      Current: '—',
-      Power: '—',
-    })
+    expect(row(/^512/)).toHaveTextContent('512Driver: —70%')
+    expect(row(/^512/)).not.toHaveTextContent('V')
   })
 
   it('names a legacy instance that names no Driver by its id, with an unknown owner', () => {
     openBatteries({ batteries: { '512': { ...house, driver: undefined } } })
 
-    expect(within(card('512')).getByText('Driver: —')).toBeInTheDocument()
+    expect(row(/^512/)).toHaveTextContent('Driver: —')
   })
 
   it('says so while no battery has published', () => {
@@ -201,17 +178,16 @@ describe('Settings Solar and Chargers views', () => {
     })
 
     expect(screen.getByRole('heading', { name: 'Solar' })).toBeInTheDocument()
-    expect(within(card('Venus · 291')).getByText('Driver: Venus')).toBeInTheDocument()
-    expect(readings('Venus · 291')).toEqual({ Power: '412 W', 'Yield today': '1.8 kWh' })
+    expect(row(/^Venus · 291/)).toHaveTextContent('Venus · 291Driver: Venus412W')
   })
 
-  it('shows a dash for a yield the controller does not report', async () => {
+  it('shows only the power of a controller that reports nothing more', async () => {
     await open('solar', { solar: { '291': { power_w: 10, battery_voltage_v: 13.4 } } })
 
-    expect(readings('291')).toEqual({ Power: '10 W', 'Yield today': '—' })
+    expect(row(/^291/)).toHaveTextContent('291Driver: —10W')
   })
 
-  it('lists a charger with its voltage and current, dashes for what it lacks', async () => {
+  it('lists a charger with its voltage, current and power, leaving out what it lacks', async () => {
     await open('chargers', {
       chargers: {
         '1': { driver: 'venus', voltage_v: 13.4 },
@@ -220,8 +196,8 @@ describe('Settings Solar and Chargers views', () => {
     })
 
     expect(screen.getByRole('heading', { name: 'Chargers' })).toBeInTheDocument()
-    expect(readings('Venus · 1')).toEqual({ Voltage: '13.40 V', Current: '—' })
-    expect(readings('2')).toEqual({ Voltage: '12.90 V', Current: '8.0 A' })
+    expect(row(/^Venus · 1/)).toHaveTextContent('Venus · 1Driver: Venus13.40V')
+    expect(row(/^2/)).toHaveTextContent('2Driver: —12.90V8.0A103W')
   })
 
   it('never shows the Primary battery selector', async () => {
@@ -273,13 +249,13 @@ describe('Settings Driver page: instances rows', () => {
 
     await user.click(screen.getByRole('button', { name: /^Solar/ }))
     expect(screen.getByRole('heading', { name: 'Solar' })).toBeInTheDocument()
-    // Back goes to the Devices list (the views' parent), as Tanks does.
+    // Back goes to the Driver page it was opened from, not to the Devices list.
     await user.click(
       within(screen.getByRole('navigation', { name: 'Settings navigation' })).getAllByRole(
         'button',
       )[0],
     )
-    await user.click(screen.getByRole('button', { name: /^Venus/ }))
+    expect(screen.getByRole('heading', { name: 'Venus' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Chargers/ }))
     expect(screen.getByRole('heading', { name: 'Chargers' })).toBeInTheDocument()
   })

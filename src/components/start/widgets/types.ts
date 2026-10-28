@@ -36,4 +36,6 @@ export interface StartWidgetProps {
   now: Date
   /** A tank widget's Configure button: opens that tank's settings. */
   onConfigureTank: (id: string) => void
+  /** A power-flow source: opens its device in Settings, by its `instanceKey`. */
+  onOpenInstance?: (key: string) => void
 }
