@@ -1,5 +1,5 @@
 import { createElement, useState } from 'react'
-import { Battery } from 'lucide-react'
+import { Battery, TriangleAlert } from 'lucide-react'
 import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { firstSolar } from '@/components/widgets/solar/solarView'
@@ -15,6 +15,7 @@ import {
   inputWatts,
   pulseClock,
   pulsePass,
+  type PowerSnapshot,
 } from '@/components/power/flowModel'
 import { VanArt } from '@/components/power/VanArt'
 import { charging } from '@/lib/charging'
@@ -49,6 +50,8 @@ export interface DialProps {
   /** Glow behind the ring fill: dark theme only. */
   isDark: boolean
   now: Date
+  /** Opens a device in Settings by its `instanceKey`; the BMS alert opens the Primary battery with it. */
+  onOpenInstance?: (key: string) => void
 }
 
 /** Colour while a ring has no data: not a severity, so the band just stays dim. */
@@ -76,6 +79,49 @@ function ringModel(source: RingSource, view: DialView | undefined, unit: RingUni
 }
 
 /**
+ * The BMS alert on the dial: an icon-only indicator (the names are in its accessible label, and on
+ * the Primary battery's device page it opens) in the severity colour, shown while the Primary
+ * battery has an active protection. A button when the dial can open a device, a plain status
+ * otherwise. The 44px floor is for gloved use (docs/design-principles.md).
+ */
+function DialBmsAlert({
+  flow,
+  onOpenInstance,
+}: {
+  flow: PowerSnapshot
+  onOpenInstance: ((key: string) => void) | undefined
+}) {
+  const { bmsAlert } = flow
+  if (bmsAlert === undefined) return null
+  const key = flow.nodes.battery.instance
+  const props = {
+    'aria-label': `Battery protection active: ${bmsAlert.names.join(', ')}`,
+    'data-tone': bmsAlert.tone,
+    className: `absolute top-0 left-1/2 z-10 flex min-h-11 min-w-11 -translate-x-1/2 items-center justify-center rounded-full ${
+      bmsAlert.tone === 'danger' ? 'text-danger' : 'text-warning'
+    }`,
+  }
+  const icon = <TriangleAlert aria-hidden="true" className="size-6" />
+  if (onOpenInstance === undefined || key === undefined) {
+    return (
+      <span role="status" {...props}>
+        {icon}
+      </span>
+    )
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenInstance(key)}
+      {...props}
+      className={`${props.className} focus-visible:ring-accent outline-none focus-visible:ring-4 active:brightness-90`}
+    >
+      {icon}
+    </button>
+  )
+}
+
+/**
  * The Start page's kiosk cockpit: a half-moon of two incoming power readings on the left, three
  * concentric rings (each the battery or a kind of tank, as configured) in the middle, and a
  * half-moon of the outgoing power on the right. The middle of the rings is the van drawn as the
@@ -94,6 +140,7 @@ export function Dial({
   powerSources,
   isDark,
   now,
+  onOpenInstance,
 }: DialProps) {
   const present = charging(chargers, IDLE_W)
 
@@ -132,8 +179,9 @@ export function Dial({
     // landscape screen (a phone at 915×412) they would otherwise overflow the page.
     <div
       data-testid="start-dial"
-      className="[container-type:size] flex min-h-0 flex-1 items-center justify-center"
+      className="[container-type:size] relative flex min-h-0 flex-1 items-center justify-center"
     >
+      <DialBmsAlert flow={flow} onOpenInstance={onOpenInstance} />
       <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center">
         <div className="relative">
           <DialTemperature kind="outdoor" sensor={temperatures[OUTDOOR_ID]} side="left" />

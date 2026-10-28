@@ -6,6 +6,7 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { flowSeconds, formatPower, IDLE_W, type PowerSnapshot } from './flowModel'
 import { BatteryState } from './BatteryState'
+import { BmsAlertBadge } from './BmsAlertBadge'
 import { ChargeBar } from './ChargeBar'
 import { VanArt } from './VanArt'
 import { SourceTarget } from './SourceTarget'
@@ -112,6 +113,7 @@ export function VanHub({
           </span>
           <BatteryState flow={flow} small={compact} />
         </div>
+        <BmsAlertBadge flow={flow} className={`mt-1 ${compact ? 'text-sm' : 'text-base'}`} />
       </SourceTarget>
     </div>
   )

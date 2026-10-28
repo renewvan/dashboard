@@ -25,6 +25,7 @@ import {
   Zap,
   CircuitBoard,
 } from 'lucide-react'
+import { BmsAlertBadge } from './BmsAlertBadge'
 import {
   formatPower,
   sourceOpener,
@@ -300,6 +301,7 @@ function BatteryTile({
       <div className="text-muted relative z-10 flex flex-col text-base">
         {state}
         {togo ? <span className="text-foreground text-sm">{togo}</span> : null}
+        <BmsAlertBadge flow={flow} className="mt-1 justify-start text-sm" />
       </div>
       <div className="text-foreground relative z-10 flex justify-between gap-3 text-base tabular-nums">
         <span>{flow.voltage?.toFixed(2) ?? '—'} V</span>

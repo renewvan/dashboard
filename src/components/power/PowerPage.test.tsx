@@ -245,6 +245,76 @@ describe('PowerPage', () => {
   })
 })
 
+describe('PowerPage BMS alert', () => {
+  const faulty: Battery = { ...battery, protections: ['short_circuit', 'cell_imbalance'] }
+  const layouts = ['tiles', 'orbs', 'van-tiles', 'van-orbs'] as const
+
+  it.each(layouts)('names the active protections on the battery in the %s layout', (layout) => {
+    render(
+      <PowerPage
+        batteries={{ house: faulty }}
+        solar={{ roof: sun }}
+        chargers={none}
+        layout={layout}
+      />,
+    )
+
+    const alert = screen.getByTestId('bms-alert')
+    expect(alert).toHaveTextContent('Short circuit')
+    expect(alert).toHaveTextContent('Cell imbalance')
+    expect(alert).toHaveAttribute('data-tone', 'danger')
+  })
+
+  it('is amber when only advisory protections are active', () => {
+    render(
+      <PowerPage
+        batteries={{ house: { ...battery, protections: ['cell_imbalance'] } }}
+        solar={{ roof: sun }}
+        chargers={none}
+        layout="tiles"
+      />,
+    )
+    expect(screen.getByTestId('bms-alert')).toHaveAttribute('data-tone', 'warning')
+  })
+
+  it.each([undefined, []])('shows nothing while protections are %j', (protections) => {
+    render(
+      <PowerPage
+        batteries={{ house: { ...battery, protections } }}
+        solar={{ roof: sun }}
+        chargers={none}
+        layout="tiles"
+      />,
+    )
+    expect(screen.queryByTestId('bms-alert')).not.toBeInTheDocument()
+  })
+
+  it('never shows allow_charge / allow_discharge', () => {
+    render(
+      <PowerPage
+        batteries={{ house: { ...battery, allow_charge: false, allow_discharge: false } }}
+        solar={{ roof: sun }}
+        chargers={none}
+        layout="tiles"
+      />,
+    )
+    expect(screen.queryByTestId('bms-alert')).not.toBeInTheDocument()
+  })
+
+  it('reads the Primary battery only, never a sibling instance', () => {
+    render(
+      <PowerPage
+        batteries={{ a: battery, b: faulty }}
+        primaryBatterySelection="a"
+        solar={{ roof: sun }}
+        chargers={none}
+        layout="tiles"
+      />,
+    )
+    expect(screen.queryByTestId('bms-alert')).not.toBeInTheDocument()
+  })
+})
+
 describe('PowerPage on a phone', () => {
   const history = [2140, 1800, 0, null, 900]
   const withHistory: Solar = { ...sun, yield_today_wh: 2140, yield_history_wh: history }

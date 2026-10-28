@@ -7,6 +7,7 @@
 // one derived "Loads" node (the battery's signed power_w, as the Start page's right half-moon
 // does); present, it splits into inverter -> AC loads and battery -> DC loads.
 
+import { bmsAlert, type BmsAlert } from '@/lib/bmsAlert'
 import { chargerWatts } from '@/lib/charging'
 import { instanceKey } from '@/lib/instances'
 import { primaryBattery } from '@/lib/primaryBattery'
@@ -63,6 +64,8 @@ export interface PowerSnapshot {
   timeToGoS: number | undefined
   voltage: number | undefined
   current: number | undefined
+  /** The Primary battery's active BMS protections; `undefined` while there are none. */
+  bmsAlert: BmsAlert | undefined
 }
 
 export interface InverterInput {
@@ -257,6 +260,7 @@ export function buildFlow({
     timeToGoS: b?.time_to_go_s,
     voltage: b?.voltage_v,
     current: b?.current_a,
+    bmsAlert: bmsAlert(b),
   }
 }
 

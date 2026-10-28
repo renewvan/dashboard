@@ -1,25 +1,6 @@
-import type { Battery, BmsProtection } from '@/types'
+import { protectionLabel } from '@/lib/bmsAlert'
+import type { Battery } from '@/types'
 import { amps, volts } from './instanceReadings'
-
-const PROTECTION_LABELS: Record<BmsProtection, string> = {
-  cell_overvoltage: 'Cell overvoltage',
-  cell_undervoltage: 'Cell undervoltage',
-  pack_overvoltage: 'Pack overvoltage',
-  pack_undervoltage: 'Pack undervoltage',
-  charge_overtemperature: 'Charge overtemperature',
-  charge_undertemperature: 'Charge undertemperature',
-  discharge_overtemperature: 'Discharge overtemperature',
-  discharge_undertemperature: 'Discharge undertemperature',
-  charge_overcurrent: 'Charge overcurrent',
-  discharge_overcurrent: 'Discharge overcurrent',
-  short_circuit: 'Short circuit',
-  internal_fault: 'Internal fault',
-  locked: 'Locked',
-  cell_imbalance: 'Cell imbalance',
-  overtemperature: 'Overtemperature',
-  undertemperature: 'Undertemperature',
-  other: 'Other protection',
-}
 
 export interface BmsRow {
   label: string
@@ -55,10 +36,6 @@ export interface BmsGroup {
   /** Active protection labels; `[]` is "reported, none active", absent is "not reported". */
   protections?: string[]
 }
-
-/** A protection's label; a name outside the vocabulary reads as itself rather than vanishing. */
-export const protectionLabel = (name: string): string =>
-  PROTECTION_LABELS[name as BmsProtection] ?? name
 
 /** The BMS group of a battery's device page, or `undefined` while it publishes none of it. */
 export function bmsGroup(battery: Partial<Battery>): BmsGroup | undefined {

@@ -14,6 +14,7 @@ import {
   Sun,
   Zap,
 } from 'lucide-react'
+import { BmsAlertBadge } from './BmsAlertBadge'
 import {
   formatPower,
   sourceOpener,
@@ -348,6 +349,7 @@ function Orb({
               <span className="text-foreground text-3xl tabular-nums">
                 {p.value} {p.unit}
               </span>
+              <BmsAlertBadge flow={flow} className="mt-2 max-w-full px-6 text-2xl" />
             </>
           ) : (
             <Value sizeClass={ORB_VALUE} value={<RollingNumber value={w} />} unit={p.unit} />
