@@ -3,7 +3,7 @@ const PILL =
 
 /**
  * The "Demo" pill the app header and the Settings subpage bar show while the van data is simulated.
- * Given `onPress` (the app header) it is a button that turns Demo mode off: the pill stays small, the
+ * Given `onPress` (the app header and the Settings subpage bar) it is a button that turns Demo mode off: the pill stays small, the
  * hit area is 44px for gloved use (docs/design-principles.md). Without it, it is a readout.
  */
 export function DemoBadge({ onPress }: { onPress?: () => void }) {

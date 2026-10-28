@@ -601,3 +601,25 @@ describe('SettingsPage Demo mode', () => {
     expect(setDemoMode).toHaveBeenCalledExactlyOnceWith(next)
   })
 })
+
+describe('SettingsPage Demo pill', () => {
+  it.each([
+    ['kiosk', undefined],
+    ['phone', 390],
+  ])('turns Demo mode off when the subpage bar pill is tapped on the %s', async (_name, width) => {
+    const setDemoMode = vi.fn()
+    const { user } = renderSettings({ demoMode: true, setDemoMode }, { width })
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+
+    await user.click(screen.getByRole('button', { name: /turn demo mode off/i }))
+
+    expect(setDemoMode).toHaveBeenCalledExactlyOnceWith(false)
+  })
+
+  it('shows no pill while Demo mode is off', async () => {
+    const { user } = renderSettings({ demoMode: false })
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+
+    expect(screen.queryByRole('button', { name: /turn demo mode off/i })).not.toBeInTheDocument()
+  })
+})
