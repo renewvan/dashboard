@@ -5,6 +5,7 @@ import type { MqttClient } from 'mqtt'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vite-plus/test'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
+import { appendAlertHistoryEntry, getAlertHistory } from '@/lib/alertHistory'
 import App from './App'
 
 type MessageHandler = (topic: string, message: { toString: () => string }) => void
@@ -559,6 +560,27 @@ describe('App shell alerts bell', () => {
     await renderAt(KIOSK_WIDTH, '/?page=alerts')
     expect(screen.getByTestId('pane-alerts')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^alerts/i })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('deletes the selected alerts together from the Alerts page, in the log too', async () => {
+    const user = userEvent.setup()
+    for (const title of [
+      'Fresh water tank alarm',
+      'Grey water tank alarm',
+      'Hub connection lost',
+    ]) {
+      appendAlertHistoryEntry({ key: title, type: 'error', title, description: '' })
+    }
+    await renderAt(KIOSK_WIDTH, '/?page=alerts')
+
+    await user.click(screen.getByRole('button', { name: 'Select' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Select all' }))
+    await user.click(screen.getByRole('button', { name: 'Delete (3)' }))
+
+    expect(
+      screen.getByRole('heading', { name: 'Well done, no active alerts!' }),
+    ).toBeInTheDocument()
+    expect(getAlertHistory()).toEqual([])
   })
 
   it('badges the bell with the unseen count until the page is visited', async () => {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   getAlertHistory,
+  removeAlertHistoryEntries,
   removeAlertHistoryEntry,
   subscribeAlertHistory,
   type AlertHistoryEntry,
@@ -10,6 +11,8 @@ export interface UseAlertHistoryResult {
   entries: AlertHistoryEntry[]
   /** Removes one entry from the persistent log — the Alerts page's own explicit dismiss, distinct from a toast's ephemeral close. */
   remove: (id: string) => void
+  /** Removes several entries in one change: the Alerts page's Select mode Delete. */
+  removeMany: (ids: string[]) => void
 }
 
 /** Reactive wrapper around `lib/alertHistory.ts`'s module-level store, for the Alerts page. */
@@ -18,5 +21,5 @@ export function useAlertHistory(): UseAlertHistoryResult {
 
   useEffect(() => subscribeAlertHistory(() => setEntries(getAlertHistory())), [])
 
-  return { entries, remove: removeAlertHistoryEntry }
+  return { entries, remove: removeAlertHistoryEntry, removeMany: removeAlertHistoryEntries }
 }

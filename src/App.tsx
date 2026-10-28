@@ -384,7 +384,11 @@ function App() {
       ))}
       <Tabs.Panel id="alerts" className={panelClass}>
         <PageErrorBoundary name="alerts">
-          <AlertsPage entries={alertHistory.entries} onRemove={alertHistory.remove} />
+          <AlertsPage
+            entries={alertHistory.entries}
+            onRemove={alertHistory.remove}
+            onRemoveMany={alertHistory.removeMany}
+          />
         </PageErrorBoundary>
       </Tabs.Panel>
     </>
