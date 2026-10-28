@@ -1,6 +1,6 @@
 import type { Battery, BmsProtection } from '@/types'
 
-export const PROTECTION_LABELS: Record<BmsProtection, string> = {
+const PROTECTION_LABELS: Record<BmsProtection, string> = {
   cell_overvoltage: 'Cell overvoltage',
   cell_undervoltage: 'Cell undervoltage',
   pack_overvoltage: 'Pack overvoltage',
@@ -25,7 +25,7 @@ export const protectionLabel = (name: string): string =>
   PROTECTION_LABELS[name as BmsProtection] ?? name
 
 /** Charge-side or maintenance protections: worth a look, not a stop (CONTEXT.md **BMS alert**). */
-const ADVISORY = new Set<string>([
+const ADVISORY_PROTECTIONS = new Set<BmsProtection>([
   'cell_imbalance',
   'charge_overtemperature',
   'charge_undertemperature',
@@ -48,7 +48,7 @@ export function bmsAlert(battery: Partial<Battery> | undefined): BmsAlert | unde
   const active = battery?.protections
   if (active === undefined || active.length === 0) return undefined
   return {
-    tone: active.every((name) => ADVISORY.has(name)) ? 'warning' : 'danger',
+    tone: active.every((name) => ADVISORY_PROTECTIONS.has(name)) ? 'warning' : 'danger',
     names: active.map(protectionLabel),
   }
 }

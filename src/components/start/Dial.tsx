@@ -15,10 +15,10 @@ import {
   inputWatts,
   pulseClock,
   pulsePass,
+  type PowerSnapshot,
 } from '@/components/power/flowModel'
 import { VanArt } from '@/components/power/VanArt'
 import { charging } from '@/lib/charging'
-import { instanceKey } from '@/lib/instances'
 import { primaryBattery } from '@/lib/primaryBattery'
 import { INDOOR_ID, OUTDOOR_ID } from '@/lib/temperature'
 import {
@@ -79,6 +79,49 @@ function ringModel(source: RingSource, view: DialView | undefined, unit: RingUni
 }
 
 /**
+ * The BMS alert on the dial: an icon-only indicator (the names are in its accessible label, and on
+ * the Primary battery's device page it opens) in the severity colour, shown while the Primary
+ * battery has an active protection. A button when the dial can open a device, a plain status
+ * otherwise. The 44px floor is for gloved use (docs/design-principles.md).
+ */
+function DialBmsAlert({
+  flow,
+  onOpenInstance,
+}: {
+  flow: PowerSnapshot
+  onOpenInstance: ((key: string) => void) | undefined
+}) {
+  const { bmsAlert } = flow
+  if (bmsAlert === undefined) return null
+  const key = flow.nodes.battery.instance
+  const props = {
+    'aria-label': `Battery protection active: ${bmsAlert.names.join(', ')}`,
+    'data-tone': bmsAlert.tone,
+    className: `absolute top-0 left-1/2 z-10 flex min-h-11 min-w-11 -translate-x-1/2 items-center justify-center rounded-full ${
+      bmsAlert.tone === 'danger' ? 'text-danger' : 'text-warning'
+    }`,
+  }
+  const icon = <TriangleAlert aria-hidden="true" className="size-6" />
+  if (onOpenInstance === undefined || key === undefined) {
+    return (
+      <span role="status" {...props}>
+        {icon}
+      </span>
+    )
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenInstance(key)}
+      {...props}
+      className={`${props.className} focus-visible:ring-accent outline-none focus-visible:ring-4 active:brightness-90`}
+    >
+      {icon}
+    </button>
+  )
+}
+
+/**
  * The Start page's kiosk cockpit: a half-moon of two incoming power readings on the left, three
  * concentric rings (each the battery or a kind of tank, as configured) in the middle, and a
  * half-moon of the outgoing power on the right. The middle of the rings is the van drawn as the
@@ -131,18 +174,6 @@ export function Dial({
     return source === 'battery' && centre === 'van' ? { ...ring, pulse: inputW > IDLE_W } : ring
   })
 
-  // The Primary battery's active protections: a compact indicator that opens its device page.
-  const alert = flow.bmsAlert
-  const alertKey = instanceKey(
-    'battery',
-    primaryBattery(batteries, primaryBatterySelection)?.id ?? '',
-  )
-  const alertLabel = alert && `Battery protection active: ${alert.names.join(', ')}`
-  const alertClass = `flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full px-3 text-sm font-medium ${
-    alert?.tone === 'danger' ? 'text-danger' : 'text-warning'
-  }`
-  const alertIcon = <TriangleAlert aria-hidden="true" className="size-5 shrink-0" />
-
   return (
     // A size container, so the rings can cap their own size at the height left (`100cqh`): on a short
     // landscape screen (a phone at 915×412) they would otherwise overflow the page.
@@ -150,29 +181,7 @@ export function Dial({
       data-testid="start-dial"
       className="[container-type:size] relative flex min-h-0 flex-1 items-center justify-center"
     >
-      {alert &&
-        (onOpenInstance ? (
-          <button
-            type="button"
-            aria-label={alertLabel}
-            data-tone={alert.tone}
-            onClick={() => onOpenInstance(alertKey)}
-            className={`focus-visible:ring-accent absolute top-0 left-1/2 z-10 -translate-x-1/2 outline-none focus-visible:ring-4 active:brightness-90 ${alertClass}`}
-          >
-            {alertIcon}
-            {alert.names.length > 1 ? `${alert.names.length} protections` : alert.names[0]}
-          </button>
-        ) : (
-          <span
-            role="status"
-            aria-label={alertLabel}
-            data-tone={alert.tone}
-            className={`absolute top-0 left-1/2 z-10 -translate-x-1/2 ${alertClass}`}
-          >
-            {alertIcon}
-            {alert.names.length > 1 ? `${alert.names.length} protections` : alert.names[0]}
-          </span>
-        ))}
+      <DialBmsAlert flow={flow} onOpenInstance={onOpenInstance} />
       <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center">
         <div className="relative">
           <DialTemperature kind="outdoor" sensor={temperatures[OUTDOOR_ID]} side="left" />
