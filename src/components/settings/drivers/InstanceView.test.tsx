@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 import { renderSettings } from '@/test/renderSettings'
-import type { Charger, RenewvanBusState, Solar } from '@/types'
+import type { Battery, Charger, RenewvanBusState, Solar } from '@/types'
 
 const venus: RenewvanBusState['drivers'] = {
   venus: {
@@ -125,5 +125,86 @@ describe('Settings device page', () => {
 
     await user.click(screen.getByRole('button', { name: /Solar/ }))
     expect(screen.getByRole('heading', { name: 'Solar' })).toBeInTheDocument()
+  })
+})
+
+// The hub's wattcycle demo scenario: 4 cells, 4 probes, one cell balancing, a brief protection.
+const bms: Battery = {
+  driver: 'venus',
+  name: 'WattCycle 314Ah',
+  soc_pct: 94,
+  voltage_v: 13.21,
+  current_a: -7.6,
+  power_w: -100.4,
+  cell_voltages_v: [3.303, 3.305, 3.304, 3.302],
+  cell_voltage_max_v: 3.305,
+  cell_voltage_min_v: 3.302,
+  cell_voltage_delta_v: 0.003,
+  cell_balancing: [false, true, false, false],
+  temperatures_c: [22.5, 22.1, null, 22.9],
+  allow_charge: true,
+  allow_discharge: false,
+  protections: [],
+}
+
+const shunt: Battery = {
+  driver: 'venus',
+  name: 'Shunt',
+  soc_pct: 90,
+  voltage_v: 13.3,
+  current_a: 1,
+  power_w: 13,
+}
+
+describe('Settings battery device page: BMS data', () => {
+  it('shows the cells, probes, permissions and protections of the instance that carries them', () => {
+    open('/?page=settings&view=instance&instance=battery:wattcycle', {
+      batteries: { wattcycle: bms },
+    })
+
+    expect(screen.getByRole('heading', { name: 'WattCycle 314Ah' })).toBeInTheDocument()
+    const cells = screen.getByRole('img', { name: /4 cells/i })
+    expect(cells).toBeInTheDocument()
+    expect(screen.getByText('Balancing')).toBeInTheDocument()
+    const probes = screen.getByLabelText('Probes')
+    expect(within(probes).getByText('Probe 3').nextElementSibling).toHaveTextContent('—')
+    const permissions = screen.getByLabelText('Permissions and limits')
+    expect(within(permissions).getByText('Charging allowed').nextElementSibling).toHaveTextContent(
+      'Yes',
+    )
+    expect(
+      within(permissions).getByText('Discharging allowed').nextElementSibling,
+    ).toHaveTextContent('No')
+    expect(
+      within(screen.getByLabelText('Protections')).getByText('None active'),
+    ).toBeInTheDocument()
+  })
+
+  it('names an active protection', () => {
+    open('/?page=settings&view=instance&instance=battery:wattcycle', {
+      batteries: { wattcycle: { ...bms, protections: ['cell_undervoltage'] } },
+    })
+    expect(
+      within(screen.getByLabelText('Protections')).getByText('Cell undervoltage'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows no BMS group and no placeholder on a battery that publishes none of it', () => {
+    open('/?page=settings&view=instance&instance=battery:shunt', {
+      batteries: { shunt, wattcycle: bms },
+    })
+    expect(screen.queryByRole('img', { name: /cells/i })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Probes')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Protections')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Permissions and limits')).not.toBeInTheDocument()
+  })
+
+  it('reads an unreadable cell as — and never as 0', () => {
+    open('/?page=settings&view=instance&instance=battery:wattcycle', {
+      batteries: { wattcycle: { ...bms, cell_voltages_v: [3.3, null, 3.31, 3.3] } },
+    })
+    const cells = screen.getByRole('img', { name: /4 cells/i })
+    expect(cells).toHaveAccessibleName(expect.stringContaining('cell 2 —'))
+    expect(cells).not.toHaveAccessibleName(expect.stringContaining('0.000'))
   })
 })
