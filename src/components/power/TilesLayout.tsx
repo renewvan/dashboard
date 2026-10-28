@@ -7,7 +7,6 @@
 // is MEASURED from the rendered tiles (ResizeObserver), so it stays glued to tile edges at any
 // size and while the inset animates.
 
-import { BmsAlertBadge } from './BmsAlertBadge'
 import {
   useCallback,
   useLayoutEffect,
@@ -26,6 +25,7 @@ import {
   Zap,
   CircuitBoard,
 } from 'lucide-react'
+import { BmsAlertBadge } from './BmsAlertBadge'
 import {
   formatPower,
   sourceOpener,

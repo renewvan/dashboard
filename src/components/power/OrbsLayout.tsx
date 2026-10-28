@@ -3,7 +3,6 @@
 // its panel (meet-fit), so it grows and shrinks as the bottom navbar slides, which the panel
 // already accounts for by padding itself.
 
-import { BmsAlertBadge } from './BmsAlertBadge'
 import type { ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import {
@@ -15,6 +14,7 @@ import {
   Sun,
   Zap,
 } from 'lucide-react'
+import { BmsAlertBadge } from './BmsAlertBadge'
 import {
   formatPower,
   sourceOpener,
