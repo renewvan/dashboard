@@ -115,7 +115,7 @@ export function AlertsPage({ entries, onRemove, onRemoveMany }: AlertsPageProps)
       className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 max-md:pt-3"
     >
       {selecting ? (
-        <div className="bg-background sticky top-0 z-10 flex min-h-11 items-center gap-3 pt-1 pb-2">
+        <div className="bg-background sticky top-0 z-10 flex items-center gap-3 pt-1 pb-4">
           <label className="flex min-h-11 cursor-pointer items-center gap-2 pr-2 text-sm font-medium">
             <input
               type="checkbox"
@@ -149,7 +149,7 @@ export function AlertsPage({ entries, onRemove, onRemoveMany }: AlertsPageProps)
           </Button>
         </div>
       ) : (
-        <div className="flex justify-end pt-1 pb-2">
+        <div className="flex justify-end pt-1 pb-4">
           <Button variant="ghost" className="min-h-11" onPress={() => setSelecting(true)}>
             Select
           </Button>
