@@ -90,6 +90,7 @@ function App() {
     primaryBattery,
     routerHealth,
     demoMode,
+    setDemoMode,
     publish,
   } = bus
   // No retained choice yet (or one that is not a string) reads as Auto.
@@ -186,7 +187,7 @@ function App() {
     handlers: { sleepDisplay, wakeDisplay, openAlerts },
   })
 
-  const demoBadge = demoMode && <DemoBadge />
+  const demoBadge = demoMode && <DemoBadge onPress={() => setDemoMode(false)} />
 
   const uplinkProps = {
     router,
