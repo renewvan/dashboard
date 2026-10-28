@@ -10,6 +10,7 @@ export type SettingsView =
   | 'gps'
   | 'relays'
   | 'batteries'
+  | 'primary-battery'
   | 'solar'
   | 'chargers'
   | 'instance'

@@ -1,10 +1,9 @@
 import { instanceKey, instanceLabel, ownerName, type InstanceType } from '@/lib/instances'
-import { compareInstanceIds, primaryBattery } from '@/lib/primaryBattery'
+import { AUTO_PRIMARY_BATTERY, compareInstanceIds } from '@/lib/primaryBattery'
 import { batterySummary, chargerSummary, solarSummary } from './entitySummary'
 import { EntityCard, type Figure } from '../shared/EntityCard'
-import { Card, ChoiceRow } from '../shared/ChoiceRow'
-import { Group } from '../shared/Group'
-import { useSettingsData, useSettingsActions } from '../SettingsContext'
+import { GroupRow } from '../shared/GroupRow'
+import { useSettingsData } from '../SettingsContext'
 
 /** The types this view lists; GPS, temperature and relays have a view of their own. */
 type ListedType = Extract<InstanceType, 'battery' | 'solar' | 'charger'>
@@ -46,24 +45,37 @@ function entriesOf<T extends InstanceRecord>(
  * Settings › Drivers › Batteries, Solar or Chargers: every instance of one entity type on the bus,
  * read-only, whichever Driver publishes it (so one bank's two sources sit side by side). A card per
  * instance: its label, its owning Driver and its live key readings; a measurement the instance has
- * not published reads `—`. Each card opens the instance's own page (`InstanceView`). The batteries view also hosts the shared Primary battery selector, once
- * there is more than one battery to choose between.
+ * not published reads `—`. Each card opens the instance's own page (`InstanceView`). The batteries
+ * view also leads with a Primary battery row, once there is more than one battery to choose between,
+ * which opens the page where the shared choice is made (`PrimaryBatteryView`).
  */
 export function InstancesView({
   type,
   onOpen,
+  onOpenPrimaryBattery,
 }: {
   type: ListedType
   /** Opens one instance's own page, by its `instanceKey`. */
   onOpen: (key: string) => void
+  /** Opens the Primary battery page; only the batteries view uses it. */
+  onOpenPrimaryBattery?: () => void
 }) {
-  const { drivers, batteries, solar, chargers } = useSettingsData()
+  const { drivers, batteries, solar, chargers, primaryBatterySelection } = useSettingsData()
   const entries =
     type === 'battery'
       ? entriesOf(batteries, batterySummary)
       : type === 'solar'
         ? entriesOf(solar, solarSummary)
         : entriesOf(chargers, chargerSummary)
+
+  // What the row says: Auto, or the chosen battery labelled like its card (its bare id while it is absent).
+  const chosen = entries.find(({ id }) => id === primaryBatterySelection)
+  const primaryChoiceLabel =
+    primaryBatterySelection === AUTO_PRIMARY_BATTERY
+      ? 'Auto'
+      : chosen === undefined
+        ? primaryBatterySelection
+        : instanceLabel(chosen.id, chosen.record, drivers)
 
   if (entries.length === 0) {
     return (
@@ -75,12 +87,11 @@ export function InstancesView({
 
   return (
     <div className="flex flex-col gap-4">
-      {type === 'battery' && entries.length > 1 && (
-        <PrimaryBatterySelector
-          instances={entries.map(({ id, record }) => ({
-            value: id,
-            label: instanceLabel(id, record, drivers),
-          }))}
+      {type === 'battery' && entries.length > 1 && onOpenPrimaryBattery && (
+        <GroupRow
+          label="Primary battery"
+          description={primaryChoiceLabel}
+          onOpen={onOpenPrimaryBattery}
         />
       )}
       <ul aria-label={LIST_LABEL[type]} className="flex flex-col gap-2">
@@ -96,36 +107,5 @@ export function InstancesView({
         ))}
       </ul>
     </div>
-  )
-}
-
-/**
- * The shared Primary battery: Auto or one of the batteries on the bus. The choice is the hub's, so
- * every client follows it; the note says what is actually read now, which differs from the choice
- * while the chosen instance is absent or has not fully arrived.
- */
-function PrimaryBatterySelector({ instances }: { instances: { value: string; label: string }[] }) {
-  const { batteries, primaryBatterySelection } = useSettingsData()
-  const { setPrimaryBattery } = useSettingsActions()
-  const current = primaryBattery(batteries, primaryBatterySelection)
-  const labelOf = (id: string) => instances.find((choice) => choice.value === id)?.label ?? id
-  return (
-    <Group title="Primary battery">
-      <Card>
-        <ChoiceRow
-          label="Primary battery"
-          choices={[{ value: 'auto', label: 'Auto' }, ...instances]}
-          value={primaryBatterySelection}
-          onChange={setPrimaryBattery}
-        />
-      </Card>
-      {current !== undefined && (
-        <p className="text-muted px-1 text-sm">
-          {current.mode === 'fallback'
-            ? `${primaryBatterySelection} is not available, using ${labelOf(current.id)}`
-            : `Reading from ${labelOf(current.id)}`}
-        </p>
-      )}
-    </Group>
   )
 }

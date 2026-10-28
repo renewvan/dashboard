@@ -46,6 +46,7 @@ import { RelaysView } from './drivers/RelaysView'
 import { TemperatureView } from './drivers/TemperatureView'
 import { GpsView } from './drivers/GpsView'
 import { InstancesView } from './drivers/InstancesView'
+import { PrimaryBatteryView } from './drivers/PrimaryBatteryView'
 import { InstanceView } from './drivers/InstanceView'
 import { SolarHistoryView } from './drivers/SolarHistoryView'
 import type { SettingsSubView, SettingsView } from './views'
@@ -62,6 +63,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   gps: { title: 'GPS', parent: 'drivers' },
   relays: { title: 'Relays', parent: 'drivers' },
   batteries: { title: 'Batteries', parent: 'drivers' },
+  'primary-battery': { title: 'Primary battery', parent: 'batteries' },
   solar: { title: 'Solar', parent: 'drivers' },
   chargers: { title: 'Chargers', parent: 'drivers' },
   // Titled by the open instance, and its parent is its type's list: see `parentOf`.
@@ -311,7 +313,15 @@ export const SettingsPage = memo(function SettingsPage() {
       case 'relays':
         return <RelaysView onOpen={openInstance} />
       case 'batteries':
-        return <InstancesView type="battery" onOpen={openInstance} />
+        return (
+          <InstancesView
+            type="battery"
+            onOpen={openInstance}
+            onOpenPrimaryBattery={() => setView('primary-battery')}
+          />
+        )
+      case 'primary-battery':
+        return <PrimaryBatteryView />
       case 'solar':
         return <InstancesView type="solar" onOpen={openInstance} />
       case 'chargers':
