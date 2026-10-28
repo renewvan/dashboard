@@ -145,6 +145,7 @@ export function StartPage({
         powerSources={powerSources}
         isDark={isDark}
         now={now}
+        onOpenInstance={onOpenInstance}
       />
     </section>
   )

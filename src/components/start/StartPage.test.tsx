@@ -88,6 +88,7 @@ function renderAt(
     layout?: readonly StartWidgetId[]
     view?: StartView
     tiles?: StartTiles
+    onOpenInstance?: (key: string) => void
   },
 ) {
   viewport = stubMatchMedia(width)
@@ -109,6 +110,7 @@ function renderAt(
       view={props.view}
       tiles={props.tiles}
       onConfigureTank={onConfigureTank}
+      onOpenInstance={props.onOpenInstance}
     />,
   )
 }
@@ -306,6 +308,44 @@ describe('StartPage masonry view', () => {
     renderAt(KIOSK_WIDTH, { layout: ['tilt'] })
     expect(screen.getByTestId('pane-start')).not.toHaveClass('grid')
     expect(screen.queryByText('Weather')).not.toBeInTheDocument()
+  })
+})
+
+describe('StartPage dial BMS alert', () => {
+  const faulty: Battery = { ...BATTERY, protections: ['short_circuit'] }
+
+  it('puts a danger indicator on the dial that opens the Primary battery', async () => {
+    const onOpenInstance = vi.fn()
+    renderAt(KIOSK_WIDTH, { batteries: { house: faulty }, onOpenInstance })
+
+    const alert = screen.getByRole('button', { name: /Battery protection active: Short circuit/ })
+    expect(alert).toHaveAttribute('data-tone', 'danger')
+    await userEvent.click(alert)
+    expect(onOpenInstance).toHaveBeenCalledWith('battery:house')
+  })
+
+  it('is amber for an advisory protection', () => {
+    renderAt(KIOSK_WIDTH, {
+      batteries: { house: { ...BATTERY, protections: ['cell_imbalance'] } },
+      onOpenInstance: vi.fn(),
+    })
+    expect(screen.getByRole('button', { name: /Battery protection active/ })).toHaveAttribute(
+      'data-tone',
+      'warning',
+    )
+  })
+
+  it.each([undefined, []])('is not drawn while protections are %j', (protections) => {
+    renderAt(KIOSK_WIDTH, { batteries: { house: { ...BATTERY, protections } } })
+    expect(screen.queryByRole('button', { name: /Battery protection/ })).not.toBeInTheDocument()
+  })
+
+  it('reads the Primary battery only', () => {
+    renderAt(KIOSK_WIDTH, {
+      batteries: { a: BATTERY, b: faulty },
+      primaryBatterySelection: 'a',
+    })
+    expect(screen.queryByRole('button', { name: /Battery protection/ })).not.toBeInTheDocument()
   })
 })
 
