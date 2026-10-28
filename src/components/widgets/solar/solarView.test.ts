@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test'
 import type { Solar } from '@/types'
-import { firstSolar, formatYield, yieldHistoryView, MIN_HISTORY_REFERENCE_WH } from './solarView'
+import {
+  firstSolar,
+  formatYield,
+  formatYieldAmount,
+  yieldAxis,
+  yieldHistoryView,
+  MIN_HISTORY_REFERENCE_WH,
+} from './solarView'
 
 function solar(overrides: Partial<Solar> = {}): Solar {
   return { power_w: 412, battery_voltage_v: 13.4, yield_today_wh: 2140, ...overrides }
@@ -84,5 +91,29 @@ describe('yieldHistoryView', () => {
   it('has nothing to draw when the controller publishes no history', () => {
     expect(yieldHistoryView(undefined)).toBeUndefined()
     expect(yieldHistoryView([])).toBeUndefined()
+  })
+})
+
+describe('yieldAxis', () => {
+  it('tops the axis at the smallest 0.5 × 2ⁿ kWh that holds the best day', () => {
+    expect(yieldAxis(100).maxKwh).toBe(0.5)
+    expect(yieldAxis(500).maxKwh).toBe(0.5)
+    expect(yieldAxis(1020).maxKwh).toBe(2)
+    expect(yieldAxis(3410).maxKwh).toBe(4)
+  })
+
+  it('draws five evenly spaced lines from 0 to the top', () => {
+    expect(yieldAxis(3410).ticks).toEqual([0, 1, 2, 3, 4])
+    expect(yieldAxis(900).ticks).toEqual([0, 0.25, 0.5, 0.75, 1])
+  })
+})
+
+describe('formatYieldAmount', () => {
+  it('reads Wh below one kWh and kWh from there', () => {
+    expect(formatYieldAmount(0)).toEqual({ value: '0', unit: 'Wh' })
+    expect(formatYieldAmount(99.6)).toEqual({ value: '100', unit: 'Wh' })
+    expect(formatYieldAmount(999)).toEqual({ value: '999', unit: 'Wh' })
+    expect(formatYieldAmount(1000)).toEqual({ value: '1.0', unit: 'kWh' })
+    expect(formatYieldAmount(2140)).toEqual({ value: '2.1', unit: 'kWh' })
   })
 })

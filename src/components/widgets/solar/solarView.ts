@@ -9,6 +9,13 @@ export function formatYield(wh: number | undefined): string {
   return wh === undefined ? '—' : (wh / 1000).toFixed(1)
 }
 
+/** A day's harvest in the unit that reads best: whole Wh below 1 kWh, otherwise kWh to a decimal. */
+export function formatYieldAmount(wh: number): { value: string; unit: 'Wh' | 'kWh' } {
+  return wh < 1000
+    ? { value: String(Math.round(wh)), unit: 'Wh' }
+    : { value: (wh / 1000).toFixed(1), unit: 'kWh' }
+}
+
 /** Days of harvest the Power page's Solar tile charts: today and the nine before it. */
 export const HISTORY_DAYS = 10
 
@@ -57,4 +64,20 @@ export function yieldHistoryView(
     }))
     .reverse()
   return { days, referenceWh }
+}
+
+/** Intervals the history chart's scale lines divide the axis into. */
+const AXIS_INTERVALS = 4
+
+/**
+ * The history chart's scale in kWh: the axis top (the smallest of 0.5, 1, 2, 4, 8... that holds the
+ * window's best day) and the lines up to it, 0 first, evenly spaced so each reads as a round number.
+ */
+export function yieldAxis(referenceWh: number): { maxKwh: number; ticks: number[] } {
+  let maxKwh = 0.5
+  while (maxKwh * 1000 < referenceWh) maxKwh *= 2
+  return {
+    maxKwh,
+    ticks: Array.from({ length: AXIS_INTERVALS + 1 }, (_, i) => (maxKwh * i) / AXIS_INTERVALS),
+  }
 }

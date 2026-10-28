@@ -5,7 +5,7 @@
 
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { Engine, Plug2, PlugZap, SolarPanel } from 'lucide-react'
+import { Engine, Plug2, PlugZap, SolarPanel, type LucideIcon } from 'lucide-react'
 import { formatPower, IDLE_W, type NodeId, type PowerSnapshot } from './flowModel'
 import { RollingNumber, Value } from './PowerValue'
 import { PortDomes, VanHub, Wire } from './VanDiagram'
@@ -14,14 +14,17 @@ import { SolarHistory } from '@/components/widgets/solar/SolarHistory'
 import { yieldHistoryView } from '@/components/widgets/solar/solarView'
 import type { Solar } from '@/types'
 
-const ICON: Partial<Record<NodeId, ReactNode>> = {
-  solar: <SolarPanel className="size-8" />,
-  alternator: <Engine className="size-8" />,
-  shore: <PlugZap className="size-8" />,
-  loads: <Plug2 className="size-8" />,
-  acLoads: <Plug2 className="size-8" />,
-  dcLoads: <Plug2 className="size-8" />,
+const ICON: Partial<Record<NodeId, LucideIcon>> = {
+  solar: SolarPanel,
+  alternator: Engine,
+  shore: PlugZap,
+  loads: Plug2,
+  acLoads: Plug2,
+  dcLoads: Plug2,
 }
+/** The icon's size class, and raised for the phone card with the text (see `ORB_VALUE_COMPACT`). */
+const ICON_SIZE = 'size-10'
+const ICON_SIZE_COMPACT = 'size-16'
 
 /**
  * Orb radius in canvas units. Each side column can hold two orbs, so they are sized to stack in the
@@ -29,7 +32,7 @@ const ICON: Partial<Record<NodeId, ReactNode>> = {
  */
 const R = 115
 const CIRC = 2 * Math.PI * R
-const ORB_VALUE = ['text-5xl', 'text-2xl'] as const
+const ORB_VALUE = ['text-4xl', 'text-2xl'] as const
 /**
  * The same, raised for a phone card, where the canvas is drawn at about a third of its size. The
  * largest that stay inside the ring (230 units across, about 198 of them usable): "1.85 kW" at this
@@ -37,7 +40,7 @@ const ORB_VALUE = ['text-5xl', 'text-2xl'] as const
  */
 const ORB_VALUE_COMPACT = ['text-6xl', 'text-3xl'] as const
 
-/** Height of the label drawn above an orb on the phone card. */
+/** Height of the label drawn outside an orb. */
 const LABEL_H = 44
 /** Space between that label and the ring. */
 const LABEL_GAP = 24
@@ -139,6 +142,7 @@ function Orb({
   const share = Math.min(1, Math.abs(watts) / peakW)
   const active = watts > IDLE_W
   const colour = 'var(--accent)'
+  const Icon = ICON[id]
   return (
     <g>
       <circle
@@ -167,24 +171,23 @@ function Orb({
       />
       <foreignObject x={x - R} y={y - R} width={R * 2} height={R * 2}>
         <div className="text-foreground flex size-full flex-col items-center justify-center">
-          <span className={compact ? 'mb-2 [&>svg]:size-20' : 'mb-3'} style={{ color: colour }}>
-            {ICON[id]}
-          </span>
+          {Icon && (
+            <Icon
+              className={`${compact ? `${ICON_SIZE_COMPACT} mb-2` : `${ICON_SIZE} mb-3`}`}
+              style={{ color: colour }}
+            />
+          )}
           <Value
             sizeClass={compact ? ORB_VALUE_COMPACT : ORB_VALUE}
             value={<RollingNumber value={shown} />}
             unit={p.unit}
           />
-          {history ? (
-            <div className="mt-3 h-9 w-36">{history}</div>
-          ) : (
-            !compact && <span className="text-muted mt-1 text-xl">{label}</span>
-          )}
+          {history && <div className="mt-3 h-9 w-36">{history}</div>}
         </div>
       </foreignObject>
-      {compact && !history && (
-        // Phone card: the label sits outside the ring, above it, or below it for the lower orb of a
-        // stacked pair, to leave the ring to the icon and number.
+      {!history && (
+        // The label sits outside the ring, above it, or below it for the lower orb of a stacked
+        // pair, to leave the ring to the icon and number.
         <foreignObject
           x={x - R}
           y={spot.c.y === SLOT_DOWN_Y ? y + R + LABEL_GAP : y - R - LABEL_H - LABEL_GAP}
@@ -192,7 +195,7 @@ function Orb({
           height={LABEL_H}
         >
           <div
-            className={`text-muted flex size-full justify-center text-4xl leading-none ${spot.c.y === SLOT_DOWN_Y ? 'items-start' : 'items-end'}`}
+            className={`text-muted flex size-full justify-center leading-none ${compact ? 'text-4xl' : 'text-2xl'} ${spot.c.y === SLOT_DOWN_Y ? 'items-start' : 'items-end'}`}
           >
             {label}
           </div>

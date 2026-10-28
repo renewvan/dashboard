@@ -29,7 +29,7 @@ export const VAN_LABELS: Record<keyof Van, string> = {
   name: 'Name',
   brand: 'Brand',
   model: 'Model',
-  kms: 'Kms',
+  kms: 'Kms.',
   plate: 'Plate',
   color: 'Colour',
 }

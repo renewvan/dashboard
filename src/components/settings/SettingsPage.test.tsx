@@ -72,12 +72,12 @@ describe('SettingsPage Van', () => {
     return rendered
   }
 
-  it('opens with Name, Brand, Model, Kms and Plate, in that order, under a Back button to Settings', async () => {
+  it('opens with Name, Brand, Model, Kms. and Plate, in that order, under a Back button to Settings', async () => {
     await openVan()
 
     expect(screen.getByRole('heading', { name: 'Van' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
-    const labels = ['Name', 'Brand', 'Model', 'Kms', 'Plate']
+    const labels = ['Name', 'Brand', 'Model', 'Kms.', 'Plate']
     const boxes = screen.getAllByRole('textbox')
     expect(boxes).toHaveLength(labels.length)
     expect(boxes).toEqual(labels.map(field))
