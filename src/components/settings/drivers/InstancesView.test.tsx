@@ -90,78 +90,129 @@ describe('Settings Batteries view', () => {
     expect(screen.getByText(/No batteries found/)).toBeInTheDocument()
   })
 
-  it('hides the Primary battery selector with one battery', () => {
-    openBatteries({ batteries: { '512': house } })
-
-    expect(screen.queryByRole('radiogroup', { name: 'Primary battery' })).not.toBeInTheDocument()
-    expect(screen.queryByText(/Reading from/)).not.toBeInTheDocument()
-  })
-
-  describe('Primary battery selector', () => {
+  describe('Primary battery row', () => {
     const batteries = { '512': house, wattcycle: bank }
-    const selector = () => screen.getByRole('radiogroup', { name: 'Primary battery' })
 
-    it('offers Auto and one entry per battery, labelled like its card, with the selection marked', () => {
+    it('shows the current choice on a row instead of a selector in the list', () => {
       openBatteries({ batteries }, { primaryBatterySelection: 'wattcycle' })
 
-      const buttons = within(selector()).getAllByRole('radio')
-      expect(buttons.map((b) => b.textContent)).toEqual(['Auto', 'Venus · 512', 'Bank'])
-      expect(buttons[0]).not.toBeChecked()
-      expect(buttons[1]).not.toBeChecked()
-      expect(buttons[2]).toBeChecked()
+      expect(row(/^Primary battery/)).toHaveTextContent('Primary batteryBank')
+      expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
     })
 
-    it('marks Auto and says what it reads: the first battery by id', () => {
+    it('reads Auto while the choice is Auto', () => {
       openBatteries({ batteries })
 
-      expect(within(selector()).getByRole('radio', { name: 'Auto' })).toBeChecked()
-      expect(screen.getByText('Reading from Venus · 512')).toBeInTheDocument()
+      expect(row(/^Primary battery/)).toHaveTextContent('Primary batteryAuto')
     })
 
-    it('publishes the exact choice through setPrimaryBattery', async () => {
-      const setPrimaryBattery = vi.fn()
-      const { user } = openBatteries({ batteries }, { setPrimaryBattery })
+    it('opens the Primary battery page', async () => {
+      const { user } = openBatteries({ batteries })
 
-      await user.click(within(selector()).getByRole('radio', { name: 'Bank' }))
+      await user.click(row(/^Primary battery/))
 
-      expect(setPrimaryBattery).toHaveBeenCalledExactlyOnceWith('wattcycle')
+      expect(screen.getByRole('heading', { name: 'Primary battery' })).toBeInTheDocument()
+      expect(screen.getByRole('radiogroup', { name: 'Primary battery' })).toBeInTheDocument()
     })
 
-    it('publishes auto when Auto is picked again after a selection', async () => {
-      const setPrimaryBattery = vi.fn()
-      const { user } = openBatteries(
-        { batteries },
-        { setPrimaryBattery, primaryBatterySelection: 'wattcycle' },
-      )
+    it('is left out with one battery, where there is nothing to choose', () => {
+      openBatteries({ batteries: { '512': house } })
 
-      await user.click(within(selector()).getByRole('radio', { name: 'Auto' }))
-
-      expect(setPrimaryBattery).toHaveBeenCalledExactlyOnceWith('auto')
+      expect(screen.queryByRole('button', { name: /^Primary battery/ })).not.toBeInTheDocument()
     })
+  })
+})
 
-    it('does not publish again for the choice that is already selected', async () => {
-      const setPrimaryBattery = vi.fn()
-      const { user } = openBatteries({ batteries }, { setPrimaryBattery })
+/** Settings › Devices › Batteries › Primary battery, deep-linked. */
+function openPrimaryBattery(
+  bus: Partial<RenewvanBusState>,
+  overrides: Parameters<typeof renderSettings>[0] = {},
+) {
+  return renderSettings(overrides, {
+    url: '/?page=settings&view=primary-battery',
+    bus: { drivers, ...bus },
+  })
+}
 
-      await user.click(within(selector()).getByRole('radio', { name: 'Auto' }))
+describe('Settings Primary battery page', () => {
+  const batteries = { '512': house, wattcycle: bank }
+  const choices = () => screen.getByRole('radiogroup', { name: 'Primary battery' })
 
-      expect(setPrimaryBattery).not.toHaveBeenCalled()
-    })
+  it('offers Auto and one radio per battery, labelled like its card, with the selection marked', () => {
+    openPrimaryBattery({ batteries }, { primaryBatterySelection: 'wattcycle' })
 
-    it('says which battery is read while the selection follows it', () => {
-      openBatteries({ batteries }, { primaryBatterySelection: 'wattcycle' })
+    expect(screen.getByRole('heading', { name: 'Primary battery' })).toBeInTheDocument()
+    const radios = within(choices()).getAllByRole('radio')
+    expect(radios.map((radio) => radio.closest('label')?.textContent)).toEqual([
+      'Auto',
+      'Venus · 512',
+      'Bank',
+    ])
+    expect(radios.map((radio) => (radio as HTMLInputElement).checked)).toEqual([false, false, true])
+  })
 
-      expect(screen.getByText('Reading from Bank')).toBeInTheDocument()
-    })
+  it('marks Auto and says what it reads: the first battery by id', () => {
+    openPrimaryBattery({ batteries })
 
-    it.each([
-      ['absent', {}],
-      ['not fully arrived', { gone: { soc_pct: 50 } as Battery }],
-    ])('notes the fallback when the selected battery is %s', (_, extra) => {
-      openBatteries({ batteries: { ...batteries, ...extra } }, { primaryBatterySelection: 'gone' })
+    expect(within(choices()).getByRole('radio', { name: 'Auto' })).toBeChecked()
+    expect(screen.getByText('Reading from Venus · 512')).toBeInTheDocument()
+  })
 
-      expect(screen.getByText('gone is not available, using Venus · 512')).toBeInTheDocument()
-    })
+  it('publishes the exact choice through setPrimaryBattery and stays on the page', async () => {
+    const setPrimaryBattery = vi.fn()
+    const { user } = openPrimaryBattery({ batteries }, { setPrimaryBattery })
+
+    await user.click(within(choices()).getByRole('radio', { name: 'Bank' }))
+
+    expect(setPrimaryBattery).toHaveBeenCalledExactlyOnceWith('wattcycle')
+    expect(screen.getByRole('heading', { name: 'Primary battery' })).toBeInTheDocument()
+  })
+
+  it('publishes auto when Auto is picked after a selection', async () => {
+    const setPrimaryBattery = vi.fn()
+    const { user } = openPrimaryBattery(
+      { batteries },
+      { setPrimaryBattery, primaryBatterySelection: 'wattcycle' },
+    )
+
+    await user.click(within(choices()).getByRole('radio', { name: 'Auto' }))
+
+    expect(setPrimaryBattery).toHaveBeenCalledExactlyOnceWith('auto')
+  })
+
+  it('does not publish again for the choice that is already selected', async () => {
+    const setPrimaryBattery = vi.fn()
+    const { user } = openPrimaryBattery({ batteries }, { setPrimaryBattery })
+
+    await user.click(within(choices()).getByRole('radio', { name: 'Auto' }))
+
+    expect(setPrimaryBattery).not.toHaveBeenCalled()
+  })
+
+  it('says which battery is read while the selection follows it', () => {
+    openPrimaryBattery({ batteries }, { primaryBatterySelection: 'wattcycle' })
+
+    expect(screen.getByText('Reading from Bank')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['absent', {}],
+    ['not fully arrived', { gone: { soc_pct: 50 } as Battery }],
+  ])('notes the fallback when the selected battery is %s', (_, extra) => {
+    openPrimaryBattery(
+      { batteries: { ...batteries, ...extra } },
+      { primaryBatterySelection: 'gone' },
+    )
+
+    expect(screen.getByText('gone is not available, using Venus · 512')).toBeInTheDocument()
+  })
+
+  it('steps back to Batteries', async () => {
+    const { user } = openPrimaryBattery({ batteries })
+
+    await user.click(screen.getByRole('button', { name: /Batteries/ }))
+
+    expect(screen.getByRole('heading', { name: 'Batteries' })).toBeInTheDocument()
   })
 })
 

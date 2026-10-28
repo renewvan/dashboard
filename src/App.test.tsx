@@ -1565,12 +1565,13 @@ describe('App shell Relays page', () => {
       consoleWarn.mockClear()
     })
 
-    it('publishes the choice made in Settings › Devices › Batteries to the hub set topic', async () => {
+    it('publishes the choice made in Settings › Devices › Batteries › Primary battery to the hub set topic', async () => {
       const user = userEvent.setup()
       await renderAt(KIOSK_WIDTH, '/?page=settings&view=batteries')
       await receiveBank('wattcycle', 61)
       await receiveBank('512', 83)
 
+      await user.click(screen.getByRole('button', { name: /^Primary battery/ }))
       const selector = screen.getByRole('radiogroup', { name: 'Primary battery' })
       await user.click(within(selector).getByRole('radio', { name: '512' }))
 

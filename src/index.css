@@ -19,6 +19,8 @@
 @import '@heroui/styles/components/label.css';
 @import '@heroui/styles/components/slider.css';
 @import '@heroui/styles/components/switch.css';
+@import '@heroui/styles/components/radio.css';
+@import '@heroui/styles/components/radio-group.css';
 @import '@heroui/styles/components/toggle-button.css';
 @import '@heroui/styles/components/toggle-button-group.css';
 @import '@heroui/styles/components/textfield.css';
