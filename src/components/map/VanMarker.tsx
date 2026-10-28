@@ -17,9 +17,8 @@ export interface VanMarkerProps {
 const VAN_W = 58
 const VAN_H = (VAN_W * 68.002) / 113.312
 
-/** A tight contact shadow plus a soft wide one, so the van lifts off any tile colour. */
-const VAN_SHADOW =
-  'drop-shadow(0 1px 1px rgba(15,23,42,0.55)) drop-shadow(0 5px 6px rgba(15,23,42,0.35))'
+/** Theme-aware (`--van-shadow` in global.css): a contact + soft shadow in light, a light rim glow in dark. */
+const VAN_SHADOW = 'var(--van-shadow)'
 
 /**
  * The van on the map: the side-view van (`VanFilled`, the owner's colour or else the theme accent), nothing around it. It
