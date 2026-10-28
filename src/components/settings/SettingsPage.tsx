@@ -7,9 +7,11 @@ import { useUrlParam } from '@/hooks/useUrlParam'
 import { useContentStable } from '@/hooks/useStable'
 import { useSettingsNavStyle, type SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import { driversSummary } from '@/lib/drivers'
+import { sensorLabel } from '@/lib/temperature'
 import { pushSearchParams } from '@/lib/urlHistory'
 import { routerDriver, routerName } from '@/lib/routerDriver'
 import { FLUID_LABELS } from '@/lib/tank-labels'
+import { instanceKey, instanceLabel, parseInstanceKey, type InstanceType } from '@/lib/instances'
 import { AlertsView } from './general/preferences/AlertsView'
 import { AlertsButton } from '@/components/AlertsButton'
 import { DemoBadge } from '@/components/DemoBadge'
@@ -44,6 +46,8 @@ import { RelaysView } from './drivers/RelaysView'
 import { TemperatureView } from './drivers/TemperatureView'
 import { GpsView } from './drivers/GpsView'
 import { InstancesView } from './drivers/InstancesView'
+import { InstanceView } from './drivers/InstanceView'
+import { SolarHistoryView } from './drivers/SolarHistoryView'
 import type { SettingsSubView, SettingsView } from './views'
 import { SettingsNavBar } from './SettingsNavBar'
 import { useHideShellHeader } from './ShellHeaderContext'
@@ -60,6 +64,9 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   batteries: { title: 'Batteries', parent: 'drivers' },
   solar: { title: 'Solar', parent: 'drivers' },
   chargers: { title: 'Chargers', parent: 'drivers' },
+  // Titled by the open instance, and its parent is its type's list: see `parentOf`.
+  instance: { title: 'Device', parent: 'drivers' },
+  'instance-history': { title: 'History', parent: 'instance' },
   general: { title: 'General', parent: 'list' },
   firmware: { title: 'Firmware', parent: 'general' },
   about: { title: 'About', parent: 'general' },
@@ -79,6 +86,27 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
 
 const SUB_VIEWS = Object.keys(VIEWS) as SettingsSubView[]
 
+/** The list an instance page steps back to: the one for its type. */
+/** The lists of a Driver's entities: opened from its page, so they step back to it. */
+const ENTITY_LISTS: SettingsSubView[] = [
+  'tanks',
+  'temperature',
+  'gps',
+  'relays',
+  'batteries',
+  'solar',
+  'chargers',
+]
+
+const INSTANCE_LIST: Record<InstanceType, SettingsSubView> = {
+  battery: 'batteries',
+  solar: 'solar',
+  charger: 'chargers',
+  gps: 'gps',
+  temperature: 'temperature',
+  relay: 'relays',
+}
+
 /**
  * Settings as a drill-down tree: the top list, then one group's view per
  * level. The Navigation style (a toggle in Display & Appearance) opens a view either as a subpage
@@ -91,6 +119,12 @@ export const SettingsPage = memo(function SettingsPage() {
   const {
     drivers,
     tanks,
+    batteries,
+    solar,
+    chargers,
+    gps,
+    temperatures,
+    relays,
     displayPower,
     router,
     routerHealth,
@@ -139,6 +173,28 @@ export const SettingsPage = memo(function SettingsPage() {
   const validDriverKeys = useContentStable(drivers.map((row) => row.key))
   const [driverParam] = useUrlParam('driver', validDriverKeys)
   const driverRow = drivers.find((row) => row.key === driverParam)
+  // The open instance lives in `?instance=`, valid only while it names a battery, solar controller
+  // or charger on the bus.
+  const instanceKeys = [
+    ...Object.keys(batteries).map((id) => instanceKey('battery', id)),
+    ...Object.keys(solar).map((id) => instanceKey('solar', id)),
+    ...Object.keys(chargers).map((id) => instanceKey('charger', id)),
+    ...Object.keys(gps).map((id) => instanceKey('gps', id)),
+    ...Object.keys(temperatures).map((id) => instanceKey('temperature', id)),
+    ...Object.keys(relays).map((id) => instanceKey('relay', id)),
+  ]
+  const validInstanceKeys = useContentStable(instanceKeys)
+  const [instanceParam] = useUrlParam('instance', validInstanceKeys)
+  const instance = instanceParam === null ? undefined : parseInstanceKey(instanceParam)
+  // What the open instance's page is titled by: its own name, else where it comes from.
+  const instanceTitle = (): string | undefined => {
+    if (instance === undefined) return undefined
+    const { type, id } = instance
+    if (type === 'temperature') return temperatures[id] && sensorLabel(id, temperatures[id])
+    if (type === 'relay') return relays[id] && (relays[id].name || id)
+    const record = { battery: batteries, solar, charger: chargers, gps }[type][id]
+    return record && instanceLabel(id, record, drivers)
+  }
   // The open widget lives in `?widget=`, valid only while it names a Start page widget.
   const [widgetParam] = useUrlParam('widget', START_WIDGET_IDS)
   // A tank view without a reported tank has nothing to show: fall back to the tank list; a driver
@@ -150,13 +206,28 @@ export const SettingsPage = memo(function SettingsPage() {
         ? 'tanks'
         : (viewParam === 'driver' || viewParam === 'driver-info') && driverRow === undefined
           ? 'drivers'
-          : (viewParam ?? 'list')
+          : viewParam === 'instance' && instance === undefined
+            ? 'drivers'
+            : viewParam === 'instance-history' && instance?.type !== 'solar'
+              ? instance === undefined
+                ? 'drivers'
+                : 'instance'
+              : (viewParam ?? 'list')
   // `tank` is titled by the open tank's fluid and `driver` by the open Driver's label; every other
   // view has a fixed title.
+  // Back goes to the page you came from. An entity list (Batteries, GPS, Tanks…) is opened from a
+  // Driver's page, so it steps back there while a Driver is open (`?driver=`), else to Devices; an
+  // instance page steps back to the list of its type; every other view has one fixed parent.
+  const parentOf = (id: SettingsSubView): SettingsView => {
+    if (id === 'instance' && instance) return INSTANCE_LIST[instance.type]
+    if (ENTITY_LISTS.includes(id)) return driverRow === undefined ? 'drivers' : 'driver'
+    return VIEWS[id].parent
+  }
   const titleOf = (id: SettingsSubView): string => {
     const fluid = tankParam === null ? undefined : tanks[tankParam]?.fluid_type
     if (id === 'tank' && fluid) return FLUID_LABELS[fluid]
     if (id === 'driver' && driverRow) return driverRow.name
+    if (id === 'instance') return instanceTitle() ?? VIEWS.instance.title
     if (id === 'widget' && widgetParam) return START_WIDGETS[widgetParam].label
     if (id === 'cellular') return routerName(routerDriver(drivers))
     return VIEWS[id].title
@@ -167,8 +238,17 @@ export const SettingsPage = memo(function SettingsPage() {
   const [lastOpenView, setLastOpenView] = useState<SettingsSubView | null>(null)
   if (view !== 'list' && view !== lastOpenView) setLastOpenView(view)
   const drawerView = view === 'list' ? lastOpenView : view
+  // Back at Devices or the top list closes the Driver that was open, so a later list reached some
+  // other way (a power-flow tap) does not step back into it. One history entry for both.
   const setView = useCallback(
-    (next: SettingsView) => setViewParam(next === 'list' ? null : next),
+    (next: SettingsView) => {
+      if (next !== 'list' && next !== 'drivers') return setViewParam(next)
+      const params = new URLSearchParams(window.location.search)
+      if (next === 'list') params.delete('view')
+      else params.set('view', next)
+      params.delete('driver')
+      pushSearchParams(params)
+    },
     [setViewParam],
   )
   // `view` and `tank` change together, in one history entry.
@@ -193,6 +273,14 @@ export const SettingsPage = memo(function SettingsPage() {
     pushSearchParams(params)
   }, [])
 
+  // Likewise `view` and `instance`.
+  const openInstance = useCallback((key: string) => {
+    const params = new URLSearchParams(window.location.search)
+    params.set('view', 'instance')
+    params.set('instance', key)
+    pushSearchParams(params)
+  }, [])
+
   const content = (id: SettingsSubView): ReactNode => {
     switch (id) {
       case 'drivers':
@@ -206,17 +294,23 @@ export const SettingsPage = memo(function SettingsPage() {
       case 'tank':
         return <TankSettingsView />
       case 'temperature':
-        return <TemperatureView />
+        return <TemperatureView onOpen={openInstance} />
       case 'gps':
-        return <GpsView />
+        return <GpsView onOpen={openInstance} />
       case 'relays':
-        return <RelaysView />
+        return <RelaysView onOpen={openInstance} />
       case 'batteries':
-        return <InstancesView type="battery" />
+        return <InstancesView type="battery" onOpen={openInstance} />
       case 'solar':
-        return <InstancesView type="solar" />
+        return <InstancesView type="solar" onOpen={openInstance} />
       case 'chargers':
-        return <InstancesView type="charger" />
+        return <InstancesView type="charger" onOpen={openInstance} />
+      case 'instance':
+        return instance === undefined ? null : (
+          <InstanceView type={instance.type} id={instance.id} onOpen={setView} />
+        )
+      case 'instance-history':
+        return instance === undefined ? null : <SolarHistoryView id={instance.id} />
       case 'general':
         return <GeneralView onOpen={setView} />
       case 'firmware':
@@ -311,6 +405,7 @@ export const SettingsPage = memo(function SettingsPage() {
   // A subpage replaces the app header with its own bar; the drawer and the top list keep it.
   const subpage = navStyle === 'subpage' && view !== 'list' ? view : null
   useHideShellHeader(subpage !== null)
+  const subpageParent = subpage === null ? 'list' : parentOf(subpage)
 
   return (
     <section
@@ -321,10 +416,8 @@ export const SettingsPage = memo(function SettingsPage() {
       {subpage !== null && (
         <SettingsNavBar
           title={titleOf(subpage)}
-          parentTitle={
-            VIEWS[subpage].parent === 'list' ? 'Settings' : titleOf(VIEWS[subpage].parent)
-          }
-          onBack={() => setView(VIEWS[subpage].parent)}
+          parentTitle={subpageParent === 'list' ? 'Settings' : titleOf(subpageParent)}
+          onBack={() => setView(subpageParent)}
           action={
             <div className="flex items-center gap-1.5">
               {demoMode && <DemoBadge />}
@@ -359,7 +452,7 @@ export const SettingsPage = memo(function SettingsPage() {
           `running` at progress 1), so a short driver view inherits the list's top shadow. A fresh
           element starts with an inactive timeline and no fade. */}
       <ScrollShadow
-        key={`${view}:${driverParam ?? ''}:${tankParam ?? ''}`}
+        key={`${view}:${driverParam ?? ''}:${tankParam ?? ''}:${instanceParam ?? ''}`}
         hideScrollBar
         className="min-h-0 flex-1"
       >
@@ -395,7 +488,7 @@ export const SettingsPage = memo(function SettingsPage() {
                     isIconOnly
                     variant="ghost"
                     aria-label="Back"
-                    onPress={() => setView(VIEWS[drawerView].parent)}
+                    onPress={() => setView(parentOf(drawerView))}
                   >
                     <ArrowLeft aria-hidden="true" />
                   </Button>

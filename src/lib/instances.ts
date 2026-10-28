@@ -32,3 +32,31 @@ export function instanceLabel(
   const owner = ownerName(instance, drivers)
   return owner === undefined ? id : `${owner} · ${id}`
 }
+
+/** The entity types the instances views list and open. */
+export type InstanceType = 'battery' | 'solar' | 'charger' | 'gps' | 'temperature' | 'relay'
+
+const INSTANCE_TYPES: readonly InstanceType[] = [
+  'battery',
+  'solar',
+  'charger',
+  'gps',
+  'temperature',
+  'relay',
+]
+
+/**
+ * One instance as a single URL value (`?instance=solar:roof`): ids are only unique within a type, so
+ * the key carries the type. The id may itself contain a colon, so only the first one separates.
+ */
+export function instanceKey(type: InstanceType, id: string): string {
+  return `${type}:${id}`
+}
+
+/** The type and id a key names, `undefined` for anything `instanceKey` did not make. */
+export function parseInstanceKey(key: string): { type: InstanceType; id: string } | undefined {
+  const cut = key.indexOf(':')
+  if (cut < 1 || cut === key.length - 1) return undefined
+  const type = INSTANCE_TYPES.find((t) => t === key.slice(0, cut))
+  return type === undefined ? undefined : { type, id: key.slice(cut + 1) }
+}

@@ -8,6 +8,7 @@ import { flowSeconds, formatPower, IDLE_W, type PowerSnapshot } from './flowMode
 import { BatteryState } from './BatteryState'
 import { ChargeBar } from './ChargeBar'
 import { VanArt } from './VanArt'
+import { SourceTarget } from './SourceTarget'
 
 import type { Point, PortSide } from './vanGeometry'
 
@@ -78,31 +79,40 @@ export function VanHub({
   top,
   width,
   compact = false,
+  onPress,
 }: {
   flow: PowerSnapshot
   left: string
   top: string
   width: string
   compact?: boolean
+  /** Opens the battery in Settings; absent, the van is a readout. */
+  onPress?: () => void
 }) {
   const watts = flow.nodes.battery.watts
   const power = formatPower(watts === undefined ? undefined : Math.abs(watts))
   return (
     <div className="absolute" style={{ left, top, width }}>
-      <VanArt flow={flow} className="w-full" />
-      <div className="mt-3 flex items-center justify-center gap-4">
-        <ChargeBar soc={flow.soc} className="w-full" />
-        <span className={`text-foreground tabular-nums ${compact ? 'text-sm' : 'text-xl'}`}>
-          {flow.soc === undefined ? '—' : `${Math.round(flow.soc)}%`}
-        </span>
-      </div>
-      <div className="mt-1 flex items-baseline justify-center gap-3 whitespace-nowrap">
-        <span className={`text-muted tabular-nums ${compact ? 'text-sm' : ''}`}>
-          {watts !== undefined && watts < 0 ? '−' : '+'}
-          {power.value} {power.unit}
-        </span>
-        <BatteryState flow={flow} small={compact} />
-      </div>
+      <SourceTarget
+        onPress={onPress}
+        label="Battery"
+        className="block w-full rounded-3xl text-left"
+      >
+        <VanArt flow={flow} className="w-full" />
+        <div className="mt-3 flex items-center justify-center gap-4">
+          <ChargeBar soc={flow.soc} className="w-full" />
+          <span className={`text-foreground tabular-nums ${compact ? 'text-sm' : 'text-xl'}`}>
+            {flow.soc === undefined ? '—' : `${Math.round(flow.soc)}%`}
+          </span>
+        </div>
+        <div className="mt-1 flex items-baseline justify-center gap-3 whitespace-nowrap">
+          <span className={`text-muted tabular-nums ${compact ? 'text-sm' : ''}`}>
+            {watts !== undefined && watts < 0 ? '−' : '+'}
+            {power.value} {power.unit}
+          </span>
+          <BatteryState flow={flow} small={compact} />
+        </div>
+      </SourceTarget>
     </div>
   )
 }

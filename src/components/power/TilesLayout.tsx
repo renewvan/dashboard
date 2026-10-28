@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import {
   formatPower,
+  sourceOpener,
   IDLE_W,
   PULSE_PAUSE_S,
   pulseSeconds,
@@ -139,6 +140,7 @@ function Tile({
   active,
   sub,
   history,
+  onPress,
   className = '',
 }: {
   id: NodeId
@@ -150,12 +152,16 @@ function Tile({
   sub?: string
   /** Drawn at the very bottom of the tile, under the sub line (the Solar tile's week of harvest). */
   history?: ReactNode
+  /** Opens the device behind the tile; absent, the tile is a readout. */
+  onPress?: () => void
   className?: string
 }) {
   const { unit } = formatPower(watts)
+  const Face = onPress ? motion.button : motion.div
   return (
-    <motion.div
-      ref={register(id)}
+    <Face
+      ref={register(id) as never}
+      {...(onPress ? { type: 'button' as const, onClick: onPress } : {})}
       animate={{
         boxShadow: active
           ? '0 0 22px 2px color-mix(in oklch, var(--accent) 45%, transparent)'
@@ -163,7 +169,11 @@ function Tile({
         borderColor: active ? 'var(--accent)' : 'var(--border)',
       }}
       transition={{ duration: 0.6 }}
-      className={`bg-surface @container-[size] relative flex max-h-56 min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-3xl border-2 p-4 ${className}`}
+      className={`bg-surface @container-[size] relative flex max-h-56 min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-3xl border-2 p-4 ${className} ${
+        onPress
+          ? 'focus-visible:ring-accent cursor-pointer text-left outline-none focus-visible:ring-4 active:brightness-90'
+          : ''
+      }`}
     >
       {/* The title and its value are one block at the top, touching, as in Venus; only the
           sub line is pushed to the bottom. */}
@@ -187,16 +197,19 @@ function Tile({
           </div>
         ) : null}
       </div>
-    </motion.div>
+    </Face>
   )
 }
 
 function BatteryTile({
   flow,
   register,
+  onPress,
 }: {
   flow: PowerSnapshot
   register: (id: NodeId) => (el: HTMLElement | null) => void
+  /** Opens the battery in Settings; absent, the tile is a readout. */
+  onPress?: () => void
 }) {
   const reduce = useReducedMotion()
   const soc = flow.soc
@@ -214,16 +227,22 @@ function BatteryTile({
   const glowing = flow.batteryState === 'charging' && !reduce
   const fillColour = low ? 'var(--danger)' : 'var(--accent)'
   const pulse = pulseSeconds(power ?? 0, flow.peakW)
+  const Face = onPress ? motion.button : motion.div
   return (
-    <motion.div
-      ref={register('battery')}
+    <Face
+      ref={register('battery') as never}
+      {...(onPress ? { type: 'button' as const, onClick: onPress } : {})}
       animate={{
         borderColor: fillColour,
         boxShadow: glowing
           ? `0 0 22px 2px color-mix(in oklch, ${fillColour} 40%, transparent)`
           : '0 0 0 0 transparent',
       }}
-      className="bg-surface relative flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-3xl border-2 p-4 [@media(max-height:560px)]:p-3"
+      className={`bg-surface relative flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-3xl border-2 p-4 [@media(max-height:560px)]:p-3 ${
+        onPress
+          ? 'focus-visible:ring-accent cursor-pointer text-left outline-none focus-visible:ring-4 active:brightness-90'
+          : ''
+      }`}
     >
       {/* Venus fills the tile bottom-up with the SoC; the edge is a spring so a step in SoC
           settles instead of jumping. While the battery charges, a soft band rises through the fill
@@ -287,7 +306,7 @@ function BatteryTile({
         <span>{flow.current?.toFixed(1) ?? '—'} A</span>
         <span>{power ?? '—'} W</span>
       </div>
-    </motion.div>
+    </Face>
   )
 }
 
@@ -318,10 +337,13 @@ const TITLES: Partial<Record<NodeId, string>> = {
 export function TilesLayout({
   flow,
   solar,
+  onOpenInstance,
 }: {
   flow: PowerSnapshot
   /** Absent until a solar controller has published its required fields: then no history is drawn. */
   solar?: Solar
+  /** Opens a source's device in Settings (its `instanceKey`); absent, the sources are readouts. */
+  onOpenInstance?: (key: string) => void
 }) {
   const container = useRef<HTMLDivElement>(null)
   const { boxes, register } = useBoxes(container)
@@ -343,6 +365,7 @@ export function TilesLayout({
       active={(n[id].watts ?? 0) > IDLE_W}
       sub={n[id].sub}
       history={id === 'solar' && solarHistory ? <SolarHistory view={solarHistory} /> : undefined}
+      onPress={sourceOpener(flow, id, onOpenInstance)}
     />
   )
 
@@ -382,7 +405,11 @@ export function TilesLayout({
               {tile('inverter')}
             </div>
             <div className="relative col-start-3 row-start-2 flex min-h-0 flex-col">
-              <BatteryTile flow={flow} register={register} />
+              <BatteryTile
+                flow={flow}
+                register={register}
+                onPress={sourceOpener(flow, 'battery', onOpenInstance)}
+              />
             </div>
             <div className="relative col-start-5 row-start-1 flex min-h-0 flex-col">
               {tile('acLoads')}
@@ -400,7 +427,11 @@ export function TilesLayout({
             {/* Half height, centred between its sources and its loads. */}
             <div className="relative flex min-h-0 flex-col justify-center">
               <div className="flex h-1/2 min-h-0 flex-col">
-                <BatteryTile flow={flow} register={register} />
+                <BatteryTile
+                  flow={flow}
+                  register={register}
+                  onPress={sourceOpener(flow, 'battery', onOpenInstance)}
+                />
               </div>
             </div>
             <div />

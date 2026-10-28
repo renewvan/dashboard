@@ -19,6 +19,8 @@ const relayInfo: DriverInfo = {
 async function openRelays(
   relays: Record<string, Relay>,
   overrides: Partial<SettingsContextValue> = {},
+  /** Which channel's card to open Details on, in the order the list shows them. */
+  card = 0,
 ) {
   const rendered = renderSettings(overrides, {
     bus: { relays, drivers: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } },
@@ -30,6 +32,9 @@ async function openRelays(
       name: /^Relays/,
     }),
   )
+  await rendered.user.click(
+    within(screen.getByRole('list', { name: 'Relays' })).getAllByRole('button')[card],
+  )
   return rendered
 }
 
@@ -39,15 +44,22 @@ const nameField = (id: string) =>
 const PUMP: Relay = { name: 'Water pump', state: false }
 
 describe('Settings › Devices › Relays', () => {
-  it('lists a panel per relay by id, sorted, each with its stored name', async () => {
-    await openRelays({ relay_10: { name: 'Heater' }, relay_02: PUMP, relay_03: { state: true } })
+  it('lists a card per relay by id, sorted, each opening its own name field', async () => {
+    const { user } = await openRelays(
+      { relay_10: { name: 'Heater' }, relay_02: PUMP, relay_03: { state: true } },
+      {},
+      0,
+    )
+    expect(nameField('relay_02')).toHaveValue('Water pump')
 
-    expect(
-      screen
-        .getAllByRole<HTMLInputElement>('textbox', { name: 'Name' })
-        .map((field) => field.value),
-    ).toEqual(['Water pump', '', 'Heater'])
-    expect(screen.getByRole('group', { name: 'relay_02' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Relays' }))
+
+    const list = within(screen.getByRole('list', { name: 'Relays' }))
+    expect(list.getAllByRole('button').map((row) => row.textContent)).toEqual([
+      'Water pumprelay_02Off',
+      'relay_03On',
+      'Heaterrelay_10',
+    ])
   })
 
   it('lets an unnamed channel be named: an unconfigured relay is exactly what is renamed', async () => {

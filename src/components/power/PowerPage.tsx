@@ -26,6 +26,8 @@ interface PowerPageProps {
   chargers: Record<string, Partial<Charger>>
   /** Tiles, Orbs, or either around the van: Settings › General › Display & Appearance › Power page. */
   layout: PowerLayout
+  /** Opens a source's device in Settings, by its `instanceKey`; absent, the sources are readouts. */
+  onOpenInstance?: (key: string) => void
 }
 
 /**
@@ -46,6 +48,7 @@ export function PowerPage({
   solar,
   chargers,
   layout,
+  onOpenInstance,
 }: PowerPageProps) {
   const primary = primaryBattery(batteries, primaryBatterySelection)
   const hasBattery = primary !== undefined
@@ -70,7 +73,7 @@ export function PowerPage({
         className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pt-3 pb-4"
       >
         <PhoneCard title="Power" icon={<Zap className="size-4" />}>
-          <PowerCard flow={flow} layout={layout} />
+          <PowerCard flow={flow} layout={layout} onOpenInstance={onOpenInstance} />
           {sourceNote}
         </PhoneCard>
         {firstSolarRecord && (
@@ -90,13 +93,13 @@ export function PowerPage({
     >
       {hasBattery ? (
         layout === 'van-tiles' ? (
-          <VanTilesLayout flow={flow} solar={firstSolar(solar)} />
+          <VanTilesLayout flow={flow} solar={firstSolar(solar)} onOpenInstance={onOpenInstance} />
         ) : layout === 'van-orbs' ? (
-          <VanOrbsLayout flow={flow} solar={firstSolar(solar)} />
+          <VanOrbsLayout flow={flow} solar={firstSolar(solar)} onOpenInstance={onOpenInstance} />
         ) : layout === 'orbs' ? (
-          <OrbsLayout flow={flow} />
+          <OrbsLayout flow={flow} onOpenInstance={onOpenInstance} />
         ) : (
-          <TilesLayout flow={flow} solar={firstSolar(solar)} />
+          <TilesLayout flow={flow} solar={firstSolar(solar)} onOpenInstance={onOpenInstance} />
         )
       ) : (
         <div

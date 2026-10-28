@@ -68,6 +68,7 @@ export function StartPage({
   mapIsDark,
   vanColor,
   onConfigureTank,
+  onOpenInstance,
   layout = DEFAULT_START_LAYOUT,
   view = DEFAULT_START_VIEW,
   tiles = {},
@@ -91,6 +92,7 @@ export function StartPage({
       vanColor,
       now,
       onConfigureTank,
+      onOpenInstance,
     }
 
     if (isMobile) {

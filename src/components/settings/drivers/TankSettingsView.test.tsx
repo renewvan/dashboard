@@ -50,7 +50,7 @@ describe('Settings › Devices › Tanks', () => {
   it('lists each reported tank by name, fresh water first, skipping a partial one', async () => {
     await openTanks()
 
-    const rows = screen.getAllByRole('button').filter((row) => /water/.test(row.textContent ?? ''))
+    const rows = within(screen.getByRole('list', { name: 'Tanks' })).getAllByRole('button')
     expect(rows.map((row) => row.textContent)).toEqual([
       expect.stringMatching(/^Fresh water/),
       expect.stringMatching(/^Grey water/),
@@ -64,10 +64,13 @@ describe('Settings › Devices › Tanks', () => {
     expect(screen.getByText(/No tanks found/)).toBeInTheDocument()
   })
 
-  it('shows the Tanks crumb under Devices', async () => {
-    await openTanks()
+  it('steps back to the Driver page it was opened from, not to Devices', async () => {
+    const { user } = await openTanks()
 
-    expect(screen.getByRole('button', { name: 'Devices' })).toBeInTheDocument()
+    // Here the tanks sit under the fallback Driver row named Tanks.
+    expect(screen.getByRole('button', { name: 'Tanks' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tanks' }))
+    expect(screen.getByRole('list', { name: 'Entities' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Tanks' })).toBeInTheDocument()
   })
 })

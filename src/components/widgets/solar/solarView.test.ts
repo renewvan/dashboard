@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 import type { Solar } from '@/types'
 import {
   firstSolar,
+  historyDayLabel,
   formatYield,
   formatYieldAmount,
   yieldAxis,
@@ -115,5 +116,19 @@ describe('formatYieldAmount', () => {
     expect(formatYieldAmount(999)).toEqual({ value: '999', unit: 'Wh' })
     expect(formatYieldAmount(1000)).toEqual({ value: '1.0', unit: 'kWh' })
     expect(formatYieldAmount(2140)).toEqual({ value: '2.1', unit: 'kWh' })
+  })
+})
+
+describe('historyDayLabel', () => {
+  const now = new Date(2026, 9, 28, 14, 0)
+
+  it('names today and yesterday, then counts calendar days back', () => {
+    expect(historyDayLabel(0, now)).toBe('Today')
+    expect(historyDayLabel(1, now)).toBe('Yesterday')
+    expect(historyDayLabel(2, now)).toBe('Mon 26 Oct')
+  })
+
+  it('crosses a month boundary', () => {
+    expect(historyDayLabel(28, now)).toBe('Wed 30 Sept')
   })
 })

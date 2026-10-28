@@ -35,6 +35,9 @@ async function openGps(gps: Record<string, Partial<Gps>>) {
   await rendered.user.click(
     within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', { name: /^GPS/ }),
   )
+  await rendered.user.click(
+    within(screen.getByRole('list', { name: 'GPS' })).getAllByRole('button')[0],
+  )
   return rendered
 }
 

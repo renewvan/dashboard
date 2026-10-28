@@ -32,6 +32,8 @@ const indoor: TemperatureSensor = {
 async function openTemperature(
   temperatures: Record<string, Partial<TemperatureSensor>>,
   overrides: Partial<SettingsContextValue> = {},
+  /** Which sensor's card to open Details on, in the order the list shows them. */
+  card = 0,
 ) {
   const onBus = Object.keys(temperatures).length > 0 ? temperatures : { probe: {} }
   const rendered = renderSettings(overrides, { bus: { temperatures: onBus as never } })
@@ -42,6 +44,11 @@ async function openTemperature(
       name: /^Temperature/,
     }),
   )
+  if (Object.keys(temperatures).length > 0) {
+    await rendered.user.click(
+      within(screen.getByRole('list', { name: 'Temperature' })).getAllByRole('button')[card],
+    )
+  }
   return rendered
 }
 
@@ -62,28 +69,32 @@ describe('Settings › Devices › Temperature', () => {
 
     await user.click(entities.getByRole('button', { name: /^Temperature/ }))
 
-    expect(screen.getByRole('button', { name: 'Devices' })).toBeInTheDocument()
+    // Back names the Driver page it came from (the fallback row, named Temperature).
+    expect(screen.getByRole('button', { name: 'Temperature' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Temperature' })).toBeInTheDocument()
   })
 
-  it('lists a panel per sensor: outdoor, indoor, then by id, each with source and reading', async () => {
-    await openTemperature({
+  it('lists a card per sensor: outdoor, indoor, then by id, each with its reading', async () => {
+    const { user } = await openTemperature({
       zeta: { ...outdoor, serial: '28-zzz', name: 'Zeta' },
       alpha: { ...outdoor, serial: '28-aaa', name: 'Alpha' },
       indoor,
       outdoor,
     })
-
-    expect(
-      screen
-        .getAllByRole<HTMLInputElement>('textbox', { name: 'Name' })
-        .map((field) => field.value),
-    ).toEqual(['Outdoor', 'Indoor', 'Alpha', 'Zeta'])
-    const indoorPanel = screen.getByRole('group', { name: 'Pi CPU' })
-    expect(within(indoorPanel).getByText('68°F')).toBeInTheDocument()
+    // `openTemperature` opened the first card; its Details is the outdoor sensor's panel.
     const outdoorPanel = screen.getByRole('group', { name: '28-000000259026' })
     expect(within(outdoorPanel).getByText('31°C')).toBeInTheDocument()
     expect(within(outdoorPanel).getByRole('textbox', { name: 'Name' })).toHaveValue('Outdoor')
+
+    await user.click(screen.getByRole('button', { name: 'Temperature' }))
+
+    const list = within(screen.getByRole('list', { name: 'Temperature' }))
+    expect(list.getAllByRole('button').map((row) => row.textContent)).toEqual([
+      expect.stringMatching(/^Outdoor31°C/),
+      expect.stringMatching(/^Indoor68°F/),
+      expect.stringMatching(/^Alpha/),
+      expect.stringMatching(/^Zeta/),
+    ])
   })
 
   it('says so when no sensor has published', async () => {

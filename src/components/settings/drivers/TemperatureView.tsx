@@ -1,7 +1,10 @@
 import { useId } from 'react'
 import { ToggleButton, ToggleButtonGroup } from '@heroui/react'
-import { formatTemperature, sortedSensorIds } from '@/lib/temperature'
+import { formatTemperature, sensorLabel, sortedSensorIds } from '@/lib/temperature'
 import type { TemperatureSensor, TemperatureUnit } from '@/types'
+import { instanceKey } from '@/lib/instances'
+import { EntityCard } from '../shared/EntityCard'
+import { temperatureRowSummary } from './entitySummary'
 import { NameField } from '../shared/NameField'
 import { useSettingsData, useSettingsActions } from '../SettingsContext'
 
@@ -9,6 +12,14 @@ const UNITS: TemperatureUnit[] = ['C', 'F']
 
 function isUnit(value: string): value is TemperatureUnit {
   return UNITS.some((unit) => unit === value)
+}
+
+/** Settings › Devices › Temperature › <sensor> › Details: rename the sensor and pick its unit. */
+export function TemperatureDetails({ id }: { id: string }) {
+  const { temperatures } = useSettingsData()
+  const sensor = temperatures[id]
+  if (sensor === undefined) return null
+  return <SensorPanel id={id} sensor={sensor} />
 }
 
 function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSensor> }) {
@@ -61,8 +72,8 @@ function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSe
   )
 }
 
-/** Settings › Drivers › Temperature: rename a sensor and pick its unit. */
-export function TemperatureView() {
+/** Settings › Devices › Temperature: one card per sensor, each opening its Details. */
+export function TemperatureView({ onOpen }: { onOpen: (key: string) => void }) {
   const { temperatures } = useSettingsData()
   const ids = sortedSensorIds(temperatures)
 
@@ -75,10 +86,16 @@ export function TemperatureView() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <ul aria-label="Temperature" className="flex flex-col gap-2">
       {ids.map((id) => (
-        <SensorPanel key={id} id={id} sensor={temperatures[id]} />
+        <li key={id}>
+          <EntityCard
+            label={sensorLabel(id, temperatures[id])}
+            summary={temperatureRowSummary(temperatures[id])}
+            onOpen={() => onOpen(instanceKey('temperature', id))}
+          />
+        </li>
       ))}
-    </div>
+    </ul>
   )
 }

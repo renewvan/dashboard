@@ -16,6 +16,7 @@ export function EnergyCard({
   primaryBatterySelection,
   powerLayout,
   isDark,
+  onOpenInstance,
 }: StartWidgetProps) {
   const battery = batteryDial(batteries, primaryBatterySelection)
   const flow = flowFromBus(batteries, solar, chargers, primaryBatterySelection)
@@ -28,7 +29,7 @@ export function EnergyCard({
           {
             id: 'flow',
             label: 'Power flow',
-            content: <PowerCard flow={flow} layout={powerLayout} />,
+            content: <PowerCard flow={flow} layout={powerLayout} onOpenInstance={onOpenInstance} />,
           },
           {
             id: 'battery',

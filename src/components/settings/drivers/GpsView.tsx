@@ -9,7 +9,11 @@ import {
   trackedCount,
   type SignalQuality,
 } from '@/lib/gps'
+import { instanceKey, instanceLabel, ownerName } from '@/lib/instances'
+import { compareInstanceIds } from '@/lib/primaryBattery'
 import { DetailList, DetailRow } from '../shared/DetailList'
+import { EntityCard } from '../shared/EntityCard'
+import { gpsRowSummary } from './entitySummary'
 import { useSettingsData } from '../SettingsContext'
 
 /** The bar's colour, from the theme's status tokens. Never the only cue: the row also says it. */
@@ -97,23 +101,46 @@ function Satellites({ satellites }: { satellites: GpsSatellite[] }) {
   )
 }
 
-/**
- * Settings › Drivers › GPS: the receiver's state and, below it, the signal of every satellite it
- * sees. Read-only: the GPS entity has no command topics. There is one receiver per van, so the
- * first record whose unconditional fields have arrived is the one shown.
- */
-export function GpsView() {
-  const { gps } = useSettingsData()
-  const id = Object.keys(gps).find((key) => isCompleteGps(gps[key]))
-  const record: Gps | undefined = id === undefined ? undefined : (gps[id] as Gps)
+/** Settings › Devices › GPS: one card per receiver on the bus, each opening its Details. */
+export function GpsView({ onOpen }: { onOpen: (key: string) => void }) {
+  const { gps, drivers } = useSettingsData()
+  const ids = Object.keys(gps)
+    .filter((key) => isCompleteGps(gps[key]))
+    .sort(compareInstanceIds)
 
-  if (record === undefined) {
+  if (ids.length === 0) {
     return (
       <p className="border-border bg-surface text-muted rounded-2xl border px-3.5 py-3 text-sm">
         No GPS data yet. Waiting for driver-gps to publish.
       </p>
     )
   }
+
+  return (
+    <ul aria-label="GPS" className="flex flex-col gap-2">
+      {ids.map((id) => (
+        <li key={id}>
+          <EntityCard
+            label={instanceLabel(id, gps[id], drivers)}
+            subtitle={`Driver: ${ownerName(gps[id], drivers) ?? '—'}`}
+            summary={gpsRowSummary(gps[id])}
+            onOpen={() => onOpen(instanceKey('gps', id))}
+          />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * Settings › Devices › GPS › <receiver> › Details: the receiver's state and, below it, the signal of
+ * every satellite it sees. Read-only: the GPS entity has no command topics.
+ */
+export function GpsDetails({ id }: { id: string }) {
+  const { gps } = useSettingsData()
+  const record: Gps | undefined = isCompleteGps(gps[id]) ? (gps[id] as Gps) : undefined
+
+  if (record === undefined) return null
 
   const { satellites } = record
   return (

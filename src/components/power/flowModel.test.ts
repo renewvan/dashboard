@@ -223,3 +223,28 @@ describe('the charging pulse clock', () => {
     expect(inputWatts(flow)).toBe(300)
   })
 })
+
+describe('flowFromBus device keys', () => {
+  const house = battery(80, 100)
+
+  it('keys each source by the instance its node reads', () => {
+    const flow = flowFromBus(
+      { house },
+      { partial: { power_w: 5 }, roof: solar(300) },
+      { dcdc: charger('alternator', 200), mains: charger('ac', 400) },
+    )
+
+    expect(flow.nodes.battery.instance).toBe('battery:house')
+    expect(flow.nodes.solar.instance).toBe('solar:roof')
+    expect(flow.nodes.alternator.instance).toBe('charger:dcdc')
+    expect(flow.nodes.shore.instance).toBe('charger:mains')
+    expect(flow.nodes.loads.instance).toBeUndefined()
+  })
+
+  it('has no key for a source that is not on the bus', () => {
+    const flow = flowFromBus({ house }, {}, {})
+
+    expect(flow.nodes.solar.instance).toBeUndefined()
+    expect(flow.nodes.shore.instance).toBeUndefined()
+  })
+})
