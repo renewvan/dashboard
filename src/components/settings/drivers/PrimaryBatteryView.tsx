@@ -35,14 +35,14 @@ export function PrimaryBatteryView() {
           <Radio
             key={choice.value}
             value={choice.value}
-            className="data-[selected=true]:[&_[data-slot=radio-control]]:border-accent! min-h-11 w-full flex-row! items-center! gap-3! px-3.5 py-3"
+            className="data-[selected=true]:[&_[data-slot=radio-control]]:border-accent! relative min-h-11 w-full flex-row! items-center! gap-3! px-3.5 py-3"
           >
+            <Radio.Content className="static! flex-1 after:absolute after:inset-0">
+              <Label className="text-sm font-medium">{choice.label}</Label>
+            </Radio.Content>
             <Radio.Control className="border-muted! size-5! shrink-0 rounded-full! border-2!">
               <Radio.Indicator className="rounded-full! before:rounded-full! after:rounded-full!" />
             </Radio.Control>
-            <Radio.Content className="static! after:absolute after:inset-0">
-              <Label className="text-sm font-medium">{choice.label}</Label>
-            </Radio.Content>
           </Radio>
         ))}
       </RadioGroup>
