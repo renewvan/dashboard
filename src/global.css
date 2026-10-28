@@ -10,6 +10,8 @@
 .default,
 [data-theme='light'],
 [data-theme='default'] {
+  --van-shadow: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.55))
+    drop-shadow(0 5px 6px rgba(15, 23, 42, 0.35));
   /* Theme Colors (Light Mode) */
   --accent: oklch(62.04% 0.195 253.83);
   --accent-foreground: oklch(99.11% 0 0);
@@ -63,6 +65,9 @@
 .dark,
 [data-theme='dark'] {
   color-scheme: dark;
+  /* Van marker: a pure-black shadow falling below the van (offset down, little blur), so it reads as a ground shadow. */
+  --van-shadow: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.95))
+    drop-shadow(0 7px 5px rgba(0, 0, 0, 0.65));
   /* Theme Colors (Dark Mode) */
   --accent: oklch(62.04% 0.195 253.83);
   --accent-foreground: oklch(99.11% 0 0);
