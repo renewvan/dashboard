@@ -33,3 +33,6 @@ dist-ssr
 # The fonts and sprites beside them are small, third-party and committed (public/maps/README.md).
 # See docs/offline-map.md.
 *.pmtiles
+
+# Local agent scratch/planning notes (wayfinder maps, tickets): never committed
+.scratch/
