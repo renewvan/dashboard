@@ -157,6 +157,7 @@ export const SettingsPage = memo(function SettingsPage() {
     setPowerLayout,
     setMapTheme,
     setVanField,
+    setDemoMode,
   } = useSettingsActions()
   const isMobile = useIsMobile()
   const [storedNavStyle, setStoredNavStyle] = useSettingsNavStyle()
@@ -435,7 +436,7 @@ export const SettingsPage = memo(function SettingsPage() {
           onBack={() => setView(subpageParent)}
           action={
             <div className="flex items-center gap-1.5">
-              {demoMode && <DemoBadge />}
+              {demoMode && <DemoBadge onPress={() => setDemoMode(false)} />}
               {/* On a phone the bar carries the alerts button alone: the menu drawer and the other
                   status controls are the app header's, which this bar replaces, and they come back
                   with it. Sleep lives in the drawer there. */}
