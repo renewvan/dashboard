@@ -37,6 +37,11 @@ const ORB_VALUE = ['text-5xl', 'text-2xl'] as const
  */
 const ORB_VALUE_COMPACT = ['text-6xl', 'text-3xl'] as const
 
+/** Height of the label drawn above an orb on the phone card. */
+const LABEL_H = 44
+/** Space between that label and the ring. */
+const LABEL_GAP = 24
+
 const W = VAN_FRAME.w
 /** Empty space between the roof and the Solar orb above it. */
 const SOLAR_GAP = 60
@@ -162,7 +167,7 @@ function Orb({
       />
       <foreignObject x={x - R} y={y - R} width={R * 2} height={R * 2}>
         <div className="text-foreground flex size-full flex-col items-center justify-center">
-          <span className="mb-3" style={{ color: colour }}>
+          <span className={compact ? 'mb-2 [&>svg]:size-20' : 'mb-3'} style={{ color: colour }}>
             {ICON[id]}
           </span>
           <Value
@@ -173,10 +178,26 @@ function Orb({
           {history ? (
             <div className="mt-3 h-9 w-36">{history}</div>
           ) : (
-            <span className={`text-muted mt-1 ${compact ? 'text-4xl' : 'text-xl'}`}>{label}</span>
+            !compact && <span className="text-muted mt-1 text-xl">{label}</span>
           )}
         </div>
       </foreignObject>
+      {compact && !history && (
+        // Phone card: the label sits outside the ring, above it, or below it for the lower orb of a
+        // stacked pair, to leave the ring to the icon and number.
+        <foreignObject
+          x={x - R}
+          y={spot.c.y === SLOT_DOWN_Y ? y + R + LABEL_GAP : y - R - LABEL_H - LABEL_GAP}
+          width={R * 2}
+          height={LABEL_H}
+        >
+          <div
+            className={`text-muted flex size-full justify-center text-4xl leading-none ${spot.c.y === SLOT_DOWN_Y ? 'items-start' : 'items-end'}`}
+          >
+            {label}
+          </div>
+        </foreignObject>
+      )}
     </g>
   )
 }

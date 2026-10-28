@@ -128,7 +128,12 @@ export function Dial({
   })
 
   return (
-    <div data-testid="start-dial" className="flex min-h-0 flex-1 items-center justify-center">
+    // A size container, so the rings can cap their own size at the height left (`100cqh`): on a short
+    // landscape screen (a phone at 915×412) they would otherwise overflow the page.
+    <div
+      data-testid="start-dial"
+      className="[container-type:size] flex min-h-0 flex-1 items-center justify-center"
+    >
       <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center">
         <div className="relative">
           <DialTemperature kind="outdoor" sensor={temperatures[OUTDOOR_ID]} side="left" />
