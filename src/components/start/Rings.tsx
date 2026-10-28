@@ -54,7 +54,7 @@ export function Rings({ rings, legend, centre, glow, pulseClock }: RingsProps) {
   const cutsId = `cuts-${uid}`
 
   return (
-    <div className="relative aspect-square w-full max-w-[420px]">
+    <div className="relative aspect-square w-[min(100%,420px,100cqh)]">
       <svg
         viewBox={`0 0 ${RINGS_SIZE} ${RINGS_SIZE}`}
         className="size-full"
