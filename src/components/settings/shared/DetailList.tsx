@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ChevronRight } from 'lucide-react'
 
 /**
  * Read-only label/value rows in one bordered panel. A row is never hidden: a missing value renders
@@ -43,6 +44,36 @@ export function DetailRow({ label, value }: { label: string; value: string | nul
     <div className="flex items-center justify-between gap-3 px-3.5 py-3">
       <dt className="text-sm">{label}</dt>
       <dd className="text-muted text-xs tabular-nums">{value ?? '—'}</dd>
+    </div>
+  )
+}
+
+/**
+ * A `DetailRow` that opens something: the value is the button, stretched over the whole row so a tap
+ * anywhere on it counts, with a chevron to say so. At least 44px tall.
+ */
+export function LinkRow({
+  label,
+  value,
+  onOpen,
+}: {
+  label: string
+  value: string
+  onOpen: () => void
+}) {
+  return (
+    <div className="relative flex min-h-12 items-center justify-between gap-3 px-3.5 py-3">
+      <dt className="text-sm">{label}</dt>
+      <dd className="text-muted flex items-center gap-2 text-xs">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="after:absolute after:inset-0 after:content-['']"
+        >
+          {value}
+        </button>
+        <ChevronRight aria-hidden="true" className="size-4 shrink-0" />
+      </dd>
     </div>
   )
 }

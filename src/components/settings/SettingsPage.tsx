@@ -273,6 +273,14 @@ export const SettingsPage = memo(function SettingsPage() {
     pushSearchParams(params)
   }, [])
 
+  // Likewise `view` and `driver`, straight to the Driver's info page (a device page's Driver row).
+  const openDriverInfo = useCallback((driverKey: string) => {
+    const params = new URLSearchParams(window.location.search)
+    params.set('view', 'driver-info')
+    params.set('driver', driverKey)
+    pushSearchParams(params)
+  }, [])
+
   // Likewise `view` and `instance`.
   const openInstance = useCallback((key: string) => {
     const params = new URLSearchParams(window.location.search)
@@ -284,7 +292,9 @@ export const SettingsPage = memo(function SettingsPage() {
   const content = (id: SettingsSubView): ReactNode => {
     switch (id) {
       case 'drivers':
-        return <DriversView onOpen={openDriver} />
+        return (
+          <DriversView onOpen={openDriver} onOpenInstance={openInstance} onOpenTank={openTank} />
+        )
       case 'driver':
         return driverRow === undefined ? null : <DriverView row={driverRow} onOpen={setView} />
       case 'driver-info':
@@ -307,7 +317,12 @@ export const SettingsPage = memo(function SettingsPage() {
         return <InstancesView type="charger" onOpen={openInstance} />
       case 'instance':
         return instance === undefined ? null : (
-          <InstanceView type={instance.type} id={instance.id} onOpen={setView} />
+          <InstanceView
+            type={instance.type}
+            id={instance.id}
+            onOpen={setView}
+            onOpenDriver={openDriverInfo}
+          />
         )
       case 'instance-history':
         return instance === undefined ? null : <SolarHistoryView id={instance.id} />
