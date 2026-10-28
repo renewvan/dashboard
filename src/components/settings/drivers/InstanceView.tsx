@@ -3,7 +3,7 @@ import { Button } from '@heroui/react'
 import { instanceLabel, ownerName, type InstanceType } from '@/lib/instances'
 import type { Battery, Charger, Solar } from '@/types'
 import { formatYieldAmount } from '@/components/widgets/solar/solarView'
-import { DetailList, DetailRow } from '../shared/DetailList'
+import { DetailList, DetailRow, LinkRow } from '../shared/DetailList'
 import { useSettingsData } from '../SettingsContext'
 import type { SettingsSubView } from '../views'
 import { GpsDetails } from './GpsView'
@@ -88,10 +88,13 @@ export function InstanceView({
   type,
   id,
   onOpen,
+  onOpenDriver,
 }: {
   type: InstanceType
   id: string
   onOpen: (view: SettingsSubView) => void
+  /** Opens a Driver's info page, by its key. */
+  onOpenDriver: (key: string) => void
 }) {
   const { drivers, batteries, solar, chargers } = useSettingsData()
   if (type === 'gps') return <GpsDetails id={id} />
@@ -124,7 +127,15 @@ export function InstanceView({
         {rows.map(([name, value]) => (
           <DetailRow key={name} label={name} value={value} />
         ))}
-        <DetailRow label="Driver" value={ownerName(record, drivers) ?? null} />
+        {record.driver !== undefined && drivers.some((row) => row.key === record.driver) ? (
+          <LinkRow
+            label="Driver"
+            value={ownerName(record, drivers) ?? record.driver}
+            onOpen={() => onOpenDriver(record.driver as string)}
+          />
+        ) : (
+          <DetailRow label="Driver" value={ownerName(record, drivers) ?? null} />
+        )}
       </DetailList>
       {type === 'battery' && <BmsDetails battery={record as Partial<Battery>} />}
       {type === 'solar' && (
