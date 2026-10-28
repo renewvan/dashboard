@@ -100,3 +100,10 @@ export function acknowledgeAlertHistoryEntry(id: string): void {
 export function removeAlertHistoryEntry(id: string): void {
   write(read().filter((entry) => entry.id !== id))
 }
+
+/** Removes several entries in one write, so a bulk delete is one change for every subscriber; ids not in the log are ignored. */
+export function removeAlertHistoryEntries(ids: readonly string[]): void {
+  if (ids.length === 0) return
+  const drop = new Set(ids)
+  write(read().filter((entry) => !drop.has(entry.id)))
+}
