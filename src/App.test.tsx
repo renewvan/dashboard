@@ -1495,6 +1495,22 @@ describe('App shell Relays page', () => {
     expect(mqtt.publish).not.toHaveBeenCalled()
   })
 
+  it.each([
+    ['kiosk', KIOSK_WIDTH],
+    ['phone', PHONE_WIDTH],
+  ])('turns Demo mode off when the header Demo pill is tapped on the %s', async (_name, width) => {
+    const user = userEvent.setup()
+    await renderAt(width)
+    await receive('renewvan/demo/enabled', 'true')
+
+    await user.click(screen.getByRole('button', { name: /demo/i }))
+
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith('renewvan/demo/enabled/set', 'false', {
+      qos: 1,
+      retain: false,
+    })
+  })
+
   it('renames a relay from Settings, publishing a JSON string to name/set', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=settings')
