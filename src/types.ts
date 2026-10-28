@@ -112,7 +112,47 @@ export interface Battery {
   time_to_go_s?: number
   time_since_full_charge_s?: number
   charge_state?: ChargeState
+  // BMS data (hub ADR 0022): every property is optional and may be absent.
+  /** Per-cell volts, index i is cell i+1; `null` is a cell that could not be read (4 to 32). */
+  cell_voltages_v?: (number | null)[]
+  cell_voltage_max_v?: number
+  cell_voltage_min_v?: number
+  cell_voltage_delta_v?: number
+  /** Index-aligned with `cell_voltages_v`; ignored when the lengths differ. */
+  cell_balancing?: (boolean | null)[]
+  /** One entry per temperature probe (up to 16); `null` is an unreadable probe. */
+  temperatures_c?: (number | null)[]
+  allow_charge?: boolean
+  allow_discharge?: boolean
+  /** `[]` is "reported, none active"; absent is "not reported". */
+  protections?: BmsProtection[]
+  charge_voltage_limit_v?: number
+  charge_current_limit_a?: number
+  discharge_current_limit_a?: number
 }
+
+/** The BMS protection vocabulary (`battery.schema.json`), in the schema's order. */
+export const BMS_PROTECTIONS = [
+  'cell_overvoltage',
+  'cell_undervoltage',
+  'pack_overvoltage',
+  'pack_undervoltage',
+  'charge_overtemperature',
+  'charge_undertemperature',
+  'discharge_overtemperature',
+  'discharge_undertemperature',
+  'charge_overcurrent',
+  'discharge_overcurrent',
+  'short_circuit',
+  'internal_fault',
+  'locked',
+  'cell_imbalance',
+  'overtemperature',
+  'undertemperature',
+  'other',
+] as const
+
+export type BmsProtection = (typeof BMS_PROTECTIONS)[number]
 
 /**
  * Same partial-accumulation caveat as {@link isCompleteTank}. Checks only the

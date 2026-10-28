@@ -9,6 +9,7 @@ import type { SettingsSubView } from '../views'
 import { GpsDetails } from './GpsView'
 import { RelayDetails } from './RelaysView'
 import { TemperatureDetails } from './TemperatureView'
+import { BmsDetails } from './BmsDetails'
 import { amps, chargeStateLabel, measured, volts } from './instanceReadings'
 
 /** One headline reading: its label, the number (`null` while not published) and its unit. */
@@ -125,6 +126,7 @@ export function InstanceView({
         ))}
         <DetailRow label="Driver" value={ownerName(record, drivers) ?? null} />
       </DetailList>
+      {type === 'battery' && <BmsDetails battery={record as Partial<Battery>} />}
       {type === 'solar' && (
         <div className="border-border bg-surface overflow-hidden rounded-2xl border">
           <Button
