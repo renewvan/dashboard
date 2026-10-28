@@ -69,7 +69,7 @@ function VanColor({ value, onChange }: { value: string; onChange: (value: string
   return (
     <div className="flex flex-col gap-2">
       <span className="text-sm font-medium">
-        Colour on the map{' '}
+        Colour{' '}
         <span className="text-muted font-normal">· {value === '' ? 'Default blue' : value}</span>
       </span>
       <div role="radiogroup" aria-label="Colour on the map" className="flex flex-wrap gap-3">
