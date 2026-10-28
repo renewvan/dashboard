@@ -57,7 +57,7 @@ export function PowerPage({
   const isMobile = useIsMobile()
   const firstSolarRecord = firstSolar(solar)
   const sourceNote = namesSource && (
-    <p data-testid="power-battery-source" className="text-muted shrink-0 pt-2 text-center text-xs">
+    <p data-testid="power-battery-source" className="text-muted shrink-0 text-center text-xs">
       Battery: {instanceLabel(primary.id, primary.battery, drivers)}
     </p>
   )

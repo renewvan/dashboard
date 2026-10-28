@@ -1,6 +1,6 @@
 import { formatPower } from '@/components/power/flowModel'
 import { SolarHistory } from '@/components/widgets/solar/SolarHistory'
-import { formatYield, yieldHistoryView } from '@/components/widgets/solar/solarView'
+import { formatYieldAmount, yieldHistoryView } from '@/components/widgets/solar/solarView'
 import type { Solar } from '@/types'
 
 /**
@@ -17,6 +17,8 @@ const PHONE_HISTORY_DAYS = 14
 export function SolarCard({ solar }: { solar: Solar }) {
   const history = yieldHistoryView(solar.yield_history_wh, PHONE_HISTORY_DAYS)
   const power = formatPower(Math.round(solar.power_w))
+  const today =
+    solar.yield_today_wh === undefined ? undefined : formatYieldAmount(solar.yield_today_wh)
 
   return (
     <div data-testid="solar-card" className="flex w-full flex-col gap-4">
@@ -29,14 +31,14 @@ export function SolarCard({ solar }: { solar: Solar }) {
         </div>
         <div className="text-muted text-sm">
           <span data-testid="solar-yield" className="text-foreground font-semibold tabular-nums">
-            {formatYield(solar.yield_today_wh)}
+            {today?.value ?? '\u2014'}
           </span>{' '}
-          kWh today
+          {today?.unit ?? 'kWh'} today
         </div>
       </div>
       {history && (
-        <div className="h-14">
-          <SolarHistory view={history} />
+        <div className="h-32">
+          <SolarHistory view={history} scale />
         </div>
       )}
     </div>

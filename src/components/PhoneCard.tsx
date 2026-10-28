@@ -16,7 +16,7 @@ export function PhoneCard({
 }) {
   return (
     <Card className="shrink-0 gap-0! p-0!">
-      <Card.Header className="flex-row! items-center gap-2 px-4 py-3 text-sm font-semibold">
+      <Card.Header className="mb-2 flex-row! items-center gap-2 px-4 py-3 text-sm font-semibold">
         <span className="text-muted" aria-hidden="true">
           {icon}
         </span>
