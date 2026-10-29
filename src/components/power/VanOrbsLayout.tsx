@@ -251,7 +251,9 @@ export function VanOrbsLayout({
   return (
     <div
       data-testid="power-van-orbs"
-      className="flex min-h-0 flex-1 items-center justify-center pb-16"
+      className={`flex min-h-0 flex-1 items-center justify-center ${
+        flow.bmsAlert === undefined ? 'pb-16' : 'pb-24'
+      }`}
     >
       <div className="relative h-full max-w-full" style={{ aspectRatio: `${W} / ${VIEW_H}` }}>
         <svg viewBox={VIEW_BOX} className="absolute inset-0 size-full overflow-visible">
