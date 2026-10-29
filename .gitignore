@@ -36,3 +36,6 @@ dist-ssr
 
 # Local agent scratch/planning notes (wayfinder maps, tickets): never committed
 .scratch/
+
+# graphify
+graphify-out/

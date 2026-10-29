@@ -19,7 +19,7 @@ import { AlertsPage } from '@/components/alerts/AlertsPage'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { SettingsSubView } from '@/components/settings/views'
-import { TanksPage } from '@/components/tanks/TanksPage'
+import { LevelsPage } from '@/components/levels/LevelsPage'
 import { RelaysPage } from '@/components/relays/RelaysPage'
 import { StartPage } from '@/components/start/StartPage'
 import { PowerPage } from '@/components/power/PowerPage'
@@ -67,7 +67,7 @@ const NO_TILT: RenewvanBusState['tilt'] = {}
 const NAV_ITEMS: NavItem[] = [
   { id: 'start', label: 'Start', icon: <Gauge className="size-5" /> },
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
-  { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
+  { id: 'tanks', label: 'Levels', icon: <Droplet className="size-5" /> },
   { id: 'map', label: 'Map', icon: <Map className="size-5" /> },
   { id: 'switches', label: 'Relays', icon: <ToggleLeft className="size-5" /> },
   { id: 'heater', label: 'Heater', icon: <Heater className="size-5" /> },
@@ -342,7 +342,13 @@ function App() {
           />
         )
       case 'tanks':
-        return <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
+        return (
+          <LevelsPage
+            tanks={state.tanks}
+            temperatures={state.temperatures}
+            onConfigure={openTankSettings}
+          />
+        )
       case 'map':
         // MapLibre is most of the bundle and only this page needs it, so it loads on first visit.
         return (
