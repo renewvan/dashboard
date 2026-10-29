@@ -68,7 +68,7 @@ const KIOSK_WIDTH = 800
 const PHONE_WIDTH = 390
 const JUST_BELOW_KIOSK_WIDTH = 799
 
-const NAV_LABELS = ['Start', 'Power', 'Tanks', 'Map', 'Relays', 'Heater', 'Settings']
+const NAV_LABELS = ['Start', 'Power', 'Levels', 'Map', 'Relays', 'Heater', 'Settings']
 
 const HEADER_HEIGHT_VAR = '--app-header-height'
 
@@ -722,13 +722,13 @@ const FRESH_TANK = {
   volume_since_empty_l: 0,
 }
 
-describe('App shell Tanks page', () => {
+describe('App shell Levels page', () => {
   it('shows a card per reported tank at the kiosk width, with the scale', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await receiveTank('fresh', FRESH_TANK)
     await receiveTank('grey', { ...FRESH_TANK, fluid_type: 'grey_water', level_pct: 41 })
-    await user.click(screen.getByRole('tab', { name: 'Tanks' }))
+    await user.click(screen.getByRole('tab', { name: 'Levels' }))
     expect(screen.getByText('Fresh water')).toBeInTheDocument()
     expect(screen.getByText('Grey water')).toBeInTheDocument()
     expect(screen.getAllByTestId('tank-scale')).toHaveLength(2)
@@ -738,7 +738,7 @@ describe('App shell Tanks page', () => {
     const user = userEvent.setup()
     await renderAt(JUST_BELOW_KIOSK_WIDTH)
     await receiveTank('fresh', FRESH_TANK)
-    await user.click(screen.getByRole('tab', { name: 'Tanks' }))
+    await user.click(screen.getByRole('tab', { name: 'Levels' }))
     expect(screen.getByText('Fresh water')).toBeInTheDocument()
     expect(screen.queryByTestId('tank-scale')).not.toBeInTheDocument()
   })
@@ -756,13 +756,13 @@ describe('App shell Tanks page', () => {
     ['kiosk', KIOSK_WIDTH],
     ['phone', PHONE_WIDTH],
   ])(
-    'opens the tank settings from Configure, and Back returns to Tanks (%s)',
+    'opens the tank settings from Configure, and Back returns to Levels (%s)',
     async (_name, width) => {
       const user = userEvent.setup()
       await renderAt(width)
       await receiveTank('fresh', FRESH_TANK)
       await receiveTank('grey', { ...FRESH_TANK, fluid_type: 'grey_water', level_pct: 41 })
-      await user.click(screen.getByRole('tab', { name: 'Tanks' }))
+      await user.click(screen.getByRole('tab', { name: 'Levels' }))
 
       await user.click(screen.getAllByRole('button', { name: 'Configure' })[1])
 
@@ -772,7 +772,7 @@ describe('App shell Tanks page', () => {
       expect(window.location.search).toBe('?page=settings&view=tank&tank=grey')
 
       act(() => window.history.back())
-      await waitFor(() => expect(selectedPage()).toHaveAccessibleName('Tanks'))
+      await waitFor(() => expect(selectedPage()).toHaveAccessibleName('Levels'))
       expect(screen.getByText('Grey water')).toBeInTheDocument()
     },
   )
