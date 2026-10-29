@@ -28,7 +28,7 @@ export const START_WIDGETS: Record<StartWidgetId, StartWidgetDefinition> = {
   weather: { id: 'weather', label: 'Weather', icon: CloudSun, Component: WeatherCard },
   map: { id: 'map', label: 'Map', icon: MapIcon, Component: MapCard },
   energy: { id: 'energy', label: 'Energy', icon: Zap, Component: EnergyCard },
-  solar: { id: 'solar', label: 'Solar', icon: Sun, Component: SolarYieldCard },
+  solar: { id: 'solar', label: 'Solar production', icon: Sun, Component: SolarYieldCard },
   tilt: { id: 'tilt', label: 'Tilt', icon: Move3d, Component: TiltCard },
   'fresh-water': {
     id: 'fresh-water',

@@ -215,7 +215,7 @@ export function buildFlow({
       },
       shore: {
         id: 'shore',
-        label: 'Shore',
+        label: 'Shore power',
         watts: shoreW === undefined ? undefined : Math.round(shoreW),
         present: shore !== undefined,
         instance: instances?.shore,

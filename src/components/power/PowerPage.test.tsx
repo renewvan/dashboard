@@ -332,7 +332,7 @@ describe('PowerPage on a phone', () => {
     const titles = [...page.children].map(
       (card) => card.querySelector('[class*="card__header"]')?.textContent,
     )
-    expect(titles).toEqual(['Power', 'Solar'])
+    expect(titles).toEqual(['Power', 'Solar production'])
   })
 
   it('charts the harvest in the Solar card, not inside the flow card', () => {

@@ -124,7 +124,7 @@ describe('Settings device page', () => {
     expect(screen.getByRole('heading', { name: 'Venus · 291' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /Solar/ }))
-    expect(screen.getByRole('heading', { name: 'Solar' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Solar Chargers' })).toBeInTheDocument()
   })
 })
 

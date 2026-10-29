@@ -325,7 +325,7 @@ const ICONS: Partial<Record<NodeId, ReactNode>> = {
 const TITLES: Partial<Record<NodeId, string>> = {
   solar: 'Solar',
   alternator: 'Alternator',
-  shore: 'Shore',
+  shore: 'Shore power',
   inverter: 'Inverter / Charger',
   loads: 'Loads',
   acLoads: 'AC loads',

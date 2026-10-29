@@ -16,7 +16,7 @@ const EMPTY_TEXT: Record<ListedType, string> = {
 
 const LIST_LABEL: Record<ListedType, string> = {
   battery: 'Batteries',
-  solar: 'Solar',
+  solar: 'Solar Chargers',
   charger: 'Chargers',
 }
 

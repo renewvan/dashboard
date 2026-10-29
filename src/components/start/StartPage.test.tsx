@@ -232,11 +232,17 @@ describe('StartPage layout', () => {
       solar: { 291: { power_w: 412, battery_voltage_v: 13.4, yield_today_wh: 2140 } },
     })
     const pane = screen.getByTestId('pane-start')
-    const titles = ['Weather', 'Energy', 'Solar', 'Tilt', 'Fresh water', 'Grey water'].map(
-      (title) =>
-        within(pane).getByText(title, {
-          selector: '[class*="card__header"], [class*="card__header"] *',
-        }),
+    const titles = [
+      'Weather',
+      'Energy',
+      'Solar production',
+      'Tilt',
+      'Fresh water',
+      'Grey water',
+    ].map((title) =>
+      within(pane).getByText(title, {
+        selector: '[class*="card__header"], [class*="card__header"] *',
+      }),
     )
 
     expect(pane.children).toHaveLength(7)
@@ -557,7 +563,7 @@ describe('StartPage solar card', () => {
     const titles = [...pane.children].map((card) => card.querySelector('[class*="card__header"]'))
     const energy = titles.findIndex((h) => h?.textContent === 'Energy')
 
-    expect(titles[energy + 1]).toHaveTextContent('Solar')
+    expect(titles[energy + 1]).toHaveTextContent('Solar production')
     expect(screen.getByTestId('solar-watts')).toHaveTextContent('412')
     expect(screen.getByTestId('solar-yield')).toHaveTextContent('2.1')
   })
@@ -748,7 +754,7 @@ describe('StartPage kiosk dial', () => {
 
       const dial = screen.getByTestId('start-dial')
       expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
-      expect(within(dial).queryByText('Shore')).not.toBeInTheDocument()
+      expect(within(dial).queryByText('Shore power')).not.toBeInTheDocument()
       expect(within(dial).queryByText('Charging')).not.toBeInTheDocument()
     })
 
@@ -767,7 +773,7 @@ describe('StartPage kiosk dial', () => {
       })
 
       const dial = screen.getByTestId('start-dial')
-      expect(within(dial).getByText('Shore').parentElement).toHaveTextContent('144W')
+      expect(within(dial).getByText('Shore power').parentElement).toHaveTextContent('144W')
     })
 
     it('sums the alternator and the shore charger as Chargers once both are charging', () => {
@@ -781,7 +787,7 @@ describe('StartPage kiosk dial', () => {
       const dial = screen.getByTestId('start-dial')
       expect(within(dial).getByText('Chargers').parentElement).toHaveTextContent('387W')
       expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
-      expect(within(dial).queryByText('Shore')).not.toBeInTheDocument()
+      expect(within(dial).queryByText('Shore power')).not.toBeInTheDocument()
     })
 
     it('shows the shore charger while the alternator is on the bus but idle', () => {
@@ -793,7 +799,7 @@ describe('StartPage kiosk dial', () => {
       })
 
       const dial = screen.getByTestId('start-dial')
-      expect(within(dial).getByText('Shore').parentElement).toHaveTextContent('398W')
+      expect(within(dial).getByText('Shore power').parentElement).toHaveTextContent('398W')
       expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
     })
 
@@ -802,7 +808,7 @@ describe('StartPage kiosk dial', () => {
 
       const dial = screen.getByTestId('start-dial')
       expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
-      expect(within(dial).queryByText('Shore')).not.toBeInTheDocument()
+      expect(within(dial).queryByText('Shore power')).not.toBeInTheDocument()
     })
   })
 

@@ -64,7 +64,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   relays: { title: 'Relays', parent: 'drivers' },
   batteries: { title: 'Batteries', parent: 'drivers' },
   'primary-battery': { title: 'Primary battery', parent: 'batteries' },
-  solar: { title: 'Solar', parent: 'drivers' },
+  solar: { title: 'Solar Chargers', parent: 'drivers' },
   chargers: { title: 'Chargers', parent: 'drivers' },
   // Titled by the open instance, and its parent is its type's list: see `parentOf`.
   instance: { title: 'Device', parent: 'drivers' },

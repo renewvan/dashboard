@@ -34,7 +34,7 @@ type EntityField = keyof Pick<
 const ENTITY_TYPES: Array<{ type: EntityType; field: EntityField; label: string }> = [
   { type: 'tank', field: 'tanks', label: 'Tanks' },
   { type: 'battery', field: 'batteries', label: 'Batteries' },
-  { type: 'solar', field: 'solar', label: 'Solar' },
+  { type: 'solar', field: 'solar', label: 'Solar Chargers' },
   { type: 'charger', field: 'chargers', label: 'Chargers' },
   { type: 'relay', field: 'relays', label: 'Relays' },
   { type: 'router', field: 'routers', label: 'Router' },
