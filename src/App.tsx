@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { Gauge, Droplet, Heater, Map, Settings, ToggleLeft, Zap } from 'lucide-react'
+import { ChartColumnStacked, Gauge, Heater, Map, Settings, ToggleLeft, Zap } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
 import lockupDark from '../assets/logo/svg/renewvan-lockup-dark.svg'
@@ -67,7 +67,7 @@ const NO_TILT: RenewvanBusState['tilt'] = {}
 const NAV_ITEMS: NavItem[] = [
   { id: 'start', label: 'Start', icon: <Gauge className="size-5" /> },
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
-  { id: 'tanks', label: 'Levels', icon: <Droplet className="size-5" /> },
+  { id: 'tanks', label: 'Levels', icon: <ChartColumnStacked className="size-5" /> },
   { id: 'map', label: 'Map', icon: <Map className="size-5" /> },
   { id: 'switches', label: 'Relays', icon: <ToggleLeft className="size-5" /> },
   { id: 'heater', label: 'Heater', icon: <Heater className="size-5" /> },

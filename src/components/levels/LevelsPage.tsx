@@ -74,7 +74,7 @@ const TUBE_L = 48
 const TUBE_R = 92
 const TUBE_TOP = 40
 const TUBE_BOTTOM = 280
-const BULB_R = 46
+const BULB_R = 32
 /** The tube and bulb as one closed shape: the outline, and the clip for the liquid. */
 const THERMOMETER_PATH = `M${TUBE_L},${TUBE_BOTTOM} V${TUBE_TOP + 22} A22,22 0 0 1 ${TUBE_R},${TUBE_TOP + 22} V${TUBE_BOTTOM} A${BULB_R},${BULB_R} 0 1 1 ${TUBE_L},${TUBE_BOTTOM} Z`
 const yOf = (c: number) => TUBE_BOTTOM - ((c - MIN_C) / (MAX_C - MIN_C)) * (TUBE_BOTTOM - TUBE_TOP)
@@ -88,7 +88,7 @@ function ThermometerGauge({ v, id }: { v: SensorView; id: string }) {
     v.c === null ? 380 : Math.min(TUBE_BOTTOM, yOf(Math.min(MAX_C, Math.max(MIN_C, v.c))))
   return (
     <svg
-      viewBox="0 0 200 380"
+      viewBox="-14 32 168 308"
       role="img"
       aria-label={v.c === null ? `${v.name}: no reading` : `${v.name}: ${fmt(v.c)} degrees Celsius`}
       className="h-full min-h-0 w-full"
@@ -171,11 +171,15 @@ function ThermometerCard({ v }: { v: SensorView }) {
         </div>
         <Chip b={v.band} />
       </Card.Header>
-      <Card.Content className="min-h-0 flex-1 items-center gap-2 px-4 pt-2 pb-4">
-        <div className="text-5xl leading-none font-semibold" style={{ color: v.band.color }}>
-          {fmt(v.c)}°<span className="text-xl">C</span>
+      <Card.Content className="min-h-0 flex-1 items-center gap-4 px-4 pt-2 pb-4">
+        {/* The number and degree sign are what centre over the tube; the C hangs off to the right. */}
+        <div
+          className="relative text-5xl leading-none font-semibold"
+          style={{ color: v.band.color }}
+        >
+          {fmt(v.c)}°<span className="absolute bottom-0.5 left-full text-xl">C</span>
         </div>
-        <div className="flex min-h-0 w-full flex-1 justify-center">
+        <div className="flex min-h-0 w-full flex-1 justify-center py-3">
           <ThermometerGauge v={v} id={id} />
         </div>
       </Card.Content>
