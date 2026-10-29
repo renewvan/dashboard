@@ -17,7 +17,7 @@ export function BmsAlertBadge({
     <span
       data-testid="bms-alert"
       data-tone={alert.tone}
-      className={`flex max-w-full items-center justify-center gap-1.5 text-center font-medium ${
+      className={`flex items-center justify-center gap-1.5 text-center font-medium whitespace-nowrap ${
         alert.tone === 'danger' ? 'text-danger' : 'text-warning'
       } ${className}`}
     >

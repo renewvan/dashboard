@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react'
 import { useDevicesCollapsed } from '@/hooks/useDevicesCollapsed'
 import { useDevicesSort, type DevicesSort as Mode } from '@/hooks/useDevicesSort'
 import { entityCountText, type DriverRow } from '@/lib/drivers'
+import { FLUID_LABELS } from '@/lib/tank-labels'
 import { instanceKey, instanceLabel, parseInstanceKey, type InstanceType } from '@/lib/instances'
 import { GroupRow } from '../shared/GroupRow'
 import { useSettingsData } from '../SettingsContext'
@@ -16,6 +17,27 @@ function describe(row: DriverRow): string {
   return row.entityCount === null
     ? row.version
     : `${row.version} · ${entityCountText(row.entityCount)}`
+}
+
+/** Words an entity name spells in capitals (`cpu` → `CPU`), however the id is cased. */
+const ACRONYMS = new Set(['ac', 'bms', 'cpu', 'dc', 'gps', 'lpg'])
+
+/**
+ * An entity's name as a title: a tank by its full fluid name (`Fresh water`), an entity named
+ * after its own type by that type's label (`gps` → `GPS`), any other with its first letter
+ * capitalised (`main` → `Main`) and its acronyms in capitals (`cpu` → `CPU`).
+ */
+function entityTitle(label: string, typeLabel: string, fluid?: keyof typeof FLUID_LABELS): string {
+  if (fluid) return FLUID_LABELS[fluid]
+  if (label.toLowerCase() === typeLabel.toLowerCase()) return typeLabel
+  return label
+    .split(' ')
+    .map((word) =>
+      ACRONYMS.has(word.toLowerCase())
+        ? word.toUpperCase()
+        : word.charAt(0).toUpperCase() + word.slice(1),
+    )
+    .join(' ')
 }
 
 const byName = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' })
@@ -60,7 +82,7 @@ export function DriversView({
   /** Opens one tank's own page, by tank id. */
   onOpenTank: (id: string) => void
 }) {
-  const { drivers, batteries, solar, chargers } = useSettingsData()
+  const { drivers, batteries, solar, chargers, tanks } = useSettingsData()
   const [mode, setMode] = useDevicesSort()
   const { isCollapsed, toggle } = useDevicesCollapsed()
 
@@ -98,7 +120,11 @@ export function DriversView({
       for (const id of ids)
         section.items.push({
           key: `${driver.key}:${id}`,
-          label: instanceLabel(id, records[type]?.[id] ?? {}, drivers),
+          label: entityTitle(
+            instanceLabel(id, records[type]?.[id] ?? {}, drivers),
+            label,
+            type === 'tank' ? tanks[id]?.fluid_type : undefined,
+          ),
           driver,
           open: () => openDevice(driver, type, id),
         })

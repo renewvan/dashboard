@@ -39,7 +39,10 @@ export function PowerCard({
   if (layout === 'orbs') return <OrbsLayout flow={flow} fit onOpenInstance={onOpenInstance} />
 
   return (
-    <div className="flex w-full flex-col" style={{ height: '16rem' }}>
+    // The padding leaves room for the Solar orb's label above the canvas and the BMS alert under the
+    // van, which the Energy carousel's track would clip; the height grows by the same 4rem to keep
+    // the canvas size.
+    <div className="flex w-full flex-col py-8" style={{ height: '20rem' }}>
       {layout === 'van-orbs' ? (
         <VanOrbsLayout flow={flow} compact onOpenInstance={onOpenInstance} />
       ) : (

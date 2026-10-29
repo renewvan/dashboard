@@ -76,7 +76,7 @@ export function Carousel({ slides, label }: { slides: CarouselSlide[]; label: st
             aria-current={i === active ? 'true' : undefined}
             aria-label={slide.label}
             onClick={() => goTo(i)}
-            className="flex h-11 w-5 items-center justify-center"
+            className="flex w-5 items-center justify-center"
           >
             <span
               aria-hidden="true"

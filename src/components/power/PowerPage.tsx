@@ -77,7 +77,7 @@ export function PowerPage({
           {sourceNote}
         </PhoneCard>
         {firstSolarRecord && (
-          <PhoneCard title="Solar" icon={<Sun className="size-4" />}>
+          <PhoneCard title="Solar production" icon={<Sun className="size-4" />}>
             <SolarCard solar={firstSolarRecord} />
           </PhoneCard>
         )}

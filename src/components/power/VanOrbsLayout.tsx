@@ -147,6 +147,10 @@ function Orb({
   const active = watts > IDLE_W
   const colour = 'var(--accent)'
   const Icon = ICON[id]
+  // The Solar orb with its history carries its label to the left of the ring: above it the label
+  // would crowd the clock.
+  const beside = history !== undefined
+  const below = spot.c.y === SLOT_DOWN_Y
   return (
     <g>
       <circle
@@ -193,22 +197,20 @@ function Orb({
           {history && <div className="mt-3 h-9 w-36">{history}</div>}
         </SourceTarget>
       </foreignObject>
-      {!history && (
-        // The label sits outside the ring, above it, or below it for the lower orb of a stacked
-        // pair, to leave the ring to the icon and number.
-        <foreignObject
-          x={x - R}
-          y={spot.c.y === SLOT_DOWN_Y ? y + R + LABEL_GAP : y - R - LABEL_H - LABEL_GAP}
-          width={R * 2}
-          height={LABEL_H}
+      {/* The label sits outside the ring, above it, or below it for the lower orb of a stacked
+          pair, to leave the ring to the icon and number. */}
+      <foreignObject
+        x={beside ? x - R - LABEL_GAP - R * 2 : x - R}
+        y={beside ? y - LABEL_H / 2 : below ? y + R + LABEL_GAP : y - R - LABEL_H - LABEL_GAP}
+        width={R * 2}
+        height={LABEL_H}
+      >
+        <div
+          className={`text-muted flex size-full leading-none ${compact ? 'text-4xl' : 'text-2xl'} ${beside ? 'items-center justify-end' : `justify-center ${below ? 'items-start' : 'items-end'}`}`}
         >
-          <div
-            className={`text-muted flex size-full justify-center leading-none ${compact ? 'text-4xl' : 'text-2xl'} ${spot.c.y === SLOT_DOWN_Y ? 'items-start' : 'items-end'}`}
-          >
-            {label}
-          </div>
-        </foreignObject>
-      )}
+          {label}
+        </div>
+      </foreignObject>
     </g>
   )
 }
@@ -289,6 +291,7 @@ export function VanOrbsLayout({
           left={`${(VAN_X / W) * 100}%`}
           top={`${((VAN_Y - VIEW_TOP) / VIEW_H) * 100}%`}
           width={`${(VAN_W_UNITS / W) * 100}%`}
+          compact={compact}
         />
         <PortDomes ports={all.map(spotOf)} viewBox={VIEW_BOX} />
       </div>

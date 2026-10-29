@@ -228,7 +228,7 @@ describe('Settings Solar and Chargers views', () => {
       },
     })
 
-    expect(screen.getByRole('heading', { name: 'Solar' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Solar Chargers' })).toBeInTheDocument()
     expect(row(/^Venus · 291/)).toHaveTextContent('Venus · 291Driver: Venus412W')
   })
 
@@ -299,7 +299,7 @@ describe('Settings Driver page: instances rows', () => {
     await openVenus(user)
 
     await user.click(screen.getByRole('button', { name: /^Solar/ }))
-    expect(screen.getByRole('heading', { name: 'Solar' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Solar Chargers' })).toBeInTheDocument()
     // Back goes to the Driver page it was opened from, not to the Devices list.
     await user.click(
       within(screen.getByRole('navigation', { name: 'Settings navigation' })).getAllByRole(

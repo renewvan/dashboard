@@ -8,7 +8,7 @@ export type ChargingKind = 'alternator' | 'shore' | 'chargers'
 
 export const CHARGING_LABELS: Record<ChargingKind, string> = {
   alternator: 'Alternator',
-  shore: 'Shore',
+  shore: 'Shore power',
   chargers: 'Chargers',
 }
 

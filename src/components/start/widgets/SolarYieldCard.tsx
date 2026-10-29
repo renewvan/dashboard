@@ -9,7 +9,7 @@ export function SolarYieldCard({ solar }: StartWidgetProps) {
   const record = firstSolar(solar)
   if (!record) return null
   return (
-    <PhoneCard title="Solar" icon={<Sun className="size-4" />}>
+    <PhoneCard title="Solar production" icon={<Sun className="size-4" />}>
       <SolarCard solar={record} />
     </PhoneCard>
   )
