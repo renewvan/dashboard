@@ -1605,3 +1605,40 @@ describe('App shell Relays page', () => {
     })
   })
 })
+
+describe('App shell entity icons', () => {
+  it('publishes a picked icon to the hub, and draws the map the hub sends back on Levels', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=settings&view=tank&tank=fresh')
+    await receiveTank('fresh', FRESH_TANK)
+    for (const [property, value] of Object.entries({
+      name: 'Outdoor',
+      unit: 'C',
+      source: 'w1',
+      status: 'ok',
+      temperature_c: 12,
+    })) {
+      await receive(`renewvan/temperature/outdoor/${property}`, JSON.stringify(value))
+    }
+
+    await user.click(screen.getByRole('radio', { name: 'Fuel' }))
+    expect(mqtt.publish).toHaveBeenCalledWith(
+      'renewvan/hub/icons/set',
+      '{"key":"tank/fresh","icon":"Fuel"}',
+      { qos: 1, retain: false },
+    )
+
+    // Nothing changes until the hub plugin answers with the retained map.
+    await user.click(screen.getByRole('tab', { name: 'Levels' }))
+    expect(document.querySelector('.lucide-fuel')).toBeNull()
+
+    await receive(
+      'renewvan/hub/icons',
+      JSON.stringify({ 'tank/fresh': 'Fuel', 'temperature/outdoor': 'Refrigerator' }),
+    )
+    expect(document.querySelector('.lucide-fuel')).not.toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Temperature' }))
+    expect(document.querySelector('.lucide-refrigerator')).not.toBeNull()
+  })
+})
