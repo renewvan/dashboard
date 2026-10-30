@@ -7,6 +7,7 @@ import {
   Cpu,
   Droplet,
   Fan,
+  Faucet,
   Flame,
   Fuel,
   GlassWater,
@@ -56,6 +57,7 @@ const ENTITY_ICONS: Record<string, LucideIcon> = {
   Bath,
   GlassWater,
   Container,
+  Faucet,
 }
 
 /** What the Settings picker offers a temperature probe, and a tank. */
@@ -89,6 +91,7 @@ export const TANK_ICON_NAMES = [
   'Bath',
   'GlassWater',
   'Container',
+  'Faucet',
 ]
 
 /** The entities whose icon a client can pick. */

@@ -127,6 +127,9 @@ describe('Settings › Devices › Tanks › Fresh water', () => {
 
     await user.click(within(group).getByRole('radio', { name: 'Fuel' }))
     expect(value.setEntityIcon).toHaveBeenCalledExactlyOnceWith('tank', 'fresh', 'Fuel')
+
+    await user.click(within(group).getByRole('radio', { name: 'Faucet' }))
+    expect(value.setEntityIcon).toHaveBeenLastCalledWith('tank', 'fresh', 'Faucet')
   })
 
   it('says why the switch cannot be changed', async () => {
