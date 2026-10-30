@@ -10,12 +10,28 @@ async function openStartPage(user: UserEvent) {
   await user.click(screen.getByRole('button', { name: /^Start page/ }))
 }
 
+async function openSub(user: UserEvent, name: RegExp) {
+  await openStartPage(user)
+  await user.click(screen.getByRole('button', { name }))
+}
+
 describe('Settings › General › Display & Appearance › Start page', () => {
-  it('is a Display row that opens a card per half-moon reading, the charger one without a source', async () => {
+  it('is a Display row that groups the Cockpit settings into three subpages', async () => {
     const { user } = renderSettings()
     await openStartPage(user)
 
     expect(screen.getByRole('heading', { name: 'Start page' })).toBeInTheDocument()
+    for (const name of [/^Power readings/, /^Centre & rings/, /^Temperatures/]) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument()
+    }
+    expect(screen.queryByRole('radiogroup', { name: 'Right source' })).not.toBeInTheDocument()
+  })
+
+  it('opens a card per half-moon reading, the charger one without a source', async () => {
+    const { user } = renderSettings()
+    await openSub(user, /^Power readings/)
+
+    expect(screen.getByRole('heading', { name: 'Power readings' })).toBeInTheDocument()
     for (const label of ['Left, top', 'Right']) {
       expect(screen.getByRole('radiogroup', { name: `${label} source` })).toBeInTheDocument()
     }
@@ -39,28 +55,26 @@ describe('Settings › General › Display & Appearance › Start page', () => {
     await user.click(within(group).getByRole('radio', { name: 'Cockpit' }))
     expect(value.setStartView).not.toHaveBeenCalled()
 
-    await user.click(within(group).getByRole('radio', { name: 'Masonry' }))
+    await user.click(within(group).getByRole('radio', { name: 'Grid' }))
     expect(value.setStartView).toHaveBeenCalledExactlyOnceWith('masonry')
   })
 
-  it('shows the Cockpit settings, not the tile sizes, while the view is Cockpit', async () => {
+  it('shows the Cockpit subpages, not the tile sizes, while the view is Cockpit', async () => {
     const { user } = renderSettings()
     await openStartPage(user)
 
-    expect(screen.getByRole('heading', { name: 'Centre' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Level Rings' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Centre & rings/ })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Tile sizes' })).not.toBeInTheDocument()
   })
 
-  describe('Masonry view', () => {
+  describe('Grid view', () => {
     it('drops the Cockpit settings for the order and a size card per tile, Energy being Power and Battery', async () => {
       const { user } = renderSettings({ startView: 'masonry', startLayout: ['map', 'energy'] })
       await openStartPage(user)
 
-      for (const name of ['Centre', 'Power Readings', 'Level Rings']) {
-        expect(screen.queryByRole('heading', { name })).not.toBeInTheDocument()
+      for (const name of [/^Power readings/, /^Centre & rings/, /^Temperatures/]) {
+        expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
       }
-      expect(screen.queryByRole('radiogroup', { name: 'Right source' })).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: /^Widgets/ })).toBeInTheDocument()
       const width = screen.getByRole('radiogroup', { name: 'Battery width' })
       expect(within(width).getByRole('radio', { name: '1' })).toBeChecked()
@@ -122,7 +136,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
 
   it('changes only the touched slot, keeping the others', async () => {
     const { user, value } = renderSettings()
-    await openStartPage(user)
+    await openSub(user, /^Power readings/)
 
     const group = screen.getByRole('radiogroup', { name: 'Right source' })
     await user.click(within(group).getByRole('radio', { name: 'Solar' }))
@@ -136,7 +150,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
 
   it('does nothing on a re-tap of the selected source', async () => {
     const { user, value } = renderSettings()
-    await openStartPage(user)
+    await openSub(user, /^Power readings/)
 
     const group = screen.getByRole('radiogroup', { name: 'Left, top source' })
     await user.click(within(group).getByRole('radio', { name: 'Solar' }))
@@ -146,7 +160,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
 
   it('steps a scale by a size that suits its range, 50 W below 500 W', async () => {
     const { user, value } = renderSettings()
-    await openStartPage(user)
+    await openSub(user, /^Power readings/)
 
     await user.click(screen.getByRole('button', { name: 'Increase Left, top full band' }))
 
@@ -158,7 +172,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
 
   it('offers the tilt, the van or the battery readout for the middle, defaulting to the tilt', async () => {
     const { user, value } = renderSettings()
-    await openStartPage(user)
+    await openSub(user, /^Centre & rings/)
 
     const group = screen.getByRole('radiogroup', { name: 'Shows' })
     expect(
@@ -178,7 +192,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
 
   it('offers the battery and every fluid for a ring, defaulting to battery, fresh, grey', async () => {
     const { user } = renderSettings()
-    await openStartPage(user)
+    await openSub(user, /^Centre & rings/)
 
     const outer = screen.getByRole('radiogroup', { name: 'Outer ring source' })
     expect(
@@ -201,7 +215,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
 
   it('changes only the touched ring, keeping the other two and every power reading', async () => {
     const { user, value } = renderSettings()
-    await openStartPage(user)
+    await openSub(user, /^Centre & rings/)
 
     const middle = screen.getByRole('radiogroup', { name: 'Middle ring source' })
     await user.click(within(middle).getByRole('radio', { name: 'Fuel' }))
@@ -214,7 +228,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
 
   it('reads tank rings in % by default and offers Liters (\u2113) as the other choice', async () => {
     const { user } = renderSettings()
-    await openStartPage(user)
+    await openSub(user, /^Centre & rings/)
 
     const unit = screen.getByRole('radiogroup', { name: 'Unit' })
     expect(
@@ -227,7 +241,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
 
   it('changes only the unit, keeping the rings and every power reading', async () => {
     const { user, value } = renderSettings()
-    await openStartPage(user)
+    await openSub(user, /^Centre & rings/)
 
     await user.click(
       within(screen.getByRole('radiogroup', { name: 'Unit' })).getByRole('radio', {
@@ -243,7 +257,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
 
   it('does nothing on a re-tap of the selected unit', async () => {
     const { user, value } = renderSettings()
-    await openStartPage(user)
+    await openSub(user, /^Centre & rings/)
 
     await user.click(
       within(screen.getByRole('radiogroup', { name: 'Unit' })).getByRole('radio', {
@@ -262,9 +276,55 @@ describe('Settings › General › Display & Appearance › Start page', () => {
         right: { source: 'battery-out', fullScaleW: 20_000 },
       },
     })
-    await openStartPage(user)
+    await openSub(user, /^Power readings/)
 
     expect(screen.getByRole('button', { name: 'Decrease Left, top full band' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Increase Right full band' })).toBeDisabled()
+  })
+
+  it('picks the outdoor probe for the left and the indoor one for the right by default', async () => {
+    const { user } = renderSettings({
+      temperatures: {
+        outdoor: { name: 'Outside', status: 'ok' },
+        indoor: { name: 'Inside', status: 'ok' },
+        fridge: { name: 'Fridge', status: 'ok' },
+      },
+    })
+    await openSub(user, /^Temperatures/)
+
+    const left = screen.getByRole('radiogroup', { name: 'Left sensor' })
+    expect(
+      within(left)
+        .getAllByRole('radio')
+        .map((r) => r.textContent),
+    ).toEqual(['Outside', 'Inside', 'Fridge'])
+    expect(within(left).getByRole('radio', { name: 'Outside' })).toBeChecked()
+    expect(
+      within(screen.getByRole('radiogroup', { name: 'Right sensor' })).getByRole('radio', {
+        name: 'Inside',
+      }),
+    ).toBeChecked()
+  })
+
+  it('changes only the touched side, keeping every other setting', async () => {
+    const { user, value } = renderSettings({
+      temperatures: {
+        outdoor: { status: 'ok' },
+        indoor: { status: 'ok' },
+        fridge: { name: 'Fridge' },
+      },
+    })
+    await openSub(user, /^Temperatures/)
+
+    await user.click(
+      within(screen.getByRole('radiogroup', { name: 'Right sensor' })).getByRole('radio', {
+        name: 'Fridge',
+      }),
+    )
+
+    expect(value.setStartPowerSources).toHaveBeenCalledExactlyOnceWith({
+      ...DEFAULT_START_POWER_SOURCES,
+      temperatures: { left: 'outdoor', right: 'fridge' },
+    })
   })
 })

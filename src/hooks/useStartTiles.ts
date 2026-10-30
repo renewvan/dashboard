@@ -1,7 +1,7 @@
 import { useStoredState } from '@/hooks/useStoredState'
 import type { StartWidgetId } from '@/hooks/useStartLayout'
 
-/** The Masonry grid is this many columns wide; a tile is one to all of them. */
+/** The Grid is this many columns wide; a tile is one to all of them. */
 export const TILE_COLUMNS = [1, 2, 3, 4] as const
 /** A grid row is 150px; a tile is one to three of them tall. */
 export const TILE_ROWS = [1, 2, 3] as const
@@ -10,7 +10,7 @@ export type TileCols = (typeof TILE_COLUMNS)[number]
 export type TileRows = (typeof TILE_ROWS)[number]
 
 /**
- * What the Masonry grid places: a widget each, except Energy, which is two tiles, Power and
+ * What the Grid places: a widget each, except Energy, which is two tiles, Power and
  * Battery. (On a phone Energy is one card, a carousel of the two.)
  */
 export const START_TILE_IDS = [
@@ -26,18 +26,18 @@ export const START_TILE_IDS = [
 
 export type StartTileId = (typeof START_TILE_IDS)[number]
 
-/** The tiles the Masonry draws for a layout, in order: Energy becomes Power then Battery. */
+/** The tiles the Grid draws for a layout, in order: Energy becomes Power then Battery. */
 export function tilesOfLayout(layout: readonly StartWidgetId[]): StartTileId[] {
   return layout.flatMap((id): StartTileId[] => (id === 'energy' ? ['power', 'battery'] : [id]))
 }
 
-/** How many cells of the Masonry grid one tile takes. */
+/** How many cells of the Grid one tile takes. */
 export interface TileSize {
   cols: TileCols
   rows: TileRows
 }
 
-/** The Masonry as shipped: the Map, Power and Battery larger than the rest. */
+/** The Grid as shipped: the Map, Power and Battery larger than the rest. */
 export const DEFAULT_TILE_SIZES: Record<StartTileId, TileSize> = {
   weather: { cols: 1, rows: 1 },
   map: { cols: 2, rows: 2 },
@@ -98,7 +98,7 @@ export function withTileSize(tiles: StartTiles, id: StartTileId, size: TileSize)
 }
 
 /**
- * The Masonry's tile sizes. Kiosk-local with no bus topic, persisted like `useStartLayout`; the
+ * The Grid's tile sizes. Kiosk-local with no bus topic, persisted like `useStartLayout`; the
  * order and which widgets show are `useStartLayout`'s.
  */
 export function useStartTiles() {

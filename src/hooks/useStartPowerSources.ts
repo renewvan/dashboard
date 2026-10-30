@@ -1,4 +1,5 @@
 import { useStoredState } from '@/hooks/useStoredState'
+import { INDOOR_ID, OUTDOOR_ID } from '@/lib/temperature'
 import type { FluidType } from '@/types'
 
 /**
@@ -63,6 +64,12 @@ export type StartCentre = 'tilt' | 'van' | 'battery'
 
 export const START_CENTRES: readonly StartCentre[] = ['tilt', 'van', 'battery']
 
+/** Which temperature probe floats over each half-moon, by sensor id (`lib/temperature.ts`). */
+export interface StartTemperatures {
+  left: string
+  right: string
+}
+
 /** The readings of the half-moons: solar and the charger on the left, the outgoing power on the right. */
 export interface StartPowerSources {
   leftTop: PowerSlot
@@ -75,6 +82,8 @@ export interface StartPowerSources {
   ringUnit: RingUnit
   /** What fills the middle of the rings. */
   centre: StartCentre
+  /** The probe over each half-moon: the outdoor one on the left, the indoor one on the right. */
+  temperatures: StartTemperatures
 }
 
 export const MIN_FULL_SCALE_W = 50
@@ -87,6 +96,7 @@ export const DEFAULT_START_POWER_SOURCES: StartPowerSources = {
   rings: ['battery', 'fresh_water', 'grey_water'],
   ringUnit: 'pct',
   centre: 'tilt',
+  temperatures: { left: OUTDOOR_ID, right: INDOOR_ID },
 }
 
 const STORAGE_KEY = 'renewvan-dashboard-start-power-sources'
@@ -159,6 +169,15 @@ export function parseStartPowerSources(raw: string | null): StartPowerSources {
     return isRingSource(stored) ? stored : defaults.rings[index]
   }
 
+  const storedTemperatures =
+    typeof record.temperatures === 'object' && record.temperatures !== null
+      ? (record.temperatures as Record<string, unknown>)
+      : {}
+  const sensorId = (side: keyof StartTemperatures): string => {
+    const stored = storedTemperatures[side]
+    return typeof stored === 'string' && stored !== '' ? stored : defaults.temperatures[side]
+  }
+
   return {
     leftTop: slot('leftTop'),
     leftBottom: chargerSlot(),
@@ -166,6 +185,7 @@ export function parseStartPowerSources(raw: string | null): StartPowerSources {
     rings: [ring(0), ring(1), ring(2)],
     ringUnit: isRingUnit(record.ringUnit) ? record.ringUnit : defaults.ringUnit,
     centre: isStartCentre(record.centre) ? record.centre : defaults.centre,
+    temperatures: { left: sensorId('left'), right: sensorId('right') },
   }
 }
 

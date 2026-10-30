@@ -83,9 +83,9 @@ export interface SettingsPreferences {
   startPowerSources: StartPowerSources
   /** The phone Start page's widgets, in order; one not listed is not shown. The same instance `App` reads. */
   startLayout: readonly StartWidgetId[]
-  /** The kiosk's Start page, Cockpit or Masonry (a phone always shows its widget stack): the same instance `App` reads. */
+  /** The kiosk's Start page, Cockpit or Grid (a phone always shows its widget stack): the same instance `App` reads. */
   startView: StartView
-  /** The Masonry's tile sizes, only those changed from the shipped ones: the same instance `App` reads. */
+  /** The Grid's tile sizes, only those changed from the shipped ones: the same instance `App` reads. */
   startTiles: StartTiles
   /** How the Power page is drawn, Tiles or Orbs: the same instance the Power page reads. */
   powerLayout: PowerLayout

@@ -1,7 +1,7 @@
 import { useStoredState } from '@/hooks/useStoredState'
 
 /**
- * Which Start page the kiosk draws: the Cockpit (the Dial) or the Masonry (the Start-page widgets
+ * Which Start page the kiosk draws: the Cockpit (the Dial) or the Grid (the Start-page widgets
  * on a dense grid, sized to their content). A phone always shows its widget stack, whatever is
  * stored.
  */
@@ -11,7 +11,7 @@ export const START_VIEW_CHOICES: readonly StartView[] = ['cockpit', 'masonry']
 
 export const START_VIEW_LABELS: Record<StartView, string> = {
   cockpit: 'Cockpit',
-  masonry: 'Masonry',
+  masonry: 'Grid',
 }
 
 const STORAGE_KEY = 'renewvan-dashboard-start-view'
