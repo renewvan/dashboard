@@ -1,15 +1,11 @@
-import { createElement, useId, useState } from 'react'
+import { createElement, useId } from 'react'
 import { Card } from '@heroui/react'
 import { Thermometer as ThermometerIcon } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useEntityIcon } from '@/hooks/useEntityIcon'
 import { entityIcon } from '@/lib/entityIcons'
-import { cn } from '@/lib/utils'
 import { sensorLabel, sortedSensorIds, temperatureReading } from '@/lib/temperature'
-import { TanksPage, type TanksPageProps } from '@/components/tanks/TanksPage'
 import type { TemperatureSensor } from '@/types'
-
-type Section = 'tanks' | 'temperature'
 
 /** Display range of the gauges, in °C. */
 const MIN_C = -20
@@ -253,13 +249,16 @@ function ScaleRow({ v, onOpen }: { v: SensorView; onOpen?: (id: string) => void 
   )
 }
 
-function TemperatureLevels({
-  sensors,
-  onOpen,
-}: {
-  sensors: Record<string, TemperatureSensor>
-  onOpen?: (id: string) => void
-}) {
+export interface TemperaturePageProps {
+  temperatures: Record<string, TemperatureSensor>
+  /** A thermometer's tap: opens that sensor's Settings page. */
+  onOpenTemperature?: (id: string) => void
+}
+
+export function TemperaturePage({
+  temperatures: sensors,
+  onOpenTemperature: onOpen,
+}: TemperaturePageProps) {
   const isMobile = useIsMobile()
   const views = toViews(sensors)
 
@@ -286,57 +285,10 @@ function TemperatureLevels({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-16">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-3 pb-16">
       {views.map((v) => (
         <ScaleRow key={v.id} v={v} onOpen={onOpen} />
       ))}
-    </div>
-  )
-}
-
-export interface LevelsPageProps extends TanksPageProps {
-  temperatures: Record<string, TemperatureSensor>
-  /** A thermometer's tap: opens that sensor's Settings page. */
-  onOpenTemperature?: (id: string) => void
-}
-
-export function LevelsPage({
-  tanks,
-  temperatures,
-  onConfigure,
-  onOpenTemperature,
-}: LevelsPageProps) {
-  const [section, setSection] = useState<Section>('tanks')
-  const isMobile = useIsMobile()
-
-  return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
-      <div className={cn('flex shrink-0 justify-center px-4 pb-3', isMobile && 'pt-3')}>
-        <div
-          role="radiogroup"
-          aria-label="Levels"
-          className="bg-surface-secondary flex gap-1 rounded-full p-1"
-        >
-          {(['tanks', 'temperature'] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setSection(s)}
-              className={cn(
-                'rounded-full px-4 py-1.5 text-sm font-semibold',
-                section === s ? 'bg-accent text-accent-foreground' : 'text-muted',
-              )}
-            >
-              {s === 'tanks' ? 'Tank levels' : 'Temperature'}
-            </button>
-          ))}
-        </div>
-      </div>
-      {section === 'tanks' ? (
-        <TanksPage tanks={tanks} onConfigure={onConfigure} />
-      ) : (
-        <TemperatureLevels sensors={temperatures} onOpen={onOpenTemperature} />
-      )}
     </div>
   )
 }

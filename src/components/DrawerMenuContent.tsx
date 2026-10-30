@@ -7,14 +7,18 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 
 /** The phone drawer's body: two groups of rows. Profile has My Account, My Van and Widgets; System
- * has Automations and Scenes. My Van and Widgets open their Settings pages; the rest are disabled
+ * has Automations, Scenes and Settings (not a bottom-bar tab on a phone). My Van and Widgets open their Settings pages; the rest are disabled
  * placeholders. */
 export function DrawerMenuControls({
   close,
+  activePage,
+  onGoToPage,
   onOpenVan,
   onOpenWidgets,
 }: {
   close: () => void
+  activePage: string
+  onGoToPage: (id: string) => void
   onOpenVan: () => void
   onOpenWidgets: () => void
 }) {
@@ -46,6 +50,17 @@ export function DrawerMenuControls({
       <DrawerGroup title="System">
         <DrawerRow icon={<SquareSparkles className="size-5" />} label="Automations" disabled />
         <DrawerRow icon={<Clapperboard className="size-5" />} label="Scenes" disabled />
+        <DrawerRow
+          icon={<Settings className="size-5" />}
+          label="Settings"
+          navigates
+          active={activePage === 'settings'}
+          data-testid="settings-button"
+          onPress={() => {
+            close()
+            onGoToPage('settings')
+          }}
+        />
       </DrawerGroup>
     </div>
   )
@@ -53,8 +68,6 @@ export function DrawerMenuControls({
 
 interface DrawerMenuFooterProps {
   close: () => void
-  activePage: string
-  onGoToPage: (id: string) => void
   uplink: ComponentProps<typeof UplinkStatusButton>
   theme: ComponentProps<typeof ThemeToggleButton>['theme']
   onThemeChange: ComponentProps<typeof ThemeToggleButton>['onThemeChange']
@@ -65,14 +78,12 @@ interface DrawerMenuFooterProps {
 
 /**
  * The phone drawer's footer, pinned to the bottom and in the reverse of reading order:
- * Settings (not a bottom-bar tab on a phone), then a row of icon tiles (Connection, Theme, Sleep).
+ * a row of icon tiles (Connection, Theme, Sleep).
  * Rows that navigate close the drawer. The Connection tile opens its popover in place and the theme
  * toggle leaves the drawer open so the change can be seen; Sleep closes it, as the display goes dark.
  */
 export function DrawerMenuFooter({
   close,
-  activePage,
-  onGoToPage,
   uplink,
   theme,
   onThemeChange,
@@ -82,17 +93,6 @@ export function DrawerMenuFooter({
 }: DrawerMenuFooterProps) {
   return (
     <>
-      <DrawerRow
-        icon={<Settings className="size-5" />}
-        label="Settings"
-        navigates
-        active={activePage === 'settings'}
-        data-testid="settings-button"
-        onPress={() => {
-          close()
-          onGoToPage('settings')
-        }}
-      />
       <div className="flex w-full gap-2">
         <UplinkStatusButton
           {...uplink}
