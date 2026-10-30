@@ -1,5 +1,8 @@
-import { Armchair, Park, Thermometer } from 'lucide-react'
+import { createElement } from 'react'
+import { Armchair, Cpu, Park, Thermometer } from 'lucide-react'
 import { INDOOR_ID, OUTDOOR_ID, formatTemperature, sensorLabel } from '@/lib/temperature'
+import { useEntityIcon } from '@/hooks/useEntityIcon'
+import { entityIcon } from '@/lib/entityIcons'
 import type { TemperatureSensor } from '@/types'
 
 /**
@@ -12,7 +15,7 @@ export function DialTemperature({
   sensor,
   side,
 }: {
-  /** The probe's id: the outdoor and indoor ones get their own icon and label. */
+  /** The probe's id: the outdoor and indoor ones get their own label, and an icon unless the probe names one. */
   sensorId: string
   /** Undefined until the probe publishes anything; the reading then shows a dash. */
   sensor: Partial<TemperatureSensor> | undefined
@@ -20,7 +23,18 @@ export function DialTemperature({
   side: 'left' | 'right'
 }) {
   const kind = sensorId === OUTDOOR_ID ? 'outdoor' : sensorId === INDOOR_ID ? 'indoor' : 'other'
-  const Icon = kind === 'outdoor' ? Park : kind === 'indoor' ? Armchair : Thermometer
+  // The probe's own `icon` first; else the outdoor and indoor ones, and the Pi's CPU, by what they are.
+  const icon = createElement(
+    entityIcon(useEntityIcon('temperature', sensorId)) ??
+      (kind === 'outdoor'
+        ? Park
+        : kind === 'indoor'
+          ? Armchair
+          : sensor?.source === 'cpu'
+            ? Cpu
+            : Thermometer),
+    { className: 'size-4', 'aria-hidden': true },
+  )
   const fallback = kind === 'outdoor' ? 'Outside' : kind === 'indoor' ? 'Inside' : sensorId
   return (
     <div
@@ -34,9 +48,9 @@ export function DialTemperature({
           side === 'left' ? 'ml-1' : 'mr-1'
         }`}
       >
-        {side === 'left' && <Icon className="size-4" aria-hidden="true" />}
+        {side === 'left' && icon}
         {sensor?.name ?? (sensor && kind === 'other' ? sensorLabel(sensorId, sensor) : fallback)}
-        {side === 'right' && <Icon className="size-4" aria-hidden="true" />}
+        {side === 'right' && icon}
       </div>
       <div className="text-3xl font-light italic tabular-nums">
         {formatTemperature(sensor)}

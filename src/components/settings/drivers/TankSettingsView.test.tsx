@@ -97,6 +97,38 @@ describe('Settings › Devices › Tanks › Fresh water', () => {
     expect(enabled).toBeDisabled()
   })
 
+  it("shows the tank's icon as picked and publishes only a change, for that tank only", async () => {
+    const rendered = renderSettings(
+      {},
+      {
+        bus: {
+          tanks: {
+            fresh: tank(),
+            grey: tank({ fluid_type: 'grey_water' }),
+          } as never,
+        },
+        entityIcons: { 'tank/fresh': 'Waves' },
+      },
+    )
+    const { user, value } = rendered
+    await user.click(screen.getByRole('button', { name: /^Devices/ }))
+    await user.click(screen.getByRole('button', { name: /^Tanks/ }))
+    await user.click(
+      within(screen.getByRole('list', { name: 'Entities' })).getByRole('button', {
+        name: /^Tanks/,
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: /^Fresh water/ }))
+    const group = screen.getByRole('radiogroup', { name: 'Icon' })
+
+    expect(within(group).getByRole('radio', { name: 'Waves' })).toBeChecked()
+    await user.click(within(group).getByRole('radio', { name: 'Waves' }))
+    expect(value.setEntityIcon).not.toHaveBeenCalled()
+
+    await user.click(within(group).getByRole('radio', { name: 'Fuel' }))
+    expect(value.setEntityIcon).toHaveBeenCalledExactlyOnceWith('tank', 'fresh', 'Fuel')
+  })
+
   it('says why the switch cannot be changed', async () => {
     await openFresh()
 

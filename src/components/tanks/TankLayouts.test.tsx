@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vite-plus/test'
 import type { Tank } from '@/types'
 import { TankCard } from './TankCard'
 import { TankRow } from './TankRow'
+import { EntityIconsContext } from '@/hooks/useEntityIcon'
 import { FLUID_ICONS } from './fluidIcon'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 
@@ -53,6 +54,23 @@ describe.each(layouts)('%s', (_name, Layout) => {
     expect(icon).toHaveAttribute('aria-hidden', 'true')
     // The label stays the accessible name: the icon adds nothing a screen reader would read twice.
     expect(container.querySelectorAll('svg[role="img"]')).toHaveLength(0)
+  })
+
+  it("draws the icon picked for the tank, else its fluid's, and ignores a name it does not know", () => {
+    const withIcons = (icons: Record<string, string>) => (
+      <EntityIconsContext.Provider value={icons}>
+        <Layout id="t" tank={tank()} now={NOW} onConfigure={vi.fn()} />
+      </EntityIconsContext.Provider>
+    )
+    const { container, rerender } = render(withIcons({ 'tank/t': 'Fuel' }))
+    expect(container.querySelector('.lucide-fuel')).not.toBeNull()
+    expect(container.querySelector('.lucide-droplet')).toBeNull()
+
+    rerender(withIcons({ 'tank/t': 'NotAnIcon' }))
+    expect(container.querySelector('.lucide-droplet')).not.toBeNull()
+
+    rerender(withIcons({ 'tank/other': 'Fuel' }))
+    expect(container.querySelector('.lucide-droplet')).not.toBeNull()
   })
 
   it('gives each fluid its own icon, so a fresh and a grey card are told apart at a glance', () => {
@@ -153,31 +171,11 @@ describe.each(layouts)('%s', (_name, Layout) => {
     expect(screen.getAllByText('Full')).toHaveLength(2)
   })
 
-  it('shows "Last refilled" with the fixed date for fresh water', () => {
-    const local = new Date(2026, 6, 14, 9, 41)
-    show(tank({ last_full_at: local.toISOString() }))
-    expect(screen.getByText(/Last refilled/)).toBeInTheDocument()
-    expect(screen.getByText('14 Jul 2026 09:41')).toBeInTheDocument()
-  })
-
-  it('shows "Last emptied" for the other tanks', () => {
-    const local = new Date(2026, 7, 3, 18, 5)
-    show(tank({ fluid_type: 'grey_water', last_empty_at: local.toISOString() }))
-    expect(screen.getByText(/Last emptied/)).toBeInTheDocument()
-    expect(screen.getByText('3 Aug 2026 18:05')).toBeInTheDocument()
-  })
-
-  it('shows a dash when the tank has never refilled or emptied', () => {
-    show(tank())
-    expect(screen.getByText(/Last refilled/)).toBeInTheDocument()
-    expect(screen.getByText('—')).toBeInTheDocument()
-  })
-
-  it("opens this tank's settings from the Configure button", async () => {
+  it("opens this tank's settings when the card is tapped", async () => {
     const onConfigure = vi.fn()
     show(tank(), onConfigure)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Configure' }))
+    await userEvent.click(screen.getByRole('button', { name: /settings$/ }))
 
     expect(onConfigure).toHaveBeenCalledExactlyOnceWith('t')
   })

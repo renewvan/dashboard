@@ -57,6 +57,11 @@ export interface RenewvanBus {
    * null until the retained topic arrives (or while it holds anything else), which reads as `auto`.
    */
   primaryBattery: string | null
+  /**
+   * The shared entity icons (`renewvan/hub/icons`): `<entity>/<id>` to a lucide component name. Empty
+   * until the retained topic arrives.
+   */
+  entityIcons: Record<string, string>
   routerHealth: RouterHealth | null
   /** The shared Demo mode flag (`renewvan/demo/enabled`): true while every client reads the simulated van. */
   demoMode: boolean
@@ -110,11 +115,14 @@ const TOPIC_AUTO_SLEEP_TIMEOUT = `${KIOSK_PREFIX}display/auto-sleep-timeout-minu
 const TOPIC_TAILSCALE = `${REAL_ROOT}/tailscale/status`
 const TOPIC_HUB_STATUS = `${REAL_ROOT}/hub/status`
 const TOPIC_PRIMARY_BATTERY = `${REAL_ROOT}/hub/primary-battery`
+const TOPIC_ENTITY_ICONS = `${REAL_ROOT}/hub/icons`
 /**
  * The one non-kiosk command demo mode lets through besides the demo switch: the Primary battery is a
  * setting of this kiosk's reading, not a command to a Driver, so it works on the simulated van too.
  */
 const TOPIC_PRIMARY_BATTERY_SET = `${TOPIC_PRIMARY_BATTERY}/set`
+/** One stable empty map, so a bus with no icons does not re-render every consumer. */
+const NO_ENTITY_ICONS: Record<string, string> = {}
 const AUTO_SLEEP_TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 
 /**
@@ -264,6 +272,21 @@ function parsePrimaryBattery(payload: string): string | null {
   return typeof value === 'string' && value !== '' ? value : null
 }
 
+/**
+ * The hub plugin's retained entity icons (hub `hub-icons.schema.json`): a JSON object of
+ * `<entity>/<id>` to a lucide component name. An entry that is not a string is dropped on its own; an
+ * empty payload or anything that is not an object reads as no icons.
+ */
+function parseEntityIcons(payload: string): Record<string, string> {
+  const value = parseValue(payload)
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  )
+}
+
 /** An empty payload clears a retained topic; so does anything that is not a valid value. */
 function applyDriverMessage(
   prev: RenewvanBusState,
@@ -402,6 +425,7 @@ export function useRenewvanBus(): RenewvanBus {
   const [tailscale, setTailscale] = useState<TailscaleStatus | null>(null)
   const [hubStatus, setHubStatus] = useState<HubStatus | null>(null)
   const [primaryBattery, setPrimaryBattery] = useState<string | null>(null)
+  const [entityIcons, setEntityIcons] = useState<Record<string, string>>(NO_ENTITY_ICONS)
   const clientRef = useRef<MqttClient | null>(null)
 
   // A fresh function every render, so it always reads the current flag; callers that keep it
@@ -491,6 +515,10 @@ export function useRenewvanBus(): RenewvanBus {
         setPrimaryBattery(parsePrimaryBattery(payload))
         return
       }
+      if (topic === TOPIC_ENTITY_ICONS) {
+        setEntityIcons(parseEntityIcons(payload))
+        return
+      }
       setReal((prev) =>
         applyMessage(prev, topic, payload, ENTITY_PATTERN.real, DRIVER_PATTERN.real),
       )
@@ -514,6 +542,7 @@ export function useRenewvanBus(): RenewvanBus {
       setTailscale(null)
       setHubStatus(null)
       setPrimaryBattery(null)
+      setEntityIcons(NO_ENTITY_ICONS)
     }
   }, [])
 
@@ -528,6 +557,7 @@ export function useRenewvanBus(): RenewvanBus {
     tailscale,
     hubStatus,
     primaryBattery,
+    entityIcons,
     routerHealth: state.drivers.router?.health ?? null,
     demoMode,
     setDemoMode,

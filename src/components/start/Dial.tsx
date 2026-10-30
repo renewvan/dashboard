@@ -1,5 +1,7 @@
 import { createElement, useState } from 'react'
 import { Battery, TriangleAlert } from 'lucide-react'
+import { useEntityIcons } from '@/hooks/useEntityIcon'
+import { entityIcon, iconKey } from '@/lib/entityIcons'
 import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
 import { TiltWidget } from '@/components/widgets/tilt/TiltWidget'
 import { firstSolar } from '@/components/widgets/solar/solarView'
@@ -30,7 +32,7 @@ import {
 } from '@/types'
 import { DialReadout } from './DialReadout'
 import { DialTemperature } from './DialTemperature'
-import { batteryDial, tankDialOf, type DialView } from './cockpit/dialView'
+import { batteryDial, tankDialOf, tankIdOf, type DialView } from './cockpit/dialView'
 import { HalfMoon } from './HalfMoon'
 import { Rings, type RingModel } from './Rings'
 import { centreKind, chargingReading, legendIndices, powerReading, ringLabel } from './dialModel'
@@ -56,12 +58,18 @@ export interface DialProps {
 /** Colour while a ring has no data: not a severity, so the band just stays dim. */
 const NO_DATA_COLOR = 'currentColor'
 
-function ringModel(source: RingSource, view: DialView | undefined, unit: RingUnit): RingModel {
+function ringModel(
+  source: RingSource,
+  view: DialView | undefined,
+  unit: RingUnit,
+  /** The icon picked for the ring's tank in Settings, when there is one. */
+  iconName: string | undefined,
+): RingModel {
   const icon =
     source === 'battery' ? (
       <Battery className="size-4" />
     ) : (
-      createElement(FLUID_ICONS[source], { className: 'size-4' })
+      createElement(entityIcon(iconName) ?? FLUID_ICONS[source], { className: 'size-4' })
     )
   // Only a tank has litres; the battery has no volume and always reads as a percentage.
   const litres = unit === 'litres' ? view?.litres : undefined
@@ -161,6 +169,7 @@ export function Dial({
   }
   const passS = pulsePass(inputW, flow.peakW)
   // The beat is sampled once per pass: a re-render does not move it, and a new pass starts a new one.
+  const icons = useEntityIcons()
   const [clock, setClock] = useState(() => pulseClock(passS))
   if (clock.passS !== passS) setClock(pulseClock(passS))
 
@@ -169,6 +178,7 @@ export function Dial({
       source,
       source === 'battery' ? batteryView : tankDialOf(tanks, source, now),
       powerSources.ringUnit,
+      source === 'battery' ? undefined : icons[iconKey('tank', tankIdOf(tanks, source) ?? '')],
     )
     return source === 'battery' && centre === 'van' ? { ...ring, pulse: inputW > IDLE_W } : ring
   })

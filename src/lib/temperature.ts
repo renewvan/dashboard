@@ -57,3 +57,12 @@ export function sensorLabel(id: string, sensor: Partial<TemperatureSensor>): str
   if (sensor.name) return sensor.name
   return sensor.source === 'cpu' ? 'Pi CPU' : (sensor.serial ?? id)
 }
+
+/** A topic name read as a title: `outdoor` is `Outdoor`, `pi_cpu` is `Pi Cpu`. */
+export function titleCase(id: string): string {
+  return id
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(' ')
+}

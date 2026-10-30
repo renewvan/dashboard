@@ -1,10 +1,13 @@
 import { useId } from 'react'
 import { ToggleButton, ToggleButtonGroup } from '@heroui/react'
-import { formatTemperature, sensorLabel, sortedSensorIds } from '@/lib/temperature'
+import { formatTemperature, sensorLabel, sortedSensorIds, titleCase } from '@/lib/temperature'
 import type { TemperatureSensor, TemperatureUnit } from '@/types'
 import { instanceKey } from '@/lib/instances'
+import { useEntityIcon } from '@/hooks/useEntityIcon'
+import { TEMPERATURE_ICON_NAMES } from '@/lib/entityIcons'
 import { EntityCard } from '../shared/EntityCard'
 import { temperatureRowSummary } from './entitySummary'
+import { IconPicker } from '../shared/IconPicker'
 import { NameField } from '../shared/NameField'
 import { useSettingsData, useSettingsActions } from '../SettingsContext'
 
@@ -14,7 +17,7 @@ function isUnit(value: string): value is TemperatureUnit {
   return UNITS.some((unit) => unit === value)
 }
 
-/** Settings › Devices › Temperature › <sensor> › Details: rename the sensor and pick its unit. */
+/** Settings › Devices › Temperature › <sensor> › Details: rename the sensor, pick its unit and its icon. It is titled by its topic name (the id), the one thing unique to it. */
 export function TemperatureDetails({ id }: { id: string }) {
   const { temperatures } = useSettingsData()
   const sensor = temperatures[id]
@@ -23,7 +26,8 @@ export function TemperatureDetails({ id }: { id: string }) {
 }
 
 function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSensor> }) {
-  const { setTemperatureName, setTemperatureUnit } = useSettingsActions()
+  const { setTemperatureName, setTemperatureUnit, setEntityIcon } = useSettingsActions()
+  const icon = useEntityIcon('temperature', id)
   const sourceId = useId()
 
   return (
@@ -34,7 +38,7 @@ function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSe
     >
       <div className="flex items-center justify-between gap-3">
         <span id={sourceId} className="text-muted min-w-0 text-xs break-words">
-          {sensor.source === 'cpu' ? 'Pi CPU' : (sensor.serial ?? id)}
+          {titleCase(id)}
         </span>
         <span className="text-sm font-medium tabular-nums">
           {formatTemperature(sensor, { suffix: true })}
@@ -68,6 +72,12 @@ function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSe
           ))}
         </ToggleButtonGroup>
       </div>
+      <IconPicker
+        names={TEMPERATURE_ICON_NAMES}
+        value={icon}
+        isDisabled={sensor.name === undefined}
+        onChange={(next) => setEntityIcon('temperature', id, next)}
+      />
     </div>
   )
 }

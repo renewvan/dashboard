@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Tank, TemperatureSensor } from '@/types'
+import { EntityIconsContext } from '@/hooks/useEntityIcon'
 import { LevelsPage } from './LevelsPage'
 
 const KIOSK_WIDTH = 800
@@ -39,10 +40,22 @@ const LOST: TemperatureSensor = {
 }
 
 let viewport: MatchMediaStub
-function renderAt(width: number, temperatures: Record<string, TemperatureSensor> = {}) {
+function renderAt(
+  width: number,
+  temperatures: Record<string, TemperatureSensor> = {},
+  onOpenTemperature?: (id: string) => void,
+  entityIcons: Record<string, string> = {},
+) {
   viewport = stubMatchMedia(width)
   return render(
-    <LevelsPage tanks={{ fresh: FRESH }} temperatures={temperatures} onConfigure={vi.fn()} />,
+    <EntityIconsContext.Provider value={entityIcons}>
+      <LevelsPage
+        tanks={{ fresh: FRESH }}
+        temperatures={temperatures}
+        onConfigure={vi.fn()}
+        onOpenTemperature={onOpenTemperature}
+      />
+    </EntityIconsContext.Provider>,
   )
 }
 
@@ -122,4 +135,31 @@ describe('LevelsPage toggle spacing', () => {
     await user.click(screen.getByRole('button', { name: 'Temperature' }))
     expect(wrapper()!.nextElementSibling).not.toHaveClass('pt-3')
   })
+})
+
+describe('LevelsPage probe icon', () => {
+  it('draws the icon picked for a probe on its thermometer, else the thermometer', async () => {
+    const user = userEvent.setup()
+    const { container } = renderAt(KIOSK_WIDTH, { outdoor: OUTDOOR, indoor: INDOOR }, undefined, {
+      'temperature/outdoor': 'Refrigerator',
+    })
+    await user.click(screen.getByRole('button', { name: 'Temperature' }))
+
+    expect(container.querySelectorAll('.lucide-refrigerator')).toHaveLength(1)
+    expect(container.querySelectorAll('.lucide-thermometer').length).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('LevelsPage thermometers', () => {
+  it.each([KIOSK_WIDTH, JUST_BELOW_KIOSK_WIDTH])(
+    'opens the sensor in Settings when its thermometer is tapped at %ipx',
+    async (width) => {
+      const user = userEvent.setup()
+      const onOpen = vi.fn()
+      renderAt(width, { indoor: INDOOR, outdoor: OUTDOOR }, onOpen)
+      await user.click(screen.getByRole('button', { name: 'Temperature' }))
+      await user.click(screen.getByRole('button', { name: `${OUTDOOR.name} settings` }))
+      expect(onOpen).toHaveBeenCalledWith('outdoor')
+    },
+  )
 })

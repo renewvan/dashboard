@@ -89,6 +89,24 @@ describe('settingsCommands', () => {
     )
   })
 
+  it('publishes an entity icon as a key and a name on the hub icons topic', () => {
+    const { publish, commands } = setup()
+
+    commands.setEntityIcon('temperature', 'outdoor', 'Park')
+    commands.setEntityIcon('tank', 'fresh', 'Droplet')
+
+    expect(publish).toHaveBeenNthCalledWith(
+      1,
+      'renewvan/hub/icons/set',
+      '{"key":"temperature/outdoor","icon":"Park"}',
+    )
+    expect(publish).toHaveBeenNthCalledWith(
+      2,
+      'renewvan/hub/icons/set',
+      '{"key":"tank/fresh","icon":"Droplet"}',
+    )
+  })
+
   it('publishes the Primary battery choice as a quoted JSON string on the hub set topic', () => {
     const { publish, commands } = setup()
 

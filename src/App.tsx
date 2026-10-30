@@ -26,6 +26,8 @@ import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertHistory } from '@/hooks/useAlertHistory'
+import { EntityIconsContext } from '@/hooks/useEntityIcon'
+import { instanceKey } from '@/lib/instances'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
@@ -88,6 +90,7 @@ function App() {
     tailscale,
     hubStatus,
     primaryBattery,
+    entityIcons,
     routerHealth,
     demoMode,
     setDemoMode,
@@ -347,6 +350,7 @@ function App() {
             tanks={state.tanks}
             temperatures={state.temperatures}
             onConfigure={openTankSettings}
+            onOpenTemperature={(id) => openInstanceSettings(instanceKey('temperature', id))}
           />
         )
       case 'map':
@@ -401,9 +405,10 @@ function App() {
   )
 
   return (
-    <ShellHeaderContext.Provider value={setHeaderHidden}>
-      <div className="bg-background text-foreground flex h-svh flex-col overflow-hidden">
-        {/* One `Tabs` root holds the header, the nav and the panes, so the left rail can span the
+    <EntityIconsContext.Provider value={entityIcons}>
+      <ShellHeaderContext.Provider value={setHeaderHidden}>
+        <div className="bg-background text-foreground flex h-svh flex-col overflow-hidden">
+          {/* One `Tabs` root holds the header, the nav and the panes, so the left rail can span the
           full height of the app. The nav precedes the panes in the DOM (React Aria warns when a
           tab panel renders before its tab list). On the kiosk the nav, rail or bar, is an
           absolutely positioned, translucent, auto-hiding overlay that never pushes the panes;
@@ -412,37 +417,38 @@ function App() {
           bottom bar, moved below the panes by its `order-last`. Keyed by layout: HeroUI's sliding
           indicator measures its tab once and does not re-measure when the list swaps between the
           rail and a bar under the same root. */}
-        <Tabs
-          key={isMobile ? 'phone' : navbarPosition}
-          selectedKey={activePage}
-          onSelectionChange={(key) => goToPage(String(key))}
-          orientation={isMobile || isBottomBar ? 'horizontal' : 'vertical'}
-          style={navbarInsetStyle}
-          className={cn('min-h-0 flex-1 gap-0!', !isMobile && 'relative overflow-hidden')}
-        >
-          {isBottomBar ? (
-            <BottomNavBar
-              items={NAV_ITEMS}
-              hidden={navHidden}
-              pinned={navPinned}
-              onPinnedChange={setNavPinned}
-            />
-          ) : (
-            <Sidebar
-              items={isMobile ? NAV_ITEMS.filter((item) => item.id !== 'settings') : NAV_ITEMS}
-              isMobile={isMobile}
-              hidden={navHidden}
-              pinned={navPinned}
-              onPinnedChange={setNavPinned}
-            />
-          )}
-          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-            {header}
-            {panels}
-          </div>
-        </Tabs>
-      </div>
-    </ShellHeaderContext.Provider>
+          <Tabs
+            key={isMobile ? 'phone' : navbarPosition}
+            selectedKey={activePage}
+            onSelectionChange={(key) => goToPage(String(key))}
+            orientation={isMobile || isBottomBar ? 'horizontal' : 'vertical'}
+            style={navbarInsetStyle}
+            className={cn('min-h-0 flex-1 gap-0!', !isMobile && 'relative overflow-hidden')}
+          >
+            {isBottomBar ? (
+              <BottomNavBar
+                items={NAV_ITEMS}
+                hidden={navHidden}
+                pinned={navPinned}
+                onPinnedChange={setNavPinned}
+              />
+            ) : (
+              <Sidebar
+                items={isMobile ? NAV_ITEMS.filter((item) => item.id !== 'settings') : NAV_ITEMS}
+                isMobile={isMobile}
+                hidden={navHidden}
+                pinned={navPinned}
+                onPinnedChange={setNavPinned}
+              />
+            )}
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+              {header}
+              {panels}
+            </div>
+          </Tabs>
+        </div>
+      </ShellHeaderContext.Provider>
+    </EntityIconsContext.Provider>
   )
 }
 
