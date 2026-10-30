@@ -727,6 +727,57 @@ describe('useRenewvanBus primary battery', () => {
   })
 })
 
+describe('useRenewvanBus entity icons', () => {
+  beforeEach(() => {
+    messageHandlers.length = 0
+    connectMock.mockClear()
+    vi.stubEnv('VITE_MQTT_WS_URL', 'ws://test-broker')
+  })
+
+  const send = (payload: string) =>
+    messageHandlers[0]('renewvan/hub/icons', { toString: () => payload })
+
+  it('is empty until the retained topic arrives', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    expect(result.current.entityIcons).toEqual({})
+  })
+
+  it('reads the map of <entity>/<id> to a name', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('{"temperature/outdoor":"Park","tank/fresh":"Droplet"}')
+    await waitFor(() =>
+      expect(result.current.entityIcons).toEqual({
+        'temperature/outdoor': 'Park',
+        'tank/fresh': 'Droplet',
+      }),
+    )
+  })
+
+  it('drops an entry that is not a string and keeps the rest', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('{"tank/fresh":"Droplet","tank/grey":3,"tank/black":null}')
+    await waitFor(() => expect(result.current.entityIcons).toEqual({ 'tank/fresh': 'Droplet' }))
+  })
+
+  it.each([
+    ['an empty payload (cleared)', ''],
+    ['an array', '["Park"]'],
+    ['a string', '"Park"'],
+    ['bare text', 'Park'],
+    ['null', 'null'],
+  ])('reads %s as no icons, replacing an earlier map', async (_, payload) => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('{"tank/fresh":"Droplet"}')
+    await waitFor(() => expect(result.current.entityIcons).toEqual({ 'tank/fresh': 'Droplet' }))
+    send(payload)
+    await waitFor(() => expect(result.current.entityIcons).toEqual({}))
+  })
+})
+
 describe('useRenewvanBus hub status', () => {
   beforeEach(() => {
     messageHandlers.length = 0

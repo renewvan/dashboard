@@ -34,9 +34,14 @@ async function openTemperature(
   overrides: Partial<SettingsContextValue> = {},
   /** Which sensor's card to open Details on, in the order the list shows them. */
   card = 0,
+  /** The shared entity icons on the bus. */
+  entityIcons: Record<string, string> = {},
 ) {
   const onBus = Object.keys(temperatures).length > 0 ? temperatures : { probe: {} }
-  const rendered = renderSettings(overrides, { bus: { temperatures: onBus as never } })
+  const rendered = renderSettings(overrides, {
+    bus: { temperatures: onBus as never },
+    entityIcons,
+  })
   await rendered.user.click(screen.getByRole('button', { name: /^Devices/ }))
   await rendered.user.click(screen.getByRole('button', { name: /^Temperature/ }))
   await rendered.user.click(
@@ -203,7 +208,9 @@ describe('Settings › Devices › Temperature', () => {
 
   describe('icon', () => {
     it("shows the probe's icon as picked and publishes only a change, for that sensor only", async () => {
-      const { user, value } = await openTemperature({ outdoor: { ...outdoor, icon: 'Sun' } })
+      const { user, value } = await openTemperature({ outdoor }, {}, 0, {
+        'temperature/outdoor': 'Sun',
+      })
       const group = within(screen.getByRole('group', { name: 'Outdoor' })).getByRole('radiogroup', {
         name: 'Icon',
       })
@@ -211,10 +218,14 @@ describe('Settings › Devices › Temperature', () => {
       expect(within(group).getByRole('radio', { name: 'Sun' })).toBeChecked()
 
       await user.click(within(group).getByRole('radio', { name: 'Sun' }))
-      expect(value.setTemperatureIcon).not.toHaveBeenCalled()
+      expect(value.setEntityIcon).not.toHaveBeenCalled()
 
       await user.click(within(group).getByRole('radio', { name: 'Refrigerator' }))
-      expect(value.setTemperatureIcon).toHaveBeenCalledExactlyOnceWith('outdoor', 'Refrigerator')
+      expect(value.setEntityIcon).toHaveBeenCalledExactlyOnceWith(
+        'temperature',
+        'outdoor',
+        'Refrigerator',
+      )
     })
   })
 

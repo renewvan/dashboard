@@ -4,6 +4,7 @@ import { onTestFinished, vi } from 'vite-plus/test'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import type { SettingsContextValue } from '@/components/settings/SettingsContext'
 import { SettingsPage } from '@/components/settings/SettingsPage'
+import { EntityIconsContext } from '@/hooks/useEntityIcon'
 import type { TailscaleStatus } from '@/hooks/useRenewvanBus'
 import { DEFAULT_START_LAYOUT } from '@/hooks/useStartLayout'
 import { DEFAULT_START_VIEW } from '@/hooks/useStartView'
@@ -72,6 +73,8 @@ export interface RenderSettingsOptions {
    * `overrides` set them.
    */
   bus?: Partial<RenewvanBusState>
+  /** The shared entity icons on the bus (`renewvan/hub/icons`): `<entity>/<id>` to a lucide name. */
+  entityIcons?: Record<string, string>
 }
 
 /**
@@ -82,7 +85,12 @@ export interface RenderSettingsOptions {
  */
 export function renderSettings(
   overrides: Partial<SettingsContextValue> = {},
-  { width = KIOSK_WIDTH, url = '/?page=settings', bus }: RenderSettingsOptions = {},
+  {
+    width = KIOSK_WIDTH,
+    url = '/?page=settings',
+    bus,
+    entityIcons = {},
+  }: RenderSettingsOptions = {},
 ) {
   const state: RenewvanBusState = { ...emptyRenewvanBusState, ...bus }
   // The open view lives in `?view=`: every render starts at the top list unless a `url` is given.
@@ -148,7 +156,7 @@ export function renderSettings(
     setVanField: vi.fn(),
     setTemperatureName: vi.fn(),
     setTemperatureUnit: vi.fn(),
-    setTemperatureIcon: vi.fn(),
+    setEntityIcon: vi.fn(),
     setRelay: vi.fn(),
     setRelayName: vi.fn(),
     setPrimaryBattery: vi.fn(),
@@ -157,9 +165,11 @@ export function renderSettings(
 
   const user = userEvent.setup()
   const result = render(
-    <SettingsProvider {...settingsSlices(value)}>
-      <SettingsPage />
-    </SettingsProvider>,
+    <EntityIconsContext.Provider value={entityIcons}>
+      <SettingsProvider {...settingsSlices(value)}>
+        <SettingsPage />
+      </SettingsProvider>
+    </EntityIconsContext.Provider>,
   )
   return { user, viewport, value, ...result }
 }

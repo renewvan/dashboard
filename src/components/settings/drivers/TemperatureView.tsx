@@ -3,9 +3,11 @@ import { ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { formatTemperature, sensorLabel, sortedSensorIds, titleCase } from '@/lib/temperature'
 import type { TemperatureSensor, TemperatureUnit } from '@/types'
 import { instanceKey } from '@/lib/instances'
-import { TEMPERATURE_ICON_NAMES, TEMPERATURE_ICONS } from '@/lib/temperatureIcons'
+import { useEntityIcon } from '@/hooks/useEntityIcon'
+import { TEMPERATURE_ICON_NAMES } from '@/lib/entityIcons'
 import { EntityCard } from '../shared/EntityCard'
 import { temperatureRowSummary } from './entitySummary'
+import { IconPicker } from '../shared/IconPicker'
 import { NameField } from '../shared/NameField'
 import { useSettingsData, useSettingsActions } from '../SettingsContext'
 
@@ -24,7 +26,8 @@ export function TemperatureDetails({ id }: { id: string }) {
 }
 
 function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSensor> }) {
-  const { setTemperatureName, setTemperatureUnit, setTemperatureIcon } = useSettingsActions()
+  const { setTemperatureName, setTemperatureUnit, setEntityIcon } = useSettingsActions()
+  const icon = useEntityIcon('temperature', id)
   const sourceId = useId()
 
   return (
@@ -69,37 +72,12 @@ function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSe
           ))}
         </ToggleButtonGroup>
       </div>
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-muted pt-2 text-xs">Icon</span>
-        <ToggleButtonGroup
-          aria-label="Icon"
-          selectionMode="single"
-          disallowEmptySelection
-          isDisabled={sensor.name === undefined}
-          selectedKeys={
-            new Set(
-              sensor.icon !== undefined && sensor.icon in TEMPERATURE_ICONS ? [sensor.icon] : [],
-            )
-          }
-          onSelectionChange={(keys) => {
-            const key = [...keys][0]
-            if (key === undefined) return
-            const next = String(key)
-            // HeroUI re-fires the selection on a re-tap of the selected item.
-            if (next in TEMPERATURE_ICONS && next !== sensor.icon) setTemperatureIcon(id, next)
-          }}
-          className="flex-wrap justify-end"
-        >
-          {TEMPERATURE_ICON_NAMES.map((name) => {
-            const Icon = TEMPERATURE_ICONS[name]
-            return (
-              <ToggleButton key={name} id={name} isIconOnly aria-label={name}>
-                <Icon aria-hidden="true" className="size-4" />
-              </ToggleButton>
-            )
-          })}
-        </ToggleButtonGroup>
-      </div>
+      <IconPicker
+        names={TEMPERATURE_ICON_NAMES}
+        value={icon}
+        isDisabled={sensor.name === undefined}
+        onChange={(next) => setEntityIcon('temperature', id, next)}
+      />
     </div>
   )
 }

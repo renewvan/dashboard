@@ -313,7 +313,7 @@ export const SettingsPage = memo(function SettingsPage() {
       case 'tanks':
         return <TanksView onOpen={openTank} />
       case 'tank':
-        return <TankSettingsView />
+        return tankParam === null ? null : <TankSettingsView id={tankParam} />
       case 'temperature':
         return <TemperatureView onOpen={openInstance} />
       case 'gps':

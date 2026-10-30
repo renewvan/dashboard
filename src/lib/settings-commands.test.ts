@@ -89,14 +89,21 @@ describe('settingsCommands', () => {
     )
   })
 
-  it("publishes a sensor icon as a quoted JSON string on that sensor's topic", () => {
+  it('publishes an entity icon as a key and a name on the hub icons topic', () => {
     const { publish, commands } = setup()
 
-    commands.setTemperatureIcon('outdoor', 'Refrigerator')
+    commands.setEntityIcon('temperature', 'outdoor', 'Park')
+    commands.setEntityIcon('tank', 'fresh', 'Droplet')
 
-    expect(publish).toHaveBeenCalledExactlyOnceWith(
-      'renewvan/temperature/outdoor/icon/set',
-      '"Refrigerator"',
+    expect(publish).toHaveBeenNthCalledWith(
+      1,
+      'renewvan/hub/icons/set',
+      '{"key":"temperature/outdoor","icon":"Park"}',
+    )
+    expect(publish).toHaveBeenNthCalledWith(
+      2,
+      'renewvan/hub/icons/set',
+      '{"key":"tank/fresh","icon":"Droplet"}',
     )
   })
 

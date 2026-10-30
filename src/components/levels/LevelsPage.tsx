@@ -1,7 +1,9 @@
-import { useId, useState } from 'react'
+import { createElement, useId, useState } from 'react'
 import { Card } from '@heroui/react'
 import { Thermometer as ThermometerIcon } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-media-query'
+import { useEntityIcon } from '@/hooks/useEntityIcon'
+import { entityIcon } from '@/lib/entityIcons'
 import { cn } from '@/lib/utils'
 import { sensorLabel, sortedSensorIds, temperatureReading } from '@/lib/temperature'
 import { TanksPage, type TanksPageProps } from '@/components/tanks/TanksPage'
@@ -54,6 +56,14 @@ function toViews(sensors: Record<string, TemperatureSensor>): SensorView[] {
       band: band(c),
       status: s.status,
     }
+  })
+}
+
+/** The icon picked for the probe in Settings, else the thermometer. */
+function SensorIcon({ id }: { id: string }) {
+  return createElement(entityIcon(useEntityIcon('temperature', id)) ?? ThermometerIcon, {
+    'aria-hidden': true,
+    className: 'text-muted size-4 shrink-0',
   })
 }
 
@@ -180,7 +190,7 @@ function ThermometerCard({ v, onOpen }: { v: SensorView; onOpen?: (id: string) =
       <OpenSensor v={v} onOpen={onOpen} />
       <Card.Header className="flex-row! items-center justify-between gap-2 px-5 py-3">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-          <ThermometerIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
+          <SensorIcon id={v.id} />
           <span className="truncate">{v.name}</span>
         </div>
         <Chip b={v.band} />
@@ -208,7 +218,7 @@ function ScaleRow({ v, onOpen }: { v: SensorView; onOpen?: (id: string) => void 
       <OpenSensor v={v} onOpen={onOpen} />
       <Card.Header className="flex-row! items-center justify-between gap-2 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-          <ThermometerIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
+          <SensorIcon id={v.id} />
           <span className="truncate">{v.name}</span>
         </div>
         <Chip b={v.band} />

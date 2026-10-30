@@ -335,8 +335,6 @@ export interface TemperatureSensor {
   serial?: string
   temperature_c?: number
   status: TemperatureStatus
-  /** Lucide component name the probe asks to be drawn with (`Refrigerator`); see lib/temperatureIcons.ts. */
-  icon?: string
 }
 
 export type TiltStatus = 'ok' | 'sensor_error'

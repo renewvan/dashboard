@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vite-plus/test'
 import type { Tank } from '@/types'
 import { TankCard } from './TankCard'
 import { TankRow } from './TankRow'
+import { EntityIconsContext } from '@/hooks/useEntityIcon'
 import { FLUID_ICONS } from './fluidIcon'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 
@@ -53,6 +54,23 @@ describe.each(layouts)('%s', (_name, Layout) => {
     expect(icon).toHaveAttribute('aria-hidden', 'true')
     // The label stays the accessible name: the icon adds nothing a screen reader would read twice.
     expect(container.querySelectorAll('svg[role="img"]')).toHaveLength(0)
+  })
+
+  it("draws the icon picked for the tank, else its fluid's, and ignores a name it does not know", () => {
+    const withIcons = (icons: Record<string, string>) => (
+      <EntityIconsContext.Provider value={icons}>
+        <Layout id="t" tank={tank()} now={NOW} onConfigure={vi.fn()} />
+      </EntityIconsContext.Provider>
+    )
+    const { container, rerender } = render(withIcons({ 'tank/t': 'Fuel' }))
+    expect(container.querySelector('.lucide-fuel')).not.toBeNull()
+    expect(container.querySelector('.lucide-droplet')).toBeNull()
+
+    rerender(withIcons({ 'tank/t': 'NotAnIcon' }))
+    expect(container.querySelector('.lucide-droplet')).not.toBeNull()
+
+    rerender(withIcons({ 'tank/other': 'Fuel' }))
+    expect(container.querySelector('.lucide-droplet')).not.toBeNull()
   })
 
   it('gives each fluid its own icon, so a fresh and a grey card are told apart at a glance', () => {

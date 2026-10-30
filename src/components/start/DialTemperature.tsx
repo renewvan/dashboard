@@ -1,7 +1,8 @@
 import { createElement } from 'react'
 import { Armchair, Cpu, Park, Thermometer } from 'lucide-react'
 import { INDOOR_ID, OUTDOOR_ID, formatTemperature, sensorLabel } from '@/lib/temperature'
-import { temperatureIcon } from '@/lib/temperatureIcons'
+import { useEntityIcon } from '@/hooks/useEntityIcon'
+import { entityIcon } from '@/lib/entityIcons'
 import type { TemperatureSensor } from '@/types'
 
 /**
@@ -24,7 +25,7 @@ export function DialTemperature({
   const kind = sensorId === OUTDOOR_ID ? 'outdoor' : sensorId === INDOOR_ID ? 'indoor' : 'other'
   // The probe's own `icon` first; else the outdoor and indoor ones, and the Pi's CPU, by what they are.
   const icon = createElement(
-    temperatureIcon(sensor?.icon) ??
+    entityIcon(useEntityIcon('temperature', sensorId)) ??
       (kind === 'outdoor'
         ? Park
         : kind === 'indoor'

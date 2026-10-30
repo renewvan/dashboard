@@ -1,4 +1,5 @@
 import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
+import { iconKey, type IconEntity } from '@/lib/entityIcons'
 import type { TemperatureUnit } from '@/types'
 
 /**
@@ -16,8 +17,10 @@ const TOPIC_AUTO_SLEEP_TIMEOUT_SET = 'renewvan/kiosk/display/auto-sleep-timeout-
 
 const TOPIC_PRIMARY_BATTERY_SET = 'renewvan/hub/primary-battery/set'
 
-const temperatureSetTopic = (id: string, field: 'name' | 'unit' | 'icon') =>
+const temperatureSetTopic = (id: string, field: 'name' | 'unit') =>
   `renewvan/temperature/${id}/${field}/set`
+
+const TOPIC_ICONS_SET = 'renewvan/hub/icons/set'
 
 const relaySetTopic = (id: string, field: 'set' | 'name/set') => `renewvan/relay/${id}/${field}`
 
@@ -29,8 +32,11 @@ export interface SettingsCommands {
   setAutoSleepTimeoutMinutes: (value: AutoSleepTimeoutMinutes) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
-  /** A lucide component name from `lib/temperatureIcons.ts`. */
-  setTemperatureIcon: (id: string, icon: string) => void
+  /**
+   * Picks the icon every client draws an instance with: a lucide component name from
+   * `lib/entityIcons.ts`. The hub plugin owns the shared map (hub ADR 0023).
+   */
+  setEntityIcon: (entity: IconEntity, id: string, icon: string) => void
   /** Sends the TARGET state, never a toggle: a toggle is not idempotent (hub ADR 0013). */
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
@@ -50,8 +56,8 @@ export function settingsCommands(publish: Publish): SettingsCommands {
       publish(temperatureSetTopic(id, 'name'), JSON.stringify(name)),
     setTemperatureUnit: (id, unit) =>
       publish(temperatureSetTopic(id, 'unit'), JSON.stringify(unit)),
-    setTemperatureIcon: (id, icon) =>
-      publish(temperatureSetTopic(id, 'icon'), JSON.stringify(icon)),
+    setEntityIcon: (entity, id, icon) =>
+      publish(TOPIC_ICONS_SET, JSON.stringify({ key: iconKey(entity, id), icon })),
     setRelay: (id, on) => publish(relaySetTopic(id, 'set'), JSON.stringify(on)),
     setRelayName: (id, name) => publish(relaySetTopic(id, 'name/set'), JSON.stringify(name)),
     setPrimaryBattery: (value) => publish(TOPIC_PRIMARY_BATTERY_SET, JSON.stringify(value)),

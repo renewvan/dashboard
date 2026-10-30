@@ -105,6 +105,14 @@ export function tankDial(tank: Tank, now: Date): DialView {
   }
 }
 
+/** The bus id of the first complete tank of a fluid type, in the same order `tankDialOf` picks. */
+export function tankIdOf(
+  tanks: Record<string, Partial<Tank>>,
+  fluid: Tank['fluid_type'],
+): string | undefined {
+  return Object.entries(tanks).find(([, t]) => isCompleteTank(t) && t.fluid_type === fluid)?.[0]
+}
+
 /** The first complete tank of a fluid type; ids are arbitrary, the fluid is what the page asks for. */
 export function tankDialOf(
   tanks: Record<string, Partial<Tank>>,

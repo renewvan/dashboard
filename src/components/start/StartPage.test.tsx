@@ -9,6 +9,7 @@ import type { StartWidgetId } from '@/hooks/useStartLayout'
 import type { StartTiles } from '@/hooks/useStartTiles'
 import type { StartView } from '@/hooks/useStartView'
 import { DEFAULT_START_POWER_SOURCES, type StartPowerSources } from '@/hooks/useStartPowerSources'
+import { EntityIconsContext } from '@/hooks/useEntityIcon'
 import { StartPage } from './StartPage'
 
 // `findBy` for the lazy Map chunk: importing it can take longer than the default 1 s under load.
@@ -89,29 +90,32 @@ function renderAt(
     view?: StartView
     tiles?: StartTiles
     onOpenInstance?: (key: string) => void
+    entityIcons?: Record<string, string>
   },
 ) {
   viewport = stubMatchMedia(width)
   return render(
-    <StartPage
-      tanks={props.tanks ?? {}}
-      batteries={props.batteries ?? {}}
-      primaryBatterySelection={props.primaryBatterySelection}
-      solar={props.solar ?? {}}
-      chargers={props.chargers ?? {}}
-      temperatures={props.temperatures ?? {}}
-      gps={props.gps ?? {}}
-      tilt={props.tilt ?? {}}
-      powerSources={props.powerSources ?? DEFAULT_START_POWER_SOURCES}
-      powerLayout={props.powerLayout ?? 'tiles'}
-      isDark
-      mapIsDark={props.mapIsDark ?? true}
-      layout={props.layout}
-      view={props.view}
-      tiles={props.tiles}
-      onConfigureTank={onConfigureTank}
-      onOpenInstance={props.onOpenInstance}
-    />,
+    <EntityIconsContext.Provider value={props.entityIcons ?? {}}>
+      <StartPage
+        tanks={props.tanks ?? {}}
+        batteries={props.batteries ?? {}}
+        primaryBatterySelection={props.primaryBatterySelection}
+        solar={props.solar ?? {}}
+        chargers={props.chargers ?? {}}
+        temperatures={props.temperatures ?? {}}
+        gps={props.gps ?? {}}
+        tilt={props.tilt ?? {}}
+        powerSources={props.powerSources ?? DEFAULT_START_POWER_SOURCES}
+        powerLayout={props.powerLayout ?? 'tiles'}
+        isDark
+        mapIsDark={props.mapIsDark ?? true}
+        layout={props.layout}
+        view={props.view}
+        tiles={props.tiles}
+        onConfigureTank={onConfigureTank}
+        onOpenInstance={props.onOpenInstance}
+      />
+    </EntityIconsContext.Provider>,
   )
 }
 
@@ -871,12 +875,10 @@ describe('StartPage kiosk dial', () => {
       expect(screen.getByTestId('temp-outdoor')).not.toHaveTextContent('99')
     })
 
-    it('draws the icon the probe names, else one by what the probe is', () => {
+    it('draws the icon picked for the probe, else one by what the probe is', () => {
       renderAt(KIOSK_WIDTH, {
-        temperatures: {
-          outdoor: probe({ icon: 'Refrigerator' }),
-          indoor: probe(),
-        },
+        temperatures: { outdoor: probe(), indoor: probe() },
+        entityIcons: { 'temperature/outdoor': 'Refrigerator' },
       })
 
       expect(screen.getByTestId('temp-outdoor').querySelector('.lucide-refrigerator')).toBeTruthy()
@@ -891,9 +893,10 @@ describe('StartPage kiosk dial', () => {
           temperatures: { left: 'outdoor', right: 'raspicpu' },
         },
         temperatures: {
-          outdoor: probe({ icon: 'NotAnIcon' }),
+          outdoor: probe(),
           raspicpu: probe({ source: 'cpu' }),
         },
+        entityIcons: { 'temperature/outdoor': 'NotAnIcon' },
       })
 
       expect(screen.getByTestId('temp-other').querySelector('.lucide-cpu')).toBeTruthy()

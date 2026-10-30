@@ -10,6 +10,7 @@ import type {
 import type { NavbarPosition } from '@/hooks/useNavbarPosition'
 import type { Theme } from '@/hooks/useTheme'
 import type { BrokerLink } from '@/lib/brokerLink'
+import type { IconEntity } from '@/lib/entityIcons'
 import type { HubAddress } from '@/lib/hubAddress'
 import type { StartPowerSources } from '@/hooks/useStartPowerSources'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
@@ -116,7 +117,7 @@ export interface SettingsActions {
   setVanField: (field: keyof Van, value: string) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
-  setTemperatureIcon: (id: string, icon: string) => void
+  setEntityIcon: (entity: IconEntity, id: string, icon: string) => void
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
   setPrimaryBattery: (value: string) => void
