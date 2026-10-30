@@ -68,7 +68,7 @@ const KIOSK_WIDTH = 800
 const PHONE_WIDTH = 390
 const JUST_BELOW_KIOSK_WIDTH = 799
 
-const NAV_LABELS = ['Start', 'Power', 'Levels', 'Map', 'Relays', 'Heater', 'Settings']
+const NAV_LABELS = ['Start', 'Power', 'Tanks', 'Temperature', 'Map', 'Relays', 'Heater', 'Settings']
 
 const HEADER_HEIGHT_VAR = '--app-header-height'
 
@@ -286,10 +286,10 @@ describe('App shell navigation layout', () => {
           .getAllByRole('button')
           .map((button) => button.getAttribute('aria-label'))
       expect(groupRows('Profile')).toEqual(['My Account', 'My Van', 'Widgets'])
-      expect(groupRows('System')).toEqual(['Automations', 'Scenes'])
+      expect(groupRows('System')).toEqual(['Automations', 'Scenes', 'Settings'])
     })
 
-    it('pins Settings and then the Connection, Theme and Sleep row to the bottom, in that order', async () => {
+    it('pins the Connection, Theme and Sleep row to the bottom, after the System group', async () => {
       const user = userEvent.setup()
       await renderAt(PHONE_WIDTH)
       const drawer = await openDrawer(user)
@@ -297,7 +297,6 @@ describe('App shell navigation layout', () => {
       // Document order is the visual order: a flex row and a column both follow the source.
       const order = [
         drawer.getByRole('region', { name: 'System' }),
-        drawer.getByRole('button', { name: 'Settings' }),
         drawer.getByTestId('uplink-status-button'),
         drawer.getByRole('button', { name: /^Switch to (light|dark) theme$/ }),
         drawer.getByTestId('display-sleep-button'),
@@ -305,12 +304,10 @@ describe('App shell navigation layout', () => {
       order.slice(1).forEach((el, i) => {
         expect(order[i].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
       })
-      // Settings is a footer row, not in a group; the three icon buttons share one row.
-      expect(drawer.getByRole('region', { name: 'Profile' })).not.toContainElement(order[1])
-      const row = order[2].parentElement
+      // The three icon buttons share one row.
+      const row = order[1].parentElement
+      expect(row).toContainElement(order[2])
       expect(row).toContainElement(order[3])
-      expect(row).toContainElement(order[4])
-      expect(row).not.toContainElement(order[1])
       expect(drawer.queryByRole('button', { name: /^Alerts/ })).not.toBeInTheDocument()
     })
 
@@ -722,13 +719,13 @@ const FRESH_TANK = {
   volume_since_empty_l: 0,
 }
 
-describe('App shell Levels page', () => {
+describe('App shell Tanks page', () => {
   it('shows a card per reported tank at the kiosk width, with the scale', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await receiveTank('fresh', FRESH_TANK)
     await receiveTank('grey', { ...FRESH_TANK, fluid_type: 'grey_water', level_pct: 41 })
-    await user.click(screen.getByRole('tab', { name: 'Levels' }))
+    await user.click(screen.getByRole('tab', { name: 'Tanks' }))
     expect(screen.getByText('Fresh water')).toBeInTheDocument()
     expect(screen.getByText('Grey water')).toBeInTheDocument()
     expect(screen.getAllByTestId('tank-scale')).toHaveLength(2)
@@ -738,7 +735,7 @@ describe('App shell Levels page', () => {
     const user = userEvent.setup()
     await renderAt(JUST_BELOW_KIOSK_WIDTH)
     await receiveTank('fresh', FRESH_TANK)
-    await user.click(screen.getByRole('tab', { name: 'Levels' }))
+    await user.click(screen.getByRole('tab', { name: 'Tanks' }))
     expect(screen.getByText('Fresh water')).toBeInTheDocument()
     expect(screen.queryByTestId('tank-scale')).not.toBeInTheDocument()
   })
@@ -756,13 +753,13 @@ describe('App shell Levels page', () => {
     ['kiosk', KIOSK_WIDTH],
     ['phone', PHONE_WIDTH],
   ])(
-    'opens the tank settings from the card, and Back returns to Levels (%s)',
+    'opens the tank settings from the card, and Back returns to Tanks (%s)',
     async (_name, width) => {
       const user = userEvent.setup()
       await renderAt(width)
       await receiveTank('fresh', FRESH_TANK)
       await receiveTank('grey', { ...FRESH_TANK, fluid_type: 'grey_water', level_pct: 41 })
-      await user.click(screen.getByRole('tab', { name: 'Levels' }))
+      await user.click(screen.getByRole('tab', { name: 'Tanks' }))
 
       await user.click(screen.getByRole('button', { name: 'Grey water settings' }))
 
@@ -772,7 +769,7 @@ describe('App shell Levels page', () => {
       expect(window.location.search).toBe('?page=settings&view=tank&tank=grey')
 
       act(() => window.history.back())
-      await waitFor(() => expect(selectedPage()).toHaveAccessibleName('Levels'))
+      await waitFor(() => expect(selectedPage()).toHaveAccessibleName('Tanks'))
       expect(screen.getByText('Grey water')).toBeInTheDocument()
     },
   )
@@ -1607,7 +1604,7 @@ describe('App shell Relays page', () => {
 })
 
 describe('App shell entity icons', () => {
-  it('publishes a picked icon to the hub, and draws the map the hub sends back on Levels', async () => {
+  it('publishes a picked icon to the hub, and draws the map the hub sends back on Tanks', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=settings&view=tank&tank=fresh')
     await receiveTank('fresh', FRESH_TANK)
@@ -1629,7 +1626,7 @@ describe('App shell entity icons', () => {
     )
 
     // Nothing changes until the hub plugin answers with the retained map.
-    await user.click(screen.getByRole('tab', { name: 'Levels' }))
+    await user.click(screen.getByRole('tab', { name: 'Tanks' }))
     expect(document.querySelector('.lucide-fuel')).toBeNull()
 
     await receive(
@@ -1638,7 +1635,7 @@ describe('App shell entity icons', () => {
     )
     expect(document.querySelector('.lucide-fuel')).not.toBeNull()
 
-    await user.click(screen.getByRole('button', { name: 'Temperature' }))
+    await user.click(screen.getByRole('tab', { name: 'Temperature' }))
     expect(document.querySelector('.lucide-refrigerator')).not.toBeNull()
   })
 })

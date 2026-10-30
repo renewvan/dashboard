@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { ChartColumnStacked, Gauge, Heater, Map, Settings, ToggleLeft, Zap } from 'lucide-react'
+import { Droplet, Gauge, Heater, Map, Settings, Thermometer, ToggleLeft, Zap } from 'lucide-react'
 import { Separator, Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
 import lockupDark from '../assets/logo/svg/renewvan-lockup-dark.svg'
@@ -19,7 +19,8 @@ import { AlertsPage } from '@/components/alerts/AlertsPage'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import type { SettingsSubView } from '@/components/settings/views'
-import { LevelsPage } from '@/components/levels/LevelsPage'
+import { TanksPage } from '@/components/tanks/TanksPage'
+import { TemperaturePage } from '@/components/temperature/TemperaturePage'
 import { RelaysPage } from '@/components/relays/RelaysPage'
 import { StartPage } from '@/components/start/StartPage'
 import { PowerPage } from '@/components/power/PowerPage'
@@ -69,7 +70,8 @@ const NO_TILT: RenewvanBusState['tilt'] = {}
 const NAV_ITEMS: NavItem[] = [
   { id: 'start', label: 'Start', icon: <Gauge className="size-5" /> },
   { id: 'power', label: 'Power', icon: <Zap className="size-5" /> },
-  { id: 'tanks', label: 'Levels', icon: <ChartColumnStacked className="size-5" /> },
+  { id: 'tanks', label: 'Tanks', icon: <Droplet className="size-5" /> },
+  { id: 'temperature', label: 'Temperature', icon: <Thermometer className="size-5" /> },
   { id: 'map', label: 'Map', icon: <Map className="size-5" /> },
   { id: 'switches', label: 'Relays', icon: <ToggleLeft className="size-5" /> },
   { id: 'heater', label: 'Heater', icon: <Heater className="size-5" /> },
@@ -233,6 +235,8 @@ function App() {
   const menuControls = (close: () => void) => (
     <DrawerMenuControls
       close={close}
+      activePage={activePage}
+      onGoToPage={goToPage}
       onOpenVan={() => openSettings('van')}
       onOpenWidgets={() => openSettings('widgets')}
     />
@@ -241,8 +245,6 @@ function App() {
   const menuFooter = (close: () => void) => (
     <DrawerMenuFooter
       close={close}
-      activePage={activePage}
-      onGoToPage={goToPage}
       uplink={uplinkProps}
       theme={theme}
       onThemeChange={setTheme}
@@ -345,11 +347,11 @@ function App() {
           />
         )
       case 'tanks':
+        return <TanksPage tanks={state.tanks} onConfigure={openTankSettings} />
+      case 'temperature':
         return (
-          <LevelsPage
-            tanks={state.tanks}
+          <TemperaturePage
             temperatures={state.temperatures}
-            onConfigure={openTankSettings}
             onOpenTemperature={(id) => openInstanceSettings(instanceKey('temperature', id))}
           />
         )
