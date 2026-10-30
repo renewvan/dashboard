@@ -31,7 +31,12 @@ import { DriverView } from './drivers/DriverView'
 import { DriversView } from './drivers/DriversView'
 import { START_WIDGETS } from '@/components/start/widgets/registry'
 import { START_WIDGET_IDS, type StartWidgetId } from '@/hooks/useStartLayout'
-import { StartPageView } from './general/preferences/StartPageView'
+import {
+  PowerReadingsView,
+  RingsView,
+  StartPageView,
+  TemperaturesView,
+} from './general/preferences/StartPageView'
 import { WidgetsView } from './general/preferences/WidgetsView'
 import { WidgetView } from './general/preferences/WidgetView'
 import { PowerPageView } from './general/preferences/PowerPageView'
@@ -77,6 +82,9 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   widgets: { title: 'Widgets', parent: 'display' },
   widget: { title: 'Widget', parent: 'widgets' },
   'start-page': { title: 'Start page', parent: 'display' },
+  'start-power-readings': { title: 'Power readings', parent: 'start-page' },
+  'start-rings': { title: 'Centre & rings', parent: 'start-page' },
+  'start-temperatures': { title: 'Temperatures', parent: 'start-page' },
   'power-page': { title: 'Power page', parent: 'display' },
   'map-page': { title: 'Map page', parent: 'display' },
   connectivity: { title: 'Connectivity', parent: 'list' },
@@ -372,7 +380,19 @@ export const SettingsPage = memo(function SettingsPage() {
             onTilesChange={setStartTiles}
             onOpen={setView}
             sources={startPowerSources}
+            temperatures={temperatures}
+          />
+        )
+      case 'start-power-readings':
+        return <PowerReadingsView sources={startPowerSources} onChange={setStartPowerSources} />
+      case 'start-rings':
+        return <RingsView sources={startPowerSources} onChange={setStartPowerSources} />
+      case 'start-temperatures':
+        return (
+          <TemperaturesView
+            sources={startPowerSources}
             onChange={setStartPowerSources}
+            temperatures={temperatures}
           />
         )
       case 'power-page':

@@ -3,6 +3,8 @@ import { Button, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { FLUID_LABELS } from '@/lib/tank-labels'
 import { Card, ChoiceRow } from '../../shared/ChoiceRow'
 import { GroupRow } from '../../shared/GroupRow'
+import { sensorLabel, sortedSensorIds } from '@/lib/temperature'
+import type { TemperatureSensor } from '@/types'
 import type { SettingsSubView } from '../../views'
 import { START_TILES } from '@/components/start/widgets/registry'
 import type { StartWidgetId } from '@/hooks/useStartLayout'
@@ -29,6 +31,7 @@ import {
   type RingUnit,
   type StartCentre,
   type StartPowerSources,
+  type StartTemperatures,
 } from '@/hooks/useStartPowerSources'
 
 /** A scale step: 10% of the range would be 2 kW, far too coarse for a van's 400 W array. */
@@ -188,11 +191,11 @@ interface StartPageViewProps {
   view: StartView
   onViewChange: (view: StartView) => void
   sources: StartPowerSources
-  onChange: (sources: StartPowerSources) => void
-  /** The widgets on the Start page, in order: the Masonry's tiles (Energy is two). */
+  /** The widgets on the Start page, in order: the Grid's tiles (Energy is two). */
   layout: readonly StartWidgetId[]
   tiles: StartTiles
   onTilesChange: (tiles: StartTiles) => void
+  temperatures: Record<string, Partial<TemperatureSensor>>
   onOpen: (view: SettingsSubView) => void
 }
 
@@ -201,10 +204,32 @@ interface CockpitSettingsProps {
   onChange: (sources: StartPowerSources) => void
 }
 
-/** The Cockpit's own settings: what the Dial's centre, half-moons and rings read. */
-function CockpitSettings({ sources, onChange }: CockpitSettingsProps) {
+/** The Cockpit's power readings: where each half-moon band reads from and what fills it. */
+export function PowerReadingsView({ sources, onChange }: CockpitSettingsProps) {
   return (
-    <>
+    <div className="flex flex-col gap-2">
+      {SLOTS.map(({ key, label, hint }) => (
+        <SlotCard
+          key={key}
+          label={label}
+          hint={hint}
+          slot={sources[key]}
+          onChange={(slot) => onChange({ ...sources, [key]: slot })}
+        />
+      ))}
+      <p className="text-muted px-1 text-xs">
+        Load is the battery&apos;s power going out. The left-bottom reading shows the alternator, or
+        the shore charger when there is none, and is hidden while neither is connected. Full band is
+        the wattage that fills a reading&apos;s arc.
+      </p>
+    </div>
+  )
+}
+
+/** The Cockpit's centre of the rings, and what each of the three rings and their unit read. */
+export function RingsView({ sources, onChange }: CockpitSettingsProps) {
+  return (
+    <div className="flex flex-col gap-2">
       <h2 className="px-1 text-sm font-medium">Centre</h2>
       <Card>
         <ChoiceRow
@@ -219,21 +244,6 @@ function CockpitSettings({ sources, onChange }: CockpitSettingsProps) {
         battery readout while there is no reading. Van draws the van filling as the battery charges.
         Battery readout shows the charge as a number, and the battery is then left out of the list
         under the rings.
-      </p>
-      <h2 className="mt-2 px-1 text-sm font-medium">Power Readings</h2>
-      {SLOTS.map(({ key, label, hint }) => (
-        <SlotCard
-          key={key}
-          label={label}
-          hint={hint}
-          slot={sources[key]}
-          onChange={(slot) => onChange({ ...sources, [key]: slot })}
-        />
-      ))}
-      <p className="text-muted px-1 text-xs">
-        Load is the battery&apos;s power going out. The left-bottom reading shows the alternator, or
-        the shore charger when there is none, and is hidden while neither is connected. Full band is
-        the wattage that fills a reading&apos;s arc.
       </p>
       <h2 className="mt-2 px-1 text-sm font-medium">Level Rings</h2>
       <Card>
@@ -259,8 +269,59 @@ function CockpitSettings({ sources, onChange }: CockpitSettingsProps) {
           }}
         />
       ))}
-    </>
+    </div>
   )
+}
+
+interface TemperaturesViewProps extends CockpitSettingsProps {
+  temperatures: Record<string, Partial<TemperatureSensor>>
+}
+
+const TEMPERATURE_SIDES: { side: keyof StartTemperatures; label: string }[] = [
+  { side: 'left', label: 'Left' },
+  { side: 'right', label: 'Right' },
+]
+
+/** Which temperature probe floats over each side of the Cockpit. */
+export function TemperaturesView({ sources, onChange, temperatures }: TemperaturesViewProps) {
+  const reported = sortedSensorIds(temperatures)
+  return (
+    <div className="flex flex-col gap-2">
+      {TEMPERATURE_SIDES.map(({ side, label }) => {
+        const picked = sources.temperatures[side]
+        // A pick whose probe is not on the bus (yet) stays selectable, so the setting never hides.
+        const ids = reported.includes(picked) ? reported : [...reported, picked]
+        const choices = ids.map((id) => ({
+          value: id,
+          label: temperatures[id] ? sensorLabel(id, temperatures[id]) : id,
+        }))
+        return (
+          <Card key={side}>
+            <ChoiceRow
+              label={`${label} sensor`}
+              choices={choices}
+              value={picked}
+              onChange={(id) =>
+                onChange({ ...sources, temperatures: { ...sources.temperatures, [side]: id } })
+              }
+            />
+          </Card>
+        )
+      })}
+      <p className="text-muted px-1 text-xs">
+        The probe read above the left half-moon and the one above the right. The outdoor probe is on
+        the left and the indoor one on the right until changed.
+      </p>
+    </div>
+  )
+}
+
+/** The one-line summary of a probe pick for its group row. */
+function sensorSummary(
+  id: string,
+  temperatures: Record<string, Partial<TemperatureSensor>>,
+): string {
+  return temperatures[id] ? sensorLabel(id, temperatures[id]) : id
 }
 
 const TILE_WIDTH_CHOICES = TILE_COLUMNS.map((cols) => ({
@@ -269,15 +330,15 @@ const TILE_WIDTH_CHOICES = TILE_COLUMNS.map((cols) => ({
 }))
 const TILE_HEIGHT_CHOICES = TILE_ROWS.map((rows) => ({ value: String(rows), label: String(rows) }))
 
-interface MasonrySettingsProps {
+interface GridSettingsProps {
   layout: readonly StartWidgetId[]
   tiles: StartTiles
   onTilesChange: (tiles: StartTiles) => void
   onOpen: (view: SettingsSubView) => void
 }
 
-/** The Masonry's own settings: the order of the widgets, and how many cells each one takes. */
-function MasonrySettings({ layout, tiles, onTilesChange, onOpen }: MasonrySettingsProps) {
+/** The Grid's own settings: the order of the widgets, and how many cells each one takes. */
+function GridSettings({ layout, tiles, onTilesChange, onOpen }: GridSettingsProps) {
   return (
     <>
       <h2 className="px-1 text-sm font-medium">Order</h2>
@@ -333,17 +394,17 @@ function MasonrySettings({ layout, tiles, onTilesChange, onOpen }: MasonrySettin
  * Settings › General › Display & Appearance › Start page: which Start view the kiosk shows, then
  * that view's own settings. Cockpit: where the half-moon readings come from and how many watts fill
  * each band (the left-bottom reading is not chosen: it follows the alternator or the shore
- * charger, whichever the bus reports, so only its band is set). Masonry: the widgets' order and
+ * charger, whichever the bus reports, so only its band is set). Grid: the widgets' order and
  * the size of each tile.
  */
 export function StartPageView({
   view,
   onViewChange,
   sources,
-  onChange,
   layout,
   tiles,
   onTilesChange,
+  temperatures,
   onOpen,
 }: StartPageViewProps) {
   return (
@@ -358,19 +419,31 @@ export function StartPageView({
         />
       </Card>
       <p className="text-muted px-1 text-xs">
-        Cockpit is the Dial: power readings round three level rings. Masonry lays the Start-page
+        Cockpit is the Dial: power readings round three level rings. Grid lays the Start-page
         widgets out on a grid, the Map, Power and Battery larger than the rest. A phone always shows
         its widgets in a stack.
       </p>
       {view === 'cockpit' ? (
-        <CockpitSettings sources={sources} onChange={onChange} />
+        <>
+          <h2 className="mt-2 px-1 text-sm font-medium">Cockpit</h2>
+          <GroupRow
+            label="Power readings"
+            description="Sources and bands of the half-moons"
+            onOpen={() => onOpen('start-power-readings')}
+          />
+          <GroupRow
+            label="Centre & rings"
+            description={`${CENTRE_CHOICES.find((c) => c.value === sources.centre)?.label ?? ''} in the centre`}
+            onOpen={() => onOpen('start-rings')}
+          />
+          <GroupRow
+            label="Temperatures"
+            description={`${sensorSummary(sources.temperatures.left, temperatures)} and ${sensorSummary(sources.temperatures.right, temperatures)}`}
+            onOpen={() => onOpen('start-temperatures')}
+          />
+        </>
       ) : (
-        <MasonrySettings
-          layout={layout}
-          tiles={tiles}
-          onTilesChange={onTilesChange}
-          onOpen={onOpen}
-        />
+        <GridSettings layout={layout} tiles={tiles} onTilesChange={onTilesChange} onOpen={onOpen} />
       )}
     </div>
   )

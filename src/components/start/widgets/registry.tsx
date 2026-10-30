@@ -45,7 +45,7 @@ export const START_WIDGETS: Record<StartWidgetId, StartWidgetDefinition> = {
 }
 
 /**
- * What the kiosk's Masonry grid draws, by tile. The same components as `START_WIDGETS`, except
+ * What the kiosk's Grid draws, by tile. The same components as `START_WIDGETS`, except
  * that Energy (a carousel on a phone) is two tiles, Power and Battery, each a card of its own.
  */
 export const START_TILES: Record<

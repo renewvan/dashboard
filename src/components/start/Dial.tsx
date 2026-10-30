@@ -20,7 +20,6 @@ import {
 import { VanArt } from '@/components/power/VanArt'
 import { charging } from '@/lib/charging'
 import { primaryBattery } from '@/lib/primaryBattery'
-import { INDOOR_ID, OUTDOOR_ID } from '@/lib/temperature'
 import {
   type Battery as BatteryRecord,
   type Charger,
@@ -44,7 +43,7 @@ export interface DialProps {
   solar: Record<string, Partial<Solar>>
   chargers: Record<string, Partial<Charger>>
   tilt: Record<string, Partial<Tilt>>
-  /** Probes by id; `outdoor` and `indoor` (lib/temperature.ts) are shown above the half-moons. */
+  /** Probes by id; the two `powerSources.temperatures` picks are shown above the half-moons. */
   temperatures: Record<string, Partial<TemperatureSensor>>
   powerSources: StartPowerSources
   /** Glow behind the ring fill: dark theme only. */
@@ -126,8 +125,8 @@ function DialBmsAlert({
  * concentric rings (each the battery or a kind of tank, as configured) in the middle, and a
  * half-moon of the outgoing power on the right. The middle of the rings is the van drawn as the
  * battery gauge when that is chosen; otherwise it shows the van's tilt while it has a usable
- * reading and the battery otherwise. The outdoor temperature floats above the left
- * half-moon and the indoor one above the right.
+ * reading and the battery otherwise. A temperature probe (the outdoor one by default)
+ * floats above the left half-moon and another (the indoor one) above the right.
  */
 export function Dial({
   tanks,
@@ -184,7 +183,11 @@ export function Dial({
       <DialBmsAlert flow={flow} onOpenInstance={onOpenInstance} />
       <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center">
         <div className="relative">
-          <DialTemperature kind="outdoor" sensor={temperatures[OUTDOOR_ID]} side="left" />
+          <DialTemperature
+            sensorId={powerSources.temperatures.left}
+            sensor={temperatures[powerSources.temperatures.left]}
+            side="left"
+          />
           <HalfMoon
             side="left"
             readings={[
@@ -221,7 +224,11 @@ export function Dial({
           />
         </div>
         <div className="relative">
-          <DialTemperature kind="indoor" sensor={temperatures[INDOOR_ID]} side="right" />
+          <DialTemperature
+            sensorId={powerSources.temperatures.right}
+            sensor={temperatures[powerSources.temperatures.right]}
+            side="right"
+          />
           <HalfMoon side="right" readings={[powerReading(powerSources.right, live)]} />
         </div>
       </div>

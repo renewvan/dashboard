@@ -17,8 +17,16 @@ describe('parseStartPowerSources', () => {
       rings: ['fuel', 'battery', 'black_water'],
       ringUnit: 'litres',
       centre: 'van',
+      temperatures: { left: 'fridge', right: 'cabin' },
     }
     expect(parseStartPowerSources(JSON.stringify(stored))).toEqual(stored)
+  })
+
+  it('keeps the default probes when an older save has none, or a bad one', () => {
+    const stored = { temperatures: { left: 42, right: '' } }
+    expect(parseStartPowerSources(JSON.stringify(stored)).temperatures).toEqual(
+      DEFAULT_START_POWER_SOURCES.temperatures,
+    )
   })
 
   it('falls back to the defaults for nothing stored or unparseable text', () => {
@@ -41,6 +49,7 @@ describe('parseStartPowerSources', () => {
       rings: DEFAULT_START_POWER_SOURCES.rings,
       ringUnit: DEFAULT_START_POWER_SOURCES.ringUnit,
       centre: DEFAULT_START_POWER_SOURCES.centre,
+      temperatures: DEFAULT_START_POWER_SOURCES.temperatures,
     })
   })
 

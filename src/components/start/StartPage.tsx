@@ -20,9 +20,9 @@ export interface StartPageProps extends Omit<StartWidgetProps, 'now'> {
   powerSources: StartPowerSources
   /** The phone's widgets, in order; a widget not listed is not shown. Defaults to all of them. */
   layout?: readonly StartWidgetId[]
-  /** The kiosk's Start page, the Cockpit (default) or the Masonry grid; a phone ignores it. */
+  /** The kiosk's Start page, the Cockpit (default) or the Grid; a phone ignores it. */
   view?: StartView
-  /** The Masonry's tile sizes the user changed; a widget not listed keeps its shipped size. */
+  /** The Grid's tile sizes the user changed; a widget not listed keeps its shipped size. */
   tiles?: StartTiles
 }
 
@@ -46,7 +46,7 @@ const REFRESH_MS = 30_000
  * middle. A reading or ring whose data has not arrived shows a dash or "No data yet", never a
  * number. It has no widget row: the weather has no place there and the tilt lives in the Dial.
  *
- * Kiosk, Masonry view: the widgets in `layout` on a dense four-column grid, each taking the cells
+ * Kiosk, Grid view: the widgets in `layout` on a dense four-column grid, each taking the cells
  * its tile size gives it (`tiles`, the Map, Power and Battery larger unless changed; Energy is two tiles, Power and Battery), scrolling when they do not all fit.
  *
  * Phone (below 800px, the shell's breakpoint): the widgets in `layout`, stacked and scrolling,
