@@ -26,6 +26,7 @@ import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
 import { useAlertToasts } from '@/hooks/useAlertToasts'
 import { useAlertHistory } from '@/hooks/useAlertHistory'
+import { instanceKey } from '@/lib/instances'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
@@ -347,6 +348,7 @@ function App() {
             tanks={state.tanks}
             temperatures={state.temperatures}
             onConfigure={openTankSettings}
+            onOpenTemperature={(id) => openInstanceSettings(instanceKey('temperature', id))}
           />
         )
       case 'map':

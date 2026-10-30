@@ -153,31 +153,11 @@ describe.each(layouts)('%s', (_name, Layout) => {
     expect(screen.getAllByText('Full')).toHaveLength(2)
   })
 
-  it('shows "Last refilled" with the fixed date for fresh water', () => {
-    const local = new Date(2026, 6, 14, 9, 41)
-    show(tank({ last_full_at: local.toISOString() }))
-    expect(screen.getByText(/Last refilled/)).toBeInTheDocument()
-    expect(screen.getByText('14 Jul 2026 09:41')).toBeInTheDocument()
-  })
-
-  it('shows "Last emptied" for the other tanks', () => {
-    const local = new Date(2026, 7, 3, 18, 5)
-    show(tank({ fluid_type: 'grey_water', last_empty_at: local.toISOString() }))
-    expect(screen.getByText(/Last emptied/)).toBeInTheDocument()
-    expect(screen.getByText('3 Aug 2026 18:05')).toBeInTheDocument()
-  })
-
-  it('shows a dash when the tank has never refilled or emptied', () => {
-    show(tank())
-    expect(screen.getByText(/Last refilled/)).toBeInTheDocument()
-    expect(screen.getByText('—')).toBeInTheDocument()
-  })
-
-  it("opens this tank's settings from the Configure button", async () => {
+  it("opens this tank's settings when the card is tapped", async () => {
     const onConfigure = vi.fn()
     show(tank(), onConfigure)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Configure' }))
+    await userEvent.click(screen.getByRole('button', { name: /settings$/ }))
 
     expect(onConfigure).toHaveBeenCalledExactlyOnceWith('t')
   })

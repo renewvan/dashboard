@@ -1,5 +1,5 @@
 import { tankLevelStatus, tankSeverity, type TankSeverity } from '@/lib/tank-alarm'
-import { consumptionRateLph, formatLatchDate } from '@/lib/tank-display'
+import { consumptionRateLph } from '@/lib/tank-display'
 import { FLUID_LABELS, STATUS_LABELS } from '@/lib/tank-labels'
 import type { Tank } from '@/types'
 
@@ -27,12 +27,9 @@ export interface TankView {
   isRefill: boolean
   rateLabel: 'Drain Rate' | 'Fill Rate'
   rate: string
-  footerLabel: 'Last refilled' | 'Last emptied'
-  footerDate: string
 }
 
 const NO_VALUE = '--'
-const NO_DATE = '—'
 
 export function tankView(tank: Tank, now: Date): TankView {
   const faulted = tank.status !== 'ok'
@@ -73,7 +70,5 @@ export function tankView(tank: Tank, now: Date): TankView {
     isRefill,
     rateLabel: isRefill ? 'Drain Rate' : 'Fill Rate',
     rate: rateLph !== undefined ? `${rateLph.toFixed(1)} L/h` : NO_VALUE,
-    footerLabel: isRefill ? 'Last refilled' : 'Last emptied',
-    footerDate: latchIso ? formatLatchDate(latchIso) : NO_DATE,
   }
 }

@@ -16,7 +16,7 @@ const TOPIC_AUTO_SLEEP_TIMEOUT_SET = 'renewvan/kiosk/display/auto-sleep-timeout-
 
 const TOPIC_PRIMARY_BATTERY_SET = 'renewvan/hub/primary-battery/set'
 
-const temperatureSetTopic = (id: string, field: 'name' | 'unit') =>
+const temperatureSetTopic = (id: string, field: 'name' | 'unit' | 'icon') =>
   `renewvan/temperature/${id}/${field}/set`
 
 const relaySetTopic = (id: string, field: 'set' | 'name/set') => `renewvan/relay/${id}/${field}`
@@ -29,6 +29,8 @@ export interface SettingsCommands {
   setAutoSleepTimeoutMinutes: (value: AutoSleepTimeoutMinutes) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
+  /** A lucide component name from `lib/temperatureIcons.ts`. */
+  setTemperatureIcon: (id: string, icon: string) => void
   /** Sends the TARGET state, never a toggle: a toggle is not idempotent (hub ADR 0013). */
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
@@ -48,6 +50,8 @@ export function settingsCommands(publish: Publish): SettingsCommands {
       publish(temperatureSetTopic(id, 'name'), JSON.stringify(name)),
     setTemperatureUnit: (id, unit) =>
       publish(temperatureSetTopic(id, 'unit'), JSON.stringify(unit)),
+    setTemperatureIcon: (id, icon) =>
+      publish(temperatureSetTopic(id, 'icon'), JSON.stringify(icon)),
     setRelay: (id, on) => publish(relaySetTopic(id, 'set'), JSON.stringify(on)),
     setRelayName: (id, name) => publish(relaySetTopic(id, 'name/set'), JSON.stringify(name)),
     setPrimaryBattery: (value) => publish(TOPIC_PRIMARY_BATTERY_SET, JSON.stringify(value)),

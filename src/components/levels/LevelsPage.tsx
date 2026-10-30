@@ -160,10 +160,24 @@ function ThermometerGauge({ v, id }: { v: SensorView; id: string }) {
   )
 }
 
-function ThermometerCard({ v }: { v: SensorView }) {
+/** Stretched over a card so the whole card opens the sensor's Settings page. */
+function OpenSensor({ v, onOpen }: { v: SensorView; onOpen?: (id: string) => void }) {
+  if (!onOpen) return null
+  return (
+    <button
+      type="button"
+      aria-label={`${v.name} settings`}
+      onClick={() => onOpen(v.id)}
+      className="absolute inset-0 z-10 rounded-[inherit]"
+    />
+  )
+}
+
+function ThermometerCard({ v, onOpen }: { v: SensorView; onOpen?: (id: string) => void }) {
   const id = useId().replace(/:/g, '')
   return (
-    <Card className="h-full min-h-0 gap-0! p-0!">
+    <Card className="relative h-full min-h-0 gap-0! p-0!">
+      <OpenSensor v={v} onOpen={onOpen} />
       <Card.Header className="flex-row! items-center justify-between gap-2 px-5 py-3">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <ThermometerIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
@@ -188,9 +202,10 @@ function ThermometerCard({ v }: { v: SensorView }) {
 }
 
 // Phone: a full-width row with a horizontal gradient scale and a marker.
-function ScaleRow({ v }: { v: SensorView }) {
+function ScaleRow({ v, onOpen }: { v: SensorView; onOpen?: (id: string) => void }) {
   return (
-    <Card className="shrink-0 gap-0! p-0!">
+    <Card className="relative shrink-0 gap-0! p-0!">
+      <OpenSensor v={v} onOpen={onOpen} />
       <Card.Header className="flex-row! items-center justify-between gap-2 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <ThermometerIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
@@ -228,7 +243,13 @@ function ScaleRow({ v }: { v: SensorView }) {
   )
 }
 
-function TemperatureLevels({ sensors }: { sensors: Record<string, TemperatureSensor> }) {
+function TemperatureLevels({
+  sensors,
+  onOpen,
+}: {
+  sensors: Record<string, TemperatureSensor>
+  onOpen?: (id: string) => void
+}) {
   const isMobile = useIsMobile()
   const views = toViews(sensors)
 
@@ -248,7 +269,7 @@ function TemperatureLevels({ sensors }: { sensors: Record<string, TemperatureSen
         style={{ gridTemplateColumns: `repeat(${views.length}, minmax(0, 1fr))` }}
       >
         {views.map((v) => (
-          <ThermometerCard key={v.id} v={v} />
+          <ThermometerCard key={v.id} v={v} onOpen={onOpen} />
         ))}
       </section>
     )
@@ -257,7 +278,7 @@ function TemperatureLevels({ sensors }: { sensors: Record<string, TemperatureSen
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-16">
       {views.map((v) => (
-        <ScaleRow key={v.id} v={v} />
+        <ScaleRow key={v.id} v={v} onOpen={onOpen} />
       ))}
     </div>
   )
@@ -265,9 +286,16 @@ function TemperatureLevels({ sensors }: { sensors: Record<string, TemperatureSen
 
 export interface LevelsPageProps extends TanksPageProps {
   temperatures: Record<string, TemperatureSensor>
+  /** A thermometer's tap: opens that sensor's Settings page. */
+  onOpenTemperature?: (id: string) => void
 }
 
-export function LevelsPage({ tanks, temperatures, onConfigure }: LevelsPageProps) {
+export function LevelsPage({
+  tanks,
+  temperatures,
+  onConfigure,
+  onOpenTemperature,
+}: LevelsPageProps) {
   const [section, setSection] = useState<Section>('tanks')
   const isMobile = useIsMobile()
 
@@ -297,7 +325,7 @@ export function LevelsPage({ tanks, temperatures, onConfigure }: LevelsPageProps
       {section === 'tanks' ? (
         <TanksPage tanks={tanks} onConfigure={onConfigure} />
       ) : (
-        <TemperatureLevels sensors={temperatures} />
+        <TemperatureLevels sensors={temperatures} onOpen={onOpenTemperature} />
       )}
     </div>
   )

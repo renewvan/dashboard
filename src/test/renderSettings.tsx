@@ -148,6 +148,7 @@ export function renderSettings(
     setVanField: vi.fn(),
     setTemperatureName: vi.fn(),
     setTemperatureUnit: vi.fn(),
+    setTemperatureIcon: vi.fn(),
     setRelay: vi.fn(),
     setRelayName: vi.fn(),
     setPrimaryBattery: vi.fn(),

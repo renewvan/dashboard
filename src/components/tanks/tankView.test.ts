@@ -85,7 +85,6 @@ describe('tankView', () => {
     )
     expect(view.rateLabel).toBe('Drain Rate')
     expect(view.rate).toBe('2.0 L/h')
-    expect(view.footerLabel).toBe('Last refilled')
   })
 
   it('reads every other tank as Fill Rate since the last empty-out', () => {
@@ -100,28 +99,11 @@ describe('tankView', () => {
     )
     expect(view.rateLabel).toBe('Fill Rate')
     expect(view.rate).toBe('3.0 L/h')
-    expect(view.footerLabel).toBe('Last emptied')
   })
 
   it('shows a dash for the rate before any latch, and for the first minute after one', () => {
     expect(tankView(tank(), NOW).rate).toBe('--')
     const fresh = new Date(NOW.getTime() - 30_000).toISOString()
     expect(tankView(tank({ volume_since_full_l: 3, last_full_at: fresh }), NOW).rate).toBe('--')
-  })
-
-  it('shows the latch date in the fixed format, and a dash when there is none', () => {
-    const local = new Date(2026, 6, 14, 9, 41)
-    expect(tankView(tank({ last_full_at: local.toISOString() }), NOW).footerDate).toBe(
-      '14 Jul 2026 09:41',
-    )
-    expect(tankView(tank(), NOW).footerDate).toBe('—')
-  })
-
-  it('does not take the refill date for a grey tank, nor the empty date for fresh water', () => {
-    const local = new Date(2026, 6, 14, 9, 41).toISOString()
-    expect(tankView(tank({ last_empty_at: local }), NOW).footerDate).toBe('—')
-    expect(tankView(tank({ fluid_type: 'grey_water', last_full_at: local }), NOW).footerDate).toBe(
-      '—',
-    )
   })
 })

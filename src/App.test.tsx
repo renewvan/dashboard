@@ -756,7 +756,7 @@ describe('App shell Levels page', () => {
     ['kiosk', KIOSK_WIDTH],
     ['phone', PHONE_WIDTH],
   ])(
-    'opens the tank settings from Configure, and Back returns to Levels (%s)',
+    'opens the tank settings from the card, and Back returns to Levels (%s)',
     async (_name, width) => {
       const user = userEvent.setup()
       await renderAt(width)
@@ -764,7 +764,7 @@ describe('App shell Levels page', () => {
       await receiveTank('grey', { ...FRESH_TANK, fluid_type: 'grey_water', level_pct: 41 })
       await user.click(screen.getByRole('tab', { name: 'Levels' }))
 
-      await user.click(screen.getAllByRole('button', { name: 'Configure' })[1])
+      await user.click(screen.getByRole('button', { name: 'Grey water settings' }))
 
       expect(onSettingsPage()).toBe(true)
       expect(screen.getByRole('heading', { name: 'Grey water' })).toBeInTheDocument()

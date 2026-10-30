@@ -1,13 +1,6 @@
 import type { ReactNode } from 'react'
-import { Button, Chip } from '@heroui/react'
-import {
-  ClipboardClock,
-  Gauge,
-  Settings,
-  Thermometer,
-  WavesArrowDown,
-  WavesArrowUp,
-} from 'lucide-react'
+import { Chip } from '@heroui/react'
+import { Gauge, Thermometer, WavesArrowDown, WavesArrowUp } from 'lucide-react'
 import { CHIP_COLOR, TEXT_COLOR } from './severity'
 import type { TankLabel, TankView } from './tankView'
 
@@ -80,28 +73,14 @@ export function TankStats({ view }: { view: TankView }) {
   )
 }
 
-/**
- * Last refilled/emptied date and the Configure button, which opens the tank's settings.
- * HeroUI's component CSS is unlayered, so the border colour (`*` rule) and the button
- * shape need `!`. No tooltip: HeroUI's never opens on a touch tap.
- */
-export function TankFooter({ view, onConfigure }: { view: TankView; onConfigure: () => void }) {
+/** Stretched over a card so the whole card opens the tank's settings. */
+export function OpenTank({ view, onOpen }: { view: TankView; onOpen: () => void }) {
   return (
-    <div className="border-border! flex shrink-0 items-center justify-between gap-2 border-t px-5 py-2">
-      <div className="flex min-w-0 items-center gap-1 text-xs">
-        <ClipboardClock aria-hidden="true" className="size-3.5 shrink-0" />
-        <span className="truncate font-semibold">{`${view.footerLabel}:`}</span>
-        <span className="truncate">{view.footerDate}</span>
-      </div>
-      <Button
-        isIconOnly
-        variant="outline"
-        aria-label="Configure"
-        onPress={onConfigure}
-        className="size-11! shrink-0 rounded-full!"
-      >
-        <Settings aria-hidden="true" className="size-4!" />
-      </Button>
-    </div>
+    <button
+      type="button"
+      aria-label={`${view.fluidLabel} settings`}
+      onClick={onOpen}
+      className="absolute inset-0 z-20 rounded-[inherit]"
+    />
   )
 }

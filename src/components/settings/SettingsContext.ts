@@ -116,6 +116,7 @@ export interface SettingsActions {
   setVanField: (field: keyof Van, value: string) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
+  setTemperatureIcon: (id: string, icon: string) => void
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
   setPrimaryBattery: (value: string) => void

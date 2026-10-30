@@ -53,10 +53,10 @@ describe.each([
     expect(screen.queryByText(/\u2113/)).not.toBeInTheDocument()
   })
 
-  it('opens the settings of the tank whose Configure button is tapped', async () => {
+  it('opens the settings of the tank whose card is tapped', async () => {
     renderAt(width, { grey: GREY, fresh: FRESH })
 
-    const buttons = screen.getAllByRole('button', { name: 'Configure' })
+    const buttons = screen.getAllByRole('button', { name: /settings$/ })
     await userEvent.click(buttons[1])
 
     expect(onConfigure).toHaveBeenCalledExactlyOnceWith('grey')
@@ -81,7 +81,7 @@ describe.each([
 
   it('renders one tank and three tanks (the layout is not hardcoded to two)', () => {
     const { unmount } = renderAt(width, { fresh: FRESH })
-    expect(screen.getAllByText(/Last refilled|Last emptied/)).toHaveLength(1)
+    expect(screen.getAllByRole('button', { name: /settings$/ })).toHaveLength(1)
     unmount()
     viewport.restore()
     renderAt(width, {
@@ -89,7 +89,7 @@ describe.each([
       grey: GREY,
       black: tank({ fluid_type: 'black_water' }),
     })
-    expect(screen.getAllByText(/Last refilled|Last emptied/)).toHaveLength(3)
+    expect(screen.getAllByRole('button', { name: /settings$/ })).toHaveLength(3)
   })
 
   it('orders any other tank after fresh and grey, by id', () => {

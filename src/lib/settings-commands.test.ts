@@ -89,6 +89,17 @@ describe('settingsCommands', () => {
     )
   })
 
+  it("publishes a sensor icon as a quoted JSON string on that sensor's topic", () => {
+    const { publish, commands } = setup()
+
+    commands.setTemperatureIcon('outdoor', 'Refrigerator')
+
+    expect(publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/temperature/outdoor/icon/set',
+      '"Refrigerator"',
+    )
+  })
+
   it('publishes the Primary battery choice as a quoted JSON string on the hub set topic', () => {
     const { publish, commands } = setup()
 

@@ -39,10 +39,19 @@ const LOST: TemperatureSensor = {
 }
 
 let viewport: MatchMediaStub
-function renderAt(width: number, temperatures: Record<string, TemperatureSensor> = {}) {
+function renderAt(
+  width: number,
+  temperatures: Record<string, TemperatureSensor> = {},
+  onOpenTemperature?: (id: string) => void,
+) {
   viewport = stubMatchMedia(width)
   return render(
-    <LevelsPage tanks={{ fresh: FRESH }} temperatures={temperatures} onConfigure={vi.fn()} />,
+    <LevelsPage
+      tanks={{ fresh: FRESH }}
+      temperatures={temperatures}
+      onConfigure={vi.fn()}
+      onOpenTemperature={onOpenTemperature}
+    />,
   )
 }
 
@@ -122,4 +131,18 @@ describe('LevelsPage toggle spacing', () => {
     await user.click(screen.getByRole('button', { name: 'Temperature' }))
     expect(wrapper()!.nextElementSibling).not.toHaveClass('pt-3')
   })
+})
+
+describe('LevelsPage thermometers', () => {
+  it.each([KIOSK_WIDTH, JUST_BELOW_KIOSK_WIDTH])(
+    'opens the sensor in Settings when its thermometer is tapped at %ipx',
+    async (width) => {
+      const user = userEvent.setup()
+      const onOpen = vi.fn()
+      renderAt(width, { indoor: INDOOR, outdoor: OUTDOOR }, onOpen)
+      await user.click(screen.getByRole('button', { name: 'Temperature' }))
+      await user.click(screen.getByRole('button', { name: `${OUTDOOR.name} settings` }))
+      expect(onOpen).toHaveBeenCalledWith('outdoor')
+    },
+  )
 })

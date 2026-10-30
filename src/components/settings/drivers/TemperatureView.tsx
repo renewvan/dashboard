@@ -1,8 +1,9 @@
 import { useId } from 'react'
 import { ToggleButton, ToggleButtonGroup } from '@heroui/react'
-import { formatTemperature, sensorLabel, sortedSensorIds } from '@/lib/temperature'
+import { formatTemperature, sensorLabel, sortedSensorIds, titleCase } from '@/lib/temperature'
 import type { TemperatureSensor, TemperatureUnit } from '@/types'
 import { instanceKey } from '@/lib/instances'
+import { TEMPERATURE_ICON_NAMES, TEMPERATURE_ICONS } from '@/lib/temperatureIcons'
 import { EntityCard } from '../shared/EntityCard'
 import { temperatureRowSummary } from './entitySummary'
 import { NameField } from '../shared/NameField'
@@ -14,7 +15,7 @@ function isUnit(value: string): value is TemperatureUnit {
   return UNITS.some((unit) => unit === value)
 }
 
-/** Settings › Devices › Temperature › <sensor> › Details: rename the sensor and pick its unit. */
+/** Settings › Devices › Temperature › <sensor> › Details: rename the sensor, pick its unit and its icon. It is titled by its topic name (the id), the one thing unique to it. */
 export function TemperatureDetails({ id }: { id: string }) {
   const { temperatures } = useSettingsData()
   const sensor = temperatures[id]
@@ -23,7 +24,7 @@ export function TemperatureDetails({ id }: { id: string }) {
 }
 
 function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSensor> }) {
-  const { setTemperatureName, setTemperatureUnit } = useSettingsActions()
+  const { setTemperatureName, setTemperatureUnit, setTemperatureIcon } = useSettingsActions()
   const sourceId = useId()
 
   return (
@@ -34,7 +35,7 @@ function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSe
     >
       <div className="flex items-center justify-between gap-3">
         <span id={sourceId} className="text-muted min-w-0 text-xs break-words">
-          {sensor.source === 'cpu' ? 'Pi CPU' : (sensor.serial ?? id)}
+          {titleCase(id)}
         </span>
         <span className="text-sm font-medium tabular-nums">
           {formatTemperature(sensor, { suffix: true })}
@@ -66,6 +67,37 @@ function SensorPanel({ id, sensor }: { id: string; sensor: Partial<TemperatureSe
               {index > 0 && <ToggleButtonGroup.Separator />}°{unit}
             </ToggleButton>
           ))}
+        </ToggleButtonGroup>
+      </div>
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-muted pt-2 text-xs">Icon</span>
+        <ToggleButtonGroup
+          aria-label="Icon"
+          selectionMode="single"
+          disallowEmptySelection
+          isDisabled={sensor.name === undefined}
+          selectedKeys={
+            new Set(
+              sensor.icon !== undefined && sensor.icon in TEMPERATURE_ICONS ? [sensor.icon] : [],
+            )
+          }
+          onSelectionChange={(keys) => {
+            const key = [...keys][0]
+            if (key === undefined) return
+            const next = String(key)
+            // HeroUI re-fires the selection on a re-tap of the selected item.
+            if (next in TEMPERATURE_ICONS && next !== sensor.icon) setTemperatureIcon(id, next)
+          }}
+          className="flex-wrap justify-end"
+        >
+          {TEMPERATURE_ICON_NAMES.map((name) => {
+            const Icon = TEMPERATURE_ICONS[name]
+            return (
+              <ToggleButton key={name} id={name} isIconOnly aria-label={name}>
+                <Icon aria-hidden="true" className="size-4" />
+              </ToggleButton>
+            )
+          })}
         </ToggleButtonGroup>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { Card } from '@heroui/react'
 import type { Tank } from '@/types'
 import { FILL_COLOR, FILL_TEXT_COLOR } from './severity'
-import { SeverityChip, TankFooter, TankStats } from './TankParts'
+import { SeverityChip, OpenTank, TankStats } from './TankParts'
 import { tankView } from './tankView'
 import { FLUID_ICONS } from './fluidIcon'
 
@@ -35,7 +35,8 @@ export function TankCard({ id, tank, now, onConfigure }: TankCardProps) {
   const fill = FILL_COLOR[view.severity]
 
   return (
-    <Card className="h-full min-h-0 gap-0! p-0!">
+    <Card className="relative h-full min-h-0 gap-0! p-0!">
+      <OpenTank view={view} onOpen={() => onConfigure(id)} />
       <Card.Header className="flex-row! items-center justify-between gap-2 px-5 py-3">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <FluidIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
@@ -95,7 +96,6 @@ export function TankCard({ id, tank, now, onConfigure }: TankCardProps) {
           <TankStats view={view} />
         </div>
       </Card.Content>
-      <TankFooter view={view} onConfigure={() => onConfigure(id)} />
     </Card>
   )
 }
