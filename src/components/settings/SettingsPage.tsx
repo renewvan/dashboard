@@ -41,6 +41,7 @@ import { WidgetsView } from './general/preferences/WidgetsView'
 import { WidgetView } from './general/preferences/WidgetView'
 import { PowerPageView } from './general/preferences/PowerPageView'
 import { MapPageView } from './general/preferences/MapPageView'
+import { TemperaturePageView } from './general/preferences/TemperaturePageView'
 import { useSettingsData, useSettingsPreferences, useSettingsActions } from './SettingsContext'
 import { VanView } from './advanced/VanView'
 import { TailscaleView } from './connectivity/TailscaleView'
@@ -87,6 +88,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   'start-temperatures': { title: 'Temperatures', parent: 'start-page' },
   'power-page': { title: 'Power page', parent: 'display' },
   'map-page': { title: 'Map page', parent: 'display' },
+  'temperature-page': { title: 'Temperature page', parent: 'display' },
   connectivity: { title: 'Connectivity', parent: 'list' },
   cellular: { title: 'Cellular', parent: 'connectivity' },
   hub: { title: 'Hub', parent: 'connectivity' },
@@ -154,6 +156,7 @@ export const SettingsPage = memo(function SettingsPage() {
     startTiles,
     powerLayout,
     mapTheme,
+    hiddenTemperatures,
     van,
     demoMode,
   } = useSettingsPreferences()
@@ -168,6 +171,7 @@ export const SettingsPage = memo(function SettingsPage() {
     setStartTiles,
     setPowerLayout,
     setMapTheme,
+    setHiddenTemperatures,
     setVanField,
     setDemoMode,
   } = useSettingsActions()
@@ -403,6 +407,14 @@ export const SettingsPage = memo(function SettingsPage() {
         return <PowerPageView layout={powerLayout} onChange={setPowerLayout} />
       case 'map-page':
         return <MapPageView theme={mapTheme} onChange={setMapTheme} />
+      case 'temperature-page':
+        return (
+          <TemperaturePageView
+            temperatures={temperatures}
+            hidden={hiddenTemperatures}
+            onChange={setHiddenTemperatures}
+          />
+        )
       case 'connectivity':
         return <ConnectivityView onOpen={setView} />
       case 'cellular':

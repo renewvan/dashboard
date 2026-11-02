@@ -22,7 +22,8 @@ function band(c: number | null): Band {
   if (c === null) return { label: 'No reading', color: 'var(--muted)', fg: 'var(--foreground)' }
   if (c < 0) return { label: 'Freezing', color: '#3b82f6', fg: '#fff' }
   if (c < 10) return { label: 'Cold', color: '#38bdf8', fg: '#0b1b2b' }
-  if (c < 28)
+  if (c < 18) return { label: 'Cool', color: '#67e8f9', fg: '#0b1b2b' }
+  if (c < 26)
     return { label: 'Comfortable', color: 'var(--accent)', fg: 'var(--accent-foreground)' }
   if (c < 40) return { label: 'Warm', color: 'var(--warning)', fg: 'var(--warning-foreground)' }
   return { label: 'Hot', color: 'var(--danger)', fg: 'var(--danger-foreground)' }
@@ -229,7 +230,7 @@ function ScaleRow({ v, onOpen }: { v: SensorView; onOpen?: (id: string) => void 
             className="h-3 rounded-full"
             style={{
               background:
-                'linear-gradient(to right, #3b82f6 0%, #38bdf8 28%, var(--accent) 45%, var(--warning) 80%, var(--danger) 100%)',
+                'linear-gradient(to right, #3b82f6 0%, #38bdf8 29%, #67e8f9 43%, var(--accent) 54%, var(--accent) 66%, var(--warning) 80%, var(--danger) 100%)',
             }}
           />
           {v.c !== null && (

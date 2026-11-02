@@ -28,6 +28,7 @@ export type SettingsView =
   | 'start-temperatures'
   | 'power-page'
   | 'map-page'
+  | 'temperature-page'
   | 'connectivity'
   | 'cellular'
   | 'hub'

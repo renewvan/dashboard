@@ -8,7 +8,7 @@ import { START_VIEW_LABELS } from '@/hooks/useStartView'
 import { Card, ChoiceRow } from '../../shared/ChoiceRow'
 import { Group } from '../../shared/Group'
 import { GroupRow } from '../../shared/GroupRow'
-import { useSettingsPreferences, useSettingsActions } from '../../SettingsContext'
+import { useSettingsData, useSettingsPreferences, useSettingsActions } from '../../SettingsContext'
 import type { SettingsSubView } from '../../views'
 
 const TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
@@ -179,7 +179,11 @@ export function DisplayView({
   isMobile,
   onOpen,
 }: DisplayViewProps) {
-  const { autoSleepEnabled, mapTheme, startView } = useSettingsPreferences()
+  const { autoSleepEnabled, mapTheme, startView, hiddenTemperatures } = useSettingsPreferences()
+  const { temperatures } = useSettingsData()
+  const shownTemperatures = Object.keys(temperatures).filter(
+    (id) => !hiddenTemperatures.includes(id),
+  ).length
 
   return (
     <div className="flex flex-col gap-4">
@@ -199,6 +203,11 @@ export function DisplayView({
             label="Power page"
             description="Van tiles or van orbs"
             onOpen={() => onOpen('power-page')}
+          />
+          <GroupRow
+            label="Temperature page"
+            description={`${shownTemperatures} of ${Object.keys(temperatures).length} sensors shown`}
+            onOpen={() => onOpen('temperature-page')}
           />
           <GroupRow
             label="Map page"

@@ -153,6 +153,8 @@ export function renderSettings(
     setPowerLayout: vi.fn(),
     mapTheme: 'auto',
     setMapTheme: vi.fn(),
+    hiddenTemperatures: [],
+    setHiddenTemperatures: vi.fn(),
     van: { name: '', brand: '', model: '', kms: '', plate: '', color: '' },
     setVanField: vi.fn(),
     setTemperatureName: vi.fn(),
