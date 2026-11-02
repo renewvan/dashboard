@@ -42,6 +42,7 @@ export function buildSettings({
     tanks: state.tanks,
     temperatures: state.temperatures,
     relays: state.relays,
+    tilt: state.tilt,
     batteries: state.batteries,
     solar: state.solar,
     chargers: state.chargers,

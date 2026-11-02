@@ -28,6 +28,7 @@
 /* close-button first: its `relative` would otherwise beat the drawer's `absolute` close trigger (both unlayered). */
 @import '@heroui/styles/components/close-button.css';
 @import '@heroui/styles/components/drawer.css';
+@import '@heroui/styles/components/alert-dialog.css';
 @import './global.css';
 
 /*

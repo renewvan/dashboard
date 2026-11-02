@@ -115,6 +115,7 @@ const INSTANCE_LIST: Record<InstanceType, SettingsSubView> = {
   gps: 'gps',
   temperature: 'temperature',
   relay: 'relays',
+  tilt: 'drivers',
 }
 
 /**
@@ -135,6 +136,7 @@ export const SettingsPage = memo(function SettingsPage() {
     gps,
     temperatures,
     relays,
+    tilt,
     displayPower,
     router,
     routerHealth,
@@ -193,6 +195,7 @@ export const SettingsPage = memo(function SettingsPage() {
     ...Object.keys(gps).map((id) => instanceKey('gps', id)),
     ...Object.keys(temperatures).map((id) => instanceKey('temperature', id)),
     ...Object.keys(relays).map((id) => instanceKey('relay', id)),
+    ...Object.keys(tilt).map((id) => instanceKey('tilt', id)),
   ]
   const validInstanceKeys = useContentStable(instanceKeys)
   const [instanceParam] = useUrlParam('instance', validInstanceKeys)
@@ -203,6 +206,7 @@ export const SettingsPage = memo(function SettingsPage() {
     const { type, id } = instance
     if (type === 'temperature') return temperatures[id] && sensorLabel(id, temperatures[id])
     if (type === 'relay') return relays[id] && (relays[id].name || id)
+    if (type === 'tilt') return tilt[id] && instanceLabel(id, tilt[id], drivers)
     const record = { battery: batteries, solar, charger: chargers, gps }[type][id]
     return record && instanceLabel(id, record, drivers)
   }

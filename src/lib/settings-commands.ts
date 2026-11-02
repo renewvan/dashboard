@@ -22,6 +22,8 @@ const temperatureSetTopic = (id: string, field: 'name' | 'unit') =>
 
 const TOPIC_ICONS_SET = 'renewvan/hub/icons/set'
 
+const tiltLevelTopic = (id: string) => `renewvan/tilt/${id}/level_zero/set`
+
 const relaySetTopic = (id: string, field: 'set' | 'name/set') => `renewvan/relay/${id}/${field}`
 
 export type Publish = (topic: string, payload: string) => void
@@ -40,6 +42,10 @@ export interface SettingsCommands {
   /** Sends the TARGET state, never a toggle: a toggle is not idempotent (hub ADR 0013). */
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
+  /** Captures the tilt sensor's current attitude as level (park the van level first); the driver persists it. */
+  setTiltLevel: (id: string) => void
+  /** Clears the captured level, so the angles read raw again. */
+  resetTiltLevel: (id: string) => void
   /** `auto` or a battery instance id; the hub plugin persists it and republishes the retained state. */
   setPrimaryBattery: (value: string) => void
 }
@@ -60,6 +66,9 @@ export function settingsCommands(publish: Publish): SettingsCommands {
       publish(TOPIC_ICONS_SET, JSON.stringify({ key: iconKey(entity, id), icon })),
     setRelay: (id, on) => publish(relaySetTopic(id, 'set'), JSON.stringify(on)),
     setRelayName: (id, name) => publish(relaySetTopic(id, 'name/set'), JSON.stringify(name)),
+    // The driver treats any payload as "capture"; `reset` clears. Quoted like every other payload.
+    setTiltLevel: (id) => publish(tiltLevelTopic(id), JSON.stringify('capture')),
+    resetTiltLevel: (id) => publish(tiltLevelTopic(id), JSON.stringify('reset')),
     setPrimaryBattery: (value) => publish(TOPIC_PRIMARY_BATTERY_SET, JSON.stringify(value)),
   }
 }
