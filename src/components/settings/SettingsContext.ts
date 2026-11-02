@@ -25,6 +25,7 @@ import type {
   Charger,
   Gps,
   Relay,
+  Tilt,
   Router,
   Solar,
   Tank,
@@ -44,6 +45,7 @@ export interface SettingsData {
   temperatures: Record<string, Partial<TemperatureSensor>>
   gps: Record<string, Partial<Gps>>
   relays: Record<string, Relay>
+  tilt: Record<string, Partial<Tilt>>
   /** Every instance on the bus, for the instances views; `Partial` for the same reason as `tanks`. */
   batteries: Record<string, Partial<Battery>>
   solar: Record<string, Partial<Solar>>
@@ -120,6 +122,8 @@ export interface SettingsActions {
   setEntityIcon: (entity: IconEntity, id: string, icon: string) => void
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
+  setTiltLevel: (id: string) => void
+  resetTiltLevel: (id: string) => void
   setPrimaryBattery: (value: string) => void
 }
 

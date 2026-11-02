@@ -109,6 +109,7 @@ export function renderSettings(
     gps: state.gps,
     tanks: state.tanks,
     relays: state.relays,
+    tilt: state.tilt,
     batteries: state.batteries,
     solar: state.solar,
     chargers: state.chargers,
@@ -159,6 +160,8 @@ export function renderSettings(
     setEntityIcon: vi.fn(),
     setRelay: vi.fn(),
     setRelayName: vi.fn(),
+    setTiltLevel: vi.fn(),
+    resetTiltLevel: vi.fn(),
     setPrimaryBattery: vi.fn(),
     ...overrides,
   }

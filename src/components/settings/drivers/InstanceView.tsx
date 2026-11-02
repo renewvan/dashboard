@@ -9,6 +9,7 @@ import type { SettingsSubView } from '../views'
 import { GpsDetails } from './GpsView'
 import { RelayDetails } from './RelaysView'
 import { TemperatureDetails } from './TemperatureView'
+import { TiltDetails } from './TiltView'
 import { BmsDetails } from './BmsDetails'
 import { amps, chargeStateLabel, measured, volts } from './instanceReadings'
 
@@ -100,6 +101,7 @@ export function InstanceView({
   if (type === 'gps') return <GpsDetails id={id} />
   if (type === 'temperature') return <TemperatureDetails id={id} />
   if (type === 'relay') return <RelayDetails id={id} />
+  if (type === 'tilt') return <TiltDetails id={id} />
   const record = (type === 'solar' ? solar : type === 'charger' ? chargers : batteries)[id]
   if (record === undefined) return null
   const { stats, rows } = statsOf(type, record)

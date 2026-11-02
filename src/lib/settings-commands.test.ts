@@ -78,6 +78,17 @@ describe('settingsCommands', () => {
     )
   })
 
+  it("publishes the tilt level capture and reset on that sensor's level_zero/set topic", () => {
+    const { publish, commands } = setup()
+
+    commands.setTiltLevel('tilt')
+    commands.resetTiltLevel('tilt')
+
+    expect(publish).toHaveBeenNthCalledWith(1, 'renewvan/tilt/tilt/level_zero/set', '"capture"')
+    expect(publish).toHaveBeenNthCalledWith(2, 'renewvan/tilt/tilt/level_zero/set', '"reset"')
+    expect(publish).toHaveBeenCalledTimes(2)
+  })
+
   it("publishes a sensor unit as a quoted JSON string on that sensor's topic", () => {
     const { publish, commands } = setup()
 
