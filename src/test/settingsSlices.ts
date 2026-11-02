@@ -19,6 +19,7 @@ const PREFERENCE_KEYS = [
   'startTiles',
   'powerLayout',
   'mapTheme',
+  'hiddenTemperatures',
   'van',
 ]
 

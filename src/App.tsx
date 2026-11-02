@@ -105,6 +105,7 @@ function App() {
     theme,
     navbarPosition,
     mapTheme,
+    hiddenTemperatures,
     alertsEnabled,
     startPowerSources,
     startLayout,
@@ -351,7 +352,9 @@ function App() {
       case 'temperature':
         return (
           <TemperaturePage
-            temperatures={state.temperatures}
+            temperatures={Object.fromEntries(
+              Object.entries(state.temperatures).filter(([id]) => !hiddenTemperatures.includes(id)),
+            )}
             onOpenTemperature={(id) => openInstanceSettings(instanceKey('temperature', id))}
           />
         )

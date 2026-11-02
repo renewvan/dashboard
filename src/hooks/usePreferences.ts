@@ -1,4 +1,5 @@
 import { useAlertsEnabled } from '@/hooks/useAlertsEnabled'
+import { useHiddenTemperatures } from '@/hooks/useHiddenTemperatures'
 import { useMapTheme } from '@/hooks/useMapTheme'
 import { useNavbarPosition } from '@/hooks/useNavbarPosition'
 import { usePowerLayout } from '@/hooks/usePowerLayout'
@@ -27,6 +28,7 @@ export function usePreferences(): {
     | 'startTiles'
     | 'powerLayout'
     | 'mapTheme'
+    | 'hiddenTemperatures'
     | 'van'
   >
   actions: Pick<
@@ -40,6 +42,7 @@ export function usePreferences(): {
     | 'setStartTiles'
     | 'setPowerLayout'
     | 'setMapTheme'
+    | 'setHiddenTemperatures'
     | 'setVanField'
   >
 } {
@@ -52,6 +55,7 @@ export function usePreferences(): {
   const [startTiles, setStartTiles] = useStartTiles()
   const [powerLayout, setPowerLayout] = usePowerLayout()
   const [mapTheme, setMapTheme] = useMapTheme()
+  const [hiddenTemperatures, setHiddenTemperatures] = useHiddenTemperatures()
   const [van, setVanField] = useVan()
   return {
     preferences: {
@@ -64,6 +68,7 @@ export function usePreferences(): {
       startTiles,
       powerLayout,
       mapTheme,
+      hiddenTemperatures,
       van,
     },
     actions: {
@@ -76,6 +81,7 @@ export function usePreferences(): {
       setStartTiles,
       setPowerLayout,
       setMapTheme,
+      setHiddenTemperatures,
       setVanField,
     },
   }

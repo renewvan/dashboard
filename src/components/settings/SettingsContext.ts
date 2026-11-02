@@ -94,6 +94,8 @@ export interface SettingsPreferences {
   powerLayout: PowerLayout
   /** The Map page's look: Auto (follow the app theme), Light or Dark; the same instance `App` reads. */
   mapTheme: MapThemeChoice
+  /** Sensor ids the Temperature page leaves out; the same instance `App` reads. */
+  hiddenTemperatures: readonly string[]
   /** The van's details (name, brand, model, kms, plate): kiosk-local, the same instance `App` reads. */
   van: Van
 }
@@ -116,6 +118,7 @@ export interface SettingsActions {
   setStartTiles: (tiles: StartTiles) => void
   setPowerLayout: (layout: PowerLayout) => void
   setMapTheme: (choice: MapThemeChoice) => void
+  setHiddenTemperatures: (hidden: readonly string[]) => void
   setVanField: (field: keyof Van, value: string) => void
   setTemperatureName: (id: string, name: string) => void
   setTemperatureUnit: (id: string, unit: TemperatureUnit) => void
