@@ -159,7 +159,7 @@ The Venus-style Settings subpage behind a **Driver page**'s Driver row (`?page=s
 _Avoid_: Driver details page
 
 **Tank settings**:
-The per-tank page at Settings › Drivers › Tanks › _tank_ (`?page=settings&view=tank&tank=<id>`), opened by the Configure button on a tank's card or row (and, from a **Driver page**, by its Tanks row). It is meant to mirror the driver's own config (the `[tank.*]` parameters of driver-tank, as in [dbus-ads1115's configuration parameters](https://github.com/alexsanzder/dbus-ads1115#configuration-parameters)). Today it shows only **Enabled**, read-only: `enabled` is a driver-tank `config.ini` value read at startup, with no wire field or `/set` topic to change it, and a disabled tank stops publishing and so would drop out of the list. Each setting becomes editable once the hub schema and driver-tank define a command topic for it.
+The per-tank page at Settings › Drivers › Tanks › _tank_ (`?page=settings&view=tank&tank=<id>`), opened by the Configure button on a tank's card or row (and, from a **Driver page**, by its Tanks row). It is meant to mirror the driver's own config (the `[tank.*]` parameters of driver-tank, as documented in [driver-tank's README](https://github.com/renewvan/driver-tank#readme)). Today it shows only **Enabled**, read-only: `enabled` is a driver-tank `config.ini` value read at startup, with no wire field or `/set` topic to change it, and a disabled tank stops publishing and so would drop out of the list. Each setting becomes editable once the hub schema and driver-tank define a command topic for it.
 _Avoid_: Tank config (the driver's `config.ini` is the source; this page is the dashboard's view of it)
 
 **Start page**:
