@@ -839,8 +839,8 @@ describe('StartPage kiosk dial', () => {
         },
       })
 
-      expect(screen.getByTestId('temp-outdoor')).toHaveTextContent('7°C')
-      expect(screen.getByTestId('temp-indoor')).toHaveTextContent('22°C')
+      expect(screen.getByTestId('temp-outdoor')).toHaveTextContent('7.2°C')
+      expect(screen.getByTestId('temp-indoor')).toHaveTextContent('21.6°C')
       expect(screen.getByTestId('temp-outdoor').parentElement).toContainElement(
         screen.getByText('Solar'),
       )
@@ -863,7 +863,7 @@ describe('StartPage kiosk dial', () => {
         temperatures: { indoor: probe({ temperature_c: 21.6, unit: 'F' }) },
       })
 
-      expect(screen.getByTestId('temp-indoor')).toHaveTextContent('71°F')
+      expect(screen.getByTestId('temp-indoor')).toHaveTextContent('70.9°F')
     })
 
     it('never shows the retained value of a probe that is not ok', () => {
@@ -954,9 +954,9 @@ describe('StartPage weather widget', () => {
   it('shows the outdoor probe as Outside and the indoor probe as Inside', async () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, { temperatures: { outdoor: probe(7.2), indoor: probe(21.6) } })
 
-    expect(await screen.findByTestId('weather-outside')).toHaveTextContent('7°')
+    expect(await screen.findByTestId('weather-outside')).toHaveTextContent('7.2°')
     expect(screen.getByTestId('weather-outside')).not.toHaveTextContent('forecast')
-    expect(screen.getByTestId('weather-inside')).toHaveTextContent('22°')
+    expect(screen.getByTestId('weather-inside')).toHaveTextContent('21.6°')
   })
 
   it('falls back to the forecast air temperature, labelled, when the outdoor probe has no reading', async () => {
@@ -965,7 +965,7 @@ describe('StartPage weather widget', () => {
     })
 
     const outside = await screen.findByTestId('weather-outside')
-    expect(outside).toHaveTextContent('14°')
+    expect(outside).toHaveTextContent(/14\.\d°/)
     expect(outside).toHaveTextContent('(forecast)')
   })
 

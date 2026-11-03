@@ -147,9 +147,9 @@ function Orb({
   const active = watts > IDLE_W
   const colour = 'var(--accent)'
   const Icon = ICON[id]
-  // The Solar orb with its history carries its label to the left of the ring: above it the label
-  // would crowd the clock.
-  const beside = history !== undefined
+  // The Solar orb carries its label to the left of the ring, with or without history: above it
+  // the label would crowd the clock.
+  const beside = id === 'solar'
   const below = spot.c.y === SLOT_DOWN_Y
   return (
     <g>

@@ -62,10 +62,10 @@ describe('TemperaturePage', () => {
     ])
   })
 
-  it('shows whole °C, and no reading for a sensor that is not ok', () => {
+  it('shows one-decimal °C, and no reading for a sensor that is not ok', () => {
     renderAt(KIOSK_WIDTH, { indoor: INDOOR, outdoor: OUTDOOR, fridge: LOST })
-    expect(screen.getByText('21°')).toBeInTheDocument()
-    expect(screen.getByText('-3°')).toBeInTheDocument()
+    expect(screen.getByText('21.4°')).toBeInTheDocument()
+    expect(screen.getByText('-3.2°')).toBeInTheDocument()
     expect(screen.getByText('--°')).toBeInTheDocument()
     expect(screen.getByText('No reading')).toBeInTheDocument()
   })

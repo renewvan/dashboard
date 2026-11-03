@@ -22,9 +22,9 @@ export function temperatureReading(sensor: Partial<TemperatureSensor> | undefine
   return typeof sensor.temperature_c === 'number' ? sensor.temperature_c : null
 }
 
-/** Whole-degree display with the sensor's unit, e.g. `21°`; `--°` when
+/** One-decimal display with the sensor's unit, e.g. `7.5°`; `--°` when
  * there is nothing trustworthy to show. `suffix` appends the unit letter
- * (`21°C`) for contexts without a neighbouring label. */
+ * (`7.5°C`) for contexts without a neighbouring label. */
 export function formatTemperature(
   sensor: Partial<TemperatureSensor> | undefined,
   { suffix = false }: { suffix?: boolean } = {},
@@ -32,9 +32,9 @@ export function formatTemperature(
   const celsius = temperatureReading(sensor)
   const unit: TemperatureUnit = sensor?.unit === 'F' ? 'F' : 'C'
   if (celsius === null) return suffix ? `--°${unit}` : '--°'
-  const rounded = Math.round(convertTemperature(celsius, unit))
-  // Math.round(-0.4) is -0, which would print as "-0°".
-  const value = Object.is(rounded, -0) ? 0 : rounded
+  // toFixed(1) of -0.04 is "-0.0"; normalise it to "0.0".
+  const fixed = convertTemperature(celsius, unit).toFixed(1)
+  const value = Number(fixed) === 0 ? '0.0' : fixed
   return suffix ? `${value}°${unit}` : `${value}°`
 }
 
