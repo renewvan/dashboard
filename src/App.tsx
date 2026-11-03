@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react'
 import { Droplet, Gauge, Heater, Map, Settings, Thermometer, ToggleLeft, Zap } from 'lucide-react'
-import { Separator, Tabs } from '@heroui/react'
+import { Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
 import lockupDark from '../assets/logo/svg/renewvan-lockup-dark.svg'
 import { cn } from '@/lib/utils'
@@ -210,7 +210,6 @@ function App() {
     <>
       {demoBadge}
       <UplinkStatusButton {...uplinkProps} />
-      <Separator orientation="vertical" className="mx-0.5 h-6" />
       <ThemeToggleButton theme={theme} onThemeChange={setTheme} />
       <AlertsButton
         onClick={() => goToPage('alerts')}

@@ -30,7 +30,8 @@ function band(c: number | null): Band {
 }
 
 const pctOf = (c: number) => Math.min(100, Math.max(0, ((c - MIN_C) / (MAX_C - MIN_C)) * 100))
-const fmt = (c: number | null) => (c === null ? '--' : `${Math.round(c)}`)
+const fmt = (c: number | null) =>
+  c === null ? '--' : Number(c.toFixed(1)) === 0 ? '0.0' : c.toFixed(1)
 
 interface SensorView {
   id: string

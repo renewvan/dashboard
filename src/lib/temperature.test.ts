@@ -50,14 +50,14 @@ describe('temperatureReading', () => {
 })
 
 describe('formatTemperature', () => {
-  it('rounds to whole degrees in the sensor unit', () => {
-    expect(formatTemperature(ok({ temperature_c: 21.6 }))).toBe('22°')
-    expect(formatTemperature(ok({ temperature_c: 21.4, unit: 'F' }))).toBe('71°')
+  it('shows one decimal in the sensor unit', () => {
+    expect(formatTemperature(ok({ temperature_c: 21.6 }))).toBe('21.6°')
+    expect(formatTemperature(ok({ temperature_c: 21.4, unit: 'F' }))).toBe('70.5°')
   })
 
   it('appends the unit letter on request', () => {
-    expect(formatTemperature(ok({ unit: 'F' }), { suffix: true })).toBe('71°F')
-    expect(formatTemperature(ok(), { suffix: true })).toBe('21°C')
+    expect(formatTemperature(ok({ unit: 'F' }), { suffix: true })).toBe('70.5°F')
+    expect(formatTemperature(ok(), { suffix: true })).toBe('21.4°C')
   })
 
   it('shows a placeholder, never a stale number, when not ok', () => {
@@ -69,11 +69,11 @@ describe('formatTemperature', () => {
   })
 
   it('never prints negative zero', () => {
-    expect(formatTemperature(ok({ temperature_c: -0.2 }))).toBe('0°')
+    expect(formatTemperature(ok({ temperature_c: -0.04 }))).toBe('0.0°')
   })
 
   it('keeps real negatives', () => {
-    expect(formatTemperature(ok({ temperature_c: -5.4 }))).toBe('-5°')
+    expect(formatTemperature(ok({ temperature_c: -5.4 }))).toBe('-5.4°')
   })
 })
 

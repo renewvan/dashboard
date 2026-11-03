@@ -88,15 +88,15 @@ describe('Settings › Devices › Temperature', () => {
     })
     // `openTemperature` opened the first card; its Details is the outdoor sensor's panel.
     const outdoorPanel = screen.getByRole('group', { name: 'Outdoor' })
-    expect(within(outdoorPanel).getByText('31°C')).toBeInTheDocument()
+    expect(within(outdoorPanel).getByText('31.4°C')).toBeInTheDocument()
     expect(within(outdoorPanel).getByRole('textbox', { name: 'Name' })).toHaveValue('Outdoor')
 
     await user.click(screen.getByRole('button', { name: 'Temperature' }))
 
     const list = within(screen.getByRole('list', { name: 'Temperature' }))
     expect(list.getAllByRole('button').map((row) => row.textContent)).toEqual([
-      expect.stringMatching(/^Outdoor31°C/),
-      expect.stringMatching(/^Indoor68°F/),
+      expect.stringMatching(/^Outdoor31.4°C/),
+      expect.stringMatching(/^Indoor68.0°F/),
       expect.stringMatching(/^Alpha/),
       expect.stringMatching(/^Zeta/),
     ])
