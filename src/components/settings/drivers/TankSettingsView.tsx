@@ -6,7 +6,7 @@ import { useSettingsActions, useSettingsData } from '../SettingsContext'
 
 /**
  * Settings › Drivers › Tanks › <tank>. The tank's settings will mirror the driver's own
- * config (https://github.com/alexsanzder/dbus-ads1115#configuration-parameters); for now
+ * config (see driver-tank's README); for now
  * Enabled (read-only) and the tank's icon are shown; Enabled is read-only: `enabled` is a driver-tank `config.ini` value
  * read at startup, with no wire field or command topic to change it. The whole row is the
  * hit area, as in the other Settings switches.
