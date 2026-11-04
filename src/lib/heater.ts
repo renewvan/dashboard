@@ -98,6 +98,42 @@ export const SETPOINT_RANGE = { min: 1, max: 30 } as const
 /** The levels the dial offers, as Venus does; the hub accepts 0-9 (ADR 0021) but 0 is not a level to run at. */
 export const POWER_RANGE = { min: 1, max: 9 } as const
 
+const MODE_DESCRIPTIONS: Record<OperatingMode, string> = {
+  temperature: 'Maintain a target room temperature.',
+  power: 'Run the heater at a fixed power level.',
+  thermostat: 'Keep the room within set temperature limits.',
+  heat_ventilation: 'Blend heating with ventilation support.',
+  ventilation: 'Circulate air without active heating.',
+}
+
+/**
+ * The line above Start/Stop, worded as Venus OS's heater page words it: what the selected mode does
+ * while the heater is off, then live telemetry while it starts, runs and stops ("Heating to 15°C ·
+ * room is 18°C"). Nothing when the heater is not reporting.
+ */
+export function statusLine(heater: Heater, mode: OperatingMode | undefined): string | undefined {
+  if (!isReporting(heater)) return undefined
+  if (hasError(heater)) return `Heater fault, error ${heater.error_code}.`
+  const degrees = (c: number | undefined) => (c === undefined ? '--' : `${Math.round(c)}°C`)
+  const room = degrees(heater.internal_temperature_c)
+  switch (heater.phase) {
+    case 'starting':
+      return 'Starting heater...'
+    case 'warming_up':
+      return 'Warming up...'
+    case 'shutting_down':
+      return 'Cooling down before stopping...'
+    case 'running':
+      if (mode === 'ventilation') return `Ventilating · room is ${room}`
+      if (mode === 'power') {
+        return `Running at power level ${heater.power_level ?? '--'} · room is ${room}`
+      }
+      return `Heating to ${degrees(heater.setpoint_c)} · room is ${room}`
+    default:
+      return mode === undefined ? undefined : MODE_DESCRIPTIONS[mode]
+  }
+}
+
 /** What the page calls the heater's state: the phase, else the raw code, else nothing. */
 export function phaseLabel(heater: Heater): string | undefined {
   if (heater.ventilating === true) return 'Ventilating'

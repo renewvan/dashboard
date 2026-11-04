@@ -14,6 +14,7 @@ import {
   Fan,
   Gauge,
   Heater as HeaterIcon,
+  Info,
   Thermometer,
   ThermometerSun,
   TriangleAlert,
@@ -35,6 +36,7 @@ import {
   isReporting,
   operatingMode,
   phaseLabel,
+  statusLine,
   type HeaterSensor,
   type OperatingMode,
 } from '@/lib/heater'
@@ -212,7 +214,8 @@ interface CardProps extends Omit<HeaterPageProps, 'heaters' | 'driverOnline' | '
 const CARD_CLASS = 'min-h-0 gap-0! overflow-hidden p-0!'
 /** Both cards' header row: one place for its padding, in line with the content's side padding. */
 const HEADER_CLASS = 'flex-row! items-center justify-between gap-2 px-4 py-3 max-md:py-2.5'
-const CONTENT_CLASS = 'min-h-0 flex-1 gap-4 overflow-y-auto px-4 pt-2 pb-3'
+/** On a phone Start/Stop lives in the dial card, so this card ends with its readings and notes: more room above and below. */
+const CONTENT_CLASS = 'min-h-0 flex-1 gap-4 overflow-y-auto px-4 pt-2 pb-3 max-md:pt-3 max-md:pb-5'
 /** The dial card is tighter than the status card: the dial gets what the padding gives back. */
 const DIAL_CONTENT_CLASS = 'min-h-0 flex-1 gap-2 overflow-y-auto p-3 pt-2 max-md:px-4'
 
@@ -292,6 +295,7 @@ export function HeaterCard({
   const cabin = reporting ? heater.internal_temperature_c : undefined
 
   // Start/Stop sits under the mode buttons on a phone, and at the foot of the status card on the kiosk.
+  const line = statusLine(heater, current)
   const startStop = (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-3">
@@ -454,11 +458,23 @@ export function HeaterCard({
         />
       </dl>
 
+      {/* Venus OS's status line. Only where Start/Stop is not beside the readings: a phone and the Start widget. */}
+      {(isMobile || variant === 'widget') && line !== undefined && (
+        <p className="text-muted flex items-center gap-2 text-sm">
+          <Info aria-hidden="true" className="size-4 shrink-0" />
+          {line}
+        </p>
+      )}
+
       {!reporting && !frozen && (
-        <p className="text-muted text-xs">No recent reading from the heater.</p>
+        <p className="text-muted flex items-center gap-2 text-xs">
+          <Info aria-hidden="true" className="size-4 shrink-0" />
+          No recent reading from the heater.
+        </p>
       )}
       {reporting && !commandsOn && (
-        <p className="text-muted text-xs">
+        <p className="text-muted flex items-center gap-2 text-xs">
+          <Info aria-hidden="true" className="size-4 shrink-0" />
           Commands are turned off on the heater driver, so this page is read-only.
         </p>
       )}
@@ -578,7 +594,7 @@ export function HeaterCard({
                   id: 'readings',
                   label: 'Readings',
                   content: (
-                    <div className="flex w-full flex-col gap-4 self-start px-4 pb-4">
+                    <div className="flex w-full flex-col gap-4 self-start px-4 pt-3 pb-4">
                       {readings}
                     </div>
                   ),

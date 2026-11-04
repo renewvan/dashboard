@@ -11,6 +11,7 @@ import {
   operatingMode,
   phaseLabel,
   sensorLocked,
+  statusLine,
   stepWithin,
 } from './heater'
 
@@ -75,6 +76,41 @@ describe('mode switch rules', () => {
     expect(sensorLocked('ventilation')).toBe(true)
     expect(sensorLocked('temperature')).toBe(false)
     expect(sensorLocked('heat_ventilation')).toBe(false)
+  })
+})
+
+describe('status line', () => {
+  it('describes the selected mode while the heater is off', () => {
+    expect(statusLine({ phase: 'off', error_code: 0 }, 'temperature')).toBe(
+      'Maintain a target room temperature.',
+    )
+    expect(statusLine({ phase: 'off', error_code: 0 }, 'power')).toBe(
+      'Run the heater at a fixed power level.',
+    )
+  })
+
+  it('reads the transitions', () => {
+    expect(statusLine({ phase: 'starting' }, 'power')).toBe('Starting heater...')
+    expect(statusLine({ phase: 'warming_up' }, 'power')).toBe('Warming up...')
+    expect(statusLine({ phase: 'shutting_down' }, 'power')).toBe('Cooling down before stopping...')
+  })
+
+  it('shows the target and the room while running, as Venus does', () => {
+    const running = {
+      phase: 'running',
+      setpoint_c: 15,
+      power_level: 4,
+      internal_temperature_c: 47.6,
+    } as const
+    expect(statusLine(running, 'temperature')).toBe('Heating to 15°C · room is 48°C')
+    expect(statusLine(running, 'power')).toBe('Running at power level 4 · room is 48°C')
+    expect(statusLine(running, 'ventilation')).toBe('Ventilating · room is 48°C')
+    expect(statusLine({ phase: 'running' }, 'temperature')).toBe('Heating to -- · room is --')
+  })
+
+  it('names a fault, and says nothing when the heater is not reporting', () => {
+    expect(statusLine({ phase: 'off', error_code: 30 }, 'power')).toBe('Heater fault, error 30.')
+    expect(statusLine({}, 'power')).toBeUndefined()
   })
 })
 
