@@ -16,6 +16,7 @@ export type EntityType =
   | 'gps'
   | 'temperature'
   | 'tilt'
+  | 'heater'
 
 type EntityField = keyof Pick<
   RenewvanBusState,
@@ -28,6 +29,7 @@ type EntityField = keyof Pick<
   | 'gps'
   | 'temperatures'
   | 'tilt'
+  | 'heaters'
 >
 
 /** In the display order fallback rows keep (the order the Drivers list always used). */
@@ -41,6 +43,7 @@ const ENTITY_TYPES: Array<{ type: EntityType; field: EntityField; label: string 
   { type: 'gps', field: 'gps', label: 'GPS' },
   { type: 'temperature', field: 'temperatures', label: 'Temperature' },
   { type: 'tilt', field: 'tilt', label: 'Tilt' },
+  { type: 'heater', field: 'heaters', label: 'Heater' },
 ]
 
 const FALLBACK_PREFIX = 'domain:'
@@ -243,4 +246,17 @@ export function tiltDriversOffline(state: Pick<RenewvanBusState, 'drivers'>): bo
   return Object.values(state.drivers).some(
     (n) => n.info?.publishes?.includes('tilt') && n.health === 'offline',
   )
+}
+
+/**
+ * Whether every Driver that publishes `heater` is online, and at least one does. The same strict
+ * rule as `relayDriversOnline`, for the same reason: the heater's fields are retained, so a dead
+ * Driver leaves its last phase on the broker, and a heater page must read Unknown rather than
+ * show a flame that may be out (hub ADR 0021).
+ */
+export function heaterDriversOnline(state: Pick<RenewvanBusState, 'drivers'>): boolean {
+  const heaterDrivers = Object.values(state.drivers).filter((n) =>
+    n.info?.publishes?.includes('heater'),
+  )
+  return heaterDrivers.length > 0 && heaterDrivers.every((n) => n.health === 'online')
 }

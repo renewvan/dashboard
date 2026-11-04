@@ -86,7 +86,7 @@ const TOPIC_DEMO_ENABLED_SET = `${TOPIC_DEMO_ENABLED}/set`
 // `<id>/name/set` and `<id>/unit/set` command topics (three) never match.
 function entityPattern(root: string): RegExp {
   return new RegExp(
-    `^${root}/(tank|relay|battery|solar|charger|router|gps|temperature|tilt)/([^/]+)/([^/]+)$`,
+    `^${root}/(tank|relay|battery|solar|charger|router|gps|temperature|tilt|heater)/([^/]+)/([^/]+)$`,
   )
 }
 const ENTITY_PATTERN = { real: entityPattern(REAL_ROOT), demo: entityPattern(DEMO_ROOT) }
@@ -309,6 +309,27 @@ function applyDriverMessage(
   return { ...prev, drivers: empty ? others : { ...others, [key]: next } }
 }
 
+/** Every property the heater schema publishes; anything else on a heater topic is a command echo. */
+const HEATER_PROPERTIES: ReadonlySet<string> = new Set([
+  'driver',
+  'name',
+  'phase',
+  'status_code',
+  'error_code',
+  'internal_temperature_c',
+  'heater_temperature_c',
+  'external_temperature_c',
+  'voltage_v',
+  'setpoint_c',
+  'power_level',
+  'mode',
+  'runtime_s',
+  'fan_rpm',
+  'fuel_pump_hz',
+  'ventilating',
+  'commands_enabled',
+])
+
 /**
  * relay: `state` (a JSON boolean) and the optional `name` and `driver` (non-empty JSON strings),
  * nothing else. `set` is a four-segment topic, so the broker's echo of our own command reaches this
@@ -376,6 +397,12 @@ function applyMessage(
   }
   if (domain === 'tank') return { ...prev, tanks: accumulate(prev.tanks, id, property, value) }
   if (domain === 'gps') return { ...prev, gps: accumulate(prev.gps, id, property, value) }
+  if (domain === 'heater') {
+    // `set` is a four-segment topic, so the broker's echo of our own start/stop command reaches
+    // here: only the schema's published fields may land (hub ADR 0021).
+    if (!HEATER_PROPERTIES.has(property)) return prev
+    return { ...prev, heaters: accumulate(prev.heaters, id, property, value) }
+  }
   if (domain === 'tilt') return { ...prev, tilt: accumulate(prev.tilt, id, property, value) }
   if (domain === 'temperature') {
     return { ...prev, temperatures: accumulate(prev.temperatures, id, property, value) }

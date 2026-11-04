@@ -485,6 +485,7 @@ describe('useRenewvanBus entity driver and name', () => {
     ['temperature', 'temperatures'],
     ['tilt', 'tilt'],
     ['relay', 'relays'],
+    ['heater', 'heaters'],
   ] as const)('keeps the owning driver and name of a %s instance', async (domain, field) => {
     const { result } = renderHook(() => useRenewvanBus())
     await waitFor(() => expect(connectMock).toHaveBeenCalled())
@@ -492,6 +493,20 @@ describe('useRenewvanBus entity driver and name', () => {
     send(`renewvan/${domain}/a/name`, '"Main bank"')
     await waitFor(() =>
       expect(result.current.state[field]).toEqual({ a: { driver: 'venus', name: 'Main bank' } }),
+    )
+  })
+
+  it('accumulates heater fields and ignores the echo of its own start command', async () => {
+    const { result } = renderHook(() => useRenewvanBus())
+    await waitFor(() => expect(connectMock).toHaveBeenCalled())
+    send('renewvan/heater/cabin/phase', '"running"')
+    send('renewvan/heater/cabin/setpoint_c', '21')
+    send('renewvan/heater/cabin/set', 'true')
+    send('renewvan/heater/cabin/phase', '')
+    await waitFor(() =>
+      expect(result.current.state.heaters).toEqual({
+        cabin: { phase: undefined, setpoint_c: 21 },
+      }),
     )
   })
 

@@ -1,3 +1,4 @@
+import { devFlagOn } from '@/lib/devFlags'
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import { useAutoHide } from '@/hooks/useAutoHide'
@@ -57,7 +58,7 @@ export function useShellLayout(isMobile: boolean, navbarPosition: NavbarPosition
   // inside `Tabs` a second time, hidden, to build its collection, so a hook in the navbar would
   // run twice and the hidden copy would keep hiding a pinned navbar (and shifting the page).
   // The pin resets on reload and the phone's bottom bar never hides.
-  const [navPinned, setNavPinned] = useState(false)
+  const [navPinned, setNavPinned] = useState(() => devFlagOn('nav-pinned'))
   const navHidden = useAutoHide(!isMobile && !navPinned)
   // The inset the visible kiosk navbar covers; the phone's bottom bar stays in the layout.
   const navInset = isMobile || navHidden ? '0px' : isBottomBar ? BAR_INSET : RAIL_INSET

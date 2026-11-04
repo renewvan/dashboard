@@ -21,6 +21,8 @@ interface BuildSettingsInput {
   preferences: ReturnType<typeof usePreferences>
   commands: SettingsCommands
   handlers: Pick<SettingsActions, 'sleepDisplay' | 'wakeDisplay' | 'openAlerts'>
+  /** Dev only: set on the kiosk, where the navbar can be pinned. */
+  navPin?: { pinned: boolean; onChange: (pinned: boolean) => void }
 }
 
 /**
@@ -35,6 +37,7 @@ export function buildSettings({
   preferences,
   commands,
   handlers,
+  navPin,
 }: BuildSettingsInput) {
   const { state } = bus
   const data: SettingsData = {
@@ -58,12 +61,14 @@ export function buildSettings({
     autoSleepEnabled: bus.autoSleepEnabled,
     autoSleepTimeoutMinutes: bus.autoSleepTimeoutMinutes,
     demoMode: bus.demoMode,
+    ...(navPin && { navPinned: navPin.pinned }),
   }
   const actions: SettingsActions = {
     ...preferences.actions,
     ...commands,
     ...handlers,
     setDemoMode: bus.setDemoMode,
+    ...(navPin && { setNavPinned: navPin.onChange }),
   }
   return { data, preferences: prefs, actions }
 }

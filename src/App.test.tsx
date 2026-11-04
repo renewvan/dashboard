@@ -519,11 +519,11 @@ describe('App shell page selection', () => {
     expect(new URLSearchParams(window.location.search).get('page')).toBe('power')
   })
 
-  it('shows the stub pane heading for the selected page', async () => {
+  it('shows the Heater page, empty until the heater driver publishes', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('tab', { name: 'Heater' }))
-    expect(screen.getByRole('heading', { name: 'Heater' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'No heater yet.' })).toBeInTheDocument()
   })
 })
 
