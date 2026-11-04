@@ -189,6 +189,21 @@ describe('HeaterPage', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('says in the readings card, on a phone only, what the heater is doing, as Venus OS does', () => {
+    setup({ cabin: RUNNING }, {}, 400)
+    const readings = screen.getByLabelText('Cabin heater status')
+    expect(within(readings).getByText('Heating to 21°C · room is 19°C')).toBeInTheDocument()
+    cleanup()
+    setup({ cabin: { ...RUNNING, mode: 'power' } }, {}, 400)
+    expect(screen.getByText('Running at power level 4 · room is 19°C')).toBeInTheDocument()
+    cleanup()
+    setup({ cabin: OFF }, {}, 400)
+    expect(screen.getByText('Maintain a target room temperature.')).toBeInTheDocument()
+    cleanup()
+    setup({ cabin: RUNNING })
+    expect(screen.queryByText(/room is/)).not.toBeInTheDocument()
+  })
+
   it('keeps Runtime beside the timer even when the heater is Unknown', () => {
     setup({ cabin: { name: 'Cabin heater', commands_enabled: true } })
     const cell = screen.getByText('Runtime').parentElement
