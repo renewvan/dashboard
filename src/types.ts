@@ -370,6 +370,37 @@ export interface Relay {
   name?: string
 }
 
+export type HeaterPhase = 'off' | 'starting' | 'warming_up' | 'running' | 'shutting_down'
+export type HeaterMode = 'heater_temperature' | 'external_temperature' | 'power'
+
+/**
+ * A fuel-fired space heater per hub/schema/heater.schema.json (ADR 0021; first source driver-autoterm).
+ * Every field is optional: unknown is an empty retained payload, so an absent live field means the
+ * heater cannot say (a stale link, a missing probe), never zero. `error_code` 0 means no fault and is
+ * independent of `phase`. `commands_enabled` is the Driver's own switch: while it is not `true` every
+ * command is ignored.
+ */
+export interface Heater {
+  /** Key of the owning Driver (`renewvan/<driver>/info`); absent on a legacy publisher. */
+  driver?: string
+  name?: string
+  phase?: HeaterPhase
+  status_code?: string
+  error_code?: number
+  internal_temperature_c?: number
+  heater_temperature_c?: number
+  external_temperature_c?: number
+  voltage_v?: number
+  setpoint_c?: number
+  power_level?: number
+  mode?: HeaterMode
+  runtime_s?: number
+  fan_rpm?: number
+  fuel_pump_hz?: number
+  ventilating?: boolean
+  commands_enabled?: boolean
+}
+
 export type NetworkType = '2g' | '3g' | 'lte' | 'nr' | 'unknown'
 
 /**
@@ -434,6 +465,7 @@ export interface RenewvanBusState {
   gps: Record<string, Gps>
   temperatures: Record<string, TemperatureSensor>
   tilt: Record<string, Tilt>
+  heaters: Record<string, Heater>
   /** Epoch ms of the newest router property per id — feeds the connection
    * icon's staleness rule (health offline OR older than 180 s = offline;
    * see lib/connection.ts). */
@@ -452,6 +484,7 @@ export const emptyRenewvanBusState: RenewvanBusState = {
   gps: {},
   temperatures: {},
   tilt: {},
+  heaters: {},
   routerUpdatedAt: {},
   drivers: {},
 }

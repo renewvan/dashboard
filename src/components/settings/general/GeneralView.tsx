@@ -35,6 +35,62 @@ function DemoModeRow() {
   )
 }
 
+/** Dev only: holds the simulated heater where it is, so a state (a fault) can be worked on. */
+function PauseHeaterLoopRow() {
+  const { demoMode, heaterSimulationPaused } = useSettingsPreferences()
+  const { toggleHeaterSimulationPause } = useSettingsActions()
+  if (!demoMode || heaterSimulationPaused === undefined || !toggleHeaterSimulationPause) return null
+
+  return (
+    <div className="border-border bg-surface overflow-hidden rounded-2xl border">
+      <Switch
+        className="w-full"
+        isSelected={heaterSimulationPaused}
+        onChange={toggleHeaterSimulationPause}
+      >
+        <Switch.Content className="w-full justify-between gap-3 px-3.5 py-3">
+          <Label className="flex flex-col items-start gap-0.5 text-sm font-medium">
+            Pause heater demo loop
+            <span className="text-muted text-xs font-normal">
+              {heaterSimulationPaused
+                ? 'Heater held; commands stay local'
+                : 'Heater cycles through its phases'}
+            </span>
+          </Label>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+        </Switch.Content>
+      </Switch>
+    </div>
+  )
+}
+
+/** Dev only: the kiosk navbar's pin, which resets on reload, set from here or `?flag.nav-pinned=1`. */
+function PinNavbarRow() {
+  const { navPinned } = useSettingsPreferences()
+  const { setNavPinned } = useSettingsActions()
+  if (navPinned === undefined || !setNavPinned) return null
+
+  return (
+    <div className="border-border bg-surface overflow-hidden rounded-2xl border">
+      <Switch className="w-full" isSelected={navPinned} onChange={setNavPinned}>
+        <Switch.Content className="w-full justify-between gap-3 px-3.5 py-3">
+          <Label className="flex flex-col items-start gap-0.5 text-sm font-medium">
+            Pin navbar
+            <span className="text-muted text-xs font-normal">
+              {navPinned ? 'Always visible' : 'Hides after a moment of inactivity'}
+            </span>
+          </Label>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+        </Switch.Content>
+      </Switch>
+    </div>
+  )
+}
+
 /** General's groups, System then Preferences: each row opens its own page under a live summary, bar the inline Demo mode switch. */
 export function GeneralView({ onOpen }: GeneralViewProps) {
   const { alertsEnabled } = useSettingsPreferences()
@@ -49,6 +105,8 @@ export function GeneralView({ onOpen }: GeneralViewProps) {
         />
         <GroupRow label="About" description="Credits and licences" onOpen={() => onOpen('about')} />
         <DemoModeRow />
+        <PauseHeaterLoopRow />
+        <PinNavbarRow />
       </Group>
       <Group title="Preferences">
         <GroupRow

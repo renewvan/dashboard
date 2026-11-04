@@ -1,6 +1,6 @@
 import type { AutoSleepTimeoutMinutes } from '@/hooks/useRenewvanBus'
 import { iconKey, type IconEntity } from '@/lib/entityIcons'
-import type { TemperatureUnit } from '@/types'
+import type { HeaterMode, TemperatureUnit } from '@/types'
 
 /**
  * Settings commands: the one place that owns the `/set` topics and the
@@ -24,6 +24,10 @@ const TOPIC_ICONS_SET = 'renewvan/hub/icons/set'
 
 const tiltLevelTopic = (id: string) => `renewvan/tilt/${id}/level_zero/set`
 
+const heaterSetTopic = (
+  id: string,
+  field: 'set' | 'mode/set' | 'setpoint_c/set' | 'power_level/set',
+) => `renewvan/heater/${id}/${field}`
 const relaySetTopic = (id: string, field: 'set' | 'name/set') => `renewvan/relay/${id}/${field}`
 
 export type Publish = (topic: string, payload: string) => void
@@ -42,6 +46,13 @@ export interface SettingsCommands {
   /** Sends the TARGET state, never a toggle: a toggle is not idempotent (hub ADR 0013). */
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
+  /** Starts (`true`) or stops (`false`) the heater: a target, never a toggle (hub ADR 0021). */
+  setHeaterRunning: (id: string, run: boolean) => void
+  setHeaterMode: (id: string, mode: HeaterMode) => void
+  /** Integer 1-30 degrees C. */
+  setHeaterSetpoint: (id: string, celsius: number) => void
+  /** Integer 0-9. */
+  setHeaterPowerLevel: (id: string, level: number) => void
   /** Captures the tilt sensor's current attitude as level (park the van level first); the driver persists it. */
   setTiltLevel: (id: string) => void
   /** Clears the captured level, so the angles read raw again. */
@@ -65,6 +76,12 @@ export function settingsCommands(publish: Publish): SettingsCommands {
     setEntityIcon: (entity, id, icon) =>
       publish(TOPIC_ICONS_SET, JSON.stringify({ key: iconKey(entity, id), icon })),
     setRelay: (id, on) => publish(relaySetTopic(id, 'set'), JSON.stringify(on)),
+    setHeaterRunning: (id, run) => publish(heaterSetTopic(id, 'set'), JSON.stringify(run)),
+    setHeaterMode: (id, mode) => publish(heaterSetTopic(id, 'mode/set'), JSON.stringify(mode)),
+    setHeaterSetpoint: (id, celsius) =>
+      publish(heaterSetTopic(id, 'setpoint_c/set'), JSON.stringify(celsius)),
+    setHeaterPowerLevel: (id, level) =>
+      publish(heaterSetTopic(id, 'power_level/set'), JSON.stringify(level)),
     setRelayName: (id, name) => publish(relaySetTopic(id, 'name/set'), JSON.stringify(name)),
     // The driver treats any payload as "capture"; `reset` clears. Quoted like every other payload.
     setTiltLevel: (id) => publish(tiltLevelTopic(id), JSON.stringify('capture')),

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Droplet, Gauge, Heater, Map, Settings, Thermometer, ToggleLeft, Zap } from 'lucide-react'
 import { Tabs } from '@heroui/react'
 import lockupLight from '../assets/logo/svg/renewvan-lockup-light.svg'
@@ -10,6 +10,8 @@ import { LogoLink } from '@/components/LogoLink'
 import { DrawerMenuControls, DrawerMenuFooter } from '@/components/DrawerMenuContent'
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
+import { devFlagOn } from '@/lib/devFlags'
+import { useSimulatedHeaters } from '@/hooks/useSimulatedHeaters'
 import { DemoBadge } from '@/components/DemoBadge'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
@@ -22,6 +24,7 @@ import type { SettingsSubView } from '@/components/settings/views'
 import { TanksPage } from '@/components/tanks/TanksPage'
 import { TemperaturePage } from '@/components/temperature/TemperaturePage'
 import { RelaysPage } from '@/components/relays/RelaysPage'
+import { HeaterPage } from '@/components/heater/HeaterPage'
 import { StartPage } from '@/components/start/StartPage'
 import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
@@ -32,7 +35,12 @@ import { instanceKey } from '@/lib/instances'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { useUnseenAlertCount } from '@/hooks/useUnseenAlertCount'
 import { useRenewvanBus } from '@/hooks/useRenewvanBus'
-import { driverRows, relayDriversOnline, tiltDriversOffline } from '@/lib/drivers'
+import {
+  driverRows,
+  heaterDriversOnline,
+  relayDriversOnline,
+  tiltDriversOffline,
+} from '@/lib/drivers'
 import { AUTO_PRIMARY_BATTERY } from '@/lib/primaryBattery'
 import type { RenewvanBusState } from '@/types'
 import { useDisplayCommands } from '@/hooks/useDisplayCommands'
@@ -118,6 +126,16 @@ function App() {
   const alertHistory = useAlertHistory()
   const hub = useHubAddress(hubStatus)
   const broker = useBrokerLink()
+  // Dev builds only: Demo mode's heater is read-only (hub ADR 0021), so simulate its commands locally.
+  // `?flag.demo=1` (dev builds) turns Demo mode on once, as soon as the bus is connected.
+  const demoFlagApplied = useRef(false)
+  useEffect(() => {
+    if (status !== 'connected' || demoFlagApplied.current) return
+    demoFlagApplied.current = true
+    if (devFlagOn('demo')) setDemoMode(true)
+  }, [status, setDemoMode])
+  const simulateHeaters = demoMode && import.meta.env.DEV
+  const simulatedHeaters = useSimulatedHeaters(state.heaters, simulateHeaters)
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled, demo: demoMode })
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
   // A view (and the tank it shows) belongs to the Settings page: any other page change leaves
@@ -176,6 +194,7 @@ function App() {
   // The Settings nav bar's bell: stable like the sleep handlers, so the settings value only changes
   // when a field does. `goToPage` closes over `setActivePage`, recreated each render.
   const openAlerts = useStableCallback(() => goToPage('alerts'))
+  const toggleHeaterPause = useStableCallback(simulatedHeaters.togglePause)
   const settings = buildSettings({
     bus,
     derived: {
@@ -191,6 +210,11 @@ function App() {
     preferences: prefs,
     commands,
     handlers: { sleepDisplay, wakeDisplay, openAlerts },
+    heaterSimulation: simulateHeaters
+      ? { paused: simulatedHeaters.paused, onTogglePause: toggleHeaterPause }
+      : undefined,
+    navPin:
+      import.meta.env.DEV && !isMobile ? { pinned: navPinned, onChange: setNavPinned } : undefined,
   })
 
   const demoBadge = demoMode && <DemoBadge onPress={() => setDemoMode(false)} />
@@ -308,7 +332,7 @@ function App() {
     </header>
   )
 
-  // One page per nav item; one that is not built yet (Heater) shows a stub.
+  // One page per nav item; one that is not built yet shows a stub.
   const renderPage = (item: NavItem) => {
     switch (item.id) {
       case 'start':
@@ -376,6 +400,22 @@ function App() {
             driverOnline={relayDriversOnline(state)}
             demo={demoMode}
             onSetRelay={commands.setRelay}
+          />
+        )
+      case 'heater':
+        return (
+          <HeaterPage
+            heaters={simulatedHeaters.heaters}
+            driverOnline={simulateHeaters || heaterDriversOnline(state)}
+            demo={demoMode && !simulateHeaters}
+            onSetRunning={simulateHeaters ? simulatedHeaters.setRunning : commands.setHeaterRunning}
+            onSetMode={simulateHeaters ? simulatedHeaters.setMode : commands.setHeaterMode}
+            onSetSetpoint={
+              simulateHeaters ? simulatedHeaters.setSetpoint : commands.setHeaterSetpoint
+            }
+            onSetPowerLevel={
+              simulateHeaters ? simulatedHeaters.setPowerLevel : commands.setHeaterPowerLevel
+            }
           />
         )
       case 'settings':

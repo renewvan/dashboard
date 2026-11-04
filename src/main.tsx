@@ -4,6 +4,9 @@ import './index.css'
 import App from './App.tsx'
 import { AppToasts } from './components/AppToasts.tsx'
 import { registerSW } from 'virtual:pwa-register'
+import { applyDevFlags } from './lib/devFlags.ts'
+
+applyDevFlags()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
