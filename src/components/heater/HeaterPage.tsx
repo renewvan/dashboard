@@ -30,7 +30,6 @@ import {
   sensorLocked,
   canStart,
   canStop,
-  formatRuntime,
   hasError,
   heaterSensor,
   isReporting,
@@ -41,6 +40,7 @@ import {
 } from '@/lib/heater'
 import type { Heater, HeaterMode } from '@/types'
 import { DialSlider } from './DialSlider'
+import { RunTime } from './RunTime'
 /**
  * A command that has not changed its retained field in this long is reported as failed. Longer than
  * the relay's 4 s: a settings write is only confirmed by the Driver's next settings read (hub ADR 0021).
@@ -378,10 +378,9 @@ function HeaterCard({
               label="Fuel pump"
               value={reporting ? fmt(heater.fuel_pump_hz, 1, 'Hz') : '—'}
             />
-            {heater.runtime_s !== undefined && reporting && (
-              <Readout label="Runtime" value={formatRuntime(heater.runtime_s)} />
-            )}
-            <div className="col-start-2 flex min-w-0 flex-col gap-0.5">
+            {/* Beside the sensor: the clock the Start button starts, as on Venus OS. */}
+            {reporting ? <RunTime heater={heater} /> : <Readout label="Runtime" value="—" />}
+            <div className="flex min-w-0 flex-col gap-0.5">
               <dt className="text-muted text-xs">Sensor</dt>
               <dd>
                 {/* Which probe a temperature mode reads. Power mode reads none, and the heater

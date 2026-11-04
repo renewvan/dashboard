@@ -135,9 +135,11 @@ export function stepWithin(
   return next === value ? undefined : next
 }
 
-/** Runtime as `45 min` or `2 h 05 min`. */
-export function formatRuntime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes} min`
-  return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min`
+/** A running clock: `0:42`, `12:05`, or `1:02:05` from an hour up. */
+export function formatClock(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds))
+  const s = String(whole % 60).padStart(2, '0')
+  const minutes = Math.floor(whole / 60)
+  if (minutes < 60) return `${minutes}:${s}`
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}:${s}`
 }

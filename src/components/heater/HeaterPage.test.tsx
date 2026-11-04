@@ -69,6 +69,27 @@ describe('HeaterPage', () => {
     expect(screen.getByText('3000 rpm')).toBeInTheDocument()
   })
 
+  it('runs a clock from the start, resyncs to the heater and resets when it is off', () => {
+    const { rerender } = setup({ cabin: { ...OFF, runtime_s: 0 } })
+    const clock = () => screen.getByText('Runtime').nextElementSibling?.textContent
+    expect(clock()).toBe('0:00')
+    // Off to on: counts from zero whatever the heater last reported.
+    rerender({ cabin: { ...OFF, phase: 'starting', runtime_s: 900 } })
+    act(() => {
+      vi.advanceTimersByTime(3000)
+    })
+    expect(clock()).toBe('0:03')
+    // The heater's own figure wins whenever it arrives, and the clock keeps counting from it.
+    rerender({ cabin: { ...RUNNING, runtime_s: 125 } })
+    expect(clock()).toBe('2:05')
+    act(() => {
+      vi.advanceTimersByTime(2000)
+    })
+    expect(clock()).toBe('2:07')
+    rerender({ cabin: { ...OFF, runtime_s: 130 } })
+    expect(clock()).toBe('0:00')
+  })
+
   it('reads Unknown, with controls off, when the driver is not online', () => {
     setup({ cabin: RUNNING }, { driverOnline: false })
     expect(screen.getByText('Unknown')).toBeInTheDocument()

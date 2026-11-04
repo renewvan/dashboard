@@ -3,7 +3,7 @@ import {
   canChangeSettings,
   canStart,
   canStop,
-  formatRuntime,
+  formatClock,
   heaterSensor,
   isReporting,
   modeSwitchBlock,
@@ -115,8 +115,11 @@ describe('heater helpers', () => {
     expect(stepWithin(0, -1, { min: 0, max: 9 })).toBeUndefined()
   })
 
-  it('formats runtime', () => {
-    expect(formatRuntime(125)).toBe('2 min')
-    expect(formatRuntime(7500)).toBe('2 h 05 min')
+  it('formats the running clock', () => {
+    expect(formatClock(0)).toBe('0:00')
+    expect(formatClock(42)).toBe('0:42')
+    expect(formatClock(725)).toBe('12:05')
+    expect(formatClock(3725)).toBe('1:02:05')
+    expect(formatClock(-3)).toBe('0:00')
   })
 })
