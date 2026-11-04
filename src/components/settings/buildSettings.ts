@@ -21,8 +21,6 @@ interface BuildSettingsInput {
   preferences: ReturnType<typeof usePreferences>
   commands: SettingsCommands
   handlers: Pick<SettingsActions, 'sleepDisplay' | 'wakeDisplay' | 'openAlerts'>
-  /** Dev only: set while Demo mode simulates the heater locally. */
-  heaterSimulation?: { paused: boolean; onTogglePause: () => void }
   /** Dev only: set on the kiosk, where the navbar can be pinned. */
   navPin?: { pinned: boolean; onChange: (pinned: boolean) => void }
 }
@@ -39,7 +37,6 @@ export function buildSettings({
   preferences,
   commands,
   handlers,
-  heaterSimulation,
   navPin,
 }: BuildSettingsInput) {
   const { state } = bus
@@ -64,7 +61,6 @@ export function buildSettings({
     autoSleepEnabled: bus.autoSleepEnabled,
     autoSleepTimeoutMinutes: bus.autoSleepTimeoutMinutes,
     demoMode: bus.demoMode,
-    ...(heaterSimulation && { heaterSimulationPaused: heaterSimulation.paused }),
     ...(navPin && { navPinned: navPin.pinned }),
   }
   const actions: SettingsActions = {
@@ -72,7 +68,6 @@ export function buildSettings({
     ...commands,
     ...handlers,
     setDemoMode: bus.setDemoMode,
-    ...(heaterSimulation && { toggleHeaterSimulationPause: heaterSimulation.onTogglePause }),
     ...(navPin && { setNavPinned: navPin.onChange }),
   }
   return { data, preferences: prefs, actions }

@@ -1,5 +1,6 @@
 import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from '@heroui/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { stubMatchMedia } from '@/test/matchMedia'
 import type { Heater } from '@/types'
@@ -150,6 +151,7 @@ describe('HeaterPage', () => {
   })
 
   it('reports a setting that the heater never confirmed', async () => {
+    const danger = vi.spyOn(toast, 'danger').mockReturnValue('t')
     const { user } = setup({ cabin: RUNNING })
     screen.getByRole('slider', { name: 'Target' }).focus()
     await user.keyboard('{ArrowDown}')
@@ -157,8 +159,138 @@ describe('HeaterPage', () => {
     act(() => {
       vi.advanceTimersByTime(GIVE_UP_MS)
     })
-    expect(screen.getByText("Target didn't change")).toBeInTheDocument()
+    expect(danger).toHaveBeenCalledWith("Target didn't change", { description: 'Cabin heater' })
+    expect(screen.queryByText("Target didn't change")).not.toBeInTheDocument()
+    danger.mockRestore()
     expect(screen.getByRole('slider', { name: 'Target' })).toHaveAttribute('aria-valuenow', '21')
+  })
+
+  it('keeps Stop usable, and reports nothing, once the heater answered a start', async () => {
+    const danger = vi.spyOn(toast, 'danger').mockReturnValue('t')
+    const { user, rerender } = setup({ cabin: OFF })
+    await user.click(screen.getByRole('button', { name: 'Start' }))
+    const dialog = await screen.findByRole('alertdialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Start' }))
+    rerender({ cabin: { ...OFF, phase: 'running' } })
+    act(() => {
+      vi.advanceTimersByTime(GIVE_UP_MS)
+    })
+    expect(danger).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+    danger.mockRestore()
+  })
+
+  it('switches to Power from a temperature mode', async () => {
+    const { user } = setup({ cabin: RUNNING })
+    expect(screen.getByRole('radio', { name: 'Temperature' })).toBeChecked()
+    await user.click(screen.getByRole('radio', { name: 'Power' }))
+    expect(handlers.onSetMode).toHaveBeenCalledWith('cabin', 'power')
+  })
+
+  it('returns to the sensor it was last using when switching back to Temperature', async () => {
+    const { user, rerender } = setup({ cabin: { ...RUNNING, mode: 'external_temperature' } })
+    rerender({ cabin: { ...RUNNING, mode: 'power' } })
+    await user.click(screen.getByRole('radio', { name: 'Temperature' }))
+    expect(handlers.onSetMode).toHaveBeenCalledWith('cabin', 'external_temperature')
+  })
+
+  it('offers Ventilation and Heat + ventilation but cannot command them yet', () => {
+    setup({ cabin: RUNNING })
+    expect(screen.getByRole('radio', { name: 'Ventilation' })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: 'Heat + ventilation' })).toBeDisabled()
+  })
+
+  it('lists Thermostat too, disabled on a real heater', () => {
+    setup({ cabin: RUNNING })
+    expect(screen.getByRole('radio', { name: 'Thermostat' })).toBeDisabled()
+  })
+
+  it('lets the local heater pick every mode', async () => {
+    const onChange = vi.fn()
+    const { user } = setup({ cabin: OFF }, { localModes: { mode: 'temperature', onChange } })
+    await user.click(screen.getByRole('radio', { name: 'Thermostat' }))
+    expect(onChange).toHaveBeenCalledWith('thermostat', 'heater_temperature')
+    await user.click(screen.getByRole('radio', { name: 'Ventilation' }))
+    expect(onChange).toHaveBeenCalledWith('ventilation', 'heater_temperature')
+    expect(handlers.onSetMode).not.toHaveBeenCalled()
+  })
+
+  it('is warm while running, and blue in Ventilation', () => {
+    const { rerender } = setup({ cabin: RUNNING })
+    const tone = () =>
+      document
+        .querySelector<HTMLElement>('[aria-label="Cabin heater setting"]')
+        ?.style.getPropertyValue('--tone')
+    expect(tone()).toBe('var(--warning)')
+    rerender({ cabin: { ...RUNNING, ventilating: true } })
+    expect(tone()).toBe('var(--accent)')
+  })
+
+  it('offers to stop first when leaving Ventilation while the heater runs, then switches once off', async () => {
+    const onChange = vi.fn()
+    const { user, rerender } = setup(
+      { cabin: RUNNING },
+      { localModes: { mode: 'ventilation', onChange } },
+    )
+    await user.click(screen.getByRole('radio', { name: 'Temperature' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog).toHaveTextContent('Switch to Temperature?')
+    expect(dialog).toHaveTextContent('Stop the heater first?')
+    expect(onChange).not.toHaveBeenCalled()
+    await user.click(within(dialog).getByRole('button', { name: 'Stop heater' }))
+    expect(handlers.onSetRunning).toHaveBeenCalledWith('cabin', false)
+    expect(onChange).not.toHaveBeenCalled()
+    rerender({ cabin: { ...RUNNING, phase: 'off' } })
+    expect(onChange).toHaveBeenCalledWith('temperature', 'heater_temperature')
+  })
+
+  it('offers to stop first when entering Ventilation from a heating mode', async () => {
+    const onChange = vi.fn()
+    const { user } = setup({ cabin: RUNNING }, { localModes: { mode: 'temperature', onChange } })
+    await user.click(screen.getByRole('radio', { name: 'Ventilation' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog).toHaveTextContent('Switch to Ventilation?')
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(handlers.onSetRunning).not.toHaveBeenCalled()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('switches between heating modes while running without asking', async () => {
+    const onChange = vi.fn()
+    const { user } = setup({ cabin: RUNNING }, { localModes: { mode: 'temperature', onChange } })
+    await user.click(screen.getByRole('radio', { name: 'Power' }))
+    expect(onChange).toHaveBeenCalledWith('power', 'heater_temperature')
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  })
+
+  it('switches into and out of Ventilation once the heater is off', () => {
+    const onChange = vi.fn()
+    setup({ cabin: OFF }, { localModes: { mode: 'ventilation', onChange } })
+    expect(screen.getByRole('radio', { name: 'Temperature' })).toBeEnabled()
+    expect(screen.getByRole('radio', { name: 'Thermostat' })).toBeEnabled()
+  })
+
+  it('has no sensor to pick in Thermostat or Ventilation either', () => {
+    const onChange = vi.fn()
+    setup({ cabin: RUNNING }, { localModes: { mode: 'thermostat', onChange } })
+    expect(screen.getByRole('button', { name: /Temperature sensor/ })).toBeDisabled()
+  })
+
+  it('shows a fan-only heater as Ventilation', () => {
+    setup({ cabin: { ...RUNNING, ventilating: true } })
+    expect(screen.getByRole('radio', { name: 'Ventilation' })).toBeChecked()
+  })
+
+  it('picks the temperature sensor from the dropdown', async () => {
+    const { user } = setup({ cabin: RUNNING })
+    await user.click(screen.getByRole('button', { name: /Temperature sensor/ }))
+    await user.click(screen.getByRole('option', { name: 'External probe' }))
+    expect(handlers.onSetMode).toHaveBeenCalledWith('cabin', 'external_temperature')
+  })
+
+  it('has no sensor to pick in Power mode', () => {
+    setup({ cabin: { ...RUNNING, mode: 'power' } })
+    expect(screen.getByRole('button', { name: /Temperature sensor/ })).toBeDisabled()
   })
 
   it('disables everything in demo mode and sends nothing', async () => {

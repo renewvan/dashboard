@@ -4,7 +4,7 @@ import { writeStorage } from '@/hooks/useStoredState'
 const PREFIX = 'flag.'
 const STORAGE_PREFIX = 'renewvan-dashboard-'
 /** Flags that are not a stored setting: each is read by the code it switches. */
-const SESSION_FLAGS: ReadonlySet<string> = new Set(['demo', 'nav-pinned', 'heater-pause'])
+const SESSION_FLAGS: ReadonlySet<string> = new Set(['demo', 'nav-pinned', 'heater-dev'])
 
 /** The raw value of dev flag `name`, or null. Always null outside a dev build, so a kiosk ignores them. */
 export function readDevFlag(name: string): string | null {

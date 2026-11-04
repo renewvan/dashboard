@@ -35,37 +35,6 @@ function DemoModeRow() {
   )
 }
 
-/** Dev only: holds the simulated heater where it is, so a state (a fault) can be worked on. */
-function PauseHeaterLoopRow() {
-  const { demoMode, heaterSimulationPaused } = useSettingsPreferences()
-  const { toggleHeaterSimulationPause } = useSettingsActions()
-  if (!demoMode || heaterSimulationPaused === undefined || !toggleHeaterSimulationPause) return null
-
-  return (
-    <div className="border-border bg-surface overflow-hidden rounded-2xl border">
-      <Switch
-        className="w-full"
-        isSelected={heaterSimulationPaused}
-        onChange={toggleHeaterSimulationPause}
-      >
-        <Switch.Content className="w-full justify-between gap-3 px-3.5 py-3">
-          <Label className="flex flex-col items-start gap-0.5 text-sm font-medium">
-            Pause heater demo loop
-            <span className="text-muted text-xs font-normal">
-              {heaterSimulationPaused
-                ? 'Heater held; commands stay local'
-                : 'Heater cycles through its phases'}
-            </span>
-          </Label>
-          <Switch.Control>
-            <Switch.Thumb />
-          </Switch.Control>
-        </Switch.Content>
-      </Switch>
-    </div>
-  )
-}
-
 /** Dev only: the kiosk navbar's pin, which resets on reload, set from here or `?flag.nav-pinned=1`. */
 function PinNavbarRow() {
   const { navPinned } = useSettingsPreferences()
@@ -105,7 +74,6 @@ export function GeneralView({ onOpen }: GeneralViewProps) {
         />
         <GroupRow label="About" description="Credits and licences" onOpen={() => onOpen('about')} />
         <DemoModeRow />
-        <PauseHeaterLoopRow />
         <PinNavbarRow />
       </Group>
       <Group title="Preferences">

@@ -1,6 +1,17 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { AlertDialog, Card, Button, Spinner, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import {
+  AlertDialog,
+  Button,
+  Card,
+  ListBox,
+  Select,
+  Spinner,
+  ToggleButton,
+  ToggleButtonGroup,
+  toast,
+} from '@heroui/react'
+import {
+  Fan,
   Gauge,
   Heater as HeaterIcon,
   Thermometer,
@@ -9,16 +20,24 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import {
+  HEATER_SENSORS,
   MODE_LABELS,
+  OPERATING_MODES,
   POWER_RANGE,
   SETPOINT_RANGE,
   canChangeSettings,
+  modeSwitchBlock,
+  sensorLocked,
   canStart,
   canStop,
   formatRuntime,
   hasError,
+  heaterSensor,
   isReporting,
+  operatingMode,
   phaseLabel,
+  type HeaterSensor,
+  type OperatingMode,
 } from '@/lib/heater'
 import type { Heater, HeaterMode } from '@/types'
 import { DialSlider } from './DialSlider'
@@ -27,6 +46,14 @@ import { DialSlider } from './DialSlider'
  * the relay's 4 s: a settings write is only confirmed by the Driver's next settings read (hub ADR 0021).
  */
 export const GIVE_UP_MS = 6000
+
+/** The toast title for a command the heater never confirmed. */
+const FAILURE_TITLES: Record<Field, string> = {
+  setpoint: "Target didn't change",
+  power: "Power didn't change",
+  mode: "Mode didn't change",
+  run: "Heater didn't respond",
+}
 
 export interface HeaterPageProps {
   heaters: Record<string, Heater>
@@ -38,6 +65,14 @@ export interface HeaterPageProps {
   onSetMode: (id: string, mode: HeaterMode) => void
   onSetSetpoint: (id: string, celsius: number) => void
   onSetPowerLevel: (id: string, level: number) => void
+  /**
+   * Dev only (the local heater): every operating mode can be picked, because the page then owns
+   * the mode. Absent on a real heater, where only Power and Temperature are commandable.
+   */
+  localModes?: {
+    mode: OperatingMode
+    onChange: (mode: OperatingMode, sensor: HeaterSensor) => void
+  }
 }
 
 /** The four things a card can command; each is confirmed by its own retained field changing. */
@@ -50,11 +85,12 @@ interface Pending {
   failed: boolean
 }
 
-const MODES = Object.keys(MODE_LABELS) as HeaterMode[]
-const MODE_ICONS: Record<HeaterMode, LucideIcon> = {
-  heater_temperature: Thermometer,
-  external_temperature: ThermometerSun,
+const OPERATING_MODE_ICONS: Record<OperatingMode, LucideIcon> = {
   power: Gauge,
+  temperature: Thermometer,
+  ventilation: Fan,
+  heat_ventilation: HeaterIcon,
+  thermostat: ThermometerSun,
 }
 
 /** The retained value that confirms each command. A start or stop is confirmed by the phase moving. */
@@ -80,6 +116,11 @@ function useCommands(heater: Heater, frozen: boolean) {
   const [pending, setPending] = useState<Partial<Record<Field, Pending>>>({})
   const [wasFrozen, setWasFrozen] = useState(frozen)
   const timers = useRef<Map<Field, number>>(new Map())
+  // The heater as of the latest render, so a timer can tell whether the heater has answered since.
+  const latest = useRef(heater)
+  useEffect(() => {
+    latest.current = heater
+  })
 
   const clearTimers = () => {
     for (const handle of timers.current.values()) window.clearTimeout(handle)
@@ -98,17 +139,18 @@ function useCommands(heater: Heater, frozen: boolean) {
   const send = (field: Field, action: () => void, to?: number) => {
     if (frozen) return
     window.clearTimeout(timers.current.get(field))
-    setPending((prev) => ({
-      ...prev,
-      [field]: { from: observed(heater, field), to, failed: false },
-    }))
+    const from = observed(heater, field)
+    setPending((prev) => ({ ...prev, [field]: { from, to, failed: false } }))
     timers.current.set(
       field,
       window.setTimeout(() => {
         timers.current.delete(field)
+        // The heater moved on while the timer ran: it answered, so there is nothing to report.
+        if (observed(latest.current, field) !== from) return
         setPending((prev) =>
           prev[field] ? { ...prev, [field]: { ...prev[field], failed: true } } : prev,
         )
+        toast.danger(FAILURE_TITLES[field], { description: heater.name })
       }, GIVE_UP_MS),
     )
     action()
@@ -145,7 +187,7 @@ interface CardProps extends Omit<HeaterPageProps, 'heaters' | 'driverOnline' | '
 }
 
 const CARD_CLASS = 'min-h-0 gap-0! overflow-hidden p-0!'
-const CONTENT_CLASS = 'min-h-0 flex-1 gap-4 overflow-y-auto px-4 pt-2 pb-4'
+const CONTENT_CLASS = 'min-h-0 flex-1 gap-4 overflow-y-auto px-4 pt-2 pb-3'
 /** The dial card is tighter than the status card: the dial gets what the padding gives back. */
 const DIAL_CONTENT_CLASS = 'min-h-0 flex-1 gap-2 overflow-y-auto p-3 pt-2'
 
@@ -162,26 +204,61 @@ function HeaterCard({
   onSetMode,
   onSetSetpoint,
   onSetPowerLevel,
+  localModes,
 }: CardProps) {
   const label = heater.name ?? id
   const reporting = !frozen && isReporting(heater)
   const { send, stateOf } = useCommands(heater, frozen || !reporting)
   const [confirmingStart, setConfirmingStart] = useState(false)
+  // A mode the heater cannot switch to while it runs: asked about, then reached after a stop.
+  const [switchTarget, setSwitchTarget] = useState<OperatingMode | null>(null)
+  const afterStop = useRef<OperatingMode | null>(null)
 
   const commandsOn = heater.commands_enabled === true
   const controls = reporting && commandsOn
   const settingsOk = controls && canChangeSettings(heater)
   const run = stateOf('run')
   const mode = stateOf('mode')
-  const byPower = heater.mode === 'power'
+  const current = localModes?.mode ?? operatingMode(heater)
+  // The sensor a switch back to Temperature resumes: the one in use, else the last one seen.
+  const [lastSensor, setLastSensor] = useState<HeaterSensor>('heater_temperature')
+  const inUse = heaterSensor(heater)
+  if (inUse !== undefined && inUse !== lastSensor) setLastSensor(inUse)
+  const sensor = inUse ?? lastSensor
+  // Modes can be asked for even while ventilating (the heater then offers to stop first), so only a
+  // shutdown or an unanswered mode change holds them back.
+  const modesOk = controls && heater.phase !== 'shutting_down'
+  const applyMode = (next: OperatingMode) => {
+    if (localModes) return localModes.onChange(next, sensor)
+    // The hub's `mode` is Power or a sensor, so Temperature resumes the last sensor.
+    if (next === 'power') send('mode', () => onSetMode(id, 'power'))
+    if (next === 'temperature') send('mode', () => onSetMode(id, sensor))
+  }
+  // The stop the prompt asked for went through: now reach the mode it was for.
+  const runFailed = run?.failed === true
+  useEffect(() => {
+    const target = afterStop.current
+    if (target === null) return
+    if (runFailed) afterStop.current = null
+    else if (heater.phase === 'off') {
+      afterStop.current = null
+      applyMode(target)
+    }
+    // `applyMode` is rebuilt every render and reads only what the render supplied.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heater.phase, runFailed])
+  // Ventilation, like Power, is set by a power level (Venus: the level shows in both).
+  const byPower = current === 'power' || current === 'ventilation'
   const dialField: Field = byPower ? 'power' : 'setpoint'
   const dial = stateOf(dialField)
   const dialBusy = dial !== undefined && !dial.failed
   const dialValue = byPower ? heater.power_level : heater.setpoint_c
   const phase = reporting ? phaseLabel(heater) : undefined
-  // Warm while the flame is on or coming up, the theme accent otherwise.
+  // Warm while the flame is on or coming up, the theme accent otherwise, and always the accent in
+  // Ventilation, where the fan runs and nothing burns.
   const heating =
     reporting &&
+    current !== 'ventilation' &&
     (heater.phase === 'starting' || heater.phase === 'warming_up' || heater.phase === 'running')
   const tone = heating ? 'var(--warning)' : 'var(--accent)'
   const toneFg = heating ? 'var(--warning-foreground)' : 'var(--accent-foreground)'
@@ -216,32 +293,46 @@ function HeaterCard({
                 : send('setpoint', () => onSetSetpoint(id, to), to)
             }
           />
-          <div className="flex flex-col gap-1.5">
+          {/* Bottom-anchored, on the same line as the status card's Start/Stop. */}
+          <div className="mt-auto flex flex-col gap-1.5">
             <ToggleButtonGroup
               aria-label={`${label} mode`}
               fullWidth
               selectionMode="single"
               disallowEmptySelection
-              isDisabled={!settingsOk || mode !== undefined}
-              selectedKeys={new Set(heater.mode === undefined ? [] : [heater.mode])}
+              isDisabled={!modesOk || mode !== undefined}
+              selectedKeys={new Set(current === undefined ? [] : [current])}
               onSelectionChange={(keys) => {
-                const next = [...keys][0] as HeaterMode | undefined
+                const next = [...keys][0] as OperatingMode | undefined
                 // HeroUI re-fires the selection on a re-tap of the selected segment: send nothing.
-                if (next !== undefined && next !== heater.mode) {
-                  send('mode', () => onSetMode(id, next))
+                if (next === undefined || next === current) return
+                // Ventilation and the heating modes exclude each other while the heater runs.
+                if (modeSwitchBlock(heater, current, next) !== undefined) {
+                  setSwitchTarget(next)
+                  return
                 }
+                applyMode(next)
               }}
             >
-              {MODES.map((key) => {
-                const ModeIcon = MODE_ICONS[key]
+              {OPERATING_MODES.map(({ key, label: modeLabel, supported }) => {
+                const ModeIcon = OPERATING_MODE_ICONS[key]
                 return (
                   <ToggleButton
                     key={key}
                     id={key}
-                    aria-label={MODE_LABELS[key]}
+                    aria-label={modeLabel}
+                    isDisabled={!supported && !localModes}
                     className="min-h-11 flex-1 data-[selected=true]:bg-[var(--tone)] data-[selected=true]:text-[var(--tone-fg)]"
                   >
-                    <ModeIcon aria-hidden="true" className="size-5" />
+                    {({ isSelected }) => (
+                      <>
+                        <ModeIcon aria-hidden="true" className="size-5 shrink-0" />
+                        {/* The current mode is named; the others are icons to save the width. */}
+                        {isSelected && (
+                          <span className="truncate text-sm font-medium">{modeLabel}</span>
+                        )}
+                      </>
+                    )}
                   </ToggleButton>
                 )
               })}
@@ -290,16 +381,39 @@ function HeaterCard({
             {heater.runtime_s !== undefined && reporting && (
               <Readout label="Runtime" value={formatRuntime(heater.runtime_s)} />
             )}
-            <Readout
-              label="Mode"
-              value={
-                !reporting || heater.mode === undefined
-                  ? '—'
-                  : mode && !mode.failed
-                    ? 'Changing…'
-                    : MODE_LABELS[heater.mode]
-              }
-            />
+            <div className="col-start-2 flex min-w-0 flex-col gap-0.5">
+              <dt className="text-muted text-xs">Sensor</dt>
+              <dd>
+                {/* Which probe a temperature mode reads. Power mode reads none, and the heater
+                    does not accept a sensor change while running in it (Comfort Control manual,
+                    section 4.3). */}
+                <Select
+                  aria-label="Temperature sensor"
+                  fullWidth
+                  isDisabled={!settingsOk || mode !== undefined || sensorLocked(current)}
+                  value={sensor}
+                  onChange={(key) => {
+                    const next = key as HeaterSensor
+                    if (next !== sensor) send('mode', () => onSetMode(id, next))
+                  }}
+                >
+                  <Select.Trigger className="min-h-9">
+                    <Select.Value />
+                    {mode && !mode.failed ? <Spinner size="sm" /> : <Select.Indicator />}
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      {HEATER_SENSORS.map((key) => (
+                        <ListBox.Item key={key} id={key} textValue={MODE_LABELS[key]}>
+                          {MODE_LABELS[key]}
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+              </dd>
+            </div>
           </dl>
 
           {!reporting && !frozen && (
@@ -317,7 +431,7 @@ function HeaterCard({
                 <Button
                   variant="danger"
                   className="min-h-11 flex-1"
-                  isDisabled={!controls || run !== undefined}
+                  isDisabled={!controls || (run !== undefined && !run.failed)}
                   onPress={() => send('run', () => onSetRunning(id, false))}
                 >
                   Stop
@@ -325,7 +439,7 @@ function HeaterCard({
               ) : (
                 <Button
                   className="min-h-11 flex-1"
-                  isDisabled={!controls || !canStart(heater) || run !== undefined}
+                  isDisabled={!controls || !canStart(heater) || (run !== undefined && !run.failed)}
                   onPress={() => setConfirmingStart(true)}
                 >
                   Start
@@ -333,13 +447,6 @@ function HeaterCard({
               )}
               {run && !run.failed && <Spinner size="sm" />}
             </div>
-            {dial?.failed && (
-              <span className="text-danger text-xs">
-                {byPower ? 'Power' : 'Target'} didn&apos;t change
-              </span>
-            )}
-            {mode?.failed && <span className="text-danger text-xs">Mode didn&apos;t change</span>}
-            {run?.failed && <span className="text-danger text-xs">Didn&apos;t take</span>}
             {controls && heater.phase === 'off' && hasError(heater) && (
               <span className="text-muted text-xs">Can&apos;t start with a fault.</span>
             )}
@@ -370,6 +477,50 @@ function HeaterCard({
                       }}
                     >
                       Start
+                    </Button>
+                  </AlertDialog.Footer>
+                </>
+              )}
+            </AlertDialog.Dialog>
+          </AlertDialog.Container>
+        </AlertDialog.Backdrop>
+      </AlertDialog>
+
+      {/* Venus-style: the mode cannot be reached while the heater runs, so offer the stop it needs. */}
+      <AlertDialog
+        isOpen={switchTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setSwitchTarget(null)
+        }}
+      >
+        <AlertDialog.Trigger aria-hidden="true" className="hidden" />
+        <AlertDialog.Backdrop isKeyboardDismissDisabled={false}>
+          <AlertDialog.Container>
+            <AlertDialog.Dialog>
+              {({ close }) => (
+                <>
+                  <AlertDialog.Header>
+                    <AlertDialog.Heading>
+                      Switch to {OPERATING_MODES.find((m) => m.key === switchTarget)?.label}?
+                    </AlertDialog.Heading>
+                  </AlertDialog.Header>
+                  <AlertDialog.Body>
+                    {switchTarget !== null && modeSwitchBlock(heater, current, switchTarget)} Stop
+                    the heater first?
+                  </AlertDialog.Body>
+                  <AlertDialog.Footer>
+                    <Button variant="tertiary" onPress={close}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onPress={() => {
+                        afterStop.current = switchTarget
+                        send('run', () => onSetRunning(id, false))
+                        close()
+                      }}
+                    >
+                      Stop heater
                     </Button>
                   </AlertDialog.Footer>
                 </>

@@ -602,29 +602,6 @@ describe('SettingsPage Demo mode', () => {
   })
 })
 
-describe('SettingsPage pause heater demo loop', () => {
-  it('is hidden unless the heater is simulated', async () => {
-    const { user } = renderSettings({ demoMode: true })
-    await user.click(screen.getByRole('button', { name: /^General/ }))
-
-    expect(screen.queryByRole('switch', { name: /Pause heater demo loop/ })).not.toBeInTheDocument()
-  })
-
-  it('toggles the pause when simulated, inline under Demo mode', async () => {
-    const toggleHeaterSimulationPause = vi.fn()
-    const { user } = renderSettings({
-      demoMode: true,
-      heaterSimulationPaused: false,
-      toggleHeaterSimulationPause,
-    })
-    await user.click(screen.getByRole('button', { name: /^General/ }))
-
-    await user.click(screen.getByText('Pause heater demo loop'))
-
-    expect(toggleHeaterSimulationPause).toHaveBeenCalledOnce()
-  })
-})
-
 describe('SettingsPage pin navbar', () => {
   it('is hidden unless the shell offers a pin', async () => {
     const { user } = renderSettings()

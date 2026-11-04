@@ -78,8 +78,6 @@ export interface SettingsPreferences {
   alertsEnabled: boolean
   /** The Demo mode toggle: the same instance `useRenewvanBus` reads its topic root from. */
   demoMode: boolean
-  /** Dev only: whether the simulated heater holds the demo loop. Absent when the heater is not simulated. */
-  heaterSimulationPaused?: boolean
   /** Dev only: whether the kiosk navbar is pinned open. Absent on a phone and in a built kiosk. */
   navPinned?: boolean
   /** The colour theme: the same instance `App` applies to `<html>` and the header toggle drives. */
@@ -114,8 +112,6 @@ export interface SettingsActions {
   setAutoSleepTimeoutMinutes: (value: AutoSleepTimeoutMinutes) => void
   setAlertsEnabled: (enabled: boolean) => void
   setDemoMode: (demo: boolean) => void
-  /** Dev only: pause or resume the simulated heater's demo loop. Absent when the heater is not simulated. */
-  toggleHeaterSimulationPause?: () => void
   /** Dev only: pin or unpin the kiosk navbar. Absent on a phone and in a built kiosk. */
   setNavPinned?: (pinned: boolean) => void
   setTheme: (theme: Theme) => void

@@ -20,7 +20,7 @@ describe('dev flags', () => {
     expect(window.localStorage.length).toBe(0)
     expect(devFlagOn('demo')).toBe(true)
     expect(devFlagOn('nav-pinned')).toBe(true)
-    expect(devFlagOn('heater-pause')).toBe(false)
+    expect(devFlagOn('heater-dev')).toBe(false)
     expect(readDevFlag('other')).toBeNull()
   })
 })

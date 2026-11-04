@@ -11,7 +11,7 @@ import { DrawerMenuControls, DrawerMenuFooter } from '@/components/DrawerMenuCon
 import { DisplaySleepButton } from '@/components/DisplaySleepButton'
 import { AlertsButton } from '@/components/AlertsButton'
 import { devFlagOn } from '@/lib/devFlags'
-import { useSimulatedHeaters } from '@/hooks/useSimulatedHeaters'
+import { useLocalHeater } from '@/hooks/useLocalHeater'
 import { DemoBadge } from '@/components/DemoBadge'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
@@ -126,7 +126,6 @@ function App() {
   const alertHistory = useAlertHistory()
   const hub = useHubAddress(hubStatus)
   const broker = useBrokerLink()
-  // Dev builds only: Demo mode's heater is read-only (hub ADR 0021), so simulate its commands locally.
   // `?flag.demo=1` (dev builds) turns Demo mode on once, as soon as the bus is connected.
   const demoFlagApplied = useRef(false)
   useEffect(() => {
@@ -134,8 +133,10 @@ function App() {
     demoFlagApplied.current = true
     if (devFlagOn('demo')) setDemoMode(true)
   }, [status, setDemoMode])
-  const simulateHeaters = demoMode && import.meta.env.DEV
-  const simulatedHeaters = useSimulatedHeaters(state.heaters, simulateHeaters)
+  // Dev builds only: `?flag.heater-dev=1` swaps the Heater page's heater for a local one that needs
+  // neither the hub nor Demo mode (Demo's heater is read-only, hub ADR 0021).
+  const localHeaterOn = devFlagOn('heater-dev')
+  const localHeater = useLocalHeater(localHeaterOn)
   useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled, demo: demoMode })
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
   // A view (and the tank it shows) belongs to the Settings page: any other page change leaves
@@ -194,7 +195,6 @@ function App() {
   // The Settings nav bar's bell: stable like the sleep handlers, so the settings value only changes
   // when a field does. `goToPage` closes over `setActivePage`, recreated each render.
   const openAlerts = useStableCallback(() => goToPage('alerts'))
-  const toggleHeaterPause = useStableCallback(simulatedHeaters.togglePause)
   const settings = buildSettings({
     bus,
     derived: {
@@ -210,9 +210,6 @@ function App() {
     preferences: prefs,
     commands,
     handlers: { sleepDisplay, wakeDisplay, openAlerts },
-    heaterSimulation: simulateHeaters
-      ? { paused: simulatedHeaters.paused, onTogglePause: toggleHeaterPause }
-      : undefined,
     navPin:
       import.meta.env.DEV && !isMobile ? { pinned: navPinned, onChange: setNavPinned } : undefined,
   })
@@ -405,16 +402,19 @@ function App() {
       case 'heater':
         return (
           <HeaterPage
-            heaters={simulatedHeaters.heaters}
-            driverOnline={simulateHeaters || heaterDriversOnline(state)}
-            demo={demoMode && !simulateHeaters}
-            onSetRunning={simulateHeaters ? simulatedHeaters.setRunning : commands.setHeaterRunning}
-            onSetMode={simulateHeaters ? simulatedHeaters.setMode : commands.setHeaterMode}
-            onSetSetpoint={
-              simulateHeaters ? simulatedHeaters.setSetpoint : commands.setHeaterSetpoint
+            heaters={localHeaterOn ? localHeater.heaters : state.heaters}
+            driverOnline={localHeaterOn || heaterDriversOnline(state)}
+            demo={demoMode && !localHeaterOn}
+            localModes={
+              localHeaterOn
+                ? { mode: localHeater.operating, onChange: localHeater.setOperatingMode }
+                : undefined
             }
+            onSetRunning={localHeaterOn ? localHeater.setRunning : commands.setHeaterRunning}
+            onSetMode={localHeaterOn ? localHeater.setMode : commands.setHeaterMode}
+            onSetSetpoint={localHeaterOn ? localHeater.setSetpoint : commands.setHeaterSetpoint}
             onSetPowerLevel={
-              simulateHeaters ? simulatedHeaters.setPowerLevel : commands.setHeaterPowerLevel
+              localHeaterOn ? localHeater.setPowerLevel : commands.setHeaterPowerLevel
             }
           />
         )

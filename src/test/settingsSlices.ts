@@ -11,7 +11,6 @@ const PREFERENCE_KEYS = [
   'autoSleepTimeoutMinutes',
   'alertsEnabled',
   'demoMode',
-  'heaterSimulationPaused',
   'navPinned',
   'theme',
   'navbarPosition',
