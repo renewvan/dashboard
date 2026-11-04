@@ -120,21 +120,23 @@ export function DialSlider({
           has no `min-h-0`, so a card too short for it scrolls instead of drawing the controls over
           the dial. */}
       <div
-        className="min-h-44 w-full min-w-0 flex-1 max-md:min-h-64"
+        className="min-h-44 w-full min-w-0 flex-1 max-md:min-h-56"
         style={{ containerType: 'size' }}
       >
-        {/* The bottom 14% of the square is the arc's opening, so the dial is sized to leave it
-            outside the container and the −/+ row (which follows) tucks into it without ever
-            reaching the arc, however short the page gets. */}
+        {/* The top 5% of the square is empty (the arc starts 5% down), so it is pulled up out of the
+            card's padding. The bottom 22% of the square is the arc's opening, so the dial is sized to leave it
+            outside the container and the −/+ row (which follows) sits inside it, between the
+            arc's ends, as part of the circle, however short the page gets. */}
         <div
           // Below md the card has its natural height (the page scrolls), so `cqh` is not a real
           // measure there and the dial is sized by width alone.
-          className="relative mx-auto [--s:min(100cqw,18rem)] md:[--s:max(12.75rem,min(100cqw,18rem,100cqh/0.86))]"
+          className="relative mx-auto [--s:min(100cqw,18rem)] md:[--s:max(15.1rem,min(100cqw,24rem,100cqh/0.73))]"
           style={
             {
               width: 'var(--s)',
               height: 'var(--s)',
-              marginBottom: 'calc(var(--s) * -0.14)',
+              marginTop: 'calc(var(--s) * -0.02)',
+              marginBottom: 'calc(var(--s) * -0.22)',
             } as CSSProperties
           }
         >
@@ -235,7 +237,7 @@ export function DialSlider({
           </div>
         </div>
       </div>
-      <div className="relative z-10 mb-3 flex items-center gap-5">
+      <div className="relative z-10 mb-4 flex items-center gap-5">
         <Button
           isIconOnly
           variant="outline"

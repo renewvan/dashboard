@@ -133,7 +133,7 @@ function Readout({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <dt className="text-muted text-xs">{label}</dt>
-      <dd className="truncate text-xl font-semibold tabular-nums">{value}</dd>
+      <dd className="truncate font-semibold tabular-nums">{value}</dd>
     </div>
   )
 }
@@ -146,6 +146,8 @@ interface CardProps extends Omit<HeaterPageProps, 'heaters' | 'driverOnline' | '
 
 const CARD_CLASS = 'min-h-0 gap-0! overflow-hidden p-0!'
 const CONTENT_CLASS = 'min-h-0 flex-1 gap-4 overflow-y-auto px-4 pt-2 pb-4'
+/** The dial card is tighter than the status card: the dial gets what the padding gives back. */
+const DIAL_CONTENT_CLASS = 'min-h-0 flex-1 gap-2 overflow-y-auto p-3 pt-2'
 
 /**
  * One heater as two cards: the dial that sets what it should do (left) and what it is doing
@@ -192,13 +194,10 @@ function HeaterCard({
         className={CARD_CLASS}
         style={{ '--tone': tone, '--tone-fg': toneFg } as CSSProperties}
       >
-        <Card.Header className="flex-row! items-center justify-between gap-2 px-5 pt-3 pb-0">
-          <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-            <HeaterIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
-            <span className="truncate">{label}</span>
-          </h2>
-        </Card.Header>
-        <Card.Content className={`${CONTENT_CLASS} pt-0!`}>
+        {/* No title row: on the 800x480 kiosk the dial is only ever used with the bottom bar up, so
+            every pixel goes to it. The heater's name is the status card's title. */}
+        <Card.Content className={DIAL_CONTENT_CLASS}>
+          <h2 className="sr-only">{label}</h2>
           <DialSlider
             label={byPower ? 'Power' : 'Target'}
             value={dialBusy && dial.to !== undefined ? dial.to : dialValue}
@@ -240,7 +239,7 @@ function HeaterCard({
                     key={key}
                     id={key}
                     aria-label={MODE_LABELS[key]}
-                    className="min-h-12 flex-1 data-[selected=true]:bg-[var(--tone)] data-[selected=true]:text-[var(--tone-fg)]"
+                    className="min-h-11 flex-1 data-[selected=true]:bg-[var(--tone)] data-[selected=true]:text-[var(--tone-fg)]"
                   >
                     <ModeIcon aria-hidden="true" className="size-5" />
                   </ToggleButton>
@@ -253,7 +252,10 @@ function HeaterCard({
 
       <Card aria-label={`${label} status`} className={CARD_CLASS}>
         <Card.Header className="flex-row! items-center justify-between gap-2 px-5 py-3">
-          <h2 className="text-sm font-semibold">Status</h2>
+          <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+            <HeaterIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
+            <span className="truncate">{label}</span>
+          </h2>
           <span className="text-sm font-semibold">{reporting ? phase : 'Unknown'}</span>
         </Card.Header>
         <Card.Content className={CONTENT_CLASS}>
