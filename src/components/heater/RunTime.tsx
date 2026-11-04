@@ -13,7 +13,7 @@ const TICK_MS = 250
  * Off (the Start button), counts every second, re-syncs to the heater's own `runtime_s` whenever
  * that arrives, and goes back to 0:00 when the heater is off again.
  */
-export function RunTime({ heater }: { heater: Heater }) {
+export function RunTime({ heater, reporting }: { heater: Heater; reporting: boolean }) {
   const on = heater.phase !== undefined && heater.phase !== 'off'
   const runtime = heater.runtime_s
   // Always ticking, so `now` is never more than a second old when the heater changes state.
@@ -39,7 +39,7 @@ export function RunTime({ heater }: { heater: Heater }) {
     <div className="col-start-1 flex min-w-0 flex-col gap-0.5">
       <dt className="text-muted text-xs">Runtime</dt>
       <dd className="flex min-h-9 items-center font-semibold tabular-nums">
-        {formatClock(seconds)}
+        {reporting ? formatClock(seconds) : '—'}
       </dd>
     </div>
   )

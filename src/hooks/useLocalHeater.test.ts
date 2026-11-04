@@ -46,6 +46,40 @@ describe('useLocalHeater', () => {
     expect(result.current.heaters.cabin.mode).toBe('external_temperature')
   })
 
+  it('counts down an armed timer from the start and stops the heater at zero', () => {
+    const { result } = renderHook(() => useLocalHeater(true))
+    act(() => result.current.setTimerMinutes(30))
+    expect(result.current.timerMinutes).toBe(30)
+    expect(result.current.endsAt).toBeUndefined()
+    act(() => result.current.setRunning('cabin', true))
+    act(() => void vi.advanceTimersByTime(500))
+    expect(result.current.endsAt).toBeDefined()
+    act(() => void vi.advanceTimersByTime(5000))
+    expect(result.current.heaters.cabin.phase).toBe('running')
+    // 30 min after the start answered (0.5 s), 5.5 s have passed: the countdown ends now.
+    act(() => void vi.advanceTimersByTime(30 * 60_000 - 5000))
+    expect(result.current.heaters.cabin.phase).toBe('shutting_down')
+    expect(result.current.endsAt).toBeUndefined()
+    act(() => void vi.advanceTimersByTime(2000))
+    expect(result.current.heaters.cabin.phase).toBe('off')
+    // The armed duration stays for the next start.
+    expect(result.current.timerMinutes).toBe(30)
+  })
+
+  it('arms from now while running, and Off or a Stop cancels the countdown', () => {
+    const { result } = renderHook(() => useLocalHeater(true))
+    act(() => result.current.setRunning('cabin', true))
+    act(() => void vi.advanceTimersByTime(5000))
+    act(() => result.current.setTimerMinutes(60))
+    expect(result.current.endsAt).toBeDefined()
+    act(() => result.current.setTimerMinutes(0))
+    expect(result.current.endsAt).toBeUndefined()
+    act(() => result.current.setTimerMinutes(30))
+    act(() => result.current.setRunning('cabin', false))
+    act(() => void vi.advanceTimersByTime(500))
+    expect(result.current.endsAt).toBeUndefined()
+  })
+
   it('applies setpoint, mode and power level', () => {
     const { result } = renderHook(() => useLocalHeater(true))
     act(() => {

@@ -10,6 +10,7 @@ import type { StartTiles } from '@/hooks/useStartTiles'
 import type { StartView } from '@/hooks/useStartView'
 import { DEFAULT_START_POWER_SOURCES, type StartPowerSources } from '@/hooks/useStartPowerSources'
 import { EntityIconsContext } from '@/hooks/useEntityIcon'
+import type { HeaterPageProps } from '@/components/heater/HeaterPage'
 import { StartPage } from './StartPage'
 
 // `findBy` for the lazy Map chunk: importing it can take longer than the default 1 s under load.
@@ -91,6 +92,7 @@ function renderAt(
     tiles?: StartTiles
     onOpenInstance?: (key: string) => void
     entityIcons?: Record<string, string>
+    heater?: HeaterPageProps
   },
 ) {
   viewport = stubMatchMedia(width)
@@ -114,6 +116,7 @@ function renderAt(
         tiles={props.tiles}
         onConfigureTank={onConfigureTank}
         onOpenInstance={props.onOpenInstance}
+        heater={props.heater}
       />
     </EntityIconsContext.Provider>,
   )
@@ -193,8 +196,8 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
 
     expect(screen.getByText('46%')).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /^Battery/, hidden: true })).not.toBeInTheDocument()
-    // Power and Battery (the Energy carousel's two slides), then grey water: one each.
-    expect(screen.getAllByText('No data yet', { exact: true })).toHaveLength(3)
+    // Power and Battery (the Energy carousel's two slides), the heater, then grey water: one each.
+    expect(screen.getAllByText('No data yet', { exact: true })).toHaveLength(4)
   })
 
   it('does not draw anything from a half-arrived record', () => {
@@ -204,8 +207,8 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
     })
 
     expect(screen.queryAllByRole('img', { hidden: true })).toHaveLength(0)
-    // Power, Battery, fresh water and grey water: one "No data yet" each.
-    expect(screen.getAllByText('No data yet')).toHaveLength(4)
+    // Power, Battery, the heater, fresh water and grey water: one "No data yet" each.
+    expect(screen.getAllByText('No data yet')).toHaveLength(5)
   })
 
   it('shows a faulted tank as a fault, with its reason, not as a level', () => {
@@ -228,7 +231,7 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
 })
 
 describe('StartPage layout', () => {
-  it('stacks the phone page as cards: weather, map (no title), energy, solar, tilt, fresh water, grey water', () => {
+  it('stacks the phone page as cards: weather, map (no title), energy, heater, solar, tilt, fresh water, grey water', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {
       tanks: { fresh: tank(), grey: tank({ fluid_type: 'grey_water' }) },
       batteries: { house: BATTERY },
@@ -238,6 +241,7 @@ describe('StartPage layout', () => {
     const titles = [
       'Weather',
       'Energy',
+      'Heater',
       'Solar production',
       'Tilt',
       'Fresh water',
@@ -248,9 +252,9 @@ describe('StartPage layout', () => {
       }),
     )
 
-    expect(pane.children).toHaveLength(7)
+    expect(pane.children).toHaveLength(8)
     // The map card has no title, so it is the one child without a heading: index 1.
-    const cardIndex = [0, 2, 3, 4, 5, 6]
+    const cardIndex = [0, 2, 3, 4, 5, 6, 7]
     titles.forEach((title, i) => expect(pane.children[cardIndex[i]]).toContainElement(title))
   })
 
@@ -268,6 +272,55 @@ describe('StartPage layout', () => {
   it('draws an empty page when every widget is removed', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, { layout: [] })
     expect(screen.getByTestId('pane-start')).toBeEmptyDOMElement()
+  })
+})
+
+describe('StartPage heater widget', () => {
+  const HEATER: HeaterPageProps = {
+    heaters: {
+      cabin: {
+        name: 'Cabin heater',
+        phase: 'running',
+        status_code: '3.0',
+        error_code: 0,
+        internal_temperature_c: 19.4,
+        heater_temperature_c: 80,
+        voltage_v: 12.4,
+        fan_rpm: 3000,
+        fuel_pump_hz: 1.6,
+        mode: 'heater_temperature',
+        setpoint_c: 21,
+        power_level: 4,
+        commands_enabled: true,
+      },
+    },
+    driverOnline: true,
+    demo: false,
+    onSetRunning: vi.fn(),
+    onSetMode: vi.fn(),
+    onSetSetpoint: vi.fn(),
+    onSetPowerLevel: vi.fn(),
+  }
+
+  it('is one card headed by the heater and its status, with the dial and the readings as slides', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { layout: ['heater'], heater: HEATER })
+    const card = screen.getByLabelText('Cabin heater widget')
+    // Only the first card's header: one heading, not one per slide.
+    expect(within(card).getAllByRole('heading')).toHaveLength(1)
+    expect(within(card).getByRole('heading', { name: 'Cabin heater' })).toBeInTheDocument()
+    expect(card).toHaveTextContent('Running')
+    const slides = [...card.querySelectorAll<HTMLElement>('[aria-roledescription="slide"]')]
+    expect(slides).toHaveLength(2)
+    expect(within(slides[0]).getByRole('slider', { name: 'Target' })).toBeInTheDocument()
+    expect(within(slides[0]).getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+    expect(within(slides[1]).getByText('Fuel pump')).toBeInTheDocument()
+    expect(within(slides[1]).queryByRole('heading')).not.toBeInTheDocument()
+  })
+
+  it('has an empty state without a heater', () => {
+    renderAt(JUST_BELOW_KIOSK_WIDTH, { layout: ['heater'] })
+    expect(screen.getByText('No data yet')).toBeInTheDocument()
+    expect(screen.getByText('Heater', { selector: '[class*="card__header"]' })).toBeInTheDocument()
   })
 })
 
@@ -557,16 +610,16 @@ describe('StartPage solar card', () => {
     ...overrides,
   })
 
-  it('sits right under the energy card, with the live watts and the harvest today', () => {
+  it('sits right under the heater card, with the live watts and the harvest today', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {
       batteries: { house: BATTERY },
       solar: { 291: controller() },
     })
     const pane = screen.getByTestId('pane-start')
     const titles = [...pane.children].map((card) => card.querySelector('[class*="card__header"]'))
-    const energy = titles.findIndex((h) => h?.textContent === 'Energy')
+    const heater = titles.findIndex((h) => h?.textContent === 'Heater')
 
-    expect(titles[energy + 1]).toHaveTextContent('Solar production')
+    expect(titles[heater + 1]).toHaveTextContent('Solar production')
     expect(screen.getByTestId('solar-watts')).toHaveTextContent('412')
     expect(screen.getByTestId('solar-yield')).toHaveTextContent('2.1')
   })

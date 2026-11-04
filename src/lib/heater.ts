@@ -87,6 +87,13 @@ export function heaterSensor(heater: Heater): HeaterSensor | undefined {
     : undefined
 }
 
+/** The timer's quick choices as Venus OS offers them (minutes); 0 is Off. Manual §2.3: 30-720 min. */
+export const TIMER_PRESETS = [30, 60, 90] as const
+
+export function timerLabel(minutes: number): string {
+  return minutes === 0 ? 'Off' : `${minutes} min`
+}
+
 export const SETPOINT_RANGE = { min: 1, max: 30 } as const
 /** The levels the dial offers, as Venus does; the hub accepts 0-9 (ADR 0021) but 0 is not a level to run at. */
 export const POWER_RANGE = { min: 1, max: 9 } as const

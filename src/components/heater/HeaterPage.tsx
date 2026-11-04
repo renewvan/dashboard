@@ -39,8 +39,11 @@ import {
   type OperatingMode,
 } from '@/lib/heater'
 import type { Heater, HeaterMode } from '@/types'
+import { useIsMobile } from '@/hooks/use-media-query'
 import { DialSlider } from './DialSlider'
+import { Carousel } from '../start/Carousel'
 import { RunTime } from './RunTime'
+import { TimerSelect } from './TimerSelect'
 /**
  * A command that has not changed its retained field in this long is reported as failed. Longer than
  * the relay's 4 s: a settings write is only confirmed by the Driver's next settings read (hub ADR 0021).
@@ -72,6 +75,11 @@ export interface HeaterPageProps {
   localModes?: {
     mode: OperatingMode
     onChange: (mode: OperatingMode, sensor: HeaterSensor) => void
+    /**
+     * The Venus-style timer. The hub and Driver have no timer field, so it only works on the local
+     * heater, where it stops the heater at zero; on a real heater the dropdown is disabled.
+     */
+    timer?: { minutes: number; endsAt: number | undefined; onChange: (minutes: number) => void }
   }
 }
 
@@ -180,26 +188,44 @@ function Readout({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** The heater's name and what it is doing, as one row. */
+function HeaterTitle({ label, status }: { label: string; status: string | undefined }) {
+  return (
+    <div className="flex w-full min-w-0 items-center justify-between gap-2">
+      <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+        <HeaterIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
+        <span className="truncate">{label}</span>
+      </h2>
+      <span className="text-sm font-semibold">{status}</span>
+    </div>
+  )
+}
+
 interface CardProps extends Omit<HeaterPageProps, 'heaters' | 'driverOnline' | 'demo'> {
   id: string
   heater: Heater
   frozen: boolean
+  /** The page's two cards (default), or the Start page's widget: one carousel card. */
+  variant?: 'page' | 'widget'
 }
 
 const CARD_CLASS = 'min-h-0 gap-0! overflow-hidden p-0!'
+/** Both cards' header row: one place for its padding, in line with the content's side padding. */
+const HEADER_CLASS = 'flex-row! items-center justify-between gap-2 px-4 py-3 max-md:py-2.5'
 const CONTENT_CLASS = 'min-h-0 flex-1 gap-4 overflow-y-auto px-4 pt-2 pb-3'
 /** The dial card is tighter than the status card: the dial gets what the padding gives back. */
-const DIAL_CONTENT_CLASS = 'min-h-0 flex-1 gap-2 overflow-y-auto p-3 pt-2'
+const DIAL_CONTENT_CLASS = 'min-h-0 flex-1 gap-2 overflow-y-auto p-3 pt-2 max-md:px-4'
 
 /**
  * One heater as two cards: the dial that sets what it should do (left) and what it is doing
  * (right). The dial drives the target temperature, or the power level in the fixed-power mode,
  * the only setting that mode reads.
  */
-function HeaterCard({
+export function HeaterCard({
   id,
   heater,
   frozen,
+  variant = 'page',
   onSetRunning,
   onSetMode,
   onSetSetpoint,
@@ -209,6 +235,7 @@ function HeaterCard({
   const label = heater.name ?? id
   const reporting = !frozen && isReporting(heater)
   const { send, stateOf } = useCommands(heater, frozen || !reporting)
+  const isMobile = useIsMobile()
   const [confirmingStart, setConfirmingStart] = useState(false)
   // A mode the heater cannot switch to while it runs: asked about, then reached after a stop.
   const [switchTarget, setSwitchTarget] = useState<OperatingMode | null>(null)
@@ -264,195 +291,182 @@ function HeaterCard({
   const toneFg = heating ? 'var(--warning-foreground)' : 'var(--accent-foreground)'
   const cabin = reporting ? heater.internal_temperature_c : undefined
 
-  return (
+  // Start/Stop sits under the mode buttons on a phone, and at the foot of the status card on the kiosk.
+  const startStop = (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-3">
+        {canStop(heater) ? (
+          <Button
+            variant="danger"
+            className="min-h-11 flex-1"
+            isDisabled={!controls || (run !== undefined && !run.failed)}
+            onPress={() => send('run', () => onSetRunning(id, false))}
+          >
+            Stop
+          </Button>
+        ) : (
+          <Button
+            className="min-h-11 flex-1"
+            isDisabled={!controls || !canStart(heater) || (run !== undefined && !run.failed)}
+            onPress={() => setConfirmingStart(true)}
+          >
+            Start
+          </Button>
+        )}
+        {run && !run.failed && <Spinner size="sm" />}
+      </div>
+      {controls && heater.phase === 'off' && hasError(heater) && (
+        <span className="text-muted text-xs">Can&apos;t start with a fault.</span>
+      )}
+    </div>
+  )
+
+  const dialSlider = (
+    <DialSlider
+      label={byPower ? 'Power' : 'Target'}
+      value={dialBusy && dial.to !== undefined ? dial.to : dialValue}
+      min={byPower ? POWER_RANGE.min : SETPOINT_RANGE.min}
+      max={byPower ? POWER_RANGE.max : SETPOINT_RANGE.max}
+      unit={byPower ? '' : '°C'}
+      tone={tone}
+      status={phase}
+      marker={byPower ? undefined : cabin}
+      reading={cabin === undefined ? undefined : `${cabin.toFixed(1)} °C`}
+      disabled={!settingsOk}
+      busy={dialBusy}
+      onCommit={(to) =>
+        byPower
+          ? send('power', () => onSetPowerLevel(id, to), to)
+          : send('setpoint', () => onSetSetpoint(id, to), to)
+      }
+    />
+  )
+
+  const modeButtons = (
+    <ToggleButtonGroup
+      aria-label={`${label} mode`}
+      fullWidth
+      selectionMode="single"
+      disallowEmptySelection
+      isDisabled={!modesOk || mode !== undefined}
+      selectedKeys={new Set(current === undefined ? [] : [current])}
+      onSelectionChange={(keys) => {
+        const next = [...keys][0] as OperatingMode | undefined
+        // HeroUI re-fires the selection on a re-tap of the selected segment: send nothing.
+        if (next === undefined || next === current) return
+        // Ventilation and the heating modes exclude each other while the heater runs.
+        if (modeSwitchBlock(heater, current, next) !== undefined) {
+          setSwitchTarget(next)
+          return
+        }
+        applyMode(next)
+      }}
+    >
+      {OPERATING_MODES.map(({ key, label: modeLabel, supported }) => {
+        const ModeIcon = OPERATING_MODE_ICONS[key]
+        return (
+          <ToggleButton
+            key={key}
+            id={key}
+            aria-label={modeLabel}
+            isDisabled={!supported && !localModes}
+            className="min-h-11 flex-1 data-[selected=true]:bg-[var(--tone)] data-[selected=true]:text-[var(--tone-fg)]"
+          >
+            {({ isSelected }) => (
+              <>
+                <ModeIcon aria-hidden="true" className="size-5 shrink-0" />
+                {/* The current mode is named; the others are icons to save the width. */}
+                {isSelected && <span className="truncate text-sm font-medium">{modeLabel}</span>}
+              </>
+            )}
+          </ToggleButton>
+        )
+      })}
+    </ToggleButtonGroup>
+  )
+
+  const readings = (
     <>
-      <Card
-        aria-label={`${label} setting`}
-        className={CARD_CLASS}
-        style={{ '--tone': tone, '--tone-fg': toneFg } as CSSProperties}
-      >
-        {/* No title row: on the 800x480 kiosk the dial is only ever used with the bottom bar up, so
-            every pixel goes to it. The heater's name is the status card's title. */}
-        <Card.Content className={DIAL_CONTENT_CLASS}>
-          <h2 className="sr-only">{label}</h2>
-          <DialSlider
-            label={byPower ? 'Power' : 'Target'}
-            value={dialBusy && dial.to !== undefined ? dial.to : dialValue}
-            min={byPower ? POWER_RANGE.min : SETPOINT_RANGE.min}
-            max={byPower ? POWER_RANGE.max : SETPOINT_RANGE.max}
-            unit={byPower ? '' : '°C'}
-            tone={tone}
-            status={phase}
-            marker={byPower ? undefined : cabin}
-            reading={cabin === undefined ? undefined : `${cabin.toFixed(1)} °C`}
-            disabled={!settingsOk}
-            busy={dialBusy}
-            onCommit={(to) =>
-              byPower
-                ? send('power', () => onSetPowerLevel(id, to), to)
-                : send('setpoint', () => onSetSetpoint(id, to), to)
-            }
-          />
-          {/* Bottom-anchored, on the same line as the status card's Start/Stop. */}
-          <div className="mt-auto flex flex-col gap-1.5">
-            <ToggleButtonGroup
-              aria-label={`${label} mode`}
+      {reporting && hasError(heater) && (
+        <p
+          role="alert"
+          className="bg-danger/10 text-danger flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
+        >
+          <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
+          Heater fault, error {heater.error_code}
+        </p>
+      )}
+
+      <dl aria-label={`${label} readings`} className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <Readout
+          label="Cabin"
+          value={reporting ? fmt(heater.internal_temperature_c, 1, '°C') : '—'}
+        />
+        <Readout
+          label="Heater"
+          value={reporting ? fmt(heater.heater_temperature_c, 0, '°C') : '—'}
+        />
+        {heater.external_temperature_c !== undefined && reporting && (
+          <Readout label="External" value={fmt(heater.external_temperature_c, 1, '°C')} />
+        )}
+        <Readout label="Voltage" value={reporting ? fmt(heater.voltage_v, 1, 'V') : '—'} />
+        <Readout label="Fan" value={reporting ? fmt(heater.fan_rpm, 0, 'rpm') : '—'} />
+        <Readout label="Fuel pump" value={reporting ? fmt(heater.fuel_pump_hz, 1, 'Hz') : '—'} />
+        <div className="col-start-2 flex min-w-0 flex-col gap-0.5">
+          <dt className="text-muted text-xs">Sensor</dt>
+          <dd>
+            {/* Which probe a temperature mode reads. Power mode reads none, and the heater
+                does not accept a sensor change while running in it (Comfort Control manual,
+                section 4.3). */}
+            <Select
+              aria-label="Temperature sensor"
               fullWidth
-              selectionMode="single"
-              disallowEmptySelection
-              isDisabled={!modesOk || mode !== undefined}
-              selectedKeys={new Set(current === undefined ? [] : [current])}
-              onSelectionChange={(keys) => {
-                const next = [...keys][0] as OperatingMode | undefined
-                // HeroUI re-fires the selection on a re-tap of the selected segment: send nothing.
-                if (next === undefined || next === current) return
-                // Ventilation and the heating modes exclude each other while the heater runs.
-                if (modeSwitchBlock(heater, current, next) !== undefined) {
-                  setSwitchTarget(next)
-                  return
-                }
-                applyMode(next)
+              isDisabled={!settingsOk || mode !== undefined || sensorLocked(current)}
+              value={sensor}
+              onChange={(key) => {
+                const next = key as HeaterSensor
+                if (next !== sensor) send('mode', () => onSetMode(id, next))
               }}
             >
-              {OPERATING_MODES.map(({ key, label: modeLabel, supported }) => {
-                const ModeIcon = OPERATING_MODE_ICONS[key]
-                return (
-                  <ToggleButton
-                    key={key}
-                    id={key}
-                    aria-label={modeLabel}
-                    isDisabled={!supported && !localModes}
-                    className="min-h-11 flex-1 data-[selected=true]:bg-[var(--tone)] data-[selected=true]:text-[var(--tone-fg)]"
-                  >
-                    {({ isSelected }) => (
-                      <>
-                        <ModeIcon aria-hidden="true" className="size-5 shrink-0" />
-                        {/* The current mode is named; the others are icons to save the width. */}
-                        {isSelected && (
-                          <span className="truncate text-sm font-medium">{modeLabel}</span>
-                        )}
-                      </>
-                    )}
-                  </ToggleButton>
-                )
-              })}
-            </ToggleButtonGroup>
-          </div>
-        </Card.Content>
-      </Card>
+              <Select.Trigger className="min-h-9">
+                <Select.Value />
+                {mode && !mode.failed ? <Spinner size="sm" /> : <Select.Indicator />}
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {HEATER_SENSORS.map((key) => (
+                    <ListBox.Item key={key} id={key} textValue={MODE_LABELS[key]}>
+                      {MODE_LABELS[key]}
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
+          </dd>
+        </div>
+        {/* The clock the Start button starts, as on Venus OS, and the timer that ends it. */}
+        <RunTime heater={heater} reporting={reporting} />
+        <TimerSelect
+          timer={localModes?.timer}
+          disabled={!controls}
+          running={canStop(heater) && heater.phase !== 'shutting_down'}
+        />
+      </dl>
 
-      <Card aria-label={`${label} status`} className={CARD_CLASS}>
-        <Card.Header className="flex-row! items-center justify-between gap-2 px-5 py-3">
-          <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-            <HeaterIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
-            <span className="truncate">{label}</span>
-          </h2>
-          <span className="text-sm font-semibold">{reporting ? phase : 'Unknown'}</span>
-        </Card.Header>
-        <Card.Content className={CONTENT_CLASS}>
-          {reporting && hasError(heater) && (
-            <p
-              role="alert"
-              className="bg-danger/10 text-danger flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
-            >
-              <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
-              Heater fault, error {heater.error_code}
-            </p>
-          )}
+      {!reporting && !frozen && (
+        <p className="text-muted text-xs">No recent reading from the heater.</p>
+      )}
+      {reporting && !commandsOn && (
+        <p className="text-muted text-xs">
+          Commands are turned off on the heater driver, so this page is read-only.
+        </p>
+      )}
+    </>
+  )
 
-          <dl aria-label={`${label} readings`} className="grid grid-cols-2 gap-4">
-            <Readout
-              label="Cabin"
-              value={reporting ? fmt(heater.internal_temperature_c, 1, '°C') : '—'}
-            />
-            <Readout
-              label="Heater"
-              value={reporting ? fmt(heater.heater_temperature_c, 0, '°C') : '—'}
-            />
-            {heater.external_temperature_c !== undefined && reporting && (
-              <Readout label="External" value={fmt(heater.external_temperature_c, 1, '°C')} />
-            )}
-            <Readout label="Voltage" value={reporting ? fmt(heater.voltage_v, 1, 'V') : '—'} />
-            <Readout label="Fan" value={reporting ? fmt(heater.fan_rpm, 0, 'rpm') : '—'} />
-            <Readout
-              label="Fuel pump"
-              value={reporting ? fmt(heater.fuel_pump_hz, 1, 'Hz') : '—'}
-            />
-            {/* Beside the sensor: the clock the Start button starts, as on Venus OS. */}
-            {reporting ? <RunTime heater={heater} /> : <Readout label="Runtime" value="—" />}
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <dt className="text-muted text-xs">Sensor</dt>
-              <dd>
-                {/* Which probe a temperature mode reads. Power mode reads none, and the heater
-                    does not accept a sensor change while running in it (Comfort Control manual,
-                    section 4.3). */}
-                <Select
-                  aria-label="Temperature sensor"
-                  fullWidth
-                  isDisabled={!settingsOk || mode !== undefined || sensorLocked(current)}
-                  value={sensor}
-                  onChange={(key) => {
-                    const next = key as HeaterSensor
-                    if (next !== sensor) send('mode', () => onSetMode(id, next))
-                  }}
-                >
-                  <Select.Trigger className="min-h-9">
-                    <Select.Value />
-                    {mode && !mode.failed ? <Spinner size="sm" /> : <Select.Indicator />}
-                  </Select.Trigger>
-                  <Select.Popover>
-                    <ListBox>
-                      {HEATER_SENSORS.map((key) => (
-                        <ListBox.Item key={key} id={key} textValue={MODE_LABELS[key]}>
-                          {MODE_LABELS[key]}
-                          <ListBox.ItemIndicator />
-                        </ListBox.Item>
-                      ))}
-                    </ListBox>
-                  </Select.Popover>
-                </Select>
-              </dd>
-            </div>
-          </dl>
-
-          {!reporting && !frozen && (
-            <p className="text-muted text-xs">No recent reading from the heater.</p>
-          )}
-          {reporting && !commandsOn && (
-            <p className="text-muted text-xs">
-              Commands are turned off on the heater driver, so this page is read-only.
-            </p>
-          )}
-
-          <div className="mt-auto flex flex-col gap-1.5">
-            <div className="flex items-center gap-3">
-              {canStop(heater) ? (
-                <Button
-                  variant="danger"
-                  className="min-h-11 flex-1"
-                  isDisabled={!controls || (run !== undefined && !run.failed)}
-                  onPress={() => send('run', () => onSetRunning(id, false))}
-                >
-                  Stop
-                </Button>
-              ) : (
-                <Button
-                  className="min-h-11 flex-1"
-                  isDisabled={!controls || !canStart(heater) || (run !== undefined && !run.failed)}
-                  onPress={() => setConfirmingStart(true)}
-                >
-                  Start
-                </Button>
-              )}
-              {run && !run.failed && <Spinner size="sm" />}
-            </div>
-            {controls && heater.phase === 'off' && hasError(heater) && (
-              <span className="text-muted text-xs">Can&apos;t start with a fault.</span>
-            )}
-          </div>
-        </Card.Content>
-      </Card>
-
+  const dialogs = (
+    <>
       <AlertDialog isOpen={confirmingStart} onOpenChange={setConfirmingStart}>
         {/* Controlled by `confirmingStart`; the root is a DialogTrigger that warns without a
             pressable child, so a hidden trigger satisfies it (same as the Relays page). */}
@@ -528,6 +542,99 @@ function HeaterCard({
           </AlertDialog.Container>
         </AlertDialog.Backdrop>
       </AlertDialog>
+    </>
+  )
+
+  if (variant === 'widget') {
+    // The Start page's widget: one card headed by the heater's name and status, then a carousel of
+    // the dial (with the modes and Start/Stop) and the readings. Only the first card's header is
+    // used; the readings carry none.
+    return (
+      <>
+        <Card
+          aria-label={`${label} widget`}
+          className="shrink-0 gap-0! p-0!"
+          style={{ '--tone': tone, '--tone-fg': toneFg } as CSSProperties}
+        >
+          <Card.Header className={HEADER_CLASS}>
+            <HeaterTitle label={label} status={reporting ? phase : 'Unknown'} />
+          </Card.Header>
+          <Card.Content className="px-0 pb-5">
+            <Carousel
+              label={label}
+              slides={[
+                {
+                  id: 'dial',
+                  label: 'Setting',
+                  content: (
+                    <div className="flex w-full flex-col gap-2 px-4 pb-4">
+                      {dialSlider}
+                      {modeButtons}
+                      {startStop}
+                    </div>
+                  ),
+                },
+                {
+                  id: 'readings',
+                  label: 'Readings',
+                  content: (
+                    <div className="flex w-full flex-col gap-4 self-start px-4 pb-4">
+                      {readings}
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </Card.Content>
+        </Card>
+        {dialogs}
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Card
+        aria-label={`${label} setting`}
+        className={CARD_CLASS}
+        style={{ '--tone': tone, '--tone-fg': toneFg } as CSSProperties}
+      >
+        {/* No title row: on the 800x480 kiosk the dial is only ever used with the bottom bar up, so
+            every pixel goes to it. The heater's name is the status card's title. */}
+        {/* The cards stack on a phone, so each gets a header there: the dial card leads with the
+            heater's name and status, the readings card is titled for what it holds. */}
+        {isMobile && (
+          <Card.Header className={HEADER_CLASS}>
+            <HeaterTitle label={label} status={reporting ? phase : 'Unknown'} />
+          </Card.Header>
+        )}
+        <Card.Content className={DIAL_CONTENT_CLASS}>
+          {!isMobile && <h2 className="sr-only">{label}</h2>}
+          {dialSlider}
+          {/* Bottom-anchored, on the same line as the status card's Start/Stop. */}
+          <div className="mt-auto flex flex-col gap-1.5">
+            {modeButtons}
+            {isMobile && startStop}
+          </div>
+        </Card.Content>
+      </Card>
+
+      <Card aria-label={`${label} status`} className={CARD_CLASS}>
+        <Card.Header className={HEADER_CLASS}>
+          {isMobile ? (
+            <h2 className="text-sm font-semibold">Readings</h2>
+          ) : (
+            <HeaterTitle label={label} status={reporting ? phase : 'Unknown'} />
+          )}
+        </Card.Header>
+        <Card.Content className={CONTENT_CLASS}>
+          {readings}
+
+          {!isMobile && <div className="mt-auto">{startStop}</div>}
+        </Card.Content>
+      </Card>
+
+      {dialogs}
     </>
   )
 }

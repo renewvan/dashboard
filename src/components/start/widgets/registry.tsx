@@ -1,10 +1,20 @@
 import type { ComponentType } from 'react'
-import { CloudSun, Droplet, Droplets, Map as MapIcon, Move3d, Sun, Zap } from 'lucide-react'
+import {
+  CloudSun,
+  Droplet,
+  Droplets,
+  Heater as HeaterIcon,
+  Map as MapIcon,
+  Move3d,
+  Sun,
+  Zap,
+} from 'lucide-react'
 import type { StartWidgetId } from '@/hooks/useStartLayout'
 import type { StartTileId } from '@/hooks/useStartTiles'
 import { BatteryCard } from './BatteryCard'
 import { EnergyCard } from './EnergyCard'
 import { FreshWaterCard, GreyWaterCard } from './FluidTankCard'
+import { HeaterWidget } from './HeaterWidget'
 import { MapCard } from './MapCard'
 import { PowerFlowCard } from './PowerFlowCard'
 import { SolarYieldCard } from './SolarYieldCard'
@@ -28,6 +38,7 @@ export const START_WIDGETS: Record<StartWidgetId, StartWidgetDefinition> = {
   weather: { id: 'weather', label: 'Weather', icon: CloudSun, Component: WeatherCard },
   map: { id: 'map', label: 'Map', icon: MapIcon, Component: MapCard },
   energy: { id: 'energy', label: 'Energy', icon: Zap, Component: EnergyCard },
+  heater: { id: 'heater', label: 'Heater', icon: HeaterIcon, Component: HeaterWidget },
   solar: { id: 'solar', label: 'Solar production', icon: Sun, Component: SolarYieldCard },
   tilt: { id: 'tilt', label: 'Tilt', icon: Move3d, Component: TiltCard },
   'fresh-water': {
@@ -56,6 +67,7 @@ export const START_TILES: Record<
   map: START_WIDGETS.map,
   power: { label: 'Power', Component: PowerFlowCard },
   battery: { label: 'Battery', Component: BatteryCard },
+  heater: START_WIDGETS.heater,
   solar: START_WIDGETS.solar,
   tilt: START_WIDGETS.tilt,
   'fresh-water': START_WIDGETS['fresh-water'],

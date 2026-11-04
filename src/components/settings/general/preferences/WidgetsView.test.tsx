@@ -60,6 +60,7 @@ describe('Settings › General › Display & Appearance › Widgets', () => {
       'weather',
       'map',
       'energy',
+      'heater',
       'solar',
       'tilt',
       'fresh-water',

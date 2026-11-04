@@ -24,7 +24,7 @@ import type { SettingsSubView } from '@/components/settings/views'
 import { TanksPage } from '@/components/tanks/TanksPage'
 import { TemperaturePage } from '@/components/temperature/TemperaturePage'
 import { RelaysPage } from '@/components/relays/RelaysPage'
-import { HeaterPage } from '@/components/heater/HeaterPage'
+import { HeaterPage, type HeaterPageProps } from '@/components/heater/HeaterPage'
 import { StartPage } from '@/components/start/StartPage'
 import { PowerPage } from '@/components/power/PowerPage'
 import { ThemeToggleButton } from '@/components/ThemeToggleButton'
@@ -192,6 +192,28 @@ function App() {
 
   const { commands, sleepDisplay, wakeDisplay } = useDisplayCommands(publish)
 
+  // The Heater page and the Start page's Heater widget share one heater and one set of commands.
+  const heaterProps: HeaterPageProps = {
+    heaters: localHeaterOn ? localHeater.heaters : state.heaters,
+    driverOnline: localHeaterOn || heaterDriversOnline(state),
+    demo: demoMode && !localHeaterOn,
+    localModes: localHeaterOn
+      ? {
+          mode: localHeater.operating,
+          onChange: localHeater.setOperatingMode,
+          timer: {
+            minutes: localHeater.timerMinutes,
+            endsAt: localHeater.endsAt,
+            onChange: localHeater.setTimerMinutes,
+          },
+        }
+      : undefined,
+    onSetRunning: localHeaterOn ? localHeater.setRunning : commands.setHeaterRunning,
+    onSetMode: localHeaterOn ? localHeater.setMode : commands.setHeaterMode,
+    onSetSetpoint: localHeaterOn ? localHeater.setSetpoint : commands.setHeaterSetpoint,
+    onSetPowerLevel: localHeaterOn ? localHeater.setPowerLevel : commands.setHeaterPowerLevel,
+  }
+
   // The Settings nav bar's bell: stable like the sleep handlers, so the settings value only changes
   // when a field does. `goToPage` closes over `setActivePage`, recreated each render.
   const openAlerts = useStableCallback(() => goToPage('alerts'))
@@ -353,6 +375,7 @@ function App() {
             vanColor={van.color}
             onConfigureTank={openTankSettings}
             onOpenInstance={openInstanceSettings}
+            heater={heaterProps}
           />
         )
       case 'power':
@@ -400,24 +423,7 @@ function App() {
           />
         )
       case 'heater':
-        return (
-          <HeaterPage
-            heaters={localHeaterOn ? localHeater.heaters : state.heaters}
-            driverOnline={localHeaterOn || heaterDriversOnline(state)}
-            demo={demoMode && !localHeaterOn}
-            localModes={
-              localHeaterOn
-                ? { mode: localHeater.operating, onChange: localHeater.setOperatingMode }
-                : undefined
-            }
-            onSetRunning={localHeaterOn ? localHeater.setRunning : commands.setHeaterRunning}
-            onSetMode={localHeaterOn ? localHeater.setMode : commands.setHeaterMode}
-            onSetSetpoint={localHeaterOn ? localHeater.setSetpoint : commands.setHeaterSetpoint}
-            onSetPowerLevel={
-              localHeaterOn ? localHeater.setPowerLevel : commands.setHeaterPowerLevel
-            }
-          />
-        )
+        return <HeaterPage {...heaterProps} />
       case 'settings':
         return (
           <SettingsProvider {...settings}>
