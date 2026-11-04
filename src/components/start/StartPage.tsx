@@ -69,6 +69,7 @@ export function StartPage({
   vanColor,
   onConfigureTank,
   onOpenInstance,
+  heater,
   layout = DEFAULT_START_LAYOUT,
   view = DEFAULT_START_VIEW,
   tiles = {},
@@ -93,6 +94,7 @@ export function StartPage({
       now,
       onConfigureTank,
       onOpenInstance,
+      heater,
     }
 
     if (isMobile) {

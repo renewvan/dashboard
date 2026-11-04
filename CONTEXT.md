@@ -8,6 +8,10 @@ The touchscreen kiosk UI mounted in the van. It renders live van state (tanks, b
 The kiosk's live MQTT-over-WebSocket connection to the van's broker — reported as the Hub dot row inside the uplink popover and as the first block of the **Hub page**. Says nothing about the van's internet reachability.
 _Avoid_: Connection status, router status, internet connection
 
+**Operating mode**:
+What the heater does, named as the Autoterm Comfort Control panel names it: Power, Temperature, Thermostat, Heat + ventilation or Ventilation. The hub's heater `mode` carries only Power and the temperature **sensor** (heater or external probe), so the other three are shown on the Heater page but cannot be commanded yet. Ventilation and the heating modes exclude each other while the heater runs (manual §3.3-3.4). See `docs/heater.md`.
+_Avoid_: Heater mode (the hub's `mode` field is narrower), program
+
 **Uplink**:
 The van's internet connection as the header's connection status button
 (`UplinkStatusButton`) reports it. While the cellular router entity is

@@ -57,6 +57,11 @@ cp .env.example .env   # set VITE_MQTT_WS_URL at minimum
 vp dev
 ```
 
+Dev builds also read `?flag.<name>=<value>` URL flags (ignored in a built kiosk): `flag.demo=1` turns Demo
+mode on, `flag.nav-pinned=1` pins the kiosk's bottom bar, `flag.heater-dev=1` gives the Heater page a local
+heater, and any stored setting (`flag.theme=dark`, `flag.navbar-position=bottom`, ...) is written to
+localStorage once. See [docs/heater.md](docs/heater.md) for the Heater page and its local heater.
+
 ## Testing
 
 ```bash

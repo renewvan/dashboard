@@ -8,6 +8,7 @@ import type {
   Tilt,
 } from '@/types'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
+import type { HeaterPageProps } from '@/components/heater/HeaterPage'
 
 /**
  * What every phone Start-page widget is handed: the bus state and the display choices. A widget
@@ -36,6 +37,8 @@ export interface StartWidgetProps {
   now: Date
   /** A tank widget's Configure button: opens that tank's settings. */
   onConfigureTank: (id: string) => void
+  /** The heater and what drives it; the Heater widget draws its own empty state without one. */
+  heater?: HeaterPageProps
   /** A power-flow source: opens its device in Settings, by its `instanceKey`. */
   onOpenInstance?: (key: string) => void
 }

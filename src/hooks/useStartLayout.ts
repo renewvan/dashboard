@@ -5,6 +5,7 @@ export const START_WIDGET_IDS = [
   'weather',
   'map',
   'energy',
+  'heater',
   'solar',
   'tilt',
   'fresh-water',

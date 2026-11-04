@@ -30,8 +30,8 @@ const RUNNING: Heater = {
 }
 const OFF: Heater = { ...RUNNING, phase: 'off', status_code: '0.1' }
 
-function setup(heaters: Record<string, Heater>, props: Partial<HeaterPageProps> = {}) {
-  stubMatchMedia(800)
+function setup(heaters: Record<string, Heater>, props: Partial<HeaterPageProps> = {}, width = 800) {
+  stubMatchMedia(width)
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
   const all: HeaterPageProps = {
     heaters,
@@ -90,11 +90,111 @@ describe('HeaterPage', () => {
     expect(clock()).toBe('0:00')
   })
 
+  it('has the sensor beside Fuel pump and the timer beside Runtime, in that order', () => {
+    setup({ cabin: RUNNING })
+    const labels = [...document.querySelectorAll('dt')].map((d) => d.textContent)
+    expect(labels.slice(-4)).toEqual(['Fuel pump', 'Sensor', 'Runtime', 'Timer'])
+  })
+
+  it('shows the timer Off and disabled on a real heater', () => {
+    setup({ cabin: RUNNING })
+    const timer = screen.getByRole('button', { name: /Timer/ })
+    expect(timer).toBeDisabled()
+    expect(timer).toHaveTextContent('Off')
+  })
+
+  it('picks a preset on the local heater', async () => {
+    const onChange = vi.fn()
+    const timerOnChange = vi.fn()
+    const { user } = setup(
+      { cabin: OFF },
+      {
+        localModes: {
+          mode: 'temperature',
+          onChange,
+          timer: { minutes: 0, endsAt: undefined, onChange: timerOnChange },
+        },
+      },
+    )
+    await user.click(screen.getByRole('button', { name: /Timer/ }))
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Off',
+      '30 min',
+      '60 min',
+      '90 min',
+    ])
+    await user.click(screen.getByRole('option', { name: '60 min' }))
+    expect(timerOnChange).toHaveBeenCalledWith(60)
+  })
+
+  it('shows the time left while the countdown runs', () => {
+    const onChange = vi.fn()
+    const endsAt = Date.now() + 90_000
+    setup(
+      { cabin: RUNNING },
+      {
+        localModes: {
+          mode: 'temperature',
+          onChange,
+          timer: { minutes: 30, endsAt, onChange: vi.fn() },
+        },
+      },
+    )
+    expect(screen.getByRole('button', { name: /Timer/ })).toHaveTextContent('1:30')
+  })
+
   it('reads Unknown, with controls off, when the driver is not online', () => {
     setup({ cabin: RUNNING }, { driverOnline: false })
     expect(screen.getByText('Unknown')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('not online')
     expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled()
+  })
+
+  it('puts the title and status in the status card on the kiosk', () => {
+    setup({ cabin: RUNNING })
+    const status = screen.getByLabelText('Cabin heater status')
+    expect(within(status).getByRole('heading', { name: 'Cabin heater' })).toBeInTheDocument()
+    const dial = screen.getByLabelText('Cabin heater setting')
+    expect(within(dial).getByRole('heading', { name: 'Cabin heater' })).toHaveClass('sr-only')
+  })
+
+  it('leads the first card with the title and status, and titles the readings card, on a phone', () => {
+    setup({ cabin: RUNNING }, {}, 400)
+    const dial = screen.getByLabelText('Cabin heater setting')
+    const title = within(dial).getByRole('heading', { name: 'Cabin heater' })
+    expect(title).not.toHaveClass('sr-only')
+    expect(dial).toHaveTextContent('Running')
+    const status = screen.getByLabelText('Cabin heater status')
+    expect(within(status).getByRole('heading', { name: 'Readings' })).toBeInTheDocument()
+    expect(within(status).queryByRole('heading', { name: 'Cabin heater' })).not.toBeInTheDocument()
+  })
+
+  it('puts Start under the mode buttons on a phone, and in the status card on the kiosk', () => {
+    setup({ cabin: OFF }, {}, 400)
+    const dial = screen.getByLabelText('Cabin heater setting')
+    const status = screen.getByLabelText('Cabin heater status')
+    const modes = within(dial).getByRole('radiogroup')
+    const start = within(dial).getByRole('button', { name: 'Start' })
+    expect(modes.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(status).queryByRole('button', { name: 'Start' })).not.toBeInTheDocument()
+    cleanup()
+    setup({ cabin: OFF })
+    expect(
+      within(screen.getByLabelText('Cabin heater status')).getByRole('button', { name: 'Start' }),
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByLabelText('Cabin heater setting')).queryByRole('button', {
+        name: 'Start',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps Runtime beside the timer even when the heater is Unknown', () => {
+    setup({ cabin: { name: 'Cabin heater', commands_enabled: true } })
+    const cell = screen.getByText('Runtime').parentElement
+    expect(cell).toHaveClass('col-start-1')
+    expect(cell).toHaveTextContent('—')
+    expect(cell?.nextElementSibling).toHaveTextContent('Timer')
   })
 
   it('reads Unknown when the driver cleared the live fields', () => {
