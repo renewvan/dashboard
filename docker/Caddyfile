@@ -33,7 +33,32 @@
 
     encode zstd gzip
 
-    # Proxy everything to the nginx container, which already serves the SPA,
+    # History for the charts: same-origin /influx/... forwarded to InfluxDB, so no browser holds a token
+    # and there is no CORS (hub docs/adr/0024-history-reaches-browsers-through-a-caddy-influx-proxy.md).
+    # Only POST /api/v2/query passes; anything else is refused. Any client Authorization header is
+    # discarded and the read-only, bucket-scoped dashboard token is injected from the environment.
+    handle_path /influx/* {
+        @query {
+            method POST
+            path /api/v2/query
+        }
+        handle @query {
+            request_body {
+                max_size 64KB
+            }
+            reverse_proxy influxdb:8086 {
+                header_up -Authorization
+                header_up Authorization "Token {env.INFLUXDB_DASHBOARD_TOKEN}"
+            }
+        }
+        handle {
+            respond "Forbidden" 403
+        }
+    }
+
+    # Proxy everything else to the nginx container, which already serves the SPA,
     # the /mqtt WebSocket and the /maps/ basemap (including range requests).
-    reverse_proxy dashboard:80
+    handle {
+        reverse_proxy dashboard:80
+    }
 }
