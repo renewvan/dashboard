@@ -48,6 +48,7 @@ import { TailscaleView } from './connectivity/TailscaleView'
 import { TankSettingsView } from './drivers/TankSettingsView'
 import { TanksView } from './drivers/TanksView'
 import { useReportedTankIds } from './drivers/useReportedTankIds'
+import { HeaterView } from './drivers/HeaterView'
 import { RelaysView } from './drivers/RelaysView'
 import { TemperatureView } from './drivers/TemperatureView'
 import { GpsView } from './drivers/GpsView'
@@ -68,6 +69,7 @@ const VIEWS: Record<SettingsSubView, { title: string; parent: SettingsView }> = 
   temperature: { title: 'Temperature', parent: 'drivers' },
   gps: { title: 'GPS', parent: 'drivers' },
   relays: { title: 'Relays', parent: 'drivers' },
+  heater: { title: 'Heater', parent: 'drivers' },
   batteries: { title: 'Batteries', parent: 'drivers' },
   'primary-battery': { title: 'Primary battery', parent: 'batteries' },
   solar: { title: 'Solar Chargers', parent: 'drivers' },
@@ -105,6 +107,7 @@ const ENTITY_LISTS: SettingsSubView[] = [
   'temperature',
   'gps',
   'relays',
+  'heater',
   'batteries',
   'solar',
   'chargers',
@@ -328,6 +331,8 @@ export const SettingsPage = memo(function SettingsPage() {
         return <GpsView onOpen={openInstance} />
       case 'relays':
         return <RelaysView onOpen={openInstance} />
+      case 'heater':
+        return <HeaterView />
       case 'batteries':
         return (
           <InstancesView

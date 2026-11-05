@@ -22,7 +22,7 @@ export function ChoiceRow<T extends string>({
   isDisabled = false,
 }: {
   label: string
-  choices: { value: T; label: string }[]
+  choices: { value: T; label: string; isDisabled?: boolean }[]
   value: T
   onChange: (value: T) => void
   isDisabled?: boolean
@@ -44,7 +44,7 @@ export function ChoiceRow<T extends string>({
         }}
       >
         {choices.map((choice, index) => (
-          <ToggleButton key={choice.value} id={choice.value}>
+          <ToggleButton key={choice.value} id={choice.value} isDisabled={choice.isDisabled}>
             {index > 0 && <ToggleButtonGroup.Separator />}
             {choice.label}
           </ToggleButton>

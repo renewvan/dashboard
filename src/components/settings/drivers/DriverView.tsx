@@ -3,6 +3,7 @@ import { Button } from '@heroui/react'
 import { tankSummary } from '@/lib/tank-display'
 import { temperatureSummary } from '@/lib/temperature'
 import { gpsSummary } from '@/lib/gps'
+import { MODE_LABELS, heaterSensor } from '@/lib/heater'
 import { entityCountText, instanceCountText, type EntityType, type DriverRow } from '@/lib/drivers'
 import { StatusRow } from '../shared/DetailList'
 import { GroupRow } from '../shared/GroupRow'
@@ -20,6 +21,7 @@ const ENTITY_VIEW: Partial<Record<EntityType, SettingsSubView>> = {
   tank: 'tanks',
   temperature: 'temperature',
   relay: 'relays',
+  heater: 'heater',
   gps: 'gps',
   battery: 'batteries',
   solar: 'solar',
@@ -38,13 +40,20 @@ export function DriverView({
   row: DriverRow
   onOpen: (view: SettingsSubView) => void
 }) {
-  const { temperatures, gps } = useSettingsData()
+  const { temperatures, gps, heaters } = useSettingsData()
   const tankIds = useReportedTankIds()
 
   const describe = (type: EntityType, ids: string[]): string => {
     if (type === 'tank') return tankSummary(tankIds)
     if (type === 'temperature') return temperatureSummary(temperatures)
     if (type === 'gps') return gpsSummary(Object.values(gps).find(isCompleteGps))
+    if (type === 'heater') {
+      const sensors = ids.flatMap((id) => {
+        const sensor = heaters[id] && heaterSensor(heaters[id])
+        return sensor === undefined ? [] : [MODE_LABELS[sensor]]
+      })
+      return sensors.length === 0 ? entityCountText(ids.length) : sensors.join(', ')
+    }
     if (type === 'battery' || type === 'solar' || type === 'charger') {
       return instanceCountText(type, ids.length)
     }

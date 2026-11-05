@@ -3,8 +3,6 @@ import {
   AlertDialog,
   Button,
   Card,
-  ListBox,
-  Select,
   Spinner,
   ToggleButton,
   ToggleButtonGroup,
@@ -21,14 +19,11 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import {
-  HEATER_SENSORS,
-  MODE_LABELS,
   OPERATING_MODES,
   POWER_RANGE,
   SETPOINT_RANGE,
   canChangeSettings,
   modeSwitchBlock,
-  sensorLocked,
   canStart,
   canStop,
   hasError,
@@ -81,7 +76,11 @@ export interface HeaterPageProps {
      * The Venus-style timer. The hub and Driver have no timer field, so it only works on the local
      * heater, where it stops the heater at zero; on a real heater the dropdown is disabled.
      */
-    timer?: { minutes: number; endsAt: number | undefined; onChange: (minutes: number) => void }
+    timer?: {
+      minutes: number
+      endsAt: number | undefined
+      onChange: (minutes: number) => void
+    }
   }
 }
 
@@ -401,54 +400,24 @@ export function HeaterCard({
         </p>
       )}
 
-      <dl aria-label={`${label} readings`} className="grid grid-cols-2 gap-x-4 gap-y-3">
+      <dl aria-label={`${label} readings`} className="grid grid-cols-2 gap-x-4 gap-y-2">
+        {/* External is the probe; "—" when none is fitted (the 0x7F sentinel). The heater's own
+            internal sensor is a different reading, shown separately. */}
         <Readout
-          label="Cabin"
+          label="External"
+          value={reporting ? fmt(heater.external_temperature_c, 1, '°C') : '—'}
+        />
+        <Readout
+          label="Internal"
           value={reporting ? fmt(heater.internal_temperature_c, 1, '°C') : '—'}
         />
         <Readout
           label="Heater"
           value={reporting ? fmt(heater.heater_temperature_c, 0, '°C') : '—'}
         />
-        {heater.external_temperature_c !== undefined && reporting && (
-          <Readout label="External" value={fmt(heater.external_temperature_c, 1, '°C')} />
-        )}
         <Readout label="Voltage" value={reporting ? fmt(heater.voltage_v, 1, 'V') : '—'} />
         <Readout label="Fan" value={reporting ? fmt(heater.fan_rpm, 0, 'rpm') : '—'} />
         <Readout label="Fuel pump" value={reporting ? fmt(heater.fuel_pump_hz, 1, 'Hz') : '—'} />
-        <div className="col-start-2 flex min-w-0 flex-col gap-0.5">
-          <dt className="text-muted text-xs">Sensor</dt>
-          <dd>
-            {/* Which probe a temperature mode reads. Power mode reads none, and the heater
-                does not accept a sensor change while running in it (Comfort Control manual,
-                section 4.3). */}
-            <Select
-              aria-label="Temperature sensor"
-              fullWidth
-              isDisabled={!settingsOk || mode !== undefined || sensorLocked(current)}
-              value={sensor}
-              onChange={(key) => {
-                const next = key as HeaterSensor
-                if (next !== sensor) send('mode', () => onSetMode(id, next))
-              }}
-            >
-              <Select.Trigger className="min-h-9">
-                <Select.Value />
-                {mode && !mode.failed ? <Spinner size="sm" /> : <Select.Indicator />}
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox>
-                  {HEATER_SENSORS.map((key) => (
-                    <ListBox.Item key={key} id={key} textValue={MODE_LABELS[key]}>
-                      {MODE_LABELS[key]}
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
-          </dd>
-        </div>
         {/* The clock the Start button starts, as on Venus OS, and the timer that ends it. */}
         <RunTime heater={heater} reporting={reporting} />
         <TimerSelect
@@ -475,7 +444,7 @@ export function HeaterCard({
       {reporting && !commandsOn && (
         <p className="text-muted flex items-center gap-2 text-xs">
           <Info aria-hidden="true" className="size-4 shrink-0" />
-          Commands are turned off on the heater driver, so this page is read-only.
+          Commands are turned off so this page is read-only.
         </p>
       )}
     </>
