@@ -54,7 +54,9 @@ vi.mock('maplibre-gl', () => ({
   removeProtocol: vi.fn(),
   setWorkerUrl: vi.fn(),
 }))
-vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({ default: '/worker.mjs' }))
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({
+  default: '/worker.mjs',
+}))
 
 /** Delivers a retained message to the app as the broker would. */
 async function receive(topic: string, payload: string) {
@@ -566,7 +568,12 @@ describe('App shell alerts bell', () => {
       'Grey water tank alarm',
       'Hub connection lost',
     ]) {
-      appendAlertHistoryEntry({ key: title, type: 'error', title, description: '' })
+      appendAlertHistoryEntry({
+        key: title,
+        type: 'error',
+        title,
+        description: '',
+      })
     }
     await renderAt(KIOSK_WIDTH, '/?page=alerts')
 
@@ -650,6 +657,13 @@ async function receiveTiltDriver(health: 'online' | 'offline') {
 }
 
 describe('App shell Start page tilt', () => {
+  beforeEach(() => {
+    window.localStorage.setItem(
+      'renewvan-dashboard-start-power-sources',
+      JSON.stringify({ centre: 'tilt' }),
+    )
+  })
+
   it('shows the live tilt in the middle of the Dial while its driver is online', async () => {
     await renderAt(KIOSK_WIDTH)
     await receiveTiltDriver('online')
@@ -724,7 +738,11 @@ describe('App shell Tanks page', () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH)
     await receiveTank('fresh', FRESH_TANK)
-    await receiveTank('grey', { ...FRESH_TANK, fluid_type: 'grey_water', level_pct: 41 })
+    await receiveTank('grey', {
+      ...FRESH_TANK,
+      fluid_type: 'grey_water',
+      level_pct: 41,
+    })
     await user.click(screen.getByRole('tab', { name: 'Tanks' }))
     expect(screen.getByText('Fresh water')).toBeInTheDocument()
     expect(screen.getByText('Grey water')).toBeInTheDocument()
@@ -758,7 +776,11 @@ describe('App shell Tanks page', () => {
       const user = userEvent.setup()
       await renderAt(width)
       await receiveTank('fresh', FRESH_TANK)
-      await receiveTank('grey', { ...FRESH_TANK, fluid_type: 'grey_water', level_pct: 41 })
+      await receiveTank('grey', {
+        ...FRESH_TANK,
+        fluid_type: 'grey_water',
+        level_pct: 41,
+      })
       await user.click(screen.getByRole('tab', { name: 'Tanks' }))
 
       await user.click(screen.getByRole('button', { name: 'Grey water settings' }))
@@ -841,7 +863,9 @@ describe('App shell header', () => {
     expect(selectedPage()).toHaveAccessibleName('Settings')
     const entries = window.history.length
 
-    const logo = within(screen.getByRole('banner')).getByRole('link', { name: 'renewvan' })
+    const logo = within(screen.getByRole('banner')).getByRole('link', {
+      name: 'renewvan',
+    })
     expect(logo).toHaveAttribute('href', '?page=start')
     await user.click(logo)
 
@@ -855,7 +879,11 @@ describe('App shell header', () => {
     await renderAt(KIOSK_WIDTH, '/?page=start')
     const entries = window.history.length
 
-    await user.click(within(screen.getByRole('banner')).getByRole('link', { name: 'renewvan' }))
+    await user.click(
+      within(screen.getByRole('banner')).getByRole('link', {
+        name: 'renewvan',
+      }),
+    )
 
     expect(selectedPage()).toHaveAccessibleName('Start')
     expect(window.history.length).toBe(entries)
@@ -931,7 +959,9 @@ describe('App shell header', () => {
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
     await user.click(
-      within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Van/ }),
+      within(screen.getByTestId('pane-settings')).getByRole('button', {
+        name: /^Van/,
+      }),
     )
     await user.type(screen.getByRole('textbox', { name: 'Plate' }), '1234 ABC{Enter}')
     cleanup()
@@ -940,7 +970,9 @@ describe('App shell header', () => {
     await renderAt(KIOSK_WIDTH)
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
     await user.click(
-      within(screen.getByTestId('pane-settings')).getByRole('button', { name: /^Van/ }),
+      within(screen.getByTestId('pane-settings')).getByRole('button', {
+        name: /^Van/,
+      }),
     )
 
     expect(screen.getByRole('textbox', { name: 'Plate' })).toHaveValue('1234 ABC')
@@ -1157,7 +1189,11 @@ describe('App shell navbar position', () => {
   it('shows the full lockup in the header beside a closed left rail by default', async () => {
     await renderAt(KIOSK_WIDTH)
     expect(screen.getAllByRole('link', { name: 'renewvan' })).toHaveLength(1)
-    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'renewvan' })).toBeVisible()
+    expect(
+      within(screen.getByRole('banner')).getByRole('link', {
+        name: 'renewvan',
+      }),
+    ).toBeVisible()
     expect(screen.getByRole('complementary')).toContainElement(screen.getByRole('tablist'))
     expect(screen.queryByRole('button', { name: /sidebar/i })).not.toBeInTheDocument()
   })
@@ -1312,8 +1348,16 @@ describe('App shell navbar position', () => {
 
 describe('App shell pinned navbar', () => {
   it.each([
-    { position: 'left', landmark: 'complementary' as const, inset: '--navbar-inset-left' },
-    { position: 'bottom', landmark: 'navigation' as const, inset: '--navbar-inset-bottom' },
+    {
+      position: 'left',
+      landmark: 'complementary' as const,
+      inset: '--navbar-inset-left',
+    },
+    {
+      position: 'bottom',
+      landmark: 'navigation' as const,
+      inset: '--navbar-inset-bottom',
+    },
   ])(
     'pinned straight after load, the $position navbar and the page stay put for good',
     async ({ position, landmark, inset }) => {
@@ -1591,7 +1635,9 @@ describe('App shell Relays page', () => {
       await receiveBank('512', 83)
 
       await user.click(screen.getByRole('button', { name: /^Primary battery/ }))
-      const selector = screen.getByRole('radiogroup', { name: 'Primary battery' })
+      const selector = screen.getByRole('radiogroup', {
+        name: 'Primary battery',
+      })
       await user.click(within(selector).getByRole('radio', { name: '512' }))
 
       expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
@@ -1631,7 +1677,10 @@ describe('App shell entity icons', () => {
 
     await receive(
       'renewvan/hub/icons',
-      JSON.stringify({ 'tank/fresh': 'Fuel', 'temperature/outdoor': 'Refrigerator' }),
+      JSON.stringify({
+        'tank/fresh': 'Fuel',
+        'temperature/outdoor': 'Refrigerator',
+      }),
     )
     expect(document.querySelector('.lucide-fuel')).not.toBeNull()
 

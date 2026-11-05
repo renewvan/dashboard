@@ -170,7 +170,7 @@ describe('Settings › General › Display & Appearance › Start page', () => {
     })
   })
 
-  it('offers the tilt, the van or the battery readout for the middle, defaulting to the tilt', async () => {
+  it('offers the tilt, the van or the battery readout for the middle, defaulting to the battery readout', async () => {
     const { user, value } = renderSettings()
     await openSub(user, /^Centre & rings/)
 
@@ -180,13 +180,13 @@ describe('Settings › General › Display & Appearance › Start page', () => {
         .getAllByRole('radio')
         .map((radio) => radio.textContent),
     ).toEqual(['Tilt', 'Van', 'Battery readout'])
-    expect(within(group).getByRole('radio', { name: 'Tilt' })).toBeChecked()
+    expect(within(group).getByRole('radio', { name: 'Battery readout' })).toBeChecked()
 
-    await user.click(within(group).getByRole('radio', { name: 'Battery readout' }))
+    await user.click(within(group).getByRole('radio', { name: 'Tilt' }))
 
     expect(value.setStartPowerSources).toHaveBeenCalledExactlyOnceWith({
       ...DEFAULT_START_POWER_SOURCES,
-      centre: 'battery',
+      centre: 'tilt',
     })
   })
 

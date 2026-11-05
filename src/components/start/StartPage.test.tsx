@@ -44,7 +44,9 @@ vi.mock('maplibre-gl', () => ({
   removeProtocol: vi.fn(),
   setWorkerUrl: vi.fn(),
 }))
-vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({ default: '/worker.mjs' }))
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?url', () => ({
+  default: '/worker.mjs',
+}))
 
 const KIOSK_WIDTH = 800
 const JUST_BELOW_KIOSK_WIDTH = 799
@@ -155,7 +157,11 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
     renderAt(width, {
       tanks: {
         fresh: tank(),
-        grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 }),
+        grey: tank({
+          fluid_type: 'grey_water',
+          capacity_l: 80,
+          level_pct: 41,
+        }),
       },
     })
 
@@ -169,7 +175,11 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
     renderAt(width, {
       tanks: {
         fresh: tank(),
-        grey: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 }),
+        grey: tank({
+          fluid_type: 'grey_water',
+          capacity_l: 80,
+          level_pct: 41,
+        }),
       },
       batteries: { house: BATTERY },
     })
@@ -182,7 +192,10 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
   })
 
   it('reads the Primary battery: Auto is the first by id, a selection follows it', () => {
-    const batteries = { b: { ...BATTERY, soc_pct: 40 }, a: { ...BATTERY, soc_pct: 78 } }
+    const batteries = {
+      b: { ...BATTERY, soc_pct: 40 },
+      a: { ...BATTERY, soc_pct: 78 },
+    }
     const auto = renderAt(width, { batteries })
     expect(screen.getByRole('img', { name: 'Battery 78%', hidden: true })).toBeInTheDocument()
     auto.unmount()
@@ -212,7 +225,9 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
   })
 
   it('shows a faulted tank as a fault, with its reason, not as a level', () => {
-    renderAt(width, { tanks: { fresh: tank({ status: 'short_circuit', level_pct: 62 }) } })
+    renderAt(width, {
+      tanks: { fresh: tank({ status: 'short_circuit', level_pct: 62 }) },
+    })
 
     expect(screen.getByText('Fault')).toBeInTheDocument()
     expect(screen.getByText('Short circuit')).toBeInTheDocument()
@@ -222,7 +237,10 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage (%s)', (_name, wid
   it('opens the settings of the tank whose card is tapped', async () => {
     const user = userEvent.setup()
     renderAt(width, {
-      tanks: { f1: tank(), g1: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 }) },
+      tanks: {
+        f1: tank(),
+        g1: tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 }),
+      },
     })
 
     await user.click(screen.getByRole('button', { name: 'Grey water settings' }))
@@ -235,7 +253,9 @@ describe('StartPage layout', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {
       tanks: { fresh: tank(), grey: tank({ fluid_type: 'grey_water' }) },
       batteries: { house: BATTERY },
-      solar: { 291: { power_w: 412, battery_voltage_v: 13.4, yield_today_wh: 2140 } },
+      solar: {
+        291: { power_w: 412, battery_voltage_v: 13.4, yield_today_wh: 2140 },
+      },
     })
     const pane = screen.getByTestId('pane-start')
     const titles = [
@@ -259,7 +279,9 @@ describe('StartPage layout', () => {
   })
 
   it('shows only the widgets in the layout, in the layout order', () => {
-    renderAt(JUST_BELOW_KIOSK_WIDTH, { layout: ['tilt', 'grey-water', 'weather'] })
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      layout: ['tilt', 'grey-water', 'weather'],
+    })
     const pane = screen.getByTestId('pane-start')
 
     expect(pane.children).toHaveLength(3)
@@ -326,7 +348,10 @@ describe('StartPage heater widget', () => {
 
 describe('StartPage masonry view', () => {
   it('draws the tiles in layout order on a grid, the Map, Power and Battery taking more cells, with no Dial', () => {
-    renderAt(KIOSK_WIDTH, { view: 'masonry', layout: ['tilt', 'map', 'energy', 'weather'] })
+    renderAt(KIOSK_WIDTH, {
+      view: 'masonry',
+      layout: ['tilt', 'map', 'energy', 'weather'],
+    })
     const pane = screen.getByTestId('pane-start')
 
     // Energy is two tiles here, Power then Battery.
@@ -357,7 +382,10 @@ describe('StartPage masonry view', () => {
   })
 
   it('keeps Energy one carousel card for a phone, whatever the view is', () => {
-    renderAt(JUST_BELOW_KIOSK_WIDTH, { view: 'masonry', layout: ['tilt', 'energy'] })
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      view: 'masonry',
+      layout: ['tilt', 'energy'],
+    })
     const pane = screen.getByTestId('pane-start')
 
     expect(pane.children).toHaveLength(2)
@@ -380,7 +408,9 @@ describe('StartPage dial BMS alert', () => {
     const onOpenInstance = vi.fn()
     renderAt(KIOSK_WIDTH, { batteries: { house: faulty }, onOpenInstance })
 
-    const alert = screen.getByRole('button', { name: /Battery protection active: Short circuit/ })
+    const alert = screen.getByRole('button', {
+      name: /Battery protection active: Short circuit/,
+    })
     expect(alert).toHaveAttribute('data-tone', 'danger')
     await userEvent.click(alert)
     expect(onOpenInstance).toHaveBeenCalledWith('battery:house')
@@ -398,7 +428,9 @@ describe('StartPage dial BMS alert', () => {
   })
 
   it.each([undefined, []])('is not drawn while protections are %j', (protections) => {
-    renderAt(KIOSK_WIDTH, { batteries: { house: { ...BATTERY, protections } } })
+    renderAt(KIOSK_WIDTH, {
+      batteries: { house: { ...BATTERY, protections } },
+    })
     expect(screen.queryByRole('button', { name: /Battery protection/ })).not.toBeInTheDocument()
   })
 
@@ -443,7 +475,14 @@ describe('StartPage map card', () => {
 
   it('centres on the van, with the van on it, when there is a fix', async () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {
-      gps: { gps0: { fix_quality: 'gps', satellites_in_use: 9, latitude: 51.5, longitude: -0.12 } },
+      gps: {
+        gps0: {
+          fix_quality: 'gps',
+          satellites_in_use: 9,
+          latitude: 51.5,
+          longitude: -0.12,
+        },
+      },
     })
     expect(await screen.findByTestId('map', {}, LAZY_MAP_WAIT)).toHaveAttribute(
       'data-center',
@@ -510,7 +549,10 @@ describe('StartPage energy card', () => {
   it.each(Object.keys(DRAWN) as PowerLayout[])(
     "draws the layout the Power page's %s setting calls for",
     (powerLayout) => {
-      renderAt(JUST_BELOW_KIOSK_WIDTH, { batteries: { house: BATTERY }, powerLayout })
+      renderAt(JUST_BELOW_KIOSK_WIDTH, {
+        batteries: { house: BATTERY },
+        powerLayout,
+      })
 
       expect(screen.getByTestId(DRAWN[powerLayout])).toBeInTheDocument()
       for (const other of ALL_IDS.filter((id) => id !== DRAWN[powerLayout])) {
@@ -554,13 +596,18 @@ describe('StartPage energy card', () => {
     expect(within(slides[0]).getByTestId(DRAWN.tiles)).toBeInTheDocument()
     // `hidden`: slide 2 is off screen, so it is `aria-hidden` and its dial is not yet accessible.
     expect(
-      within(slides[1]).getByRole('img', { name: /^Battery \d+%$/, hidden: true }),
+      within(slides[1]).getByRole('img', {
+        name: /^Battery \d+%$/,
+        hidden: true,
+      }),
     ).toBeInTheDocument()
   })
 
   it('has one dot per slide, the first current, and no tablist to confuse the navigation tabs', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {})
-    const dots = within(energyCard()).getAllByRole('button', { name: /^(Power flow|Battery)$/ })
+    const dots = within(energyCard()).getAllByRole('button', {
+      name: /^(Power flow|Battery)$/,
+    })
 
     expect(dots).toHaveLength(2)
     expect(dots[0]).toHaveAttribute('aria-current', 'true')
@@ -573,7 +620,10 @@ describe('StartPage energy card', () => {
     renderAt(JUST_BELOW_KIOSK_WIDTH, {})
     const track = within(energyCard()).getByTestId('carousel-track')
     // jsdom has no layout: give the track a width and record where it is asked to scroll.
-    Object.defineProperty(track, 'clientWidth', { configurable: true, value: 300 })
+    Object.defineProperty(track, 'clientWidth', {
+      configurable: true,
+      value: 300,
+    })
     const scrollTo = vi.fn((options: ScrollToOptions) => {
       track.scrollLeft = options.left ?? 0
       track.dispatchEvent(new Event('scroll'))
@@ -626,7 +676,9 @@ describe('StartPage solar card', () => {
 
   it('charts the controller’s harvest history, and leaves the chart out without one', () => {
     const withHistory = renderAt(JUST_BELOW_KIOSK_WIDTH, {
-      solar: { 291: controller({ yield_history_wh: [2140, 1800, 0, null, 900] }) },
+      solar: {
+        291: controller({ yield_history_wh: [2140, 1800, 0, null, 900] }),
+      },
     })
     expect(screen.getAllByTestId('solar-history-day')).toHaveLength(5)
     withHistory.unmount()
@@ -638,7 +690,9 @@ describe('StartPage solar card', () => {
 
   it('charts two weeks of a long log, not the whole month', () => {
     const month = Array.from({ length: 31 }, (_, i) => 100 + i * 10)
-    renderAt(JUST_BELOW_KIOSK_WIDTH, { solar: { 291: controller({ yield_history_wh: month }) } })
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      solar: { 291: controller({ yield_history_wh: month }) },
+    })
 
     expect(screen.getAllByTestId('solar-history-day')).toHaveLength(14)
   })
@@ -663,8 +717,14 @@ describe('StartPage solar card', () => {
 })
 
 describe('StartPage kiosk dial', () => {
-  const OK_TILT = { tilt: { roll_deg: -2.2, pitch_deg: 4, status: 'ok' as const } }
-  const GREY = tank({ fluid_type: 'grey_water', capacity_l: 80, level_pct: 41 })
+  const OK_TILT = {
+    tilt: { roll_deg: -2.2, pitch_deg: 4, status: 'ok' as const },
+  }
+  const GREY = tank({
+    fluid_type: 'grey_water',
+    capacity_l: 80,
+    level_pct: 41,
+  })
 
   /** The rings' aria labels, outermost first. */
   function rings() {
@@ -683,8 +743,14 @@ describe('StartPage kiosk dial', () => {
   })
 
   it('reads the ring and the Battery power from the Primary battery, not the first to arrive', () => {
-    const batteries = { b: { ...BATTERY, soc_pct: 40, power_w: -90 }, a: BATTERY }
-    const auto = renderAt(KIOSK_WIDTH, { tanks: { fresh: tank(), grey: GREY }, batteries })
+    const batteries = {
+      b: { ...BATTERY, soc_pct: 40, power_w: -90 },
+      a: BATTERY,
+    }
+    const auto = renderAt(KIOSK_WIDTH, {
+      tanks: { fresh: tank(), grey: GREY },
+      batteries,
+    })
     expect(rings()[0]).toBe('Battery 78%')
     expect(
       within(screen.getByTestId('start-dial')).getByText('Load').parentElement,
@@ -704,9 +770,15 @@ describe('StartPage kiosk dial', () => {
 
   it('draws the rings the user configured, in that order', () => {
     renderAt(KIOSK_WIDTH, {
-      tanks: { fresh: tank(), fuel: tank({ fluid_type: 'fuel', level_pct: 30 }) },
+      tanks: {
+        fresh: tank(),
+        fuel: tank({ fluid_type: 'fuel', level_pct: 30 }),
+      },
       batteries: { house: BATTERY },
-      powerSources: { ...DEFAULT_START_POWER_SOURCES, rings: ['fuel', 'battery', 'fresh_water'] },
+      powerSources: {
+        ...DEFAULT_START_POWER_SOURCES,
+        rings: ['fuel', 'battery', 'fresh_water'],
+      },
     })
 
     expect(rings()).toEqual(['Fuel 30%', 'Battery 78%', 'Fresh water 46%'])
@@ -725,7 +797,10 @@ describe('StartPage kiosk dial', () => {
 
   it('reads a faulted tank as 0 litres like its empty arc, never a stale count, with the other tanks still in litres', () => {
     renderAt(KIOSK_WIDTH, {
-      tanks: { fresh: tank(), grey: { ...GREY, status: 'short_circuit', level_pct: 62 } },
+      tanks: {
+        fresh: tank(),
+        grey: { ...GREY, status: 'short_circuit', level_pct: 62 },
+      },
       powerSources: { ...DEFAULT_START_POWER_SOURCES, ringUnit: 'litres' },
     })
 
@@ -753,8 +828,9 @@ describe('StartPage kiosk dial', () => {
     expect(screen.queryAllByText('Battery', { selector: 'span' })).toHaveLength(0)
   })
 
-  it('moves the tilt into the middle once it has a reading, and lists the battery in the legend', () => {
+  it('puts the tilt in the middle when chosen and it has a reading, and lists the battery in the legend', () => {
     renderAt(KIOSK_WIDTH, {
+      powerSources: { ...DEFAULT_START_POWER_SOURCES, centre: 'tilt' },
       tanks: { fresh: tank(), grey: GREY },
       batteries: { house: BATTERY },
       tilt: OK_TILT,
@@ -806,7 +882,9 @@ describe('StartPage kiosk dial', () => {
 
   describe('charging reading', () => {
     it('is not shown while neither an alternator nor a shore charger is on the bus', () => {
-      renderAt(KIOSK_WIDTH, { batteries: { house: { ...BATTERY, power_w: 300 } } })
+      renderAt(KIOSK_WIDTH, {
+        batteries: { house: { ...BATTERY, power_w: 300 } },
+      })
 
       const dial = screen.getByTestId('start-dial')
       expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
@@ -816,7 +894,9 @@ describe('StartPage kiosk dial', () => {
 
     it('shows the alternator from its published power', () => {
       renderAt(KIOSK_WIDTH, {
-        chargers: { 1: { voltage_v: 13.4, power_w: 243, source: 'alternator' } },
+        chargers: {
+          1: { voltage_v: 13.4, power_w: 243, source: 'alternator' },
+        },
       })
 
       const dial = screen.getByTestId('start-dial')
@@ -860,7 +940,9 @@ describe('StartPage kiosk dial', () => {
     })
 
     it('waits for the charger to say what it is, rather than guessing a source', () => {
-      renderAt(KIOSK_WIDTH, { chargers: { 1: { voltage_v: 13.4, current_a: 5 } } })
+      renderAt(KIOSK_WIDTH, {
+        chargers: { 1: { voltage_v: 13.4, current_a: 5 } },
+      })
 
       const dial = screen.getByTestId('start-dial')
       expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
@@ -921,7 +1003,9 @@ describe('StartPage kiosk dial', () => {
 
     it('never shows the retained value of a probe that is not ok', () => {
       renderAt(KIOSK_WIDTH, {
-        temperatures: { outdoor: probe({ temperature_c: 99, status: 'disconnected' }) },
+        temperatures: {
+          outdoor: probe({ temperature_c: 99, status: 'disconnected' }),
+        },
       })
 
       expect(screen.getByTestId('temp-outdoor')).toHaveTextContent('--°C')
@@ -974,7 +1058,12 @@ describe('StartPage weather widget', () => {
     async (_name, width) => {
       renderAt(width, {
         gps: {
-          gps0: { fix_quality: 'gps', satellites_in_use: 7, latitude: 41.39, longitude: 2.17 },
+          gps0: {
+            fix_quality: 'gps',
+            satellites_in_use: 7,
+            latitude: 41.39,
+            longitude: 2.17,
+          },
         },
       })
       await screen.findByTestId('weather-outside')
@@ -1005,7 +1094,9 @@ describe('StartPage weather widget', () => {
   })
 
   it('shows the outdoor probe as Outside and the indoor probe as Inside', async () => {
-    renderAt(JUST_BELOW_KIOSK_WIDTH, { temperatures: { outdoor: probe(7.2), indoor: probe(21.6) } })
+    renderAt(JUST_BELOW_KIOSK_WIDTH, {
+      temperatures: { outdoor: probe(7.2), indoor: probe(21.6) },
+    })
 
     expect(await screen.findByTestId('weather-outside')).toHaveTextContent('7.2°')
     expect(screen.getByTestId('weather-outside')).not.toHaveTextContent('forecast')
@@ -1031,7 +1122,9 @@ describe('StartPage weather widget', () => {
 
 describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage tilt widget (%s)', (_name, width) => {
   it('shows the van tilt from the device, tinted by the level tolerance', () => {
-    renderAt(width, { tilt: { tilt: { roll_deg: 0.7, pitch_deg: -2.3, status: 'ok' } } })
+    renderAt(width, {
+      tilt: { tilt: { roll_deg: 0.7, pitch_deg: -2.3, status: 'ok' } },
+    })
 
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('-2.3°')
     expect(screen.getByTestId('tilt-pitch')).toHaveClass('text-amber-500')
@@ -1040,7 +1133,9 @@ describe.each([['phone', JUST_BELOW_KIOSK_WIDTH]])('StartPage tilt widget (%s)',
   })
 
   it('does not show stale tilt angles while the sensor is in error', () => {
-    renderAt(width, { tilt: { tilt: { roll_deg: 4, pitch_deg: 3, status: 'sensor_error' } } })
+    renderAt(width, {
+      tilt: { tilt: { roll_deg: 4, pitch_deg: 3, status: 'sensor_error' } },
+    })
 
     expect(screen.getByTestId('tilt-pitch')).toHaveTextContent('—')
     expect(screen.getByTestId('tilt-roll')).toHaveTextContent('—')

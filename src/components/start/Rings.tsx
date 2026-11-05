@@ -18,6 +18,8 @@ export interface RingModel {
   hasData: boolean
   /** The battery ring while it charges: a soft band travels along its fill. */
   pulse?: boolean
+  /** Its legend row is drawn larger: the level has no readout in the middle. */
+  emphasis?: boolean
 }
 
 // The cockpit's geometry: a thin outer ring wraps three 10-wide bands, each 4 units clear of the
@@ -38,6 +40,8 @@ interface RingsProps {
   legend: number[]
   /** Content inside the rings; the legend stays under the arc. */
   centre: ReactNode
+  /** The middle holds the battery readout: centred on the rings rather than lifted above the legend. */
+  centred?: boolean
   /** Soft glow behind the fill; dark theme only. */
   glow: boolean
   /** The charging pulse's pass and phase, when another band on screen must beat with it. */
@@ -48,7 +52,7 @@ interface RingsProps {
  * Concentric 270° rings, outermost first, each with the cockpit's five cuts and its severity
  * colour, around the readout, with a one-line legend per listed ring under the open mouth.
  */
-export function Rings({ rings, legend, centre, glow, pulseClock }: RingsProps) {
+export function Rings({ rings, legend, centre, centred, glow, pulseClock }: RingsProps) {
   const uid = useId().replace(/:/g, '')
   const glowId = `glow-${uid}`
   const cutsId = `cuts-${uid}`
@@ -157,27 +161,26 @@ export function Rings({ rings, legend, centre, glow, pulseClock }: RingsProps) {
 
       <div
         data-testid="rings-centre"
-        className="absolute inset-[22%] bottom-[14%] flex flex-col items-center justify-center"
+        className={`absolute inset-[22%] flex flex-col items-center justify-center ${centred ? '' : 'bottom-[14%]'}`}
       >
         {centre}
       </div>
 
-      <div
-        className="absolute inset-x-0 bottom-3 flex flex-col items-center gap-1"
-        aria-hidden="true"
-      >
+      <div className="relative -mt-22 flex flex-col items-center gap-1" aria-hidden="true">
         {legend.map((index) => {
           const ring = rings[index]!
           return (
             <div
               key={index}
-              className="flex items-center gap-2 text-sm tracking-wider uppercase tabular-nums"
+              className={`flex items-center gap-2 tracking-wider uppercase tabular-nums ${ring.emphasis ? 'text-base' : 'text-sm'}`}
             >
               <span className="text-muted">{ring.icon}</span>
               <span className="text-muted">{ring.label}</span>
               <span className="font-semibold">
                 {ring.hasData ? ring.value : '\u2013'}
-                <span className="text-accent text-xs">{ring.unit}</span>
+                <span className={`text-accent ${ring.emphasis ? 'text-base' : 'text-xs'}`}>
+                  {ring.unit}
+                </span>
               </span>
             </div>
           )
