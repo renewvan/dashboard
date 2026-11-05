@@ -9,6 +9,7 @@ export type SettingsView =
   | 'temperature'
   | 'gps'
   | 'relays'
+  | 'heater'
   | 'batteries'
   | 'primary-battery'
   | 'solar'

@@ -90,10 +90,10 @@ describe('HeaterPage', () => {
     expect(clock()).toBe('0:00')
   })
 
-  it('has the sensor beside Fuel pump and the timer beside Runtime, in that order', () => {
+  it('ends with Fuel pump, Runtime and Timer, in that order', () => {
     setup({ cabin: RUNNING })
     const labels = [...document.querySelectorAll('dt')].map((d) => d.textContent)
-    expect(labels.slice(-4)).toEqual(['Fuel pump', 'Sensor', 'Runtime', 'Timer'])
+    expect(labels.slice(-3)).toEqual(['Fuel pump', 'Runtime', 'Timer'])
   })
 
   it('shows the timer Off and disabled on a real heater', () => {
@@ -406,27 +406,14 @@ describe('HeaterPage', () => {
     expect(screen.getByRole('radio', { name: 'Thermostat' })).toBeEnabled()
   })
 
-  it('has no sensor to pick in Thermostat or Ventilation either', () => {
-    const onChange = vi.fn()
-    setup({ cabin: RUNNING }, { localModes: { mode: 'thermostat', onChange } })
-    expect(screen.getByRole('button', { name: /Temperature sensor/ })).toBeDisabled()
-  })
-
   it('shows a fan-only heater as Ventilation', () => {
     setup({ cabin: { ...RUNNING, ventilating: true } })
     expect(screen.getByRole('radio', { name: 'Ventilation' })).toBeChecked()
   })
 
-  it('picks the temperature sensor from the dropdown', async () => {
-    const { user } = setup({ cabin: RUNNING })
-    await user.click(screen.getByRole('button', { name: /Temperature sensor/ }))
-    await user.click(screen.getByRole('option', { name: 'External probe' }))
-    expect(handlers.onSetMode).toHaveBeenCalledWith('cabin', 'external_temperature')
-  })
-
-  it('has no sensor to pick in Power mode', () => {
-    setup({ cabin: { ...RUNNING, mode: 'power' } })
-    expect(screen.getByRole('button', { name: /Temperature sensor/ })).toBeDisabled()
+  it('has no sensor dropdown: the sensor is chosen in Settings', () => {
+    setup({ cabin: { ...RUNNING, external_temperature_c: 18 } })
+    expect(screen.queryByRole('button', { name: /Temperature sensor/ })).not.toBeInTheDocument()
   })
 
   it('disables everything in demo mode and sends nothing', async () => {
