@@ -95,7 +95,7 @@ export const DEFAULT_START_POWER_SOURCES: StartPowerSources = {
   right: { source: 'battery-out', fullScaleW: 1000 },
   rings: ['battery', 'fresh_water', 'grey_water'],
   ringUnit: 'pct',
-  centre: 'tilt',
+  centre: 'battery',
   temperatures: { left: OUTDOOR_ID, right: INDOOR_ID },
 }
 

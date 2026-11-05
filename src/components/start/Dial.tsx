@@ -35,7 +35,16 @@ import { DialTemperature } from './DialTemperature'
 import { batteryDial, tankDialOf, tankIdOf, type DialView } from './cockpit/dialView'
 import { HalfMoon } from './HalfMoon'
 import { Rings, type RingModel } from './Rings'
-import { centreKind, chargingReading, legendIndices, powerReading, ringLabel } from './dialModel'
+import {
+  centreKind,
+  chargingReading,
+  hasTiltReading,
+  legendIndices,
+  nextCentre,
+  powerReading,
+  ringLabel,
+  type CentreKind,
+} from './dialModel'
 
 export interface DialProps {
   tanks: Record<string, Partial<Tank>>
@@ -69,7 +78,9 @@ function ringModel(
     source === 'battery' ? (
       <Battery className="size-4" />
     ) : (
-      createElement(entityIcon(iconName) ?? FLUID_ICONS[source], { className: 'size-4' })
+      createElement(entityIcon(iconName) ?? FLUID_ICONS[source], {
+        className: 'size-4',
+      })
     )
   // Only a tank has litres; the battery has no volume and always reads as a percentage.
   const litres = unit === 'litres' ? view?.litres : undefined
@@ -153,7 +164,13 @@ export function Dial({
 
   const batteryView = batteryDial(batteries, primaryBatterySelection)
   const firstTilt = Object.values(tilt)[0]
-  const centre = centreKind(powerSources.centre, firstTilt)
+  // A tap on the middle steps through the widgets (van, tilt, battery); the Settings choice is where it starts.
+  const [tapped, setTapped] = useState<CentreKind>()
+  const tiltUsable = hasTiltReading(firstTilt)
+  const centre =
+    tapped === undefined || (tapped === 'tilt' && !tiltUsable)
+      ? centreKind(powerSources.centre, firstTilt)
+      : tapped
 
   // The battery ring's band and the van's glow are one charging effect, so they share a pass and a
   // beat, and with the van in the middle one trigger: power coming in, as the van's always been.
@@ -180,7 +197,10 @@ export function Dial({
       powerSources.ringUnit,
       source === 'battery' ? undefined : icons[iconKey('tank', tankIdOf(tanks, source) ?? '')],
     )
-    return source === 'battery' && centre === 'van' ? { ...ring, pulse: inputW > IDLE_W } : ring
+    if (source !== 'battery') return ring
+    // Off the middle, the battery's percentage lives in the legend, so it is drawn larger there.
+    const enlarged = { ...ring, emphasis: centre !== 'battery' }
+    return centre === 'van' ? { ...enlarged, pulse: inputW > IDLE_W } : enlarged
   })
 
   return (
@@ -212,24 +232,33 @@ export function Dial({
             legend={legendIndices(powerSources.rings, centre)}
             glow={isDark}
             pulseClock={clock}
+            centred={centre === 'battery'}
             centre={
-              centre === 'van' ? (
-                <VanArt flow={flow} clock={clock} className="mb-8 w-3/4" />
-              ) : centre === 'tilt' ? (
-                <TiltWidget tilt={firstTilt} compact />
-              ) : batteryView ? (
-                <div className="flex flex-col items-center" aria-hidden="true">
-                  <DialReadout
-                    view={batteryView}
-                    icon={<Battery className="size-4" />}
-                    size="focus"
-                  />
-                </div>
-              ) : (
-                <div role="status" className="text-muted text-sm">
-                  No data yet
-                </div>
-              )
+              <button
+                type="button"
+                data-testid="dial-centre-toggle"
+                aria-label="Change centre widget"
+                onClick={() => setTapped(nextCentre(centre, tiltUsable))}
+                className="focus-visible:ring-accent flex size-full flex-col items-center justify-center rounded-full outline-none focus-visible:ring-4"
+              >
+                {centre === 'van' ? (
+                  <VanArt flow={flow} clock={clock} className="mb-8 w-3/4" />
+                ) : centre === 'tilt' ? (
+                  <TiltWidget tilt={firstTilt} compact />
+                ) : batteryView ? (
+                  <div className="flex flex-col items-center" aria-hidden="true">
+                    <DialReadout
+                      view={batteryView}
+                      icon={<Battery className="size-4" />}
+                      size="focus"
+                    />
+                  </div>
+                ) : (
+                  <div role="status" className="text-muted text-sm">
+                    No data yet
+                  </div>
+                )}
+              </button>
             }
           />
         </div>

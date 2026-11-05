@@ -58,9 +58,9 @@ describe('parseStartPowerSources', () => {
     expect(parseStartPowerSources(JSON.stringify(stored)).leftBottom).toEqual({ fullScaleW: 600 })
   })
 
-  it('keeps the tilt in the middle for a value saved before the centre was a setting, or an unknown one', () => {
-    expect(parseStartPowerSources(JSON.stringify({ ringUnit: 'pct' })).centre).toBe('tilt')
-    expect(parseStartPowerSources(JSON.stringify({ centre: 'boat' })).centre).toBe('tilt')
+  it('keeps the battery readout in the middle for a value saved before the centre was a setting, or an unknown one', () => {
+    expect(parseStartPowerSources(JSON.stringify({ ringUnit: 'pct' })).centre).toBe('battery')
+    expect(parseStartPowerSources(JSON.stringify({ centre: 'boat' })).centre).toBe('battery')
   })
 
   it('repairs one bad ring without resetting the other two', () => {
