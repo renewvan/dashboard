@@ -33,6 +33,17 @@
 
     encode zstd gzip
 
+    # One shared login for the whole site, so /mqtt (which can switch relays) and /influx are never open
+    # to whoever can reach 443, and the browser caches the credential for this origin before the page opens
+    # its WebSocket and history requests (hub docs/adr/0025-broker-has-per-client-accounts-and-anonymous-read-only.md).
+    # The broker account behind it (`command`) is public through /env.js; this login is the real gate.
+    # The kiosk is not behind it: it loads http://localhost:80 (the dashboard container, published on
+    # the Pi's loopback), never this site. User and bcrypt hash come from the hub's .env
+    # (bin/ensure-secrets.sh; bin/rotate-secret.sh caddy rotates the password).
+    basic_auth {
+        {$CADDY_BASIC_AUTH_USER} {$CADDY_BASIC_AUTH_HASH}
+    }
+
     # History for the charts: same-origin /influx/... forwarded to InfluxDB, so no browser holds a token
     # and there is no CORS (hub docs/adr/0024-history-reaches-browsers-through-a-caddy-influx-proxy.md).
     # Only POST /api/v2/query passes; anything else is refused. Any client Authorization header is
