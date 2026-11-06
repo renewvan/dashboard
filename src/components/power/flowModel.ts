@@ -11,6 +11,7 @@ import { bmsAlert, type BmsAlert } from '@/lib/bmsAlert'
 import { chargerWatts } from '@/lib/charging'
 import { instanceKey } from '@/lib/instances'
 import { primaryBattery } from '@/lib/primaryBattery'
+import { batteryTimeToGoS } from '@/lib/time-to-go'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import {
   isCompleteBattery,
@@ -90,6 +91,15 @@ export interface FlowInput {
 
 /** Below this the link is drawn idle: shunts jitter around zero and would flicker the particles. */
 export const IDLE_W = 5
+
+/** What the battery is doing, in the words the Power page and the Start dial share. */
+export const BATTERY_STATE_LABEL: Record<'charging' | 'discharging' | 'idle' | 'unknown', string> =
+  {
+    charging: 'Charging',
+    discharging: 'Discharging',
+    idle: 'Idle',
+    unknown: 'No data yet',
+  }
 
 /**
  * Seconds one dash/bead takes to travel its link, shared by every variant so the speed reads the
@@ -257,7 +267,7 @@ export function buildFlow({
     soc: b?.soc_pct,
     batteryState,
     peakW: Math.max(IDLE_W, ...edges.map((e) => e.watts)),
-    timeToGoS: b?.time_to_go_s,
+    timeToGoS: b && batteryTimeToGoS(b),
     voltage: b?.voltage_v,
     current: b?.current_a,
     bmsAlert: bmsAlert(b),
@@ -312,7 +322,10 @@ export function sourceOpener(
 }
 
 /** 1850 -> "1.85 kW", 640 -> "640 W": same unit switch the rest of the app uses for big readings. */
-export function formatPower(w: number | undefined): { value: string; unit: string } {
+export function formatPower(w: number | undefined): {
+  value: string
+  unit: string
+} {
   if (w === undefined) return { value: '—', unit: '' }
   const abs = Math.abs(w)
   if (abs >= 1000) return { value: (w / 1000).toFixed(2), unit: 'kW' }

@@ -246,7 +246,7 @@ export function Dial({
                 ) : centre === 'tilt' ? (
                   <TiltWidget tilt={firstTilt} compact />
                 ) : batteryView ? (
-                  <div className="flex flex-col items-center" aria-hidden="true">
+                  <div className="mt-1 flex flex-col items-center" aria-hidden="true">
                     <DialReadout
                       view={batteryView}
                       icon={<Battery className="size-4" />}

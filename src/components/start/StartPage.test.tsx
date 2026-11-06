@@ -889,7 +889,11 @@ describe('StartPage kiosk dial', () => {
       const dial = screen.getByTestId('start-dial')
       expect(within(dial).queryByText('Alternator')).not.toBeInTheDocument()
       expect(within(dial).queryByText('Shore power')).not.toBeInTheDocument()
-      expect(within(dial).queryByText('Charging')).not.toBeInTheDocument()
+      // The dial's own state line also reads "Charging"; only the legend reading must be absent.
+      const readings = within(dial)
+        .queryAllByText('Charging')
+        .filter((el) => el.dataset.testid !== 'dial-state')
+      expect(readings).toHaveLength(0)
     })
 
     it('shows the alternator from its published power', () => {

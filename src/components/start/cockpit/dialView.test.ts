@@ -66,7 +66,10 @@ describe('batteryDial', () => {
   })
 
   it('skips a half-arrived battery and shows the next complete one', () => {
-    const view = batteryDial({ a: { soc_pct: 10 }, b: battery({ soc_pct: 55 }) })
+    const view = batteryDial({
+      a: { soc_pct: 10 },
+      b: battery({ soc_pct: 55 }),
+    })
     expect(view?.pct).toBe(55)
   })
 
@@ -91,9 +94,17 @@ describe('batteryDial', () => {
   })
 
   it('carries the remaining runtime as the Power page writes it, when the source publishes one', () => {
-    const view = batteryDial({ '290': battery({ time_to_go_s: 9 * 86_400 + 23 * 3_600 }) })
+    const view = batteryDial({
+      '290': battery({ time_to_go_s: 9 * 86_400 + 23 * 3_600 }),
+    })
     expect(view?.timeToGo).toBe('9d 23h')
     expect(view?.timeToGo).toBe(formatTimeToGo(9 * 86_400 + 23 * 3_600))
+  })
+
+  it('names the battery state with the Power page labels', () => {
+    expect(batteryDial({ '290': battery({ power_w: 0 }) })?.state).toBe('Idle')
+    expect(batteryDial({ '290': battery({ power_w: 120 }) })?.state).toBe('Charging')
+    expect(batteryDial({ '290': battery({ power_w: -120 }) })?.state).toBe('Discharging')
   })
 
   it('has no runtime for a source that does not publish one, rather than a made-up zero', () => {
