@@ -1,6 +1,7 @@
 import type { RenewvanBus } from '@/hooks/useRenewvanBus'
 import type { usePreferences } from '@/hooks/usePreferences'
 import type { DriverRow } from '@/lib/drivers'
+import { DEFAULT_RELAY_GROUP_LIST, resolvedRelayGroups } from '@/lib/relayGroups'
 import type { SettingsCommands } from '@/lib/settings-commands'
 import type { SettingsActions, SettingsData, SettingsPreferences } from './SettingsContext'
 
@@ -45,6 +46,9 @@ export function buildSettings({
     tanks: state.tanks,
     temperatures: state.temperatures,
     relays: state.relays,
+    relayGroups: bus.relayGroups,
+    relayGroupList: resolvedRelayGroups(bus.relayGroupList ?? DEFAULT_RELAY_GROUP_LIST),
+    relayOrder: bus.relayOrder,
     heaters: state.heaters,
     tilt: state.tilt,
     batteries: state.batteries,

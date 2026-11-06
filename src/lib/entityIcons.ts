@@ -12,7 +12,12 @@ import {
   Fuel,
   GlassWater,
   House,
+  Lamp,
+  Lightbulb,
+  Microwave,
   Park,
+  Plug,
+  Power,
   Refrigerator,
   ShowerHead,
   Snowflake,
@@ -21,9 +26,12 @@ import {
   Toilet,
   Trees,
   Truck,
+  Tv,
+  Usb,
   Warehouse,
   Waves,
   Wind,
+  Zap,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -58,6 +66,14 @@ const ENTITY_ICONS: Record<string, LucideIcon> = {
   GlassWater,
   Container,
   Faucet,
+  Lightbulb,
+  Lamp,
+  Microwave,
+  Usb,
+  Plug,
+  Zap,
+  Tv,
+  Power,
 }
 
 /** What the Settings picker offers a temperature probe, and a tank. */
@@ -94,8 +110,29 @@ export const TANK_ICON_NAMES = [
   'Faucet',
 ]
 
+/** What the Settings picker offers a relay channel: the load it switches. */
+export const RELAY_ICON_NAMES = [
+  'Lightbulb',
+  'Lamp',
+  'Refrigerator',
+  'Microwave',
+  'Tv',
+  'Fan',
+  'Wind',
+  'Snowflake',
+  'Sun',
+  'Flame',
+  'Droplet',
+  'Waves',
+  'Usb',
+  'Zap',
+  'Plug',
+  'Bed',
+  'Power',
+]
+
 /** The entities whose icon a client can pick. */
-export type IconEntity = 'tank' | 'temperature'
+export type IconEntity = 'tank' | 'temperature' | 'relay'
 
 /** The key of an instance in the shared icons map (`renewvan/hub/icons`): `<entity>/<id>`. */
 export function iconKey(entity: IconEntity, id: string): string {

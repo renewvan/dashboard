@@ -13,6 +13,8 @@ interface NameFieldProps {
    * the device would silently drop it, and the field would only show the old name again.
    */
   maxBytes?: number
+  /** The field's label (default "Name"); a page with several fields gives each its own. */
+  label?: string
 }
 
 /**
@@ -23,7 +25,13 @@ interface NameFieldProps {
  * edit, or the device rejecting ours, shows through); the typed draft only
  * exists mid-edit. Nothing is applied optimistically.
  */
-export function NameField({ name, onCommit, isDisabled = false, maxBytes }: NameFieldProps) {
+export function NameField({
+  name,
+  onCommit,
+  isDisabled = false,
+  maxBytes,
+  label = 'Name',
+}: NameFieldProps) {
   const [draft, setDraft] = useState('')
   const [editing, setEditing] = useState(false)
   const cancelled = useRef(false)
@@ -66,7 +74,7 @@ export function NameField({ name, onCommit, isDisabled = false, maxBytes }: Name
         }
       }}
     >
-      <Label>Name</Label>
+      <Label>{label}</Label>
       <Input ref={inputRef} variant="secondary" fullWidth />
       {maxBytes !== undefined && (
         <span className={`text-xs tabular-nums ${over ? 'text-danger' : 'text-muted'}`}>

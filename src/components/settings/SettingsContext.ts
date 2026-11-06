@@ -47,6 +47,15 @@ export interface SettingsData {
   temperatures: Record<string, Partial<TemperatureSensor>>
   gps: Record<string, Partial<Gps>>
   relays: Record<string, Relay>
+  /** The shared relay groups (`renewvan/hub/relay-groups`): relay id to group name. */
+  relayGroups: Record<string, string>
+  /**
+   * The shared list of relay group names on offer (`renewvan/hub/relay-group-list`), in display
+   * order, with Unassigned in it (`resolvedRelayGroups`).
+   */
+  relayGroupList: readonly string[]
+  /** The shared order of relays inside a group card (`renewvan/hub/relay-order`): relay ids, first to last. */
+  relayOrder: readonly string[]
   heaters: Record<string, Heater>
   tilt: Record<string, Partial<Tilt>>
   /** Every instance on the bus, for the instances views; `Partial` for the same reason as `tanks`. */
@@ -133,6 +142,9 @@ export interface SettingsActions {
   setRelay: (id: string, on: boolean) => void
   setHeaterMode: (id: string, mode: HeaterMode) => void
   setRelayName: (id: string, name: string) => void
+  setRelayGroup: (id: string, group: string | null) => void
+  setRelayGroupList: (names: readonly string[]) => void
+  setRelayOrder: (ids: readonly string[]) => void
   setTiltLevel: (id: string) => void
   resetTiltLevel: (id: string) => void
   setPrimaryBattery: (value: string) => void

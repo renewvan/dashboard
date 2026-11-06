@@ -62,6 +62,21 @@ export interface RenewvanBus {
    * until the retained topic arrives.
    */
   entityIcons: Record<string, string>
+  /**
+   * The shared relay groups (`renewvan/hub/relay-groups`): relay id to group name. Empty until the
+   * retained topic arrives, which reads as every relay Unassigned.
+   */
+  relayGroups: Record<string, string>
+  /**
+   * The shared list of relay groups on offer (`renewvan/hub/relay-group-list`), in display order;
+   * null until the retained topic arrives (an older hub plugin never publishes it).
+   */
+  relayGroupList: string[] | null
+  /**
+   * The shared order of relay channels inside a group card (`renewvan/hub/relay-order`): relay ids,
+   * first to last. Empty until the retained topic arrives, which reads as every relay sorted by id.
+   */
+  relayOrder: string[]
   routerHealth: RouterHealth | null
   /** The shared Demo mode flag (`renewvan/demo/enabled`): true while every client reads the simulated van. */
   demoMode: boolean
@@ -116,6 +131,9 @@ const TOPIC_TAILSCALE = `${REAL_ROOT}/tailscale/status`
 const TOPIC_HUB_STATUS = `${REAL_ROOT}/hub/status`
 const TOPIC_PRIMARY_BATTERY = `${REAL_ROOT}/hub/primary-battery`
 const TOPIC_ENTITY_ICONS = `${REAL_ROOT}/hub/icons`
+const TOPIC_RELAY_GROUPS = `${REAL_ROOT}/hub/relay-groups`
+const TOPIC_RELAY_GROUP_LIST = `${REAL_ROOT}/hub/relay-group-list`
+const TOPIC_RELAY_ORDER = `${REAL_ROOT}/hub/relay-order`
 /**
  * The one non-kiosk command demo mode lets through besides the demo switch: the Primary battery is a
  * setting of this kiosk's reading, not a command to a Driver, so it works on the simulated van too.
@@ -123,6 +141,8 @@ const TOPIC_ENTITY_ICONS = `${REAL_ROOT}/hub/icons`
 const TOPIC_PRIMARY_BATTERY_SET = `${TOPIC_PRIMARY_BATTERY}/set`
 /** One stable empty map, so a bus with no icons does not re-render every consumer. */
 const NO_ENTITY_ICONS: Record<string, string> = {}
+const NO_RELAY_GROUPS: Record<string, string> = {}
+const NO_RELAY_ORDER: string[] = []
 const AUTO_SLEEP_TIMEOUT_CHOICES: AutoSleepTimeoutMinutes[] = [1, 5, 15, 30]
 
 /**
@@ -285,6 +305,45 @@ function parseEntityIcons(payload: string): Record<string, string> {
       (entry): entry is [string, string] => typeof entry[1] === 'string',
     ),
   )
+}
+
+/**
+ * The hub plugin's retained relay groups (hub `hub-relay-groups.schema.json`): a JSON object of
+ * relay id to group name. An entry that is not a non-empty string is dropped on its own; an empty
+ * payload or anything that is not an object reads as no groups.
+ */
+function parseRelayGroups(payload: string): Record<string, string> {
+  const value = parseValue(payload)
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1] !== '',
+    ),
+  )
+}
+
+/**
+ * The hub plugin's retained relay group list (hub `hub-relay-group-list.schema.json`): a JSON array
+ * of group names. A name that is not a non-empty string, or repeats, is dropped on its own; an empty
+ * payload or anything that is not an array reads as no list (null), not as an empty one.
+ */
+function parseRelayGroupList(payload: string): string[] | null {
+  const value = parseValue(payload)
+  if (!Array.isArray(value)) return null
+  const names = value.filter((name): name is string => typeof name === 'string' && name !== '')
+  return [...new Set(names)]
+}
+
+/**
+ * The hub plugin's retained relay order (hub `hub-relay-order.schema.json`): a JSON array of relay
+ * ids. An entry that is not a non-empty string, or repeats, is dropped on its own; an empty payload
+ * or anything that is not an array reads as no order.
+ */
+function parseRelayOrder(payload: string): string[] {
+  const value = parseValue(payload)
+  if (!Array.isArray(value)) return NO_RELAY_ORDER
+  const ids = value.filter((id): id is string => typeof id === 'string' && id !== '')
+  return [...new Set(ids)]
 }
 
 /** An empty payload clears a retained topic; so does anything that is not a valid value. */
@@ -453,6 +512,9 @@ export function useRenewvanBus(): RenewvanBus {
   const [hubStatus, setHubStatus] = useState<HubStatus | null>(null)
   const [primaryBattery, setPrimaryBattery] = useState<string | null>(null)
   const [entityIcons, setEntityIcons] = useState<Record<string, string>>(NO_ENTITY_ICONS)
+  const [relayGroups, setRelayGroups] = useState<Record<string, string>>(NO_RELAY_GROUPS)
+  const [relayGroupList, setRelayGroupList] = useState<string[] | null>(null)
+  const [relayOrder, setRelayOrder] = useState<string[]>(NO_RELAY_ORDER)
   const clientRef = useRef<MqttClient | null>(null)
 
   // A fresh function every render, so it always reads the current flag; callers that keep it
@@ -546,6 +608,18 @@ export function useRenewvanBus(): RenewvanBus {
         setEntityIcons(parseEntityIcons(payload))
         return
       }
+      if (topic === TOPIC_RELAY_GROUPS) {
+        setRelayGroups(parseRelayGroups(payload))
+        return
+      }
+      if (topic === TOPIC_RELAY_GROUP_LIST) {
+        setRelayGroupList(parseRelayGroupList(payload))
+        return
+      }
+      if (topic === TOPIC_RELAY_ORDER) {
+        setRelayOrder(parseRelayOrder(payload))
+        return
+      }
       setReal((prev) =>
         applyMessage(prev, topic, payload, ENTITY_PATTERN.real, DRIVER_PATTERN.real),
       )
@@ -570,6 +644,9 @@ export function useRenewvanBus(): RenewvanBus {
       setHubStatus(null)
       setPrimaryBattery(null)
       setEntityIcons(NO_ENTITY_ICONS)
+      setRelayGroups(NO_RELAY_GROUPS)
+      setRelayGroupList(null)
+      setRelayOrder(NO_RELAY_ORDER)
     }
   }, [])
 
@@ -585,6 +662,9 @@ export function useRenewvanBus(): RenewvanBus {
     hubStatus,
     primaryBattery,
     entityIcons,
+    relayGroups,
+    relayGroupList,
+    relayOrder,
     routerHealth: state.drivers.router?.health ?? null,
     demoMode,
     setDemoMode,

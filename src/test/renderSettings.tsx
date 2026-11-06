@@ -4,6 +4,7 @@ import { onTestFinished, vi } from 'vite-plus/test'
 import { SettingsProvider } from '@/components/settings/SettingsProvider'
 import type { SettingsContextValue } from '@/components/settings/SettingsContext'
 import { SettingsPage } from '@/components/settings/SettingsPage'
+import { DEFAULT_RELAY_GROUP_LIST, resolvedRelayGroups } from '@/lib/relayGroups'
 import { EntityIconsContext } from '@/hooks/useEntityIcon'
 import type { TailscaleStatus } from '@/hooks/useRenewvanBus'
 import { DEFAULT_START_LAYOUT } from '@/hooks/useStartLayout'
@@ -109,6 +110,9 @@ export function renderSettings(
     gps: state.gps,
     tanks: state.tanks,
     relays: state.relays,
+    relayGroups: {},
+    relayGroupList: resolvedRelayGroups(DEFAULT_RELAY_GROUP_LIST),
+    relayOrder: [],
     heaters: state.heaters,
     tilt: state.tilt,
     batteries: state.batteries,
@@ -161,6 +165,9 @@ export function renderSettings(
     setTemperatureName: vi.fn(),
     setTemperatureUnit: vi.fn(),
     setEntityIcon: vi.fn(),
+    setRelayGroup: vi.fn(),
+    setRelayGroupList: vi.fn(),
+    setRelayOrder: vi.fn(),
     setRelay: vi.fn(),
     setHeaterMode: vi.fn(),
     setRelayName: vi.fn(),

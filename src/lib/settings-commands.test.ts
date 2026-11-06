@@ -118,6 +118,49 @@ describe('settingsCommands', () => {
     )
   })
 
+  it('publishes a relay group as an id and a name on the hub relay-groups topic, null to clear', () => {
+    const { publish, commands } = setup()
+
+    commands.setRelayGroup('relay-x8-01', 'Lights')
+    commands.setRelayGroup('relay-x8-01', null)
+
+    expect(publish).toHaveBeenNthCalledWith(
+      1,
+      'renewvan/hub/relay-groups/set',
+      '{"id":"relay-x8-01","group":"Lights"}',
+    )
+    expect(publish).toHaveBeenNthCalledWith(
+      2,
+      'renewvan/hub/relay-groups/set',
+      '{"id":"relay-x8-01","group":null}',
+    )
+  })
+
+  it('publishes the relay group list as a JSON array of names on the hub list set topic', () => {
+    const { publish, commands } = setup()
+
+    commands.setRelayGroupList(['Lights', 'USB'])
+    commands.setRelayGroupList([])
+
+    expect(publish).toHaveBeenNthCalledWith(
+      1,
+      'renewvan/hub/relay-group-list/set',
+      '["Lights","USB"]',
+    )
+    expect(publish).toHaveBeenNthCalledWith(2, 'renewvan/hub/relay-group-list/set', '[]')
+  })
+
+  it('publishes the relay order as a JSON array on the hub order set topic', () => {
+    const { publish, commands } = setup()
+
+    commands.setRelayOrder(['relay-x8-02', 'relay-x8-01'])
+
+    expect(publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/hub/relay-order/set',
+      '["relay-x8-02","relay-x8-01"]',
+    )
+  })
+
   it('publishes the Primary battery choice as a quoted JSON string on the hub set topic', () => {
     const { publish, commands } = setup()
 
