@@ -166,7 +166,7 @@ export function Rings({ rings, legend, centre, centred, glow, pulseClock }: Ring
         {centre}
       </div>
 
-      <div className="relative -mt-22 flex flex-col items-center gap-1" aria-hidden="true">
+      <div className="relative -mt-19 flex flex-col items-center gap-1" aria-hidden="true">
         {legend.map((index) => {
           const ring = rings[index]!
           return (

@@ -1,8 +1,8 @@
-import { IDLE_W } from '@/components/power/flowModel'
+import { BATTERY_STATE_LABEL, IDLE_W } from '@/components/power/flowModel'
 import { FILL_COLOR } from '@/components/tanks/severity'
 import { tankView } from '@/components/tanks/tankView'
 import { primaryBattery } from '@/lib/primaryBattery'
-import { formatTimeToGo } from '@/lib/time-to-go'
+import { batteryTimeToGoS, formatTimeToGo } from '@/lib/time-to-go'
 import type { TankSeverity } from '@/lib/tank-alarm'
 import { isCompleteTank, type Battery, type Tank } from '@/types'
 
@@ -24,6 +24,8 @@ export interface DialView {
    * Only the battery has one, and only while its source publishes the estimate.
    */
   timeToGo?: string
+  /** What the battery is doing, in the Power page's words (`Idle`, `Charging`, `Discharging`), shown under the subline. */
+  state?: string
   /** The battery is taking charge (above `IDLE_W`, as on the Power page): its dial then shows the travelling band. */
   charging?: boolean
   faulted: boolean
@@ -74,13 +76,18 @@ export function batteryDial(
   const battery = primaryBattery(batteries, selection)?.battery
   if (!battery) return undefined
   const pct = Math.min(100, Math.max(0, battery.soc_pct))
+  const ttg = batteryTimeToGoS(battery)
   return {
     label: 'Battery',
     pct,
     color: batteryColor(pct),
     sub: `${battery.voltage_v.toFixed(2)}V / ${Math.round(Math.abs(battery.power_w))}W`,
     unitsStrong: true,
-    timeToGo: battery.time_to_go_s === undefined ? undefined : formatTimeToGo(battery.time_to_go_s),
+    timeToGo: ttg === undefined ? undefined : formatTimeToGo(ttg),
+    state:
+      BATTERY_STATE_LABEL[
+        battery.power_w > IDLE_W ? 'charging' : battery.power_w < -IDLE_W ? 'discharging' : 'idle'
+      ],
     charging: battery.power_w > IDLE_W,
     faulted: false,
   }

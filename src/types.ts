@@ -110,6 +110,9 @@ export interface Battery {
   power_w: number
   temperature_c?: number
   time_to_go_s?: number
+  /** Nominal and fuel-gauge capacity of the bank in amp-hours, when its source reports them (hub battery schema). */
+  capacity_ah?: number
+  remaining_ah?: number
   time_since_full_charge_s?: number
   charge_state?: ChargeState
   // BMS data (hub ADR 0022): every property is optional and may be absent.

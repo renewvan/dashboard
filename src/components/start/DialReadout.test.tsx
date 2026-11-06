@@ -18,7 +18,7 @@ const draw = (view: DialView) => render(<DialReadout view={view} icon={<span />}
 
 describe('DialReadout time to go', () => {
   it('shows the runtime under the subline, as "<time> to go"', () => {
-    draw({ ...VIEW, timeToGo: '9d 0h' })
+    draw({ ...VIEW, state: 'Discharging', timeToGo: '9d 0h' })
 
     const togo = screen.getByTestId('dial-time-to-go')
     expect(togo).toHaveTextContent('9d 0h to go')
@@ -27,13 +27,25 @@ describe('DialReadout time to go', () => {
     expect(sub.compareDocumentPosition(togo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  it('shows the state alone while there is no runtime estimate', () => {
+    draw({ ...VIEW, state: 'Idle' })
+    expect(screen.getByTestId('dial-state')).toHaveTextContent(/^Idle$/)
+    expect(screen.queryByTestId('dial-time-to-go')).not.toBeInTheDocument()
+  })
+
   it('shows nothing for a dial with no runtime, such as a tank', () => {
     draw(VIEW)
     expect(screen.queryByTestId('dial-time-to-go')).not.toBeInTheDocument()
   })
 
   it('shows no runtime on a faulted dial, whose subline is the fault reason', () => {
-    draw({ ...VIEW, faulted: true, sub: 'Short circuit', timeToGo: '9d 0h' })
-    expect(screen.queryByTestId('dial-time-to-go')).not.toBeInTheDocument()
+    draw({
+      ...VIEW,
+      faulted: true,
+      sub: 'Short circuit',
+      state: 'Idle',
+      timeToGo: '9d 0h',
+    })
+    expect(screen.queryByTestId('dial-state')).not.toBeInTheDocument()
   })
 })

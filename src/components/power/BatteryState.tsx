@@ -2,14 +2,7 @@
 // the Tiles' wording, plus the time to empty when the battery publishes an estimate.
 
 import { formatTimeToGo } from '@/lib/time-to-go'
-import type { PowerSnapshot } from './flowModel'
-
-const STATE: Record<PowerSnapshot['batteryState'], string> = {
-  charging: 'Charging',
-  discharging: 'Discharging',
-  idle: 'Idle',
-  unknown: 'No data yet',
-}
+import { BATTERY_STATE_LABEL, type PowerSnapshot } from './flowModel'
 
 export function BatteryState({
   flow,
@@ -26,7 +19,7 @@ export function BatteryState({
     <span
       className={`text-muted flex items-baseline gap-2 ${small ? 'text-base' : 'text-lg'} ${className}`}
     >
-      {STATE[flow.batteryState]}
+      {BATTERY_STATE_LABEL[flow.batteryState]}
       {togo ? (
         <span className={`text-foreground ${small ? 'text-sm' : 'text-base'}`}>· {togo}</span>
       ) : null}
