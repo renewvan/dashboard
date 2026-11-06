@@ -87,14 +87,14 @@ export function DialReadout({
       >
         <DialSub sub={view.sub} unitsStrong={view.unitsStrong} />
       </div>
-      {view.state && !view.faulted && (
+      {(view.timeToGo || view.state) && !view.faulted && (
         <div data-testid="dial-state" className={cn('text-muted tabular-nums', text.togo)}>
-          {view.state}
-          {view.timeToGo && (
+          {view.timeToGo ? (
             <span data-testid="dial-time-to-go">
-              {' \u00b7 '}
               <span className="text-foreground font-semibold">{view.timeToGo}</span> to go
             </span>
+          ) : (
+            view.state
           )}
         </div>
       )}
