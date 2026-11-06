@@ -1,3 +1,4 @@
+import type { FluxPoint } from '@/lib/influxCsv'
 import { isCompleteSolar, type Solar } from '@/types'
 
 /** The first controller that has its required fields (MQTT builds a record up one property at a time). */
@@ -94,4 +95,28 @@ export function historyDayLabel(daysAgo: number, now: Date): string {
   if (daysAgo === 1) return 'Yesterday'
   const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo)
   return day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/**
+ * InfluxDB's one-point-per-local-day yield, as the same newest-first list the controller's own log
+ * uses (index 0 is today), so the charts take either. A day with no point or no value is `null`, not
+ * `0`; the list stops at the oldest day with data rather than padding, and `undefined` means no day
+ * has any. If several series report the same day, the best value wins.
+ */
+export function yieldHistoryFromPoints(
+  points: readonly FluxPoint[],
+  count: number,
+  now: Date,
+): (number | null)[] | undefined {
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const days: (number | null)[] = Array.from({ length: count }, () => null)
+  for (const { time, value } of points) {
+    const daysAgo = Math.round(
+      (today - Date.UTC(time.getFullYear(), time.getMonth(), time.getDate())) / 86_400_000,
+    )
+    if (daysAgo < 0 || daysAgo >= count || value === null) continue
+    days[daysAgo] = Math.max(days[daysAgo] ?? 0, value)
+  }
+  const oldest = days.findLastIndex((wh) => wh !== null)
+  return oldest === -1 ? undefined : days.slice(0, oldest + 1)
 }
