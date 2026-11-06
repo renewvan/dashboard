@@ -26,8 +26,7 @@ export function useSolarYieldHistory(
     if (id === undefined) return
     const abort = new AbortController()
     const load = () => {
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-      queryInflux(dailyYieldQuery({ id, days, timeZone }), abort.signal)
+      queryInflux(dailyYieldQuery({ id, days }), abort.signal)
         .then((points) => setResult({ id, days, points }))
         .catch((error: unknown) => {
           if (abort.signal.aborted) return
