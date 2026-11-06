@@ -1,4 +1,5 @@
 import { useNow } from '@/hooks/useNow'
+import { useSolarYieldHistory } from '@/hooks/useSolarYieldHistory'
 import { SolarHistory } from '@/components/widgets/solar/SolarHistory'
 import {
   formatYieldAmount,
@@ -13,15 +14,16 @@ import { useSettingsData } from '../SettingsContext'
 const NOW_REFRESH_MS = 60_000
 
 /**
- * Settings › Devices › Solar › <controller> › History: the controller's own daily harvest, a month at
- * most. The bars are the Power page's chart with its kWh scale, then every day as a row, newest first;
+ * Settings › Devices › Solar › <controller> › History: the daily harvest, a month at most, from the
+ * hub's InfluxDB history, or the controller's own (shorter) log when InfluxDB cannot be reached.
+ * The bars are the Power page's chart with its kWh scale, then every day as a row, newest first;
  * a day the controller has no data for reads `—`, which is not the same as a day that harvested
  * nothing (`0 Wh`).
  */
 export function SolarHistoryView({ id }: { id: string }) {
   const { solar } = useSettingsData()
   const now = new Date(useNow(NOW_REFRESH_MS))
-  const history = solar[id]?.yield_history_wh
+  const history = useSolarYieldHistory(id, solar[id]?.yield_history_wh, HISTORY_PAGE_DAYS)
   const view = yieldHistoryView(history, HISTORY_PAGE_DAYS)
   if (view === undefined) {
     return (

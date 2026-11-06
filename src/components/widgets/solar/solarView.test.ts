@@ -6,6 +6,7 @@ import {
   formatYield,
   formatYieldAmount,
   yieldAxis,
+  yieldHistoryFromPoints,
   yieldHistoryView,
   MIN_HISTORY_REFERENCE_WH,
 } from './solarView'
@@ -130,5 +131,43 @@ describe('historyDayLabel', () => {
 
   it('crosses a month boundary', () => {
     expect(historyDayLabel(28, now)).toBe('Wed 30 Sept')
+  })
+})
+
+describe('yieldHistoryFromPoints', () => {
+  // Local-time dates, so the day arithmetic does not depend on the machine's time zone.
+  const now = new Date(2026, 9, 10, 15, 30)
+  const day = (daysAgo: number, value: number | null) => ({
+    time: new Date(2026, 9, 10 - daysAgo),
+    value,
+  })
+
+  it('lays the days out newest first, today at index 0', () => {
+    expect(yieldHistoryFromPoints([day(2, 300), day(1, 200), day(0, 100)], 10, now)).toEqual([
+      100, 200, 300,
+    ])
+  })
+
+  it('keeps a day without data as a gap and a zero harvest as zero', () => {
+    expect(
+      yieldHistoryFromPoints([day(3, 400), day(2, null), day(1, 0), day(0, 50)], 10, now),
+    ).toEqual([50, 0, null, 400])
+  })
+
+  it('fills a missing day inside the history with a gap', () => {
+    expect(yieldHistoryFromPoints([day(2, 300), day(0, 100)], 10, now)).toEqual([100, null, 300])
+  })
+
+  it('is not padded past the oldest day with data, and not longer than asked', () => {
+    expect(yieldHistoryFromPoints([day(5, 9), day(4, 8), day(0, 1)], 3, now)).toEqual([1])
+  })
+
+  it('takes the best value when several series report the same day', () => {
+    expect(yieldHistoryFromPoints([day(0, 900), day(0, 120), day(0, null)], 10, now)).toEqual([900])
+  })
+
+  it('returns undefined when no day has data', () => {
+    expect(yieldHistoryFromPoints([], 10, now)).toBeUndefined()
+    expect(yieldHistoryFromPoints([day(0, null)], 10, now)).toBeUndefined()
   })
 })

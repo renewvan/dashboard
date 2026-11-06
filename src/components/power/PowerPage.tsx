@@ -4,17 +4,20 @@ import { PhoneCard } from '@/components/PhoneCard'
 import { PowerCard } from '@/components/start/PowerCard'
 import { SolarCard } from '@/components/start/SolarCard'
 import { useIsMobile } from '@/hooks/use-media-query'
+import { useFirstSolarWithHistory } from '@/hooks/useSolarYieldHistory'
 import type { PowerLayout } from '@/hooks/usePowerLayout'
 import type { DriverRow } from '@/lib/drivers'
 import { instanceLabel } from '@/lib/instances'
 import { completeBatteryIds, primaryBattery } from '@/lib/primaryBattery'
 import type { Battery, Charger, Solar } from '@/types'
-import { firstSolar } from '@/components/widgets/solar/solarView'
 import { flowFromBus } from './flowModel'
 import { OrbsLayout } from './OrbsLayout'
 import { TilesLayout } from './TilesLayout'
 import { VanOrbsLayout } from './VanOrbsLayout'
 import { VanTilesLayout } from './VanTilesLayout'
+
+/** Days of harvest the Power page asks the hub's history for. */
+const SOLAR_HISTORY_DAYS = 14
 
 interface PowerPageProps {
   batteries: Record<string, Partial<Battery>>
@@ -58,7 +61,8 @@ export function PowerPage({
   )
   const namesSource = completeBatteryIds(batteries).length > 1 && primary !== undefined
   const isMobile = useIsMobile()
-  const firstSolarRecord = firstSolar(solar)
+  // The longest chart on this page (the phone card's 14 days); the shorter tiles take what they need.
+  const firstSolarRecord = useFirstSolarWithHistory(solar, SOLAR_HISTORY_DAYS)
   const sourceNote = namesSource && (
     <p data-testid="power-battery-source" className="text-muted shrink-0 text-center text-xs">
       Battery: {instanceLabel(primary.id, primary.battery, drivers)}
@@ -93,13 +97,13 @@ export function PowerPage({
     >
       {hasBattery ? (
         layout === 'van-tiles' ? (
-          <VanTilesLayout flow={flow} solar={firstSolar(solar)} onOpenInstance={onOpenInstance} />
+          <VanTilesLayout flow={flow} solar={firstSolarRecord} onOpenInstance={onOpenInstance} />
         ) : layout === 'van-orbs' ? (
-          <VanOrbsLayout flow={flow} solar={firstSolar(solar)} onOpenInstance={onOpenInstance} />
+          <VanOrbsLayout flow={flow} solar={firstSolarRecord} onOpenInstance={onOpenInstance} />
         ) : layout === 'orbs' ? (
           <OrbsLayout flow={flow} onOpenInstance={onOpenInstance} />
         ) : (
-          <TilesLayout flow={flow} solar={firstSolar(solar)} onOpenInstance={onOpenInstance} />
+          <TilesLayout flow={flow} solar={firstSolarRecord} onOpenInstance={onOpenInstance} />
         )
       ) : (
         <div
