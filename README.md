@@ -85,7 +85,7 @@ docker run -p 8080:80 dashboard
 ```
 
 The Dockerfile builds the static bundle and serves it via nginx
-(`nginx.conf`). `VITE_*` vars are build-time — bake them into the image
+(`nginx.conf.template`). `VITE_*` vars are build-time — bake them into the image
 (or run `vp run build` with them set) rather than expecting a
 container-runtime override.
 
