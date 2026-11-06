@@ -1,7 +1,12 @@
 import type { FluxPoint } from '@/lib/influxCsv'
 import { isCompleteSolar, type Solar } from '@/types'
 
-/** The first controller that has its required fields (MQTT builds a record up one property at a time). */
+/** The id of the first controller that has its required fields (MQTT builds a record up one property at a time). */
+export function firstSolarId(solar: Record<string, Partial<Solar>>): string | undefined {
+  return Object.entries(solar).find(([, record]) => isCompleteSolar(record))?.[0]
+}
+
+/** The first controller that has its required fields. */
 export function firstSolar(solar: Record<string, Partial<Solar>>): Solar | undefined {
   return Object.values(solar).find(isCompleteSolar)
 }
