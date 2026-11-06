@@ -24,7 +24,7 @@ export interface DialView {
    * Only the battery has one, and only while its source publishes the estimate.
    */
   timeToGo?: string
-  /** What the battery is doing, in the Power page's words (`Idle`, `Charging`, `Discharging`), shown under the subline. */
+  /** What the battery is doing, in the Power page's words (`Idle`, `Charging`, `Discharging`), shown under the subline in place of `timeToGo`, which replaces it while discharging. */
   state?: string
   /** The battery is taking charge (above `IDLE_W`, as on the Power page): its dial then shows the travelling band. */
   charging?: boolean
@@ -76,18 +76,19 @@ export function batteryDial(
   const battery = primaryBattery(batteries, selection)?.battery
   if (!battery) return undefined
   const pct = Math.min(100, Math.max(0, battery.soc_pct))
-  const ttg = batteryTimeToGoS(battery)
+  const batteryState =
+    battery.power_w > IDLE_W ? 'charging' : battery.power_w < -IDLE_W ? 'discharging' : 'idle'
+  const ttg = batteryState === 'discharging' ? batteryTimeToGoS(battery) : undefined
+  const runtime = ttg === undefined ? undefined : formatTimeToGo(ttg)
   return {
     label: 'Battery',
     pct,
     color: batteryColor(pct),
     sub: `${battery.voltage_v.toFixed(2)}V / ${Math.round(Math.abs(battery.power_w))}W`,
     unitsStrong: true,
-    timeToGo: ttg === undefined ? undefined : formatTimeToGo(ttg),
-    state:
-      BATTERY_STATE_LABEL[
-        battery.power_w > IDLE_W ? 'charging' : battery.power_w < -IDLE_W ? 'discharging' : 'idle'
-      ],
+    // One line under the subline: the runtime while it discharges, else what the battery is doing.
+    timeToGo: runtime,
+    state: runtime === undefined ? BATTERY_STATE_LABEL[batteryState] : undefined,
     charging: battery.power_w > IDLE_W,
     faulted: false,
   }

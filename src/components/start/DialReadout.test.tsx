@@ -18,7 +18,7 @@ const draw = (view: DialView) => render(<DialReadout view={view} icon={<span />}
 
 describe('DialReadout time to go', () => {
   it('shows the runtime under the subline, as "<time> to go"', () => {
-    draw({ ...VIEW, state: 'Discharging', timeToGo: '9d 0h' })
+    draw({ ...VIEW, timeToGo: '9d 0h' })
 
     const togo = screen.getByTestId('dial-time-to-go')
     expect(togo).toHaveTextContent('9d 0h to go')

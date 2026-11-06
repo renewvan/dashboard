@@ -107,6 +107,18 @@ describe('batteryDial', () => {
     expect(batteryDial({ '290': battery({ power_w: -120 }) })?.state).toBe('Discharging')
   })
 
+  it('shows the runtime only while discharging, and the state otherwise, never both', () => {
+    const published = { time_to_go_s: 3_600 }
+    const discharging = batteryDial({ '290': battery({ power_w: -120, ...published }) })
+    expect(discharging?.timeToGo).toBe('1h 0m')
+    expect(discharging?.state).toBeUndefined()
+    for (const power_w of [0, 120]) {
+      const view = batteryDial({ '290': battery({ power_w, ...published }) })
+      expect(view?.timeToGo).toBeUndefined()
+      expect(view?.state).toBe(power_w === 0 ? 'Idle' : 'Charging')
+    }
+  })
+
   it('has no runtime for a source that does not publish one, rather than a made-up zero', () => {
     expect(batteryDial({ '290': battery() })?.timeToGo).toBeUndefined()
     // 0 s is a real estimate (empty), distinct from none.
