@@ -1,3 +1,7 @@
+# Rendered into conf.d/default.conf at container start by the nginx image's envsubst step, which
+# substitutes only INFLUXDB_* variables (NGINX_ENVSUBST_FILTER in the Dockerfile), so nginx's own
+# $variables below are left alone.
+#
 # Single-page app: serve the built static assets, falling back to
 # index.html for any unmatched path (client-side page routing has no
 # server-side routes to match).
@@ -21,6 +25,24 @@ server {
         # MQTT keepalive is 60 s; an idle socket must outlive it or nginx drops healthy clients.
         proxy_read_timeout 1h;
         proxy_send_timeout 1h;
+    }
+
+    # History for the charts, for the kiosk, which loads this container directly (http://localhost) and
+    # not through Caddy. Same rules as the Caddyfile's /influx (hub docs/adr/0024): only
+    # POST /api/v2/query is forwarded, any client Authorization header is replaced with the read-only,
+    # bucket-scoped dashboard token from the environment, the body is capped, and nothing else under
+    # /influx is served. Resolved per request, like the broker, so nginx boots without InfluxDB up.
+    location = /influx/api/v2/query {
+        limit_except POST { deny all; }
+        client_max_body_size 64k;
+        resolver 127.0.0.11 valid=10s;
+        set $influx http://influxdb:8086;
+        proxy_pass $influx/api/v2/query$is_args$args;
+        proxy_set_header Authorization "Token ${INFLUXDB_DASHBOARD_TOKEN}";
+        proxy_set_header Host $host;
+    }
+    location /influx/ {
+        return 403;
     }
 
     # Offline basemap (see src/lib/mapStyle.ts). The browser reads `basemap.pmtiles` with HTTP Range

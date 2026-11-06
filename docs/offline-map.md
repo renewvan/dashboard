@@ -249,7 +249,7 @@ curl -sI http://<hub>/maps/nope.pmtiles                                # HTTP/1.
 
 `206` means range requests work. The `404` must be a real 404, not the dashboard's `index.html`.
 The first response must carry **no** `Cache-Control: no-cache`: with it a browser revalidates every
-tile read and a `304` breaks the reader (see `nginx.conf`).
+tile read and a `304` breaks the reader (see `nginx.conf.template`).
 
 Then open the Map page with a GPS fix inside the file's area: streets, water and labels with the van
 on them. That is the check that matters; a `206` only proves the file is being served.

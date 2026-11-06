@@ -13,7 +13,10 @@ RUN vp run build
 
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# The nginx image renders /etc/nginx/templates/*.template into conf.d at start (envsubst). Only
+# INFLUXDB_* is substituted: the config's own $uri, $host... must reach nginx untouched.
+ENV NGINX_ENVSUBST_FILTER=^INFLUXDB_
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY docker/generate-env-js.sh /docker-entrypoint.d/10-generate-env-js.sh
 RUN chmod +x /docker-entrypoint.d/10-generate-env-js.sh
 EXPOSE 80

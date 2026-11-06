@@ -6,7 +6,7 @@ export type MapTheme = 'light' | 'dark'
 
 /**
  * Where the Map page's basemap assets are served from: the dashboard's own origin, so the van's map
- * needs no internet. The image's nginx serves `/maps/` (`nginx.conf`): the region's `basemap.pmtiles`
+ * needs no internet. The image's nginx serves `/maps/` (`nginx.conf.template`): the region's `basemap.pmtiles`
  * is mounted there on the hub, and the glyph (font) and sprite assets are baked into the image
  * (`Dockerfile`). The paths are fixed rather than env-configured, like `/mqtt`.
  */
