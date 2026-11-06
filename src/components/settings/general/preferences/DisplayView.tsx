@@ -5,6 +5,7 @@ import type { SettingsNavStyle } from '@/hooks/useSettingsNavStyle'
 import type { Theme } from '@/hooks/useTheme'
 import { MAP_THEME_LABELS } from '@/hooks/useMapTheme'
 import { START_VIEW_LABELS } from '@/hooks/useStartView'
+import { ownGroups } from '@/lib/relayGroups'
 import { Card, ChoiceRow } from '../../shared/ChoiceRow'
 import { Group } from '../../shared/Group'
 import { GroupRow } from '../../shared/GroupRow'
@@ -153,6 +154,31 @@ function ThemeRow() {
   return <ChoiceRow label="Theme" choices={THEME_CHOICES} value={theme} onChange={setTheme} />
 }
 
+/** Dev only: the kiosk navbar's pin, which resets on reload, set from here or `?flag.nav-pinned=1`. */
+function PinNavbarRow() {
+  const { navPinned } = useSettingsPreferences()
+  const { setNavPinned } = useSettingsActions()
+  if (navPinned === undefined || !setNavPinned) return null
+
+  return (
+    <div className="border-border bg-surface overflow-hidden rounded-2xl border">
+      <Switch className="w-full" isSelected={navPinned} onChange={setNavPinned}>
+        <Switch.Content className="w-full justify-between gap-3 px-3.5 py-3">
+          <Label className="flex flex-col items-start gap-0.5 text-sm font-medium">
+            Pin navbar
+            <span className="text-muted text-xs font-normal">
+              {navPinned ? 'Always visible' : 'Hides after a moment of inactivity'}
+            </span>
+          </Label>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+        </Switch.Content>
+      </Switch>
+    </div>
+  )
+}
+
 interface DisplayViewProps {
   /** The style Settings is actually using (a phone is always subpage, whatever is stored). */
   navStyle: SettingsNavStyle
@@ -167,8 +193,8 @@ interface DisplayViewProps {
 
 /**
  * Settings › General › Display & Appearance, in two groups. Appearance (what the app shows and how
- * it is laid out): Widgets, then a Pages group (Start, Power and Map page) and a Navigation group
- * (where the navbar sits and how Settings opens, both chosen inline). Display (the screen: theme,
+ * it is laid out): Widgets, then a Pages group (Start, Power, Temperature, Relays and Map page) and a Navigation group
+ * (where the navbar sits and how Settings opens, both chosen inline, and in a dev build the navbar's pin). Display (the screen: theme,
  * brightness, auto-sleep and its timeout).
  */
 export function DisplayView({
@@ -180,7 +206,8 @@ export function DisplayView({
   onOpen,
 }: DisplayViewProps) {
   const { autoSleepEnabled, mapTheme, startView, hiddenTemperatures } = useSettingsPreferences()
-  const { temperatures } = useSettingsData()
+  const { temperatures, relayGroupList } = useSettingsData()
+  const relayGroupCount = ownGroups(relayGroupList).length
   const shownTemperatures = Object.keys(temperatures).filter(
     (id) => !hiddenTemperatures.includes(id),
   ).length
@@ -210,6 +237,11 @@ export function DisplayView({
             onOpen={() => onOpen('temperature-page')}
           />
           <GroupRow
+            label="Relays page"
+            description={`${relayGroupCount} ${relayGroupCount === 1 ? 'group' : 'groups'}`}
+            onOpen={() => onOpen('relays-page')}
+          />
+          <GroupRow
             label="Map page"
             description={`Map theme: ${MAP_THEME_LABELS[mapTheme]}`}
             onOpen={() => onOpen('map-page')}
@@ -234,6 +266,7 @@ export function DisplayView({
               isDisabled={isMobile}
             />
           </Card>
+          <PinNavbarRow />
         </Group>
       </Group>
       <Group title="Display">

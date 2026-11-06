@@ -84,6 +84,7 @@ describe('Settings › General › Display & Appearance', () => {
         'Start pageStart view: Cockpit',
         'Power pageVan tiles or van orbs',
         expect.stringMatching(/^Temperature page/),
+        'Relays page5 groups',
         expect.stringMatching(/^Map page/),
       ])
       expect(

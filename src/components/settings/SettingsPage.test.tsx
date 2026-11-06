@@ -603,17 +603,37 @@ describe('SettingsPage Demo mode', () => {
 })
 
 describe('SettingsPage pin navbar', () => {
+  /** Settings › General › Display & Appearance, where the Navigation group holds the pin. */
+  async function openDisplay(overrides: Parameters<typeof renderSettings>[0] = {}) {
+    const rendered = renderSettings(overrides)
+    await rendered.user.click(screen.getByRole('button', { name: /^General/ }))
+    await rendered.user.click(screen.getByRole('button', { name: /^Display & Appearance/ }))
+    return rendered
+  }
+
   it('is hidden unless the shell offers a pin', async () => {
-    const { user } = renderSettings()
-    await user.click(screen.getByRole('button', { name: /^General/ }))
+    await openDisplay()
 
     expect(screen.queryByRole('switch', { name: /Pin navbar/ })).not.toBeInTheDocument()
   })
 
+  it('is in the Navigation group of Display & Appearance', async () => {
+    await openDisplay({ navPinned: false, setNavPinned: vi.fn() })
+
+    const navigation = screen.getByRole('region', { name: 'Navigation' })
+    expect(within(navigation).getByRole('switch', { name: /Pin navbar/ })).toBeInTheDocument()
+  })
+
+  it('is no longer on General', async () => {
+    const { user } = renderSettings({ navPinned: false, setNavPinned: vi.fn() })
+    await user.click(screen.getByRole('button', { name: /^General/ }))
+
+    expect(screen.queryByText('Pin navbar')).not.toBeInTheDocument()
+  })
+
   it('reports the pin it is switched to', async () => {
     const setNavPinned = vi.fn()
-    const { user } = renderSettings({ navPinned: false, setNavPinned })
-    await user.click(screen.getByRole('button', { name: /^General/ }))
+    const { user } = await openDisplay({ navPinned: false, setNavPinned })
 
     await user.click(screen.getByText('Pin navbar'))
 

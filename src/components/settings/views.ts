@@ -30,6 +30,8 @@ export type SettingsView =
   | 'power-page'
   | 'map-page'
   | 'temperature-page'
+  | 'relays-page'
+  | 'relay-group'
   | 'connectivity'
   | 'cellular'
   | 'hub'

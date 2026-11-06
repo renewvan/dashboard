@@ -1,4 +1,3 @@
-import { ChevronRight, GripVertical } from 'lucide-react'
 import { Button } from '@heroui/react'
 import { START_WIDGETS } from '@/components/start/widgets/registry'
 import {
@@ -7,9 +6,9 @@ import {
   reorderWidget,
   type StartWidgetId,
 } from '@/hooks/useStartLayout'
-import { cn } from '@/lib/utils'
 import { Group } from '../../shared/Group'
-import { useDragReorder } from './useDragReorder'
+import { ReorderRow, type ReorderGrip } from '../../shared/ReorderRow'
+import { useDragReorder } from '@/hooks/useDragReorder'
 
 interface WidgetsViewProps {
   layout: readonly StartWidgetId[]
@@ -29,60 +28,20 @@ interface WidgetRowProps {
   description: string
   onOpen: () => void
   /** Present on a widget that is on the page: the grip that drags it. */
-  grip?: {
-    props: ReturnType<ReturnType<typeof useDragReorder>['handleProps']>
-    onKeyDown: (key: 'ArrowUp' | 'ArrowDown') => void
-    dragging: boolean
-  }
+  grip?: ReorderGrip
 }
 
-/**
- * One widget: a grip to drag it (widgets on the page only), then its name and position, which opens
- * its own page. Every control is 44px.
- */
+/** One widget: a grip to drag it (widgets on the page only), then its name and position, which opens its own page. */
 function WidgetRow({ id, description, onOpen, grip }: WidgetRowProps) {
   const { label, icon: Icon } = START_WIDGETS[id]
   return (
-    <div
-      className={cn(
-        'border-border bg-surface flex items-center overflow-hidden rounded-2xl border select-none',
-        grip?.dragging && 'shadow-lg',
-      )}
-    >
-      {grip ? (
-        <button
-          type="button"
-          aria-label={`Reorder ${label}`}
-          {...grip.props}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-              e.preventDefault()
-              grip.onKeyDown(e.key)
-            }
-          }}
-          className="text-muted flex size-11 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
-        >
-          <GripVertical aria-hidden="true" className="size-5" />
-        </button>
-      ) : (
-        <span aria-hidden="true" className="size-11 shrink-0" />
-      )}
-      <Button
-        variant="ghost"
-        fullWidth
-        onPress={onOpen}
-        className="h-auto! min-h-11 min-w-0 flex-1 justify-between! gap-3! rounded-none! py-3! pr-3.5! pl-1! whitespace-normal! md:h-auto!"
-      >
-        <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center">
-          <Icon className="size-6" />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
-          <span className="text-sm font-medium">{label}</span>
-          <span className="text-muted text-xs">{description}</span>
-        </span>
-        <ChevronRight aria-hidden="true" className="text-muted size-4 shrink-0" />
-      </Button>
-    </div>
+    <ReorderRow
+      icon={<Icon className="size-6" />}
+      label={label}
+      description={description}
+      onOpen={onOpen}
+      grip={grip}
+    />
   )
 }
 

@@ -21,6 +21,9 @@ const temperatureSetTopic = (id: string, field: 'name' | 'unit') =>
   `renewvan/temperature/${id}/${field}/set`
 
 const TOPIC_ICONS_SET = 'renewvan/hub/icons/set'
+const TOPIC_RELAY_GROUPS_SET = 'renewvan/hub/relay-groups/set'
+const TOPIC_RELAY_GROUP_LIST_SET = 'renewvan/hub/relay-group-list/set'
+const TOPIC_RELAY_ORDER_SET = 'renewvan/hub/relay-order/set'
 
 const tiltLevelTopic = (id: string) => `renewvan/tilt/${id}/level_zero/set`
 
@@ -46,6 +49,22 @@ export interface SettingsCommands {
   /** Sends the TARGET state, never a toggle: a toggle is not idempotent (hub ADR 0013). */
   setRelay: (id: string, on: boolean) => void
   setRelayName: (id: string, name: string) => void
+  /**
+   * Files a relay channel under a group (Lights, Appliances, USB, ...), or `null` to take it back
+   * to Unassigned. The hub plugin owns the shared map (hub ADR 0028).
+   */
+  setRelayGroup: (id: string, group: string | null) => void
+  /**
+   * Replaces the list of groups on offer: their names, in display order. The hub plugin owns the
+   * shared list and leaves the assignments alone, so a caller that renames or removes a group moves
+   * or clears its relays first (`relayGroups.ts`).
+   */
+  setRelayGroupList: (names: readonly string[]) => void
+  /**
+   * Replaces the shared order of relay channels inside a group card with these relay ids, first to
+   * last. The hub plugin owns it (hub ADR 0028); `reorderedRelayOrder` builds the array.
+   */
+  setRelayOrder: (ids: readonly string[]) => void
   /** Starts (`true`) or stops (`false`) the heater: a target, never a toggle (hub ADR 0021). */
   setHeaterRunning: (id: string, run: boolean) => void
   setHeaterMode: (id: string, mode: HeaterMode) => void
@@ -83,6 +102,9 @@ export function settingsCommands(publish: Publish): SettingsCommands {
     setHeaterPowerLevel: (id, level) =>
       publish(heaterSetTopic(id, 'power_level/set'), JSON.stringify(level)),
     setRelayName: (id, name) => publish(relaySetTopic(id, 'name/set'), JSON.stringify(name)),
+    setRelayGroup: (id, group) => publish(TOPIC_RELAY_GROUPS_SET, JSON.stringify({ id, group })),
+    setRelayGroupList: (names) => publish(TOPIC_RELAY_GROUP_LIST_SET, JSON.stringify(names)),
+    setRelayOrder: (ids) => publish(TOPIC_RELAY_ORDER_SET, JSON.stringify(ids)),
     // The driver treats any payload as "capture"; `reset` clears. Quoted like every other payload.
     setTiltLevel: (id) => publish(tiltLevelTopic(id), JSON.stringify('capture')),
     resetTiltLevel: (id) => publish(tiltLevelTopic(id), JSON.stringify('reset')),

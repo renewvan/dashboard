@@ -2,6 +2,8 @@ import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { Droplets } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { EntityIconsContext } from '@/hooks/useEntityIcon'
 import { stubMatchMedia, type MatchMediaStub } from '@/test/matchMedia'
 import type { Relay } from '@/types'
 import { RelaysPage, GIVE_UP_MS, type RelaysPageProps } from './RelaysPage'
@@ -11,18 +13,28 @@ const KIOSK_WIDTH = 800
 let viewport: MatchMediaStub
 const onSetRelay = vi.fn()
 
-function setup(props: Partial<RelaysPageProps> & { relays: Record<string, Relay> }) {
+function setup(
+  props: Partial<RelaysPageProps> & {
+    relays: Record<string, Relay>
+    /** The shared entity icons on the bus (`renewvan/hub/icons`). */
+    shared?: Record<string, string>
+  },
+) {
+  const { shared = {}, ...pageProps } = props
   viewport = stubMatchMedia(KIOSK_WIDTH)
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
   const all: RelaysPageProps = {
     driverOnline: true,
     demo: false,
     onSetRelay,
-    ...props,
+    ...pageProps,
   }
-  const view = render(<RelaysPage {...all} />)
+  const wrap = (page: ReactNode) => (
+    <EntityIconsContext.Provider value={shared}>{page}</EntityIconsContext.Provider>
+  )
+  const view = render(wrap(<RelaysPage {...all} />))
   const rerender = (next: Partial<RelaysPageProps>) =>
-    view.rerender(<RelaysPage {...all} {...next} />)
+    view.rerender(wrap(<RelaysPage {...all} {...next} />))
   return { user, rerender }
 }
 
@@ -86,11 +98,135 @@ describe('RelaysPage', () => {
     expect(channelIcon('Mystery')).toHaveClass('lucide-power')
   })
 
+  describe('icon picked in Settings', () => {
+    it('is drawn beside the channel', () => {
+      setup({
+        relays: { relay_01: LIGHTS },
+        shared: { 'relay/relay_01': 'Lightbulb' },
+      })
+
+      expect(channelIcon('Ceiling lights')).toHaveClass('lucide-lightbulb')
+    })
+
+    it('wins over the dashboard’s own configuration', () => {
+      setup({
+        relays: { relay_01: LIGHTS },
+        icons: { relay_01: Droplets },
+        shared: { 'relay/relay_01': 'Fan' },
+      })
+
+      expect(channelIcon('Ceiling lights')).toHaveClass('lucide-fan')
+    })
+
+    it('falls back to the configuration, then the neutral icon, for a name it cannot draw', () => {
+      setup({
+        relays: { relay_01: LIGHTS, relay_03: PUMP },
+        icons: { relay_01: Droplets },
+        shared: { 'relay/relay_01': 'NotAnIcon', 'relay/relay_03': 'NotAnIcon' },
+      })
+
+      expect(channelIcon('Ceiling lights')).toHaveClass('lucide-droplets')
+      expect(channelIcon('Water pump')).toHaveClass('lucide-power')
+    })
+
+    it('is keyed by the relay id, so another entity’s id does not collide', () => {
+      setup({
+        relays: { fresh: { name: 'Tap', state: false } },
+        shared: { 'tank/fresh': 'Fan' },
+      })
+
+      expect(channelIcon('Tap')).toHaveClass('lucide-power')
+    })
+  })
+
   it('puts a channel missing from the group configuration under Unassigned', () => {
     setup({ relays: { relay_99: { name: 'New thing', state: false } } })
 
     const panel = screen.getByRole('region', { name: 'Unassigned' })
     expect(within(panel).getByRole('radiogroup', { name: 'New thing' })).toBeInTheDocument()
+  })
+
+  it('files each channel under the shared group the bus holds for it', () => {
+    setup({
+      relays: { relay_01: LIGHTS, relay_03: PUMP, relay_04: { name: 'Mystery', state: false } },
+      groups: { relay_01: 'Lights', relay_03: 'Water' },
+    })
+
+    const lights = screen.getByRole('region', { name: 'Lights' })
+    expect(within(lights).getByRole('radiogroup', { name: 'Ceiling lights' })).toBeInTheDocument()
+    const water = screen.getByRole('region', { name: 'Water' })
+    expect(within(water).getByRole('radiogroup', { name: 'Water pump' })).toBeInTheDocument()
+    const rest = screen.getByRole('region', { name: 'Unassigned' })
+    expect(within(rest).getByRole('radiogroup', { name: 'Mystery' })).toBeInTheDocument()
+  })
+
+  it('lists the groups in the order of the shared list, and files a removed group as Unassigned', () => {
+    setup({
+      relays: { relay_01: LIGHTS, relay_03: PUMP, relay_04: { name: 'Old', state: false } },
+      groups: { relay_01: 'Lights', relay_03: 'Water', relay_04: 'Gone' },
+      groupList: ['Water', 'Lights'],
+    })
+
+    expect(
+      screen.getAllByRole('region').map((region) => region.getAttribute('aria-label')),
+    ).toEqual(['Water', 'Lights', 'Unassigned'])
+    const rest = screen.getByRole('region', { name: 'Unassigned' })
+    expect(within(rest).getByRole('radiogroup', { name: 'Old' })).toBeInTheDocument()
+  })
+
+  it('draws Unassigned wherever the list puts it', () => {
+    setup({
+      relays: { relay_01: LIGHTS, relay_04: { name: 'Mystery', state: false } },
+      groups: { relay_01: 'Lights' },
+      groupList: ['Unassigned', 'Lights'],
+    })
+
+    expect(
+      screen.getAllByRole('region').map((region) => region.getAttribute('aria-label')),
+    ).toEqual(['Unassigned', 'Lights'])
+  })
+
+  it('draws each group as a card', () => {
+    setup({ relays: { relay_01: LIGHTS }, groups: { relay_01: 'Lights' } })
+
+    expect(screen.getByRole('region', { name: 'Lights' })).toHaveClass(
+      'bg-surface',
+      'border-border',
+      'rounded-2xl',
+      'border',
+    )
+  })
+
+  describe('shared order', () => {
+    const FOUR: Record<string, Relay> = {
+      r_1: { name: 'One', state: false },
+      r_2: { name: 'Two', state: false },
+      r_3: { name: 'Three', state: false },
+    }
+    const GROUPS = { r_1: 'Lights', r_2: 'Lights', r_3: 'Lights' }
+
+    const rows = (group: string) =>
+      within(screen.getByRole('region', { name: group }))
+        .getAllByRole('radiogroup')
+        .map((row) => row.getAttribute('aria-label'))
+
+    it('lists a card in the shared order, the relays it does not list after, by id', () => {
+      setup({ relays: FOUR, groups: GROUPS, order: ['r_3', 'r_1'] })
+
+      expect(rows('Lights')).toEqual(['Three', 'One', 'Two'])
+    })
+
+    it('lists a card by id when there is no order', () => {
+      setup({ relays: FOUR, groups: GROUPS })
+
+      expect(rows('Lights')).toEqual(['One', 'Two', 'Three'])
+    })
+
+    it('is for switching, not arranging: there is no grip to drag a channel', () => {
+      setup({ relays: FOUR, groups: GROUPS, order: ['r_3'] })
+
+      expect(screen.queryByRole('button', { name: /^Reorder/ })).not.toBeInTheDocument()
+    })
   })
 
   it('never claims a load is energised', () => {

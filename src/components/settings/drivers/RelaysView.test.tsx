@@ -21,9 +21,12 @@ async function openRelays(
   overrides: Partial<SettingsContextValue> = {},
   /** Which channel's card to open Details on, in the order the list shows them. */
   card = 0,
+  /** The shared entity icons on the bus (`renewvan/hub/icons`). */
+  entityIcons: Record<string, string> = {},
 ) {
   const rendered = renderSettings(overrides, {
     bus: { relays, drivers: { 'esp32-16x-relay': { info: relayInfo, health: 'online' } } },
+    entityIcons,
   })
   await rendered.user.click(screen.getByRole('button', { name: /^Devices/ }))
   await rendered.user.click(screen.getByRole('button', { name: /^ESP32 16x Relay/ }))
@@ -151,6 +154,133 @@ describe('Settings › Devices › Relays', () => {
 
       expect(value.setRelayName).not.toHaveBeenCalled()
       expect(nameField('relay_03')).toHaveValue('Water pump')
+    })
+  })
+
+  it('lists Icon before Group, under the name', async () => {
+    await openRelays({ relay_03: PUMP })
+
+    const panel = screen.getByRole('group', { name: 'relay_03' })
+    const order = Array.from(panel.querySelectorAll('[role="radiogroup"]'), (el) =>
+      el.getAttribute('aria-label'),
+    )
+    expect(order).toEqual(['Icon', 'Group'])
+  })
+
+  describe('icon', () => {
+    const picker = () => within(screen.getByRole('radiogroup', { name: 'Icon' }))
+
+    it('offers the icons for a load, none pressed until one is picked', async () => {
+      await openRelays({ relay_03: PUMP })
+
+      expect(picker().getByRole('radio', { name: 'Lightbulb' })).toBeInTheDocument()
+      expect(picker().getByRole('radio', { name: 'Fan' })).toBeInTheDocument()
+      for (const radio of picker().getAllByRole('radio')) expect(radio).not.toBeChecked()
+    })
+
+    it('sends the icon for this relay when one is picked, and nothing changes yet', async () => {
+      const { user, value } = await openRelays({ relay_03: PUMP })
+
+      await user.click(picker().getByRole('radio', { name: 'Droplet' }))
+
+      expect(value.setEntityIcon).toHaveBeenCalledExactlyOnceWith('relay', 'relay_03', 'Droplet')
+      expect(picker().getByRole('radio', { name: 'Droplet' })).not.toBeChecked()
+    })
+
+    it('shows the icon the hub holds for this relay only', async () => {
+      await openRelays({ relay_03: PUMP, relay_04: { name: 'Other' } }, {}, 1, {
+        'relay/relay_03': 'Fan',
+        'relay/relay_04': 'Zap',
+      })
+
+      expect(picker().getByRole('radio', { name: 'Zap' })).toBeChecked()
+      expect(picker().getByRole('radio', { name: 'Fan' })).not.toBeChecked()
+    })
+
+    it('sends nothing when the pressed icon is tapped again', async () => {
+      const { user, value } = await openRelays({ relay_03: PUMP }, {}, 0, {
+        'relay/relay_03': 'Fan',
+      })
+
+      await user.click(picker().getByRole('radio', { name: 'Fan' }))
+
+      expect(value.setEntityIcon).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('group', () => {
+    const picker = () => within(screen.getByRole('radiogroup', { name: 'Group' }))
+
+    it('offers None and each group, with the channel in none of them until the hub says so', async () => {
+      await openRelays({ relay_03: PUMP })
+
+      expect(
+        picker()
+          .getAllByRole('radio')
+          .map((radio) => radio.textContent),
+      ).toEqual(['None', 'Lights', 'Appliances', 'USB', 'Water', 'Heating'])
+      expect(picker().getByRole('radio', { name: 'None' })).toBeChecked()
+    })
+
+    it('sends the group for this channel when one is picked, and nothing else changes yet', async () => {
+      const { user, value } = await openRelays({ relay_03: PUMP })
+
+      await user.click(picker().getByRole('radio', { name: 'Water' }))
+
+      expect(value.setRelayGroup).toHaveBeenCalledExactlyOnceWith('relay_03', 'Water')
+      // Nothing is applied until the hub plugin answers with the retained map.
+      expect(picker().getByRole('radio', { name: 'None' })).toBeChecked()
+    })
+
+    it('shows the group the hub holds for the channel', async () => {
+      await openRelays({ relay_03: PUMP }, { relayGroups: { relay_03: 'USB' } })
+
+      expect(picker().getByRole('radio', { name: 'USB' })).toBeChecked()
+    })
+
+    it('sends null for None, which takes the channel back to Unassigned', async () => {
+      const { user, value } = await openRelays(
+        { relay_03: PUMP },
+        { relayGroups: { relay_03: 'USB' } },
+      )
+
+      await user.click(picker().getByRole('radio', { name: 'None' }))
+
+      expect(value.setRelayGroup).toHaveBeenCalledExactlyOnceWith('relay_03', null)
+    })
+
+    it('sends nothing when the picked group is tapped again', async () => {
+      const { user, value } = await openRelays(
+        { relay_03: PUMP },
+        { relayGroups: { relay_03: 'USB' } },
+      )
+
+      await user.click(picker().getByRole('radio', { name: 'USB' }))
+
+      expect(value.setRelayGroup).not.toHaveBeenCalled()
+    })
+
+    it('offers the groups of the shared list, in its order, and never Unassigned', async () => {
+      await openRelays({ relay_03: PUMP }, { relayGroupList: ['USB', 'Awning', 'Unassigned'] })
+
+      expect(
+        picker()
+          .getAllByRole('radio')
+          .map((radio) => radio.textContent),
+      ).toEqual(['None', 'USB', 'Awning'])
+    })
+
+    it('reads a group that has left the list as none, and None sends nothing', async () => {
+      const { user, value } = await openRelays(
+        { relay_03: PUMP },
+        { relayGroups: { relay_03: 'Gone' } },
+      )
+
+      expect(picker().getByRole('radio', { name: 'None' })).toBeChecked()
+
+      await user.click(picker().getByRole('radio', { name: 'None' }))
+
+      expect(value.setRelayGroup).not.toHaveBeenCalled()
     })
   })
 

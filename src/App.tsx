@@ -42,6 +42,7 @@ import {
   tiltDriversOffline,
 } from '@/lib/drivers'
 import { AUTO_PRIMARY_BATTERY } from '@/lib/primaryBattery'
+import { DEFAULT_RELAY_GROUP_LIST } from '@/lib/relayGroups'
 import type { RenewvanBusState } from '@/types'
 import { useDisplayCommands } from '@/hooks/useDisplayCommands'
 import { useContentStable, useStableCallback } from '@/hooks/useStable'
@@ -419,6 +420,9 @@ function App() {
             relays={state.relays}
             driverOnline={relayDriversOnline(state)}
             demo={demoMode}
+            groups={bus.relayGroups}
+            groupList={bus.relayGroupList ?? DEFAULT_RELAY_GROUP_LIST}
+            order={bus.relayOrder}
             onSetRelay={commands.setRelay}
           />
         )

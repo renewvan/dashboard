@@ -1509,6 +1509,107 @@ describe('App shell Relays page', () => {
     })
   })
 
+  it('files the relay under the group the hub plugin publishes, and Unassigned until then', async () => {
+    await renderAt(KIOSK_WIDTH, '/?page=switches')
+    await receiveRelayDriver('online')
+
+    expect(screen.getByRole('region', { name: 'Unassigned' })).toBeInTheDocument()
+
+    await receive(
+      'renewvan/hub/relay-groups',
+      JSON.stringify({ relay_01: 'Lights', relay_99: 'USB' }),
+    )
+
+    expect(screen.queryByRole('region', { name: 'Unassigned' })).not.toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: 'Lights' })).getByRole('radiogroup', {
+        name: 'Ceiling lights',
+      }),
+    ).toBeInTheDocument()
+    // relay_99 is not on the bus: no empty USB panel.
+    expect(screen.queryByRole('region', { name: 'USB' })).not.toBeInTheDocument()
+  })
+
+  it('lists the groups in the order of the hub list, and falls back to the stock groups until it arrives', async () => {
+    await renderAt(KIOSK_WIDTH, '/?page=switches')
+    await receiveRelayDriver('online')
+    await receive('renewvan/relay/relay_02/name', '"Fridge"')
+    await receive('renewvan/relay/relay_02/state', 'false')
+    await receive(
+      'renewvan/hub/relay-groups',
+      JSON.stringify({ relay_01: 'Lights', relay_02: 'Awning' }),
+    )
+
+    // No list yet: the stock groups, so Awning is not one and the fridge is Unassigned.
+    expect(screen.getByRole('region', { name: 'Lights' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Unassigned' })).toBeInTheDocument()
+
+    await receive('renewvan/hub/relay-group-list', JSON.stringify(['Awning', 'Lights']))
+
+    expect(
+      screen.getAllByRole('region').map((region) => region.getAttribute('aria-label')),
+    ).toEqual(['Awning', 'Lights'])
+  })
+
+  it('edits the group list from Settings by publishing it to the hub list set topic', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=settings&view=relays-page')
+    await receive('renewvan/hub/relay-group-list', JSON.stringify(['Lights', 'USB']))
+
+    await user.type(screen.getByRole('textbox', { name: 'New group' }), 'Awning{Enter}')
+
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/hub/relay-group-list/set',
+      '["Lights","USB","Awning","Unassigned"]',
+      { qos: 1, retain: false },
+    )
+  })
+
+  it('lists the relays of a card in the hub order, with no grips on the control page', async () => {
+    await renderAt(KIOSK_WIDTH, '/?page=switches')
+    await receiveRelayDriver('online')
+    await receive('renewvan/relay/relay_02/name', '"Reading lamp"')
+    await receive('renewvan/relay/relay_02/state', 'false')
+    await receive(
+      'renewvan/hub/relay-groups',
+      JSON.stringify({ relay_01: 'Lights', relay_02: 'Lights' }),
+    )
+    const shown = () =>
+      within(screen.getByRole('region', { name: 'Lights' }))
+        .getAllByRole('radiogroup')
+        .map((row) => row.getAttribute('aria-label'))
+    expect(shown()).toEqual(['Ceiling lights', 'Reading lamp'])
+
+    await receive('renewvan/hub/relay-order', JSON.stringify(['relay_02', 'relay_01']))
+    expect(shown()).toEqual(['Reading lamp', 'Ceiling lights'])
+    // The control page has no grips: arranging is done in Settings.
+    expect(screen.queryByRole('button', { name: /^Reorder/ })).not.toBeInTheDocument()
+  })
+
+  it('sets the order of a group in its Settings page by publishing the whole order to the hub', async () => {
+    const user = userEvent.setup()
+    await renderAt(KIOSK_WIDTH, '/?page=settings&view=relay-group&group=Lights')
+    await receiveRelayDriver('online')
+    await receive('renewvan/relay/relay_02/name', '"Reading lamp"')
+    await receive('renewvan/relay/relay_02/state', 'false')
+    await receive(
+      'renewvan/hub/relay-groups',
+      JSON.stringify({ relay_01: 'Lights', relay_02: 'Lights' }),
+    )
+    await receive('renewvan/hub/relay-order', JSON.stringify(['relay_02', 'relay_01']))
+
+    // A tap on the grip focuses it without moving anything; the arrow key then moves it.
+    await user.click(screen.getByRole('button', { name: 'Reorder Ceiling lights' }))
+    expect(mqtt.publish).not.toHaveBeenCalled()
+    await user.keyboard('{ArrowUp}')
+
+    expect(mqtt.publish).toHaveBeenCalledExactlyOnceWith(
+      'renewvan/hub/relay-order/set',
+      '["relay_01","relay_02"]',
+      { qos: 1, retain: false },
+    )
+  })
+
   it('settles the control when the relay reports the new state', async () => {
     const user = userEvent.setup()
     await renderAt(KIOSK_WIDTH, '/?page=switches')

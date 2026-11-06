@@ -36,9 +36,13 @@ Three domain pages, same tabbed navigation at every supported width:
   props matching the v0.1 schema shapes (`hub/schema/*.schema.json`).
 - `src/components/*/*Page.tsx` — per-domain composition of the presentational components
   over `RenewvanBusState`, also unit-tested against fixture entity maps.
-- `src/config/relayPanels.ts` — dashboard-side groups, icons and critical loads for the
-  Relays page, keyed by channel id (presentation only, never on the wire). It ships empty:
-  every channel lands in "Unassigned" until you list it. The label is the relay's wire `name`.
+- `src/config/relayPanels.ts` — dashboard-side icons and critical loads for the Relays page,
+  keyed by channel id (presentation only, never on the wire). It ships empty. The label is the
+  relay's wire `name`. The groups are not here: edit the list in Settings › General › Display &
+  Appearance › Relays page (`?page=settings&view=relays-page`) and pick a channel's group in
+  Settings › Devices › Relays › the channel. Both are shared hub settings
+  (`renewvan/hub/relay-group-list`, `renewvan/hub/relay-groups`, hub ADR 0028); a channel with no
+  group lands in "Unassigned".
 
 ## Configuration
 

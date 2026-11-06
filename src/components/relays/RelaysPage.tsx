@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { AlertDialog, Button, Spinner, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { ToggleLeft, type LucideIcon } from 'lucide-react'
 import { criticalRelayIds, FALLBACK_RELAY_ICON, panelsFor, relayIcons } from '@/config/relayPanels'
+import { useEntityIcons } from '@/hooks/useEntityIcon'
+import { entityIcon, iconKey } from '@/lib/entityIcons'
+import { DEFAULT_RELAY_GROUP_LIST } from '@/lib/relayGroups'
 import type { Relay } from '@/types'
+
+const NO_GROUPS: Readonly<Record<string, string>> = {}
+const NO_ORDER: readonly string[] = []
 
 /**
  * The two segments of every control. `min-h-11` is the 44px touch target
@@ -29,8 +35,20 @@ export interface RelaysPageProps {
   onSetRelay: (id: string, on: boolean) => void
   /** Loads that ask before switching. Defaults to the dashboard's own configuration. */
   criticalIds?: readonly string[]
-  /** Per-channel icons, only for a load the owner has named. Defaults to the dashboard's own. */
+  /**
+   * Per-channel icons from the dashboard's own config, only for a load the owner has named. An icon
+   * picked in Settings (the shared `renewvan/hub/icons`) wins over it. Defaults to the dashboard's own.
+   */
   icons?: Readonly<Record<string, LucideIcon>>
+  /** The shared relay groups (`renewvan/hub/relay-groups`): relay id to group name. A relay with none is Unassigned. */
+  groups?: Readonly<Record<string, string>>
+  /** The shared list of group names on offer, in display order. A relay in any other group is Unassigned. */
+  groupList?: readonly string[]
+  /**
+   * The shared order of relays inside a card (`renewvan/hub/relay-order`): relay ids, first to last.
+   * Changed in Settings › Relays page; this page only follows it.
+   */
+  order?: readonly string[]
 }
 
 /**
@@ -208,8 +226,12 @@ export function RelaysPage({
   onSetRelay,
   criticalIds = criticalRelayIds,
   icons = relayIcons,
+  groups = NO_GROUPS,
+  groupList = DEFAULT_RELAY_GROUP_LIST,
+  order = NO_ORDER,
 }: RelaysPageProps) {
   const frozen = demo || !driverOnline
+  const sharedIcons = useEntityIcons()
   const [confirming, setConfirming] = useState<Confirming | null>(null)
   const { phaseOf, request } = useCommandPhases(relays, frozen, onSetRelay, () =>
     setConfirming(null),
@@ -235,22 +257,21 @@ export function RelaysPage({
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 max-md:pt-3">
       <Banner demo={demo} driverOnline={driverOnline} />
       <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-3">
-        {panelsFor(ids).map((panel) => (
+        {panelsFor(ids, groups, groupList, order).map((panel) => (
           <section
             key={panel.title}
             aria-label={panel.title}
             className="bg-surface border-border flex flex-col gap-4 rounded-2xl border p-4"
           >
-            <h2 className="text-muted flex items-center gap-2 text-sm font-medium">
-              <panel.icon aria-hidden="true" className="size-4 shrink-0" />
-              {panel.title}
-            </h2>
+            <h2 className="text-muted text-sm font-medium">{panel.title}</h2>
             {panel.ids.map((id) => (
               <Channel
                 key={id}
                 id={id}
                 relay={relays[id]}
-                Icon={icons[id] ?? FALLBACK_RELAY_ICON}
+                Icon={
+                  entityIcon(sharedIcons[iconKey('relay', id)]) ?? icons[id] ?? FALLBACK_RELAY_ICON
+                }
                 frozen={frozen}
                 phase={phaseOf(id)}
                 onPick={(to) => pick(id, to)}

@@ -1,7 +1,12 @@
 import { useId } from 'react'
+import { ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { useEntityIcon } from '@/hooks/useEntityIcon'
+import { RELAY_ICON_NAMES } from '@/lib/entityIcons'
 import { instanceKey } from '@/lib/instances'
+import { ownGroups } from '@/lib/relayGroups'
 import { EntityCard } from '../shared/EntityCard'
 import { relaySummary } from './entitySummary'
+import { IconPicker } from '../shared/IconPicker'
 import { NameField } from '../shared/NameField'
 import { useSettingsData, useSettingsActions } from '../SettingsContext'
 
@@ -11,15 +16,68 @@ import { useSettingsData, useSettingsActions } from '../SettingsContext'
  */
 const RELAY_NAME_MAX_BYTES = 63
 
-/** Settings › Devices › Relays › <channel> › Details: rename the channel. */
-export function RelayDetails({ id }: { id: string }) {
-  const { relays } = useSettingsData()
-  if (relays[id] === undefined) return null
-  return <RelayPanel id={id} name={relays[id].name} />
+/** The key of the "no group" button: group names never start with a space, so it cannot collide. */
+const NO_GROUP = ' none'
+
+/**
+ * Which group the Relays page files the channel under. The choice is the shared hub setting, so a
+ * tap sends the command and nothing changes until the hub plugin answers with the retained map.
+ * The buttons are the shared list of groups (edited in Settings › Display & Appearance › Relays page).
+ */
+function GroupPicker({ id, group }: { id: string; group: string | undefined }) {
+  const { relayGroupList } = useSettingsData()
+  const { setRelayGroup } = useSettingsActions()
+  // A group that has left the list reads as no group: the Relays page files the channel under Unassigned.
+  const offered = ownGroups(relayGroupList)
+  const current = group !== undefined && offered.includes(group) ? group : NO_GROUP
+
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-muted pt-2 text-xs">Group</span>
+      <ToggleButtonGroup
+        aria-label="Group"
+        selectionMode="single"
+        disallowEmptySelection
+        selectedKeys={new Set([current])}
+        onSelectionChange={(keys) => {
+          const key = [...keys][0]
+          if (key === undefined) return
+          const next = String(key)
+          // HeroUI re-fires the selection on a re-tap of the selected item: send nothing.
+          if (next === current) return
+          setRelayGroup(id, next === NO_GROUP ? null : next)
+        }}
+        className="flex-wrap justify-end"
+      >
+        <ToggleButton id={NO_GROUP}>None</ToggleButton>
+        {offered.map((name) => (
+          <ToggleButton key={name} id={name}>
+            {name}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </div>
+  )
 }
 
-function RelayPanel({ id, name }: { id: string; name: string | undefined }) {
-  const { setRelayName } = useSettingsActions()
+/** Settings › Devices › Relays › <channel> › Details: rename the channel, pick its icon and its group. */
+export function RelayDetails({ id }: { id: string }) {
+  const { relays, relayGroups } = useSettingsData()
+  if (relays[id] === undefined) return null
+  return <RelayPanel id={id} name={relays[id].name} group={relayGroups[id]} />
+}
+
+function RelayPanel({
+  id,
+  name,
+  group,
+}: {
+  id: string
+  name: string | undefined
+  group: string | undefined
+}) {
+  const { setRelayName, setEntityIcon } = useSettingsActions()
+  const icon = useEntityIcon('relay', id)
   const labelId = useId()
 
   return (
@@ -36,6 +94,12 @@ function RelayPanel({ id, name }: { id: string; name: string | undefined }) {
         maxBytes={RELAY_NAME_MAX_BYTES}
         onCommit={(next) => setRelayName(id, next)}
       />
+      <IconPicker
+        names={RELAY_ICON_NAMES}
+        value={icon}
+        onChange={(next) => setEntityIcon('relay', id, next)}
+      />
+      <GroupPicker id={id} group={group} />
     </div>
   )
 }
