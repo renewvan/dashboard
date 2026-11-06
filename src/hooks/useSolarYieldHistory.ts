@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react'
-import { yieldHistoryFromPoints } from '@/components/widgets/solar/solarView'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  firstSolar,
+  firstSolarId,
+  yieldHistoryFromPoints,
+} from '@/components/widgets/solar/solarView'
 import { queryInflux } from '@/lib/influx'
+import type { Solar } from '@/types'
 import type { FluxPoint } from '@/lib/influxCsv'
 import { dailyYieldQuery } from '@/lib/influxQuery'
 import { useNow } from './useNow'
@@ -46,4 +51,20 @@ export function useSolarYieldHistory(
       ? yieldHistoryFromPoints(result.points, days, new Date(now))
       : undefined
   return fromInflux ?? controllerLog
+}
+
+/**
+ * The first solar controller with its harvest history taken from the hub's InfluxDB (see
+ * `useSolarYieldHistory`), for the pages that chart it. `undefined` until a controller is complete.
+ */
+export function useFirstSolarWithHistory(
+  solar: Record<string, Partial<Solar>>,
+  days: number,
+): Solar | undefined {
+  const record = firstSolar(solar)
+  const history = useSolarYieldHistory(firstSolarId(solar), record?.yield_history_wh, days)
+  return useMemo(
+    () => (record ? { ...record, yield_history_wh: history } : undefined),
+    [record, history],
+  )
 }
