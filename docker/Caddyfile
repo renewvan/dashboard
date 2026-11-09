@@ -20,7 +20,13 @@
     default_sni {$DASHBOARD_HOST}
 }
 
-{$DASHBOARD_HOST} {
+# The same site is served on the Pi's Tailscale address and MagicDNS name, so the tailnet reaches it too.
+# Caddy picks the site by the request's host: a host that matches no address here gets an empty 200,
+# which is a blank page. The hub's compose file passes both values (loopback/localhost when unset, so
+# local dev still starts), and bin/deploy.sh seeds them from tailscale. Browse by the MagicDNS name: it
+# sends SNI, so it gets a certificate for that name. By the bare Tailscale IP a browser sends no SNI,
+# so default_sni answers and the certificate names DASHBOARD_HOST: expect a name mismatch there.
+{$DASHBOARD_HOST}, {$TAILSCALE_BIND_ADDR}, {$TAILSCALE_DNS_NAME} {
     # Leaf certs live 90 days (Caddy's default is 12h). sign_with_root makes the root sign them
     # directly: an intermediate would be a 7-day certificate and clamp every leaf to a week.
     # Devices trust the same root, so renewals never need a reinstall.
