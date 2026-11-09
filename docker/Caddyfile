@@ -46,7 +46,12 @@
     # The kiosk is not behind it: it loads http://localhost:80 (the dashboard container, published on
     # the Pi's loopback), never this site. User and bcrypt hash come from the hub's .env
     # (bin/ensure-secrets.sh; bin/rotate-secret.sh caddy rotates the password).
-    basic_auth {
+    #
+    # Exception: the PWA manifest and its icons. Chrome fetches them without the saved login, so behind the
+    # gate they answer 401 and Chrome never offers "Install app". They hold no data. Keep this list to
+    # those exact files: the hub's test_compose_hardening pins it, and /mqtt and /influx stay behind the login.
+    @private not path /manifest.webmanifest /icon-192.png /icon-512.png /icon-maskable-512.png
+    basic_auth @private {
         {$CADDY_BASIC_AUTH_USER} {$CADDY_BASIC_AUTH_HASH}
     }
 
