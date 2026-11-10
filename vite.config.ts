@@ -8,6 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig(({ mode }) => {
   // Unprefixed (non-VITE_) variables, for the dev proxy only: Vite does not load .env into process.env.
   const env = loadEnv(mode, __dirname, '')
+  const viaCaddy = env.INFLUX_VIA_CADDY_URL?.replace(/\/+$/, '')
   return {
     lint: {
       plugins: ['react', 'typescript', 'oxc'],
@@ -71,18 +72,34 @@ export default defineConfig(({ mode }) => {
     ]),
     server: {
       // History charts query InfluxDB at the same-origin `/influx`, which Caddy serves in production
-      // and injects a read-only token into (ADR 0024). In dev, tunnel the hub's Influx
-      // (`ssh -L 8086:localhost:8086 renewvan`) and put the read-only token in `.env` as
-      // INFLUXDB_DASHBOARD_TOKEN (no VITE_ prefix, so it never reaches the bundle).
+      // and injects a read-only token into (ADR 0024). Two ways to reach it in dev:
+      //  - INFLUX_VIA_CADDY_URL set (e.g. https://100.115.137.59 over Tailscale, or the Pi's LAN
+      //    address): proxy straight to the Pi's Caddy, which already forwards /influx and holds the
+      //    token. Caddy sits behind basic auth, so send CADDY_BASIC_AUTH_USER/PASSWORD. Its
+      //    `tls internal` cert is self-signed, hence secure: false (dev only).
+      //  - otherwise: tunnel the hub's Influx (`ssh -L 8086:localhost:8086 renewvan`) and put the
+      //    read-only token in `.env` as INFLUXDB_DASHBOARD_TOKEN.
+      // None of these are VITE_-prefixed, so they never reach the bundle.
       proxy: {
-        '/influx': {
-          target: env.INFLUXDB_URL ?? 'http://localhost:8086',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/influx/, ''),
-          headers: env.INFLUXDB_DASHBOARD_TOKEN
-            ? { Authorization: `Token ${env.INFLUXDB_DASHBOARD_TOKEN}` }
-            : {},
-        },
+        '/influx': viaCaddy
+          ? {
+              target: viaCaddy,
+              changeOrigin: true,
+              secure: false,
+              headers: {
+                Authorization: `Basic ${Buffer.from(
+                  `${env.CADDY_BASIC_AUTH_USER ?? ''}:${env.CADDY_BASIC_AUTH_PASSWORD ?? ''}`,
+                ).toString('base64')}`,
+              },
+            }
+          : {
+              target: env.INFLUXDB_URL ?? 'http://localhost:8086',
+              changeOrigin: true,
+              rewrite: (path) => path.replace(/^\/influx/, ''),
+              headers: env.INFLUXDB_DASHBOARD_TOKEN
+                ? { Authorization: `Token ${env.INFLUXDB_DASHBOARD_TOKEN}` }
+                : {},
+            },
       },
     },
     resolve: {
