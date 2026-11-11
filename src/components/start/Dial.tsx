@@ -276,7 +276,7 @@ export function Dial({
                   <TiltWidget tilt={firstTilt} compact />
                 ) : batteryView ? (
                   <div
-                    className="mt-1 flex flex-col items-center"
+                    className="gap-0.1 mt-1 flex flex-col items-center"
                     style={{ '--u': 'clamp(0.9px, 0.3cqw, 1px)' } as CSSProperties}
                     aria-hidden="true"
                   >
