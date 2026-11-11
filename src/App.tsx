@@ -14,6 +14,8 @@ import { devFlagOn } from '@/lib/devFlags'
 import { useLocalHeater } from '@/hooks/useLocalHeater'
 import { DemoBadge } from '@/components/DemoBadge'
 import { UplinkStatusButton } from '@/components/UplinkStatusButton'
+import { HubUnreachableBanner } from '@/components/HubUnreachableBanner'
+import { isKioskHost, useHubUnreachable } from '@/hooks/useHubUnreachable'
 import { Sidebar, type NavItem } from '@/components/Sidebar'
 import { PageErrorBoundary } from '@/components/PageErrorBoundary'
 import { StubPane } from '@/components/StubPane'
@@ -127,6 +129,8 @@ function App() {
   const alertHistory = useAlertHistory()
   const hub = useHubAddress(hubStatus)
   const broker = useBrokerLink()
+  // Phone or laptop, hub unreachable for a while: offer the wake page (never on the kiosk or in Demo mode).
+  const hubUnreachable = useHubUnreachable(status, !demoMode && !isKioskHost())
   // `?flag.demo=1` (dev builds) turns Demo mode on once, as soon as the bus is connected.
   const demoFlagApplied = useRef(false)
   useEffect(() => {
@@ -497,6 +501,7 @@ function App() {
             )}
             <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
               {header}
+              {hubUnreachable && <HubUnreachableBanner />}
               {panels}
             </div>
           </Tabs>

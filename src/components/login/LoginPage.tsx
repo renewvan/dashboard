@@ -1,8 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Button, FieldError, Input, Label, TextField } from '@heroui/react'
-import { Eye, EyeOff } from 'lucide-react'
-import lockupLight from '../../../assets/logo/svg/renewvan-lockup-light.svg'
-import lockupDark from '../../../assets/logo/svg/renewvan-lockup-dark.svg'
+import { Bluetooth, Eye, EyeOff } from 'lucide-react'
+import { BrandLockup } from '@/components/BrandLockup'
 import { safeNext } from '@/lib/session'
 
 const DEFAULT_USER = 'renewvan'
@@ -73,16 +72,7 @@ export function LoginPage({
     >
       <div className="flex w-full max-w-sm flex-col gap-6 [@media(max-height:480px)]:gap-3">
         <div className="flex flex-col items-center gap-2 text-center [@media(max-height:480px)]:gap-1">
-          <img
-            src={lockupLight}
-            alt="Renewvan"
-            className="mb-2 h-14 dark:hidden [@media(max-height:480px)]:mb-0 [@media(max-height:480px)]:h-11"
-          />
-          <img
-            src={lockupDark}
-            alt="Renewvan"
-            className="mb-2 hidden h-14 dark:block [@media(max-height:480px)]:mb-0 [@media(max-height:480px)]:h-11"
-          />
+          <BrandLockup />
           <h1 className="text-xl font-bold [@media(max-height:480px)]:text-base">
             Welcome to your van
           </h1>
@@ -132,6 +122,14 @@ export function LoginPage({
           <Button type="submit" isDisabled={busy || password === ''} fullWidth className="w-full">
             {busy ? 'Signing in…' : 'Sign in'}
           </Button>
+          {/* The wake page needs no login and runs from the cached shell, so it is one tap from here. */}
+          <a
+            href="/?page=wake"
+            className="border-border text-foreground flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold [@media(max-height:480px)]:min-h-9"
+          >
+            <Bluetooth className="size-4" aria-hidden="true" />
+            Wake the van
+          </a>
         </form>
         <p className="text-muted text-center text-xs">
           This dashboard can control the van, so it needs a login.

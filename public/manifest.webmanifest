@@ -1,5 +1,5 @@
 {
-  "name": "renewvan hub — dashboard",
+  "name": "renewvan",
   "short_name": "renewvan",
   "description": "Live van state (tanks, batteries, relays) from the renewvan hub.",
   "start_url": "/",

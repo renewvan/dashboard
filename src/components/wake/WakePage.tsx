@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { Button } from '@heroui/react'
-import { Bluetooth } from 'lucide-react'
+import { Button, Input, Label, TextField } from '@heroui/react'
+import { Bluetooth, Eye, EyeOff } from 'lucide-react'
+import { BrandLockup } from '@/components/BrandLockup'
+import { useHubReachable } from '@/hooks/useHubReachable'
 import { readStorage, writeStorage } from '@/hooks/useStoredState'
 import { getBluetooth, wakeHub, type BleApi, type WakeStatus } from '@/lib/bleWake'
 
@@ -15,6 +17,9 @@ type Phase =
 export interface WakePageProps {
   /** Injected in tests; the browser's Web Bluetooth otherwise (null where there is none). */
   bluetooth?: BleApi | null
+  /** Injected in tests: how the page asks whether the hub is answering yet. */
+  fetcher?: typeof fetch
+  pollMs?: number
 }
 
 /** What the person is told once the board answered, or why it could not be reached. */
@@ -32,8 +37,13 @@ function describe(phase: Phase): string | null {
  * hub on. It is rendered INSTEAD of the app (see `main.tsx`, `?page=wake`) and touches nothing but
  * Bluetooth: no hub, no broker, no API, so it works with the hub off, from the cached PWA shell.
  */
-export function WakePage({ bluetooth = getBluetooth() }: WakePageProps) {
+export function WakePage({
+  bluetooth = getBluetooth(),
+  fetcher = fetch,
+  pollMs = 3000,
+}: WakePageProps) {
   const [secret, setSecret] = useState(() => readStorage(SECRET_KEY) ?? '')
+  const [show, setShow] = useState(false)
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' })
 
   const onSubmit = async (event: FormEvent) => {
@@ -58,44 +68,64 @@ export function WakePage({ bluetooth = getBluetooth() }: WakePageProps) {
   }
 
   const message = describe(phase)
+  const hubOn = phase.kind === 'done' && phase.status === 'on'
+  const { reachable, gaveUp } = useHubReachable(hubOn, { fetcher, intervalMs: pollMs })
   const working = phase.kind === 'working'
 
   return (
     <main
       data-testid="wake-page"
-      className="bg-background text-foreground flex min-h-dvh flex-col items-center justify-center gap-6 p-6"
+      className="bg-background flex min-h-dvh flex-col items-center justify-center p-6 [@media(max-height:480px)]:py-3"
     >
-      <div className="flex w-full max-w-sm flex-col gap-4">
-        <h1 className="text-xl font-semibold">Wake the van</h1>
-        <p className="text-muted text-sm">
-          Powers the hub and router on over Bluetooth, for when the van has been parked with them
-          off. Stand within a few metres of the van.
-        </p>
+      <div className="flex w-full max-w-sm flex-col gap-6 [@media(max-height:480px)]:gap-3">
+        <div className="flex flex-col items-center gap-2 text-center [@media(max-height:480px)]:gap-1">
+          <BrandLockup />
+          <h1 className="text-xl font-bold [@media(max-height:480px)]:text-base">Wake the van</h1>
+          <p className="text-muted text-sm [@media(max-height:480px)]:text-xs">
+            Power up the hub and router over Bluetooth.
+          </p>
+        </div>
 
         {bluetooth ? (
-          <form onSubmit={onSubmit} className="flex flex-col gap-4">
-            <label className="flex flex-col gap-2 text-sm">
-              Wake secret
-              <input
-                type="password"
-                autoComplete="off"
-                value={secret}
-                onChange={(event) => setSecret(event.target.value)}
-                className="border-border bg-surface min-h-11 rounded-lg border px-3"
-              />
-            </label>
+          <form
+            onSubmit={onSubmit}
+            className="flex w-full flex-col gap-4 [@media(max-height:480px)]:gap-2"
+          >
+            <TextField value={secret} onChange={setSecret} className="flex flex-col gap-1">
+              <Label>Wake secret</Label>
+              <div className="relative">
+                <Input
+                  type={show ? 'text' : 'password'}
+                  autoComplete="off"
+                  className="min-h-9 w-full py-1 pr-12 text-sm"
+                />
+                <button
+                  type="button"
+                  aria-label={show ? 'Hide secret' : 'Show secret'}
+                  onClick={() => setShow(!show)}
+                  className="text-muted absolute inset-y-0 right-0 flex w-11 items-center justify-center"
+                >
+                  {show ? (
+                    <EyeOff className="size-5" aria-hidden="true" />
+                  ) : (
+                    <Eye className="size-5" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+            </TextField>
             <Button
               type="submit"
               variant="primary"
               isDisabled={working}
-              className="min-h-11 w-full"
+              fullWidth
+              className="w-full"
             >
               <Bluetooth className="size-5" aria-hidden="true" />
               {working ? 'Connecting…' : 'Wake hub'}
             </Button>
           </form>
         ) : (
-          <p role="alert" className="text-danger text-sm">
+          <p role="alert" className="text-danger text-center text-sm">
             This browser cannot use Bluetooth. Use Chrome on Android or a computer. On an iPhone,
             open this page in the Bluefy browser.
           </p>
@@ -104,12 +134,23 @@ export function WakePage({ bluetooth = getBluetooth() }: WakePageProps) {
         {message ? (
           <p
             role={phase.kind === 'error' ? 'alert' : 'status'}
-            className={
+            className={`text-center text-sm ${
               phase.kind === 'done' && phase.status === 'on' ? 'text-success' : 'text-danger'
-            }
+            }`}
           >
             {message}
           </p>
+        ) : null}
+
+        {hubOn && reachable ? (
+          <a
+            href="/"
+            className="bg-accent text-accent-foreground flex min-h-11 w-full items-center justify-center rounded-full px-4 font-semibold"
+          >
+            Open dashboard
+          </a>
+        ) : hubOn && !gaveUp ? (
+          <p className="text-muted text-center text-sm">Waiting for the hub to answer…</p>
         ) : null}
       </div>
     </main>

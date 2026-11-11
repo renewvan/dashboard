@@ -92,4 +92,12 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Show password' }))
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'text')
   })
+
+  it('links to the wake page, which needs no login', () => {
+    render(<LoginPage fetcher={reply(200) as unknown as typeof fetch} onSignedIn={() => {}} />)
+    expect(screen.getByRole('link', { name: 'Wake the van' })).toHaveAttribute(
+      'href',
+      '/?page=wake',
+    )
+  })
 })
