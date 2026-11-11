@@ -50,6 +50,19 @@ function batteryColor(pct: number) {
   return pct <= BATTERY_ALERT_PCT ? RING_ALERT : RING_OK
 }
 
+export type BatteryLevel = 'full' | 'medium' | 'low' | 'empty'
+
+/**
+ * Which battery icon the level takes, on its own steps (not the ring's colour zones): empty at 0,
+ * low under 20, medium from 20 to 80, full above. Judged on the whole percentage that is shown.
+ */
+export function batteryLevel(pct: number): BatteryLevel {
+  const shown = Math.round(pct)
+  if (shown <= 0) return 'empty'
+  if (shown < 20) return 'low'
+  return shown <= 80 ? 'medium' : 'full'
+}
+
 /**
  * A tank ring's colour from the Tanks page's severity (the alarm zones), with the wrong extreme red
  * even for a tank with no alarm configured: empty for fresh water, fuel and LPG, full for the waste

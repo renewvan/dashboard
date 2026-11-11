@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 import type { Battery, Tank } from '@/types'
 import { IDLE_W } from '@/components/power/flowModel'
-import { batteryDial, tankDial, tankDialOf } from './dialView'
+import { batteryDial, batteryLevel, tankDial, tankDialOf } from './dialView'
 import { formatTimeToGo } from '@/lib/time-to-go'
 
 const AMBER_500 = '#f59e0b'
@@ -133,6 +133,19 @@ describe('batteryDial', () => {
     expect(colorAt(21)).toBe(AMBER_500)
     expect(colorAt(20)).toBe('var(--danger)')
     expect(colorAt(0)).toBe('var(--danger)')
+  })
+})
+
+describe('batteryLevel', () => {
+  it('is empty at 0, low under 20, medium from 20 to 80 and full above', () => {
+    expect(batteryLevel(0)).toBe('empty')
+    expect(batteryLevel(0.4)).toBe('empty')
+    expect(batteryLevel(1)).toBe('low')
+    expect(batteryLevel(19)).toBe('low')
+    expect(batteryLevel(20)).toBe('medium')
+    expect(batteryLevel(80)).toBe('medium')
+    expect(batteryLevel(81)).toBe('full')
+    expect(batteryLevel(100)).toBe('full')
   })
 })
 

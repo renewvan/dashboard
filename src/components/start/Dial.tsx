@@ -1,5 +1,12 @@
-import { createElement, useState } from 'react'
-import { Battery, TriangleAlert } from 'lucide-react'
+import { createElement, useState, type CSSProperties } from 'react'
+import {
+  Battery as BatteryEmpty,
+  BatteryFull,
+  BatteryLow,
+  BatteryMedium,
+  CarBattery,
+  TriangleAlert,
+} from 'lucide-react'
 import { useEntityIcons } from '@/hooks/useEntityIcon'
 import { entityIcon, iconKey } from '@/lib/entityIcons'
 import { FLUID_ICONS } from '@/components/tanks/fluidIcon'
@@ -30,9 +37,16 @@ import {
   type Tilt,
   type TemperatureSensor,
 } from '@/types'
-import { DialReadout } from './DialReadout'
+import { DialReadout, DialState } from './DialReadout'
 import { DialTemperature } from './DialTemperature'
-import { batteryDial, tankDialOf, tankIdOf, type DialView } from './cockpit/dialView'
+import {
+  batteryDial,
+  batteryLevel,
+  tankDialOf,
+  tankIdOf,
+  type BatteryLevel,
+  type DialView,
+} from './cockpit/dialView'
 import { HalfMoon } from './HalfMoon'
 import { Rings, type RingModel } from './Rings'
 import {
@@ -64,6 +78,14 @@ export interface DialProps {
   onOpenInstance?: (key: string) => void
 }
 
+/** The battery's state icon, by how full the ring reads (`batteryLevel`). */
+const LEVEL_ICONS: Record<BatteryLevel, typeof BatteryFull> = {
+  full: BatteryFull,
+  medium: BatteryMedium,
+  low: BatteryLow,
+  empty: BatteryEmpty,
+}
+
 /** Colour while a ring has no data: not a severity, so the band just stays dim. */
 const NO_DATA_COLOR = 'currentColor'
 
@@ -76,7 +98,7 @@ function ringModel(
 ): RingModel {
   const icon =
     source === 'battery' ? (
-      <Battery className="size-4" />
+      <CarBattery className="size-4" />
     ) : (
       createElement(entityIcon(iconName) ?? FLUID_ICONS[source], {
         className: 'size-4',
@@ -198,9 +220,7 @@ export function Dial({
       source === 'battery' ? undefined : icons[iconKey('tank', tankIdOf(tanks, source) ?? '')],
     )
     if (source !== 'battery') return ring
-    // Off the middle, the battery's percentage lives in the legend, so it is drawn larger there.
-    const enlarged = { ...ring, emphasis: centre !== 'battery' }
-    return centre === 'van' ? { ...enlarged, pulse: inputW > IDLE_W } : enlarged
+    return centre === 'van' ? { ...ring, pulse: inputW > IDLE_W } : ring
   })
 
   return (
@@ -208,7 +228,7 @@ export function Dial({
     // landscape screen (a phone at 915×412) they would otherwise overflow the page.
     <div
       data-testid="start-dial"
-      className="[container-type:size] relative flex min-h-0 flex-1 items-center justify-center"
+      className="[container-type:size] relative flex min-h-0 flex-1 items-center justify-center pb-2"
     >
       <DialBmsAlert flow={flow} onOpenInstance={onOpenInstance} />
       <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center">
@@ -226,10 +246,19 @@ export function Dial({
             ]}
           />
         </div>
-        <div className="flex justify-center">
+        <div className="mb-2 flex justify-center">
           <Rings
             rings={rings}
             legend={legendIndices(powerSources.rings, centre)}
+            legendNote={
+              centre === 'battery' && batteryView ? (
+                <DialState
+                  view={batteryView}
+                  icon={createElement(LEVEL_ICONS[batteryLevel(batteryView.pct)])}
+                  className="tracking-wider uppercase tabular-nums"
+                />
+              ) : undefined
+            }
             glow={isDark}
             pulseClock={clock}
             centred={centre === 'battery'}
@@ -246,11 +275,16 @@ export function Dial({
                 ) : centre === 'tilt' ? (
                   <TiltWidget tilt={firstTilt} compact />
                 ) : batteryView ? (
-                  <div className="mt-1 flex flex-col items-center" aria-hidden="true">
+                  <div
+                    className="mt-1 flex flex-col items-center"
+                    style={{ '--u': 'clamp(0.9px, 0.3cqw, 1px)' } as CSSProperties}
+                    aria-hidden="true"
+                  >
                     <DialReadout
                       view={batteryView}
-                      icon={<Battery className="size-4" />}
+                      icon={<CarBattery className="size-4" />}
                       size="focus"
+                      hideState
                     />
                   </div>
                 ) : (

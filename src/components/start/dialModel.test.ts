@@ -83,12 +83,12 @@ describe('legendIndices', () => {
     expect(legendIndices(rings, 'battery')).toEqual([1, 2])
   })
 
-  it('lists every ring while the tilt fills the middle, the battery last', () => {
-    expect(legendIndices(rings, 'tilt')).toEqual([1, 2, 0])
+  it('lists every ring while the tilt fills the middle, the battery first', () => {
+    expect(legendIndices(rings, 'tilt')).toEqual([0, 1, 2])
   })
 
-  it('lists every ring while the van fills the middle, the battery last', () => {
-    expect(legendIndices(rings, 'van')).toEqual([1, 2, 0])
+  it('lists every ring while the van fills the middle, the battery first', () => {
+    expect(legendIndices(rings, 'van')).toEqual([0, 1, 2])
   })
 
   it('drops every ring showing the battery, wherever it sits', () => {

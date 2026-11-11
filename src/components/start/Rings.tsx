@@ -18,8 +18,6 @@ export interface RingModel {
   hasData: boolean
   /** The battery ring while it charges: a soft band travels along its fill. */
   pulse?: boolean
-  /** Its legend row is drawn larger: the level has no readout in the middle. */
-  emphasis?: boolean
 }
 
 // The cockpit's geometry: a thin outer ring wraps three 10-wide bands, each 4 units clear of the
@@ -42,6 +40,8 @@ interface RingsProps {
   centre: ReactNode
   /** The middle holds the battery readout: centred on the rings rather than lifted above the legend. */
   centred?: boolean
+  /** A row above the listed rings, in the legend's size; the battery's runtime when its readout is in the middle. */
+  legendNote?: ReactNode
   /** Soft glow behind the fill; dark theme only. */
   glow: boolean
   /** The charging pulse's pass and phase, when another band on screen must beat with it. */
@@ -52,13 +52,22 @@ interface RingsProps {
  * Concentric 270° rings, outermost first, each with the cockpit's five cuts and its severity
  * colour, around the readout, with a one-line legend per listed ring under the open mouth.
  */
-export function Rings({ rings, legend, centre, centred, glow, pulseClock }: RingsProps) {
+export function Rings({
+  rings,
+  legend,
+  legendNote,
+  centre,
+  centred,
+  glow,
+  pulseClock,
+}: RingsProps) {
   const uid = useId().replace(/:/g, '')
   const glowId = `glow-${uid}`
   const cutsId = `cuts-${uid}`
 
   return (
-    <div className="relative aspect-square w-[min(100%,420px,100cqh)]">
+    // An inline-size container: the readout in the middle scales with the rings' width (cqw).
+    <div className="[container-type:inline-size] relative aspect-square w-[min(100%,420px,100cqh)]">
       <svg
         viewBox={`0 0 ${RINGS_SIZE} ${RINGS_SIZE}`}
         className="size-full"
@@ -166,21 +175,26 @@ export function Rings({ rings, legend, centre, centred, glow, pulseClock }: Ring
         {centre}
       </div>
 
-      <div className="relative -mt-19 flex flex-col items-center gap-1" aria-hidden="true">
+      {/* The rows are sized from the rings' width (cqw), up to their usual size, so that up to three of
+          them fit in the 18% the legend overlaps the mouth by and never run past the ring's box. */}
+      <div
+        className="relative -mt-[24%] flex flex-col items-center gap-[0.2em] leading-tight"
+        style={{ fontSize: 'min(14px, 4.3cqw)' }}
+        aria-hidden="true"
+      >
+        {legendNote}
         {legend.map((index) => {
           const ring = rings[index]!
           return (
             <div
               key={index}
-              className={`flex items-center gap-2 tracking-wider uppercase tabular-nums ${ring.emphasis ? 'text-base' : 'text-sm'}`}
+              className={`flex items-center gap-[0.5em] tracking-wider uppercase tabular-nums`}
             >
-              <span className="text-muted">{ring.icon}</span>
+              <span className="text-muted [&>svg]:size-[1.2em]!">{ring.icon}</span>
               <span className="text-muted">{ring.label}</span>
               <span className="font-semibold">
                 {ring.hasData ? ring.value : '\u2013'}
-                <span className={`text-accent ${ring.emphasis ? 'text-base' : 'text-xs'}`}>
-                  {ring.unit}
-                </span>
+                <span className="text-accent text-[0.85em]">{ring.unit}</span>
               </span>
             </div>
           )
