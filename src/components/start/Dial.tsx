@@ -228,7 +228,7 @@ export function Dial({
     // landscape screen (a phone at 915×412) they would otherwise overflow the page.
     <div
       data-testid="start-dial"
-      className="[container-type:size] relative flex min-h-0 flex-1 items-center justify-center pb-2 [@media(max-height:560px)]:pt-6"
+      className="[container-type:size] relative flex min-h-0 flex-1 items-center justify-center pb-2 [@media(max-height:430px)]:pt-[calc(var(--navbar-inset-bottom)*0.4)]"
     >
       <DialBmsAlert flow={flow} onOpenInstance={onOpenInstance} />
       <div className="grid min-h-0 w-full grid-cols-[1fr_1.8fr_1fr] items-center">
