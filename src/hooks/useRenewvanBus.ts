@@ -4,10 +4,9 @@ import { emptyRenewvanBusState, type DriverInfo, type RenewvanBusState } from '@
 import { getEnv } from '@/config/runtimeEnv'
 
 // Client-side MQTT-over-WebSocket connection to the renewvan bus broker
-// (Mosquitto's WS listener), per
-// hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md -- no
+// (Mosquitto's WS listener): no
 // polling backend, not offline-first. This is the thin adapter half of the
-// ticket's seam: it owns the live connection (connection lifecycle itself
+// seam: it owns the live connection (connection lifecycle itself
 // stays untested); the payload-handling contract — what each topic does
 // to the exposed state — is tested in useRenewvanBus.test.tsx against a
 // mocked client. The presentational components it feeds are tested

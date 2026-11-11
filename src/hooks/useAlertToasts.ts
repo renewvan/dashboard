@@ -13,8 +13,7 @@ import type { ConnectionStatus, TailscaleStatus } from './useRenewvanBus'
 // persistent history entry (`lib/alertHistory.ts`), per wayfinder
 // tickets 04 (backend-published state, not client-derived thresholds), 05
 // (tank alarm_state -> critical, state-driven dismiss) and 06 (MQTT/
-// Tailscale disconnect -> warning, state-driven dismiss). See
-// .scratch/alert-system/map.md.
+// Tailscale disconnect -> warning, state-driven dismiss).
 //
 // HeroUI's `toast.*` has no "toast per entity, upsert on change" primitive
 // here — each call always mints a new id. This hook is that mechanism: a

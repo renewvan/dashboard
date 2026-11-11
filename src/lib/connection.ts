@@ -9,8 +9,7 @@ import { plmnOperatorName } from './plmn'
  * (`state.drivers.router`). Pure decision function (tailscaleStatusText
  * precedent): the component renders, this decides.
  *
- * Resolution order (settled in .scratch/router-connection-icon/ grilling,
- * 2026-10-03):
+ * Resolution order (settled 2026-10-03):
  * 1. driver health offline → offline (LWT trumps everything);
  * 2. no router data received yet → checking;
  * 3. newest property older than STALE_MS (3× the 60 s publish cadence;

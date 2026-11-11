@@ -2,8 +2,7 @@
 
 Read-only React dashboard for the renewvan hub's renewvan bus — one responsive
 app serving both the 7" in-van kiosk touchscreen (800×480 landscape) and a
-laptop browser. Per
-`hub/.scratch/renewvan-hub-v0-build/issues/06-dashboard-web-app.md`, built
+laptop browser. Built
 from the layout decided in `hub`'s throwaway `prototype/dashboard-06`
 branch (variant C: domain pages + radial gauges).
 
