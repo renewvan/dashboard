@@ -170,7 +170,7 @@ function Tile({
         borderColor: active ? 'var(--accent)' : 'var(--border)',
       }}
       transition={{ duration: 0.6 }}
-      className={`bg-surface @container-[size] relative flex max-h-56 min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-3xl border-2 p-4 ${className} ${
+      className={`bg-surface @container-[size] relative flex max-h-56 min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-3xl border-2 p-4 [@media(max-height:430px)]:p-2.5 [@media(max-height:430px)]:px-3 ${className} ${
         onPress
           ? 'focus-visible:ring-accent cursor-pointer text-left outline-none focus-visible:ring-4 active:brightness-90'
           : ''
@@ -179,11 +179,18 @@ function Tile({
       {/* The title and its value are one block at the top, touching, as in Venus; only the
           sub line is pushed to the bottom. */}
       <div>
-        <div className="text-muted flex items-center gap-2 text-base">
+        <div className="text-muted flex items-center gap-2 text-base [@media(max-height:430px)]:text-sm">
           {icon}
           {title}
         </div>
-        <Value value={<RollingNumber value={watts} />} unit={unit} />
+        <Value
+          sizeClass={[
+            'text-5xl [@media(max-height:430px)]:text-[clamp(2rem,9vh,3rem)]',
+            'text-xl [@media(max-height:430px)]:text-[clamp(1rem,4vh,1.25rem)]',
+          ]}
+          value={<RollingNumber value={watts} />}
+          unit={unit}
+        />
       </div>
       {/* Everything under the value is pinned to the bottom, as in Venus: the sub line, then
           the history strip. Each only appears when the tile's content box is tall enough to hold
@@ -398,7 +405,7 @@ export function TilesLayout({
           <>
             {/* Sources span both rows; shore is a source, so it links to the inverter (row 1)
                 with a short elbow up from its own tile. */}
-            <div className="relative col-start-1 row-span-2 row-start-1 flex min-h-0 flex-col justify-center gap-4">
+            <div className="relative col-start-1 row-span-2 row-start-1 flex min-h-0 flex-col justify-center gap-4 [@media(max-height:430px)]:gap-2">
               {sources.map((id) => tile(id))}
             </div>
             {/* Inverter over battery, each half the column, so the link between them is a short
@@ -422,13 +429,13 @@ export function TilesLayout({
           </>
         ) : (
           <>
-            <div className="relative flex min-h-0 flex-col justify-center gap-4">
+            <div className="relative flex min-h-0 flex-col justify-center gap-4 [@media(max-height:430px)]:gap-2">
               {sources.map((id) => tile(id))}
             </div>
             <div />
             {/* Half height, centred between its sources and its loads. */}
             <div className="relative flex min-h-0 flex-col justify-center">
-              <div className="flex h-1/2 min-h-0 flex-col">
+              <div className="flex h-1/2 min-h-0 flex-col [@media(max-height:430px)]:h-4/5">
                 <BatteryTile
                   flow={flow}
                   register={register}
