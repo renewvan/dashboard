@@ -84,4 +84,37 @@ describe('WakePage', () => {
     await user.click(screen.getByRole('button', { name: /wake hub/i }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No board was chosen')
   })
+
+  async function wake(fetcher: typeof fetch) {
+    const user = userEvent.setup()
+    render(<WakePage bluetooth={board('on')} fetcher={fetcher} pollMs={10} />)
+    await user.type(screen.getByLabelText('Wake secret'), 'hunter2')
+    await user.click(screen.getByRole('button', { name: /wake hub/i }))
+  }
+
+  it('waits for the hub after waking it, then offers to open the dashboard', async () => {
+    const answers = [new TypeError('offline'), { status: 502 }, { status: 401 }]
+    const fetcher = vi.fn(async () => {
+      const next = answers.shift() ?? { status: 401 }
+      if (next instanceof Error) throw next
+      return next as Response
+    })
+    await wake(fetcher as unknown as typeof fetch)
+    expect(await screen.findByText(/Waiting for the hub/)).toBeInTheDocument()
+    const link = await screen.findByRole('link', { name: 'Open dashboard' })
+    expect(link).toHaveAttribute('href', '/')
+    expect(screen.queryByText(/Waiting for the hub/)).not.toBeInTheDocument()
+  })
+
+  it('does not poll, or offer the dashboard, when the board did not switch on', async () => {
+    const fetcher = vi.fn(async () => ({ status: 204 }) as Response)
+    const user = userEvent.setup()
+    render(<WakePage bluetooth={board('off')} fetcher={fetcher} pollMs={10} />)
+    await user.type(screen.getByLabelText('Wake secret'), 'wrong')
+    await user.click(screen.getByRole('button', { name: /wake hub/i }))
+    await screen.findByRole('status')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(fetcher).not.toHaveBeenCalled()
+    expect(screen.queryByRole('link', { name: 'Open dashboard' })).not.toBeInTheDocument()
+  })
 })
