@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Battery, Engine, Plug2, PlugZap, Sun, Zap } from 'lucide-react'
+import { CarBattery, Engine, Plug2, PlugZap, Sun, Zap } from 'lucide-react'
 import type { PowerReading } from './dialModel'
 import { arc, bandRanges, cornerRadius } from './arcs'
 import { CutBand } from './CutBand'
@@ -8,7 +8,7 @@ const POWER_ICONS: Record<PowerReading['source'], ReactNode> = {
   solar: <Sun className="size-4" />,
   'battery-in': <Zap className="size-4" />,
   'battery-out': <Plug2 className="size-4" />,
-  'battery-net': <Battery className="size-4" />,
+  'battery-net': <CarBattery className="size-4" />,
   alternator: <Engine className="size-4" />,
   shore: <PlugZap className="size-4" />,
   chargers: <Zap className="size-4" />,

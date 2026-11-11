@@ -76,7 +76,7 @@ export function centreKind(choice: StartCentre, tilt: Partial<Tilt> | undefined)
 }
 
 /**
- * The ring indices listed under the arc, the battery last. Only the battery's own readout in the
+ * The ring indices listed under the arc, the battery first. Only the battery's own readout in the
  * middle takes the battery out of the list; with the tilt or the van there, it is listed so its %
  * stays visible somewhere.
  */
@@ -85,7 +85,7 @@ export function legendIndices(rings: readonly RingSource[], centre: CentreKind):
     centre === 'battery' && source === 'battery' ? [] : [index],
   )
   const isBattery = (index: number) => rings[index] === 'battery'
-  return [...listed.filter((i) => !isBattery(i)), ...listed.filter(isBattery)]
+  return [...listed.filter(isBattery), ...listed.filter((i) => !isBattery(i))]
 }
 
 /** The widget a tap on the middle brings next: van, then tilt (while it has a reading), then battery. */

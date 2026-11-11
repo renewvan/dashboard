@@ -17,7 +17,7 @@ import {
 } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import {
-  Battery as BatteryIcon,
+  CarBattery as BatteryIcon,
   Engine,
   PlugZap,
   Plug2,

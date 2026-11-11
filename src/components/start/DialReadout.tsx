@@ -23,13 +23,15 @@ const READOUT: Record<
     sub: 'text-sm pt-3.5',
     togo: 'mt-1 text-xs',
   },
+  // Sized in `--u` (1px at the rings' full 420px, shrinking with them; set by the Dial), so the
+  // readout keeps fitting inside the rings on a short screen where they are scaled down.
   focus: {
     icon: 'scale-120',
-    label: 'text-xs tracking-[0.2em]',
-    value: 'mt-2 text-6xl',
-    unit: 'text-xl',
-    sub: 'mt-3 text-base',
-    togo: 'mt-3 text-sm',
+    label: 'text-[length:calc(12*var(--u,1px))] tracking-[0.2em]',
+    value: 'mt-[calc(6*var(--u,1px))] text-[length:calc(60*var(--u,1px))] leading-none',
+    unit: 'text-[length:calc(20*var(--u,1px))]',
+    sub: 'mt-[calc(12*var(--u,1px))] text-[length:calc(16*var(--u,1px))]',
+    togo: 'mt-[calc(10*var(--u,1px))] text-[length:calc(14*var(--u,1px))]',
   },
 }
 
@@ -60,10 +62,13 @@ export function DialReadout({
   view,
   icon,
   size,
+  hideState,
 }: {
   view: DialView
   icon: ReactNode
   size: DialSize
+  /** Leaves out the time-to-go / state line, for a caller that shows it elsewhere (`DialState`). */
+  hideState?: boolean
 }) {
   const text = READOUT[size]
   return (
@@ -87,17 +92,39 @@ export function DialReadout({
       >
         <DialSub sub={view.sub} unitsStrong={view.unitsStrong} />
       </div>
-      {(view.timeToGo || view.state) && !view.faulted && (
-        <div data-testid="dial-state" className={cn('text-muted tabular-nums', text.togo)}>
-          {view.timeToGo ? (
-            <span data-testid="dial-time-to-go">
-              <span className="text-foreground font-semibold">{view.timeToGo}</span> to go
-            </span>
-          ) : (
-            view.state
-          )}
-        </div>
-      )}
+      {!hideState && <DialState view={view} className={cn('tabular-nums', text.togo)} />}
     </>
+  )
+}
+
+/**
+ * The line saying what the battery is doing: the runtime left while it discharges, else its state.
+ * Nothing while the dial is faulted or has neither.
+ */
+export function DialState({
+  view,
+  className,
+  icon,
+}: {
+  view: DialView
+  className?: string
+  /** Drawn before the text, sized to it. */
+  icon?: ReactNode
+}) {
+  if (view.faulted || !(view.timeToGo || view.state)) return null
+  return (
+    <div
+      data-testid="dial-state"
+      className={cn('text-muted', icon && 'flex items-center gap-[0.5em]', className)}
+    >
+      {icon && <span className="[&>svg]:size-[1.2em]!">{icon}</span>}
+      {view.timeToGo ? (
+        <span data-testid="dial-time-to-go">
+          <span className="text-foreground font-semibold">{view.timeToGo}</span> to go
+        </span>
+      ) : (
+        view.state
+      )}
+    </div>
   )
 }

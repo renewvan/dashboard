@@ -1,4 +1,4 @@
-import { Battery } from 'lucide-react'
+import { CarBattery } from 'lucide-react'
 import { PhoneCard } from '@/components/PhoneCard'
 import { CockpitDial } from '../cockpit/CockpitDial'
 import { batteryDial } from '../cockpit/dialView'
@@ -10,11 +10,11 @@ export function BatteryCard({ batteries, primaryBatterySelection, isDark }: Star
   const battery = batteryDial(batteries, primaryBatterySelection)
 
   return (
-    <PhoneCard title="Battery" icon={<Battery className="size-4" />}>
+    <PhoneCard title="Battery" icon={<CarBattery className="size-4" />}>
       {battery ? (
         <CockpitDial
           view={battery}
-          icon={<Battery className="size-4" />}
+          icon={<CarBattery className="size-4" />}
           size="focus"
           glow={isDark}
           pulse={battery.charging}
@@ -22,7 +22,7 @@ export function BatteryCard({ batteries, primaryBatterySelection, isDark }: Star
           className="mt-3 -mb-[12%] max-w-[300px]"
         />
       ) : (
-        <NoData icon={<Battery className="size-4" />} label="Battery" />
+        <NoData icon={<CarBattery className="size-4" />} label="Battery" />
       )}
     </PhoneCard>
   )

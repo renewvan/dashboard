@@ -6,7 +6,7 @@
 import type { ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import {
-  Battery as BatteryIcon,
+  CarBattery as BatteryIcon,
   CircuitBoard,
   Engine,
   Plug2,
