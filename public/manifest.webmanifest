@@ -7,6 +7,15 @@
   "id": "/",
   "display": "standalone",
   "orientation": "any",
+  "shortcuts": [
+    {
+      "name": "Wake hub",
+      "short_name": "Wake hub",
+      "description": "Power the hub on over Bluetooth while the van is parked",
+      "url": "/?page=wake",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "background_color": "#0d1826",
   "theme_color": "#0d1826",
   "icons": [
