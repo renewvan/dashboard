@@ -11,8 +11,7 @@
 //
 // `localStorage`-backed (not React state) so the log survives reloads —
 // a driver closing the kiosk app and reopening it still sees today's
-// alerts, matching the "kiosk may sit unwatched" context (`CONTEXT.md`,
-// `.scratch/alert-system/map.md`).
+// alerts, matching the "kiosk may sit unwatched" context (`CONTEXT.md`).
 
 export interface AlertHistoryEntry {
   id: string
