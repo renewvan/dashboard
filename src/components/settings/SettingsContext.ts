@@ -141,6 +141,7 @@ export interface SettingsActions {
   setEntityIcon: (entity: IconEntity, id: string, icon: string) => void
   setRelay: (id: string, on: boolean) => void
   setHeaterMode: (id: string, mode: HeaterMode) => void
+  setHeaterCommandsEnabled: (id: string, enabled: boolean) => void
   setRelayName: (id: string, name: string) => void
   setRelayGroup: (id: string, group: string | null) => void
   setRelayGroupList: (names: readonly string[]) => void
