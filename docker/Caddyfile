@@ -39,20 +39,27 @@
 
     encode zstd gzip
 
-    # One shared login for the whole site, so /mqtt (which can switch relays) and /influx are never open
-    # to whoever can reach 443, and the browser caches the credential for this origin before the page opens
-    # its WebSocket and history requests (hub docs/adr/0025-broker-has-per-client-accounts-and-anonymous-read-only.md).
-    # The broker account behind it (`command`) is public through /env.js; this login is the real gate.
-    # The kiosk is not behind it: it loads http://localhost:80 (the dashboard container, published on
-    # the Pi's loopback), never this site. User and bcrypt hash come from the hub's .env
-    # (bin/ensure-secrets.sh; bin/rotate-secret.sh caddy rotates the password).
+    # One login for the whole site, so /mqtt (which can switch relays) and /influx are never open to
+    # whoever can reach 443 (hub docs/adr/0029-dashboard-login-is-a-session-cookie.md). The `login`
+    # service answers `GET /auth` for every private request: a valid session cookie passes (204), a page
+    # navigation without one is sent to /login (302), anything else (scripts, the /mqtt WebSocket, /influx)
+    # gets 401. There is no WWW-Authenticate header, so browsers never show their native sign-in popup.
+    # The broker account behind it (`command`) is public through /env.js; this login is the real gate, so
+    # /env.js stays private. The kiosk is not behind it: it loads http://localhost:80 (the dashboard
+    # container, published on the Pi's loopback), never this site.
     #
-    # Exception: the PWA manifest and its icons. Chrome fetches them without the saved login, so behind the
-    # gate they answer 401 and Chrome never offers "Install app". They hold no data. Keep this list to
-    # those exact files: the hub's test_compose_hardening pins it, and /mqtt and /influx stay behind the login.
-    @private not path /manifest.webmanifest /icon-192.png /icon-512.png /icon-maskable-512.png
-    basic_auth @private {
-        {$CADDY_BASIC_AUTH_USER} {$CADDY_BASIC_AUTH_HASH}
+    # Public, because the login page needs them or they hold no data: the /login page itself (the SPA
+    # shell), its hashed build assets and service worker, the PWA manifest and icons (Chrome fetches them
+    # without a session, so behind the gate it never offers "Install app"), and /api/* (the login service's
+    # own endpoints: sign in, sign out, "am I signed in?"). Keep this list to those: the hub's
+    # test_compose_hardening pins it, and /mqtt, /influx and /env.js stay behind the session.
+    @private not path /login /assets/* /sw.js /workbox-*.js /registerSW.js /favicon.ico /favicon.svg /apple-touch-icon.png /manifest.webmanifest /icon-192.png /icon-512.png /icon-maskable-512.png /api/*
+    forward_auth @private login:8080 {
+        uri /auth
+    }
+
+    handle_path /api/* {
+        reverse_proxy login:8080
     }
 
     # History for the charts: same-origin /influx/... forwarded to InfluxDB, so no browser holds a token
