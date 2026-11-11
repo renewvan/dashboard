@@ -75,7 +75,7 @@ export default defineConfig(({ mode }) => {
       // and injects a read-only token into (ADR 0024). Two ways to reach it in dev:
       //  - INFLUX_VIA_CADDY_URL set (e.g. https://100.115.137.59 over Tailscale, or the Pi's LAN
       //    address): proxy straight to the Pi's Caddy, which already forwards /influx and holds the
-      //    token. Caddy sits behind basic auth, so send CADDY_BASIC_AUTH_USER/PASSWORD. Its
+      //    token. Caddy sits behind the login (hub ADR 0029), so send a session cookie: INFLUX_VIA_CADDY_SESSION. Its
       //    `tls internal` cert is self-signed, hence secure: false (dev only).
       //  - otherwise: tunnel the hub's Influx (`ssh -L 8086:localhost:8086 renewvan`) and put the
       //    read-only token in `.env` as INFLUXDB_DASHBOARD_TOKEN.
@@ -86,11 +86,7 @@ export default defineConfig(({ mode }) => {
               target: viaCaddy,
               changeOrigin: true,
               secure: false,
-              headers: {
-                Authorization: `Basic ${Buffer.from(
-                  `${env.CADDY_BASIC_AUTH_USER ?? ''}:${env.CADDY_BASIC_AUTH_PASSWORD ?? ''}`,
-                ).toString('base64')}`,
-              },
+              headers: { Cookie: `renewvan_session=${env.INFLUX_VIA_CADDY_SESSION ?? ''}` },
             }
           : {
               target: env.INFLUXDB_URL ?? 'http://localhost:8086',
