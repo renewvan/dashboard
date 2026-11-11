@@ -70,4 +70,46 @@ describe('HeaterView', () => {
     expect(screen.getByRole('radio', { name: 'Heater sensor' })).toBeDisabled()
     expect(screen.getByText(/Commands are turned off/)).toBeInTheDocument()
   })
+  it('asks before enabling controls, then sends the command', async () => {
+    const setHeaterCommandsEnabled = vi.fn()
+    const heater = { ...HEATER, commands_enabled: false }
+    const { user } = renderSettings(
+      { setHeaterCommandsEnabled },
+      { url: URL, bus: { heaters: { cabin: heater } } },
+    )
+    await user.click(screen.getByRole('switch', { name: 'Heater controls' }))
+    expect(setHeaterCommandsEnabled).not.toHaveBeenCalled()
+    await user.click(await screen.findByRole('button', { name: 'Enable' }))
+    expect(setHeaterCommandsEnabled).toHaveBeenCalledWith('cabin', true)
+  })
+
+  it('sends nothing when the confirmation is cancelled', async () => {
+    const setHeaterCommandsEnabled = vi.fn()
+    const heater = { ...HEATER, commands_enabled: false }
+    const { user } = renderSettings(
+      { setHeaterCommandsEnabled },
+      { url: URL, bus: { heaters: { cabin: heater } } },
+    )
+    await user.click(screen.getByRole('switch', { name: 'Heater controls' }))
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+    expect(setHeaterCommandsEnabled).not.toHaveBeenCalled()
+  })
+
+  it('asks before disabling controls that are on', async () => {
+    const setHeaterCommandsEnabled = vi.fn()
+    const { user } = renderSettings(
+      { setHeaterCommandsEnabled },
+      { url: URL, bus: { heaters: { cabin: HEATER } } },
+    )
+    const toggle = screen.getByRole('switch', { name: 'Heater controls' })
+    expect(toggle).toBeChecked()
+    await user.click(toggle)
+    await user.click(await screen.findByRole('button', { name: 'Disable' }))
+    expect(setHeaterCommandsEnabled).toHaveBeenCalledWith('cabin', false)
+  })
+
+  it('leaves the switch off-limits in demo mode', () => {
+    renderSettings({ demoMode: true }, { url: URL, bus: { heaters: { cabin: HEATER } } })
+    expect(screen.getByRole('switch', { name: 'Heater controls' })).toBeDisabled()
+  })
 })

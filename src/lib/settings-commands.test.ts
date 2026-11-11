@@ -67,6 +67,14 @@ describe('settingsCommands', () => {
     expect(publish).toHaveBeenCalledTimes(2)
   })
 
+  it("publishes the heater driver's command switch as a bare JSON boolean", () => {
+    const { publish, commands } = setup()
+
+    commands.setHeaterCommandsEnabled('air2d', true)
+
+    expect(publish).toHaveBeenCalledWith('renewvan/heater/air2d/commands_enabled/set', 'true')
+  })
+
   it("publishes a relay name as a quoted JSON string on that relay's name/set topic", () => {
     const { publish, commands } = setup()
 

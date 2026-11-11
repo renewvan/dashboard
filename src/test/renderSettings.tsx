@@ -170,6 +170,7 @@ export function renderSettings(
     setRelayOrder: vi.fn(),
     setRelay: vi.fn(),
     setHeaterMode: vi.fn(),
+    setHeaterCommandsEnabled: vi.fn(),
     setRelayName: vi.fn(),
     setTiltLevel: vi.fn(),
     resetTiltLevel: vi.fn(),
