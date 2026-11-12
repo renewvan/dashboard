@@ -319,7 +319,7 @@ export function HeaterCard({
     !reporting && !frozen
       ? 'No recent reading from the heater.'
       : reporting && !commandsOn
-        ? 'Commands are turned off so this page is read-only.'
+        ? 'Read-only! - Commands are turned off.'
         : line
   const startStop = (
     <div className="flex flex-col gap-1">

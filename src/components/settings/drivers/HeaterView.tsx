@@ -17,7 +17,7 @@ import { Group } from '../shared/Group'
 
 /** Why the sensor cannot be changed now, or nothing when it can. */
 function lockReason(heater: Heater): string | undefined {
-  if (heater.commands_enabled !== true) return 'Commands are turned off on the heater driver.'
+  if (heater.commands_enabled !== true) return 'Read-only! - Commands are turned off.'
   if (!canChangeSettings(heater)) return 'The heater is not ready for a change right now.'
   if (sensorLocked(operatingMode(heater))) {
     return 'The heater does not accept a sensor change in this mode. Switch to Temperature mode on the Heater page first.'
