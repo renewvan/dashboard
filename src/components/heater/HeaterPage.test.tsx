@@ -285,7 +285,7 @@ describe('HeaterPage', () => {
 
   it('shows just one info line: the commands-off notice outranks the mode text', () => {
     setup({ cabin: { ...OFF, commands_enabled: false } })
-    expect(screen.getByText('Commands are turned off so this page is read-only.')).toBeVisible()
+    expect(screen.getByText('Read-only! - Commands are turned off.')).toBeVisible()
     expect(screen.queryByText('Maintain a target room temperature.')).not.toBeInTheDocument()
   })
 
@@ -297,7 +297,7 @@ describe('HeaterPage', () => {
 
   it('is read-only while the driver has commands off', () => {
     setup({ cabin: { ...OFF, commands_enabled: false } })
-    expect(screen.getByText(/read-only/)).toBeInTheDocument()
+    expect(screen.getByText(/read-only/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled()
     expect(screen.getByRole('slider', { name: 'Target' })).toHaveAttribute('aria-disabled', 'true')
   })
