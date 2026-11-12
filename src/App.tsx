@@ -217,6 +217,8 @@ function App() {
       : undefined,
     onSetRunning: localHeaterOn ? localHeater.setRunning : commands.setHeaterRunning,
     onSetMode: localHeaterOn ? localHeater.setMode : commands.setHeaterMode,
+    // The local heater owns every mode through `localModes`, so it never reaches this.
+    onSetVentilating: localHeaterOn ? () => {} : commands.setHeaterVentilating,
     onSetSetpoint: localHeaterOn ? localHeater.setSetpoint : commands.setHeaterSetpoint,
     onSetPowerLevel: localHeaterOn ? localHeater.setPowerLevel : commands.setHeaterPowerLevel,
     onSetCommandsEnabled: localHeaterOn

@@ -11,6 +11,7 @@ const handlers = {
   onSetRunning: vi.fn(),
   onSetMode: vi.fn(),
   onSetSetpoint: vi.fn(),
+  onSetVentilating: vi.fn(),
   onSetPowerLevel: vi.fn(),
   onSetCommandsEnabled: vi.fn(),
 }
@@ -407,10 +408,40 @@ describe('HeaterPage', () => {
     expect(handlers.onSetMode).toHaveBeenCalledWith('cabin', 'external_temperature')
   })
 
-  it('offers Ventilation and Heat + ventilation but cannot command them yet', () => {
+  it('can command Ventilation but not Heat + ventilation yet', () => {
     setup({ cabin: RUNNING })
-    expect(screen.getByRole('radio', { name: 'Ventilation' })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: 'Ventilation' })).toBeEnabled()
     expect(screen.getByRole('radio', { name: 'Heat + ventilation' })).toBeDisabled()
+  })
+
+  it('starts ventilation from off only after a confirmation, on its own topic', async () => {
+    const { user } = setup({ cabin: { ...OFF, mode: 'power' } })
+    await user.click(screen.getByRole('radio', { name: 'Ventilation' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(handlers.onSetVentilating).not.toHaveBeenCalled()
+    await user.click(within(dialog).getByRole('button', { name: 'Start ventilation' }))
+    expect(handlers.onSetVentilating).toHaveBeenCalledWith('cabin', true)
+    expect(handlers.onSetMode).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing when the ventilation confirmation is cancelled', async () => {
+    const { user } = setup({ cabin: { ...OFF, mode: 'power' } })
+    await user.click(screen.getByRole('radio', { name: 'Ventilation' }))
+    await user.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Cancel' }),
+    )
+    expect(handlers.onSetVentilating).not.toHaveBeenCalled()
+  })
+
+  it('stops a running heater first, then starts ventilation once it is off', async () => {
+    const { user, rerender } = setup({ cabin: RUNNING })
+    await user.click(screen.getByRole('radio', { name: 'Ventilation' }))
+    const dialog = await screen.findByRole('alertdialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Stop heater' }))
+    expect(handlers.onSetRunning).toHaveBeenCalledWith('cabin', false)
+    expect(handlers.onSetVentilating).not.toHaveBeenCalled()
+    rerender({ cabin: { ...RUNNING, phase: 'off' } })
+    expect(handlers.onSetVentilating).toHaveBeenCalledWith('cabin', true)
   })
 
   it('lists Thermostat too, disabled on a real heater', () => {

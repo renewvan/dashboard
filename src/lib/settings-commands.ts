@@ -29,7 +29,13 @@ const tiltLevelTopic = (id: string) => `renewvan/tilt/${id}/level_zero/set`
 
 const heaterSetTopic = (
   id: string,
-  field: 'set' | 'mode/set' | 'setpoint_c/set' | 'power_level/set' | 'commands_enabled/set',
+  field:
+    | 'set'
+    | 'mode/set'
+    | 'setpoint_c/set'
+    | 'power_level/set'
+    | 'ventilating/set'
+    | 'commands_enabled/set',
 ) => `renewvan/heater/${id}/${field}`
 const relaySetTopic = (id: string, field: 'set' | 'name/set') => `renewvan/relay/${id}/${field}`
 
@@ -69,6 +75,11 @@ export interface SettingsCommands {
   setHeaterRunning: (id: string, run: boolean) => void
   setHeaterMode: (id: string, mode: HeaterMode) => void
   /**
+   * Starts (`true`) fan-only ventilation from off, or stops (`false`) the heater. Ventilation is an
+   * action, not a `mode` value (hub ADR 0021).
+   */
+  setHeaterVentilating: (id: string, on: boolean) => void
+  /**
    * Turns the heater Driver's command switch on or off until the Driver restarts (hub ADR 0021). It is
    * the one heater command the Driver accepts while commands are off.
    */
@@ -102,6 +113,8 @@ export function settingsCommands(publish: Publish): SettingsCommands {
     setRelay: (id, on) => publish(relaySetTopic(id, 'set'), JSON.stringify(on)),
     setHeaterRunning: (id, run) => publish(heaterSetTopic(id, 'set'), JSON.stringify(run)),
     setHeaterMode: (id, mode) => publish(heaterSetTopic(id, 'mode/set'), JSON.stringify(mode)),
+    setHeaterVentilating: (id, on) =>
+      publish(heaterSetTopic(id, 'ventilating/set'), JSON.stringify(on)),
     setHeaterCommandsEnabled: (id, enabled) =>
       publish(heaterSetTopic(id, 'commands_enabled/set'), JSON.stringify(enabled)),
     setHeaterSetpoint: (id, celsius) =>

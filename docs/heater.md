@@ -30,7 +30,7 @@ and Venus OS's `dbus-autoterm`:
 | Temperature        | works            | Hub `mode` `heater_temperature` or `external_temperature`; the dial sets °C. |
 | Thermostat         | disabled         | No hub field. Venus's `wait_mode` byte is the candidate, unverified.         |
 | Heat + ventilation | disabled         | No hub field.                                                                |
-| Ventilation        | disabled         | The Driver refuses `ventilating/set` until the frame (`0x23`) is verified.   |
+| Ventilation        | enabled          | Publishes `ventilating/set` (an action, not a `mode`), after a confirmation. The `0x23` frame is not yet bench-verified on a real heater. |
 
 The hub's `mode` only carries Power and the two Temperature sensors, so Temperature resumes the sensor
 last in use. A heater that reports `ventilating` shows Ventilation selected, and its dial shows the power

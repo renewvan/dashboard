@@ -42,7 +42,7 @@ export const OPERATING_MODES: readonly {
   { key: 'temperature', label: 'Temperature', supported: true },
   { key: 'thermostat', label: 'Thermostat', supported: false },
   { key: 'heat_ventilation', label: 'Heat + ventilation', supported: false },
-  { key: 'ventilation', label: 'Ventilation', supported: false },
+  { key: 'ventilation', label: 'Ventilation', supported: true },
 ]
 
 /** The operating mode the heater reports: fan-only wins, else Power or Temperature from `mode`. */
