@@ -63,11 +63,13 @@ export interface HeaterPageProps {
   demo: boolean
   onSetRunning: (id: string, run: boolean) => void
   onSetMode: (id: string, mode: HeaterMode) => void
+  /** Ventilation is not a `mode` value: `true` starts fan-only from off. */
+  onSetVentilating: (id: string, on: boolean) => void
   onSetSetpoint: (id: string, celsius: number) => void
   onSetPowerLevel: (id: string, level: number) => void
   /**
    * Dev only (the local heater): every operating mode can be picked, because the page then owns
-   * the mode. Absent on a real heater, where only Power and Temperature are commandable.
+   * the mode. Absent on a real heater, where Power, Temperature and Ventilation are commandable.
    */
   localModes?: {
     mode: OperatingMode
@@ -230,6 +232,7 @@ export function HeaterCard({
   variant = 'page',
   onSetRunning,
   onSetMode,
+  onSetVentilating,
   onSetSetpoint,
   onSetPowerLevel,
   localModes,
@@ -239,6 +242,7 @@ export function HeaterCard({
   const { send, stateOf } = useCommands(heater, frozen || !reporting)
   const isMobile = useIsMobile()
   const [confirmingStart, setConfirmingStart] = useState(false)
+  const [confirmingVentilation, setConfirmingVentilation] = useState(false)
   // A mode the heater cannot switch to while it runs: asked about, then reached after a stop.
   const [switchTarget, setSwitchTarget] = useState<OperatingMode | null>(null)
   const afterStop = useRef<OperatingMode | null>(null)
@@ -262,6 +266,8 @@ export function HeaterCard({
     // The hub's `mode` is Power or a sensor, so Temperature resumes the last sensor.
     if (next === 'power') send('mode', () => onSetMode(id, 'power'))
     if (next === 'temperature') send('mode', () => onSetMode(id, sensor))
+    // Confirmed by the phase leaving `off`, like a start: ventilation changes no `mode` field.
+    if (next === 'ventilation') send('run', () => onSetVentilating(id, true))
   }
   // The stop the prompt asked for went through: now reach the mode it was for.
   const runFailed = run?.failed === true
@@ -360,6 +366,11 @@ export function HeaterCard({
         // Ventilation and the heating modes exclude each other while the heater runs.
         if (modeSwitchBlock(heater, current, next) !== undefined) {
           setSwitchTarget(next)
+          return
+        }
+        // Starting the fan is an action, so it is confirmed like a start.
+        if (next === 'ventilation' && !localModes) {
+          setConfirmingVentilation(true)
           return
         }
         applyMode(next)
@@ -475,6 +486,37 @@ export function HeaterCard({
                       }}
                     >
                       Start
+                    </Button>
+                  </AlertDialog.Footer>
+                </>
+              )}
+            </AlertDialog.Dialog>
+          </AlertDialog.Container>
+        </AlertDialog.Backdrop>
+      </AlertDialog>
+
+      <AlertDialog isOpen={confirmingVentilation} onOpenChange={setConfirmingVentilation}>
+        <AlertDialog.Trigger aria-hidden="true" className="hidden" />
+        <AlertDialog.Backdrop isKeyboardDismissDisabled={false}>
+          <AlertDialog.Container>
+            <AlertDialog.Dialog>
+              {({ close }) => (
+                <>
+                  <AlertDialog.Header>
+                    <AlertDialog.Heading>Start ventilation on {label}?</AlertDialog.Heading>
+                  </AlertDialog.Header>
+                  <AlertDialog.Body>The fan runs and nothing burns.</AlertDialog.Body>
+                  <AlertDialog.Footer>
+                    <Button variant="tertiary" onPress={close}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onPress={() => {
+                        applyMode('ventilation')
+                        close()
+                      }}
+                    >
+                      Start ventilation
                     </Button>
                   </AlertDialog.Footer>
                 </>

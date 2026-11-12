@@ -321,6 +321,7 @@ describe('StartPage heater widget', () => {
     onSetRunning: vi.fn(),
     onSetMode: vi.fn(),
     onSetSetpoint: vi.fn(),
+    onSetVentilating: vi.fn(),
     onSetPowerLevel: vi.fn(),
   }
 

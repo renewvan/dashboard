@@ -9,7 +9,7 @@ The kiosk's live MQTT-over-WebSocket connection to the van's broker — reported
 _Avoid_: Connection status, router status, internet connection
 
 **Operating mode**:
-What the heater does, named as the Autoterm Comfort Control panel names it: Power, Temperature, Thermostat, Heat + ventilation or Ventilation. The hub's heater `mode` carries only Power and the temperature **sensor** (heater or external probe), so the other three are shown on the Heater page but cannot be commanded yet. Ventilation and the heating modes exclude each other while the heater runs (manual §3.3-3.4). See `docs/heater.md`.
+What the heater does, named as the Autoterm Comfort Control panel names it: Power, Temperature, Thermostat, Heat + ventilation or Ventilation. The hub's heater `mode` carries only Power and the temperature **sensor** (heater or external probe), so Thermostat and Heat + ventilation are shown on the Heater page but cannot be commanded yet. Ventilation is commanded through the Driver's `ventilating/set` action, not a `mode` value. Ventilation and the heating modes exclude each other while the heater runs (manual §3.3-3.4). See `docs/heater.md`.
 _Avoid_: Heater mode (the hub's `mode` field is narrower), program
 
 **Uplink**:

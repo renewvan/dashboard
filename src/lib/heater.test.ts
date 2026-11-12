@@ -33,7 +33,7 @@ describe('operating mode', () => {
     expect(heaterSensor({})).toBeUndefined()
   })
 
-  it('offers the five Comfort Control modes, only two of them commandable today', () => {
+  it('offers the five Comfort Control modes, three of them commandable today', () => {
     expect(OPERATING_MODES.map((m) => m.key)).toEqual([
       'power',
       'temperature',
@@ -44,6 +44,7 @@ describe('operating mode', () => {
     expect(OPERATING_MODES.filter((m) => m.supported).map((m) => m.key)).toEqual([
       'power',
       'temperature',
+      'ventilation',
     ])
   })
 })
