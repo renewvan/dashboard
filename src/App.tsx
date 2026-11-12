@@ -207,9 +207,11 @@ function App() {
           mode: localHeater.operating,
           onChange: localHeater.setOperatingMode,
           timer: {
+            kind: localHeater.timerKind,
             minutes: localHeater.timerMinutes,
             endsAt: localHeater.endsAt,
             onChange: localHeater.setTimerMinutes,
+            onKindChange: localHeater.setTimerKind,
           },
         }
       : undefined,
@@ -217,6 +219,9 @@ function App() {
     onSetMode: localHeaterOn ? localHeater.setMode : commands.setHeaterMode,
     onSetSetpoint: localHeaterOn ? localHeater.setSetpoint : commands.setHeaterSetpoint,
     onSetPowerLevel: localHeaterOn ? localHeater.setPowerLevel : commands.setHeaterPowerLevel,
+    onSetCommandsEnabled: localHeaterOn
+      ? localHeater.setCommandsEnabled
+      : commands.setHeaterCommandsEnabled,
   }
 
   // The Settings nav bar's bell: stable like the sleep handlers, so the settings value only changes

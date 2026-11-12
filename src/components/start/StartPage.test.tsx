@@ -322,6 +322,7 @@ describe('StartPage heater widget', () => {
     onSetMode: vi.fn(),
     onSetSetpoint: vi.fn(),
     onSetPowerLevel: vi.fn(),
+    onSetCommandsEnabled: vi.fn(),
   }
 
   it('is one card headed by the heater and its status, with the dial and the readings as slides', () => {

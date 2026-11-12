@@ -80,6 +80,34 @@ describe('useLocalHeater', () => {
     expect(result.current.endsAt).toBeUndefined()
   })
 
+  it('starts the heater when an On-in timer reaches zero, without arming a stop', () => {
+    const { result } = renderHook(() => useLocalHeater(true))
+    act(() => result.current.setTimerKind('on'))
+    act(() => result.current.setTimerMinutes(10))
+    // The countdown is the start's, and the heater is still off.
+    expect(result.current.timerKind).toBe('on')
+    expect(result.current.endsAt).toBeDefined()
+    expect(result.current.heaters.cabin.phase).toBe('off')
+    act(() => void vi.advanceTimersByTime(10 * 60_000))
+    expect(result.current.heaters.cabin.phase).toBe('starting')
+    // It ran: no pending countdown, and it keeps running (On in sets no stop).
+    expect(result.current.endsAt).toBeUndefined()
+    act(() => void vi.advanceTimersByTime(60 * 60_000))
+    expect(result.current.heaters.cabin.phase).toBe('running')
+  })
+
+  it('cancels a pending On-in countdown on a manual start or when the time goes back to 0', () => {
+    const { result } = renderHook(() => useLocalHeater(true))
+    act(() => result.current.setTimerKind('on'))
+    act(() => result.current.setTimerMinutes(10))
+    act(() => result.current.setTimerMinutes(0))
+    expect(result.current.endsAt).toBeUndefined()
+    act(() => result.current.setTimerMinutes(10))
+    act(() => result.current.setRunning('cabin', true))
+    act(() => void vi.advanceTimersByTime(500))
+    expect(result.current.endsAt).toBeUndefined()
+  })
+
   it('applies setpoint, mode and power level', () => {
     const { result } = renderHook(() => useLocalHeater(true))
     act(() => {

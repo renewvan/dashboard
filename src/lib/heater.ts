@@ -94,6 +94,22 @@ export function timerLabel(minutes: number): string {
   return minutes === 0 ? 'Off' : `${minutes} min`
 }
 
+/** Autoterm's two timers: `on` starts the heater after the time, `off` stops it after the time. */
+export type HeaterTimerKind = 'on' | 'off'
+
+/**
+ * The page's timer, owned by whoever can act on it (today only the local dev heater: the hub has no
+ * timer field). `minutes` is the armed time, 0 for none; `endsAt` is when the running countdown
+ * fires, if one runs.
+ */
+export interface HeaterTimer {
+  kind: HeaterTimerKind
+  minutes: number
+  endsAt: number | undefined
+  onChange: (minutes: number) => void
+  onKindChange: (kind: HeaterTimerKind) => void
+}
+
 export const SETPOINT_RANGE = { min: 1, max: 30 } as const
 /** The levels the dial offers, as Venus does; the hub accepts 0-9 (ADR 0021) but 0 is not a level to run at. */
 export const POWER_RANGE = { min: 1, max: 9 } as const

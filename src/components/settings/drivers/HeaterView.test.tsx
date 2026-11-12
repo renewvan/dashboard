@@ -34,6 +34,14 @@ describe('HeaterView', () => {
     expect(screen.getByRole('radio', { name: 'Heater sensor' })).toBeChecked()
   })
 
+  it('lists the heater readings', () => {
+    renderSettings({}, { url: URL, bus: { heaters: { cabin: HEATER } } })
+    const readings = screen.getByLabelText('Cabin heater readings')
+    expect(readings).toHaveTextContent('Fan')
+    expect(readings).toHaveTextContent('3000 rpm')
+    expect(readings).toHaveTextContent('Fuel pump')
+  })
+
   it('shows both sensors, the external probe disabled, when no probe is fitted', () => {
     renderSettings({}, { url: URL, bus: { heaters: { cabin: HEATER } } })
     expect(screen.getByRole('radio', { name: 'Heater sensor' })).toBeChecked()

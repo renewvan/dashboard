@@ -6,7 +6,7 @@ const TICK_MS = 250
 const OPTIONS: readonly number[] = [0, ...TIMER_PRESETS]
 
 /** Time left, ticking while a countdown runs. */
-function Countdown({ endsAt }: { endsAt: number }) {
+export function Countdown({ endsAt }: { endsAt: number }) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const handle = window.setInterval(() => setNow(Date.now()), TICK_MS)

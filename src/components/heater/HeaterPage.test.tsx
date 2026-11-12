@@ -3,14 +3,16 @@ import userEvent from '@testing-library/user-event'
 import { toast } from '@heroui/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { stubMatchMedia } from '@/test/matchMedia'
+import type { HeaterTimer } from '@/lib/heater'
 import type { Heater } from '@/types'
-import { GIVE_UP_MS, HeaterPage, type HeaterPageProps } from './HeaterPage'
+import { GIVE_UP_MS, HeaterCard, HeaterPage, type HeaterPageProps } from './HeaterPage'
 
 const handlers = {
   onSetRunning: vi.fn(),
   onSetMode: vi.fn(),
   onSetSetpoint: vi.fn(),
   onSetPowerLevel: vi.fn(),
+  onSetCommandsEnabled: vi.fn(),
 }
 
 const RUNNING: Heater = {
@@ -61,16 +63,55 @@ describe('HeaterPage', () => {
     expect(screen.getByText('No heater yet.')).toBeInTheDocument()
   })
 
-  it('shows the phase and readings', () => {
+  it('shows the phase, the cabin reading and the sensor readouts as plain content', () => {
     setup({ cabin: RUNNING })
-    // On both the dial (centre) and the status card.
-    expect(screen.getAllByText('Running')).toHaveLength(2)
+    // The phase is on the dial (centre); the title row holds the controls switch instead.
+    expect(screen.getAllByText('Running')).toHaveLength(1)
+    // On the dial, and as the Internal readout.
     expect(screen.getAllByText('19.4 °C')).toHaveLength(2)
-    expect(screen.getByText('3000 rpm')).toBeInTheDocument()
+    const readings = screen.getByLabelText('Cabin heater readings')
+    expect(readings).toBeVisible()
+    expect(readings).toHaveTextContent('3000 rpm')
+    expect(readings).toHaveTextContent('Fuel pump')
+  })
+
+  it('turns the heater controls on and off from the switch in the dial card header', async () => {
+    const { user } = setup({ cabin: RUNNING })
+    const toggle = screen.getByRole('switch', { name: 'Cabin heater controls' })
+    expect(toggle).toBeChecked()
+    await user.click(toggle)
+    expect(handlers.onSetCommandsEnabled).toHaveBeenCalledWith('cabin', false)
+  })
+
+  it('lists just the six readouts: no Runtime, no accordion, no timer dropdown, no settings button', () => {
+    setup({ cabin: RUNNING })
+    const labels = [...document.querySelectorAll('dt')].map((d) => d.textContent)
+    expect(labels).toEqual(['External', 'Internal', 'Heater', 'Voltage', 'Fan', 'Fuel pump'])
+    expect(screen.queryByRole('button', { name: 'Readings' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Timer/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Heater settings/ })).not.toBeInTheDocument()
+  })
+
+  it('heads the kiosk status card with a Timer title and a placeholder subtitle', () => {
+    setup({ cabin: RUNNING })
+    const status = screen.getByLabelText('Cabin heater status')
+    expect(within(status).getByRole('heading', { name: 'Timer' })).toBeInTheDocument()
+    expect(within(status).getByText('00:00')).toBeInTheDocument()
+  })
+
+  it('has no settings button without a way to open them', () => {
+    setup({ cabin: RUNNING })
+    expect(screen.queryByRole('button', { name: /Heater settings/ })).not.toBeInTheDocument()
   })
 
   it('runs a clock from the start, resyncs to the heater and resets when it is off', () => {
-    const { rerender } = setup({ cabin: { ...OFF, runtime_s: 0 } })
+    // Runtime lives in the Start widget (the page no longer shows it).
+    stubMatchMedia(800)
+    const widget = (heater: Heater) => (
+      <HeaterCard id="cabin" heater={heater} frozen={false} variant="widget" {...handlers} />
+    )
+    const view = render(widget({ ...OFF, runtime_s: 0 }))
+    const rerender = (next: Record<string, Heater>) => view.rerender(widget(next.cabin))
     const clock = () => screen.getByText('Runtime').nextElementSibling?.textContent
     expect(clock()).toBe('0:00')
     // Off to on: counts from zero whatever the heater last reported.
@@ -90,57 +131,89 @@ describe('HeaterPage', () => {
     expect(clock()).toBe('0:00')
   })
 
-  it('ends with Fuel pump, Runtime and Timer, in that order', () => {
-    setup({ cabin: RUNNING })
-    const labels = [...document.querySelectorAll('dt')].map((d) => d.textContent)
-    expect(labels.slice(-3)).toEqual(['Fuel pump', 'Runtime', 'Timer'])
-  })
-
-  it('shows the timer Off and disabled on a real heater', () => {
-    setup({ cabin: RUNNING })
-    const timer = screen.getByRole('button', { name: /Timer/ })
-    expect(timer).toBeDisabled()
-    expect(timer).toHaveTextContent('Off')
-  })
-
-  it('picks a preset on the local heater', async () => {
-    const onChange = vi.fn()
-    const timerOnChange = vi.fn()
-    const { user } = setup(
-      { cabin: OFF },
-      {
-        localModes: {
-          mode: 'temperature',
-          onChange,
-          timer: { minutes: 0, endsAt: undefined, onChange: timerOnChange },
-        },
+  const timerProps = (timer: Partial<HeaterTimer> = {}) => ({
+    localModes: {
+      mode: 'temperature' as const,
+      onChange: vi.fn(),
+      timer: {
+        kind: 'off' as const,
+        minutes: 0,
+        endsAt: undefined,
+        onChange: vi.fn(),
+        onKindChange: vi.fn(),
+        ...timer,
       },
-    )
-    await user.click(screen.getByRole('button', { name: /Timer/ }))
-    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
-      'Off',
-      '30 min',
-      '60 min',
-      '90 min',
-    ])
-    await user.click(screen.getByRole('option', { name: '60 min' }))
-    expect(timerOnChange).toHaveBeenCalledWith(60)
+    },
   })
 
-  it('shows the time left while the countdown runs', () => {
-    const onChange = vi.fn()
+  it('sets the timer with three combo boxes: On in / Off in, Hours and Minutes', async () => {
+    const props = timerProps({ minutes: 90 })
+    const { timer } = props.localModes
+    const { user } = setup({ cabin: OFF }, props)
+    // `hidden`: while one list is open or closing, React Aria hides the rest of the page from AT.
+    const field = (name: string) => screen.getByRole('combobox', { name, hidden: true })
+    expect(field('Timer type')).toHaveValue('Off in')
+    expect(field('Hours')).toHaveValue('1 Hours')
+    expect(field('Minutes')).toHaveValue('30 Min.')
+    // Each pick keeps the other field: 2 hours + 30 min, then 1 hour + 45 min.
+    await user.click(field('Hours'))
+    await user.click(screen.getByRole('option', { name: '2 Hours' }))
+    expect(timer.onChange).toHaveBeenLastCalledWith(150)
+    await user.click(field('Minutes'))
+    await user.click(screen.getByRole('option', { name: '45 Min.' }))
+    expect(timer.onChange).toHaveBeenLastCalledWith(105)
+    await user.click(field('Timer type'))
+    await user.click(screen.getByRole('option', { name: 'On in' }))
+    expect(timer.onKindChange).toHaveBeenCalledWith('on')
+  })
+
+  it('adds and takes off 30 minutes from the header buttons, within 00:00 to 23:59', async () => {
+    const props = timerProps({ minutes: 30 })
+    const { timer } = props.localModes
+    const { user } = setup({ cabin: OFF }, props)
+    await user.click(screen.getByRole('button', { name: 'Add 30 minutes' }))
+    expect(timer.onChange).toHaveBeenLastCalledWith(60)
+    await user.click(screen.getByRole('button', { name: 'Subtract 30 minutes' }))
+    expect(timer.onChange).toHaveBeenLastCalledWith(0)
+    cleanup()
+    setup({ cabin: OFF }, timerProps({ minutes: 0 }))
+    expect(screen.getByRole('button', { name: 'Subtract 30 minutes' })).toBeDisabled()
+    cleanup()
+    setup({ cabin: OFF }, timerProps({ minutes: 23 * 60 + 59 }))
+    expect(screen.getByRole('button', { name: 'Add 30 minutes' })).toBeDisabled()
+  })
+
+  it('disables the header buttons on a real heater', () => {
+    setup({ cabin: RUNNING })
+    expect(screen.getByRole('button', { name: 'Add 30 minutes' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Subtract 30 minutes' })).toBeDisabled()
+  })
+
+  it('leaves the timer at 00:00 and its pickers disabled on a real heater', () => {
+    setup({ cabin: RUNNING })
+    for (const name of ['Timer type', 'Hours', 'Minutes']) {
+      expect(screen.getByRole('combobox', { name })).toBeDisabled()
+    }
+    // Title and subtitle of the card.
+    const status = screen.getByLabelText('Cabin heater status')
+    expect(
+      within(status).getByRole('heading', { name: 'Timer' }).nextElementSibling,
+    ).toHaveTextContent('00:00')
+  })
+
+  it('shows the armed time as the subtitle, and the time left while a countdown runs', () => {
     const endsAt = Date.now() + 90_000
-    setup(
-      { cabin: RUNNING },
-      {
-        localModes: {
-          mode: 'temperature',
-          onChange,
-          timer: { minutes: 30, endsAt, onChange: vi.fn() },
-        },
-      },
-    )
-    expect(screen.getByRole('button', { name: /Timer/ })).toHaveTextContent('1:30')
+    setup({ cabin: RUNNING }, timerProps({ minutes: 30, endsAt }))
+    const subtitle = within(screen.getByLabelText('Cabin heater status')).getByRole('heading', {
+      name: 'Timer',
+    }).nextElementSibling
+    expect(subtitle).toHaveTextContent('1:30')
+    cleanup()
+    setup({ cabin: OFF }, timerProps({ minutes: 75 }))
+    expect(
+      within(screen.getByLabelText('Cabin heater status')).getByRole('heading', { name: 'Timer' })
+        .nextElementSibling,
+    ).toHaveTextContent('01:15')
   })
 
   it('reads Unknown, with controls off, when the driver is not online', () => {
@@ -159,14 +232,14 @@ describe('HeaterPage', () => {
     expect(within(status).queryByRole('heading', { name: 'Cabin heater' })).not.toBeInTheDocument()
   })
 
-  it('leads the first card with the title and status, and titles the readings card, on a phone', () => {
+  it('leads the first card with the title and status, and heads the status card with the timer, on a phone', () => {
     setup({ cabin: RUNNING }, {}, 400)
     const dial = screen.getByLabelText('Cabin heater setting')
     const title = within(dial).getByRole('heading', { name: 'Cabin heater' })
     expect(title).not.toHaveClass('sr-only')
     expect(dial).toHaveTextContent('Running')
     const status = screen.getByLabelText('Cabin heater status')
-    expect(within(status).getByRole('heading', { name: 'Readings' })).toBeInTheDocument()
+    expect(within(status).getByRole('heading', { name: 'Timer' })).toBeInTheDocument()
     expect(within(status).queryByRole('heading', { name: 'Cabin heater' })).not.toBeInTheDocument()
   })
 
@@ -190,10 +263,14 @@ describe('HeaterPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('says in the readings card, on a phone only, what the heater is doing, as Venus OS does', () => {
+  it('says, right above Start/Stop, what the mode does and what the heater is doing, as Venus OS does', () => {
     setup({ cabin: RUNNING }, {}, 400)
-    const readings = screen.getByLabelText('Cabin heater status')
-    expect(within(readings).getByText('Heating to 21°C · room is 19°C')).toBeInTheDocument()
+    const info = screen.getByText('Heating to 21°C · room is 19°C')
+    // The line shares its wrapper with the Stop button, and comes first.
+    expect(info.parentElement).toContainElement(screen.getByRole('button', { name: 'Stop' }))
+    expect(info.compareDocumentPosition(screen.getByRole('button', { name: 'Stop' }))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
     cleanup()
     setup({ cabin: { ...RUNNING, mode: 'power' } }, {}, 400)
     expect(screen.getByText('Running at power level 4 · room is 19°C')).toBeInTheDocument()
@@ -201,16 +278,15 @@ describe('HeaterPage', () => {
     setup({ cabin: OFF }, {}, 400)
     expect(screen.getByText('Maintain a target room temperature.')).toBeInTheDocument()
     cleanup()
+    // The kiosk's status card says it too.
     setup({ cabin: RUNNING })
-    expect(screen.queryByText(/room is/)).not.toBeInTheDocument()
+    expect(screen.getByText('Heating to 21°C · room is 19°C')).toBeInTheDocument()
   })
 
-  it('keeps Runtime beside the timer even when the heater is Unknown', () => {
-    setup({ cabin: { name: 'Cabin heater', commands_enabled: true } })
-    const cell = screen.getByText('Runtime').parentElement
-    expect(cell).toHaveClass('col-start-1')
-    expect(cell).toHaveTextContent('—')
-    expect(cell?.nextElementSibling).toHaveTextContent('Timer')
+  it('shows just one info line: the commands-off notice outranks the mode text', () => {
+    setup({ cabin: { ...OFF, commands_enabled: false } })
+    expect(screen.getByText('Commands are turned off so this page is read-only.')).toBeVisible()
+    expect(screen.queryByText('Maintain a target room temperature.')).not.toBeInTheDocument()
   })
 
   it('reads Unknown when the driver cleared the live fields', () => {

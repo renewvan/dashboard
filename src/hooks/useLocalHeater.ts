@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { HeaterSensor, OperatingMode } from '@/lib/heater'
+import type { HeaterSensor, HeaterTimerKind, OperatingMode } from '@/lib/heater'
 import type { Heater, HeaterMode, HeaterPhase } from '@/types'
 
 /** Delay before the local heater "answers" a command, so the page's pending state is visible. */
@@ -38,6 +38,11 @@ export function useLocalHeater(enabled: boolean) {
   // armed value stays for the next start. `endsAt` is set while a countdown runs.
   const [timerMinutes, setTimerMinutesState] = useState(0)
   const [endsAt, setEndsAt] = useState<number | undefined>(undefined)
+  // Autoterm's two timers: `off` stops the heater after the armed time (above), `on` starts it
+  // after the armed time. `startsAt` is set while an On-in countdown runs.
+  const [timerKind, setTimerKindState] = useState<HeaterTimerKind>('off')
+  const [startsAt, setStartsAt] = useState<number | undefined>(undefined)
+  const armedKind = useRef<HeaterTimerKind>('off')
   const armedMinutes = useRef(0)
   const timers = useRef<Set<number>>(new Set())
 
@@ -73,23 +78,32 @@ export function useLocalHeater(enabled: boolean) {
     later(PHASE_MS, () => phase('off', 0))
   }, [later, phase])
 
+  const beginStart = useCallback(() => {
+    phase('starting', 0)
+    // A start, by hand or by the On-in timer, ends any pending On-in countdown.
+    setStartsAt(undefined)
+    if (armedKind.current === 'off' && armedMinutes.current > 0) {
+      setEndsAt(Date.now() + armedMinutes.current * 60_000)
+    }
+    later(PHASE_MS, () => {
+      phase('warming_up')
+      later(PHASE_MS, () => phase('running'))
+    })
+  }, [later, phase])
+
   const setRunning = useCallback(
     (_id: string, run: boolean) => {
-      later(ANSWER_MS, () => {
-        if (run) {
-          phase('starting', 0)
-          if (armedMinutes.current > 0) setEndsAt(Date.now() + armedMinutes.current * 60_000)
-          later(PHASE_MS, () => {
-            phase('warming_up')
-            later(PHASE_MS, () => phase('running'))
-          })
-        } else {
-          stopSequence()
-        }
-      })
+      later(ANSWER_MS, () => (run ? beginStart() : stopSequence()))
     },
-    [later, phase, stopSequence],
+    [later, beginStart, stopSequence],
   )
+
+  // The On-in countdown ends in the same start a Start press makes.
+  useEffect(() => {
+    if (startsAt === undefined) return
+    const handle = window.setTimeout(beginStart, Math.max(0, startsAt - Date.now()))
+    return () => window.clearTimeout(handle)
+  }, [startsAt, beginStart])
 
   // The countdown ends in the same stop a Stop press makes.
   useEffect(() => {
@@ -100,14 +114,24 @@ export function useLocalHeater(enabled: boolean) {
 
   const on =
     heater.phase !== undefined && heater.phase !== 'off' && heater.phase !== 'shutting_down'
-  const setTimerMinutes = useCallback(
-    (minutes: number) => {
+  // Arms `minutes` as the given kind. Off-in while the heater is on counts from now; On-in only
+  // counts while the heater is off; 0 cancels whichever countdown was running.
+  const arm = useCallback(
+    (kind: HeaterTimerKind, minutes: number) => {
+      armedKind.current = kind
       armedMinutes.current = minutes
+      setTimerKindState(kind)
       setTimerMinutesState(minutes)
-      // Arming while the heater is on counts from now; Off cancels the countdown.
-      setEndsAt(on && minutes > 0 ? Date.now() + minutes * 60_000 : undefined)
+      const until = Date.now() + minutes * 60_000
+      setEndsAt(kind === 'off' && on && minutes > 0 ? until : undefined)
+      setStartsAt(kind === 'on' && !on && minutes > 0 ? until : undefined)
     },
     [on],
+  )
+  const setTimerMinutes = useCallback((minutes: number) => arm(armedKind.current, minutes), [arm])
+  const setTimerKind = useCallback(
+    (kind: HeaterTimerKind) => arm(kind, armedMinutes.current),
+    [arm],
   )
   const setMode = useCallback(
     (_id: string, mode: HeaterMode) => later(ANSWER_MS, () => patch({ mode })),
@@ -132,6 +156,11 @@ export function useLocalHeater(enabled: boolean) {
     [later, patch],
   )
 
+  const setCommandsEnabled = useCallback(
+    (_id: string, enabled: boolean) => later(ANSWER_MS, () => patch({ commands_enabled: enabled })),
+    [later, patch],
+  )
+
   const heaters = useMemo(() => {
     const out: Record<string, Heater> = {}
     if (enabled) out.cabin = heater
@@ -142,11 +171,15 @@ export function useLocalHeater(enabled: boolean) {
     operating,
     setOperatingMode,
     timerMinutes,
-    endsAt,
+    timerKind,
+    // The moment the running countdown fires: the stop for Off-in, the start for On-in.
+    endsAt: timerKind === 'on' ? startsAt : endsAt,
     setTimerMinutes,
+    setTimerKind,
     setRunning,
     setMode,
     setSetpoint,
     setPowerLevel,
+    setCommandsEnabled,
   }
 }

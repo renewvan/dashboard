@@ -4,11 +4,13 @@ import {
   MODE_LABELS,
   canChangeSettings,
   heaterSensor,
+  isReporting,
   sensorLocked,
   operatingMode,
 } from '@/lib/heater'
 import type { HeaterSensor } from '@/lib/heater'
 import type { Heater } from '@/types'
+import { HeaterReadings } from '@/components/heater/HeaterReadings'
 import { useSettingsActions, useSettingsData, useSettingsPreferences } from '../SettingsContext'
 import { ChoiceRow, Card } from '../shared/ChoiceRow'
 import { Group } from '../shared/Group'
@@ -139,6 +141,14 @@ export function HeaterView() {
               {reason ??
                 'The sensor a temperature mode reads. The external probe is available once one is fitted.'}
             </p>
+            <Card>
+              <dl
+                aria-label={`${heater.name ?? id} readings`}
+                className="grid grid-cols-2 gap-x-4 gap-y-3 px-3.5 py-3"
+              >
+                <HeaterReadings heater={heater} reporting={isReporting(heater)} />
+              </dl>
+            </Card>
           </Group>
         )
       })}
