@@ -25,9 +25,19 @@ export interface WakePageProps {
 /** What the person is told once the board answered, or why it could not be reached. */
 function describe(phase: Phase): string | null {
   if (phase.kind === 'done') {
-    return phase.status === 'on'
-      ? 'Hub power is on. The Pi and router are starting: give them a minute or two, then open the dashboard.'
-      : 'The board answered but did not switch on. Check the secret: three wrong tries in a row lock it for a minute.'
+    if (phase.status === 'on') {
+      return 'Hub power is on. The Pi and router are starting: give them a minute or two, then open the dashboard.'
+    }
+    if (phase.status === 'already-on') {
+      return 'Hub power was already on, so the secret was not checked. If the hub does not answer, switch it off from the dashboard and wake it again.'
+    }
+    if (phase.status === 'denied') {
+      return 'Wrong secret. Three wrong tries in a row lock the board for a minute.'
+    }
+    if (phase.status === 'locked') {
+      return 'The board is locked after three wrong secrets. Wait a minute, then try again.'
+    }
+    return 'The board answered but did not switch on. Check the secret: three wrong tries in a row lock it for a minute.'
   }
   return phase.kind === 'error' ? phase.message : null
 }
@@ -51,7 +61,8 @@ export function WakePage({
     setPhase({ kind: 'working' })
     try {
       const status = await wakeHub(secret, bluetooth)
-      writeStorage(SECRET_KEY, secret)
+      // Only a secret the board acted on is worth keeping; 'already-on' proves nothing about it.
+      if (status === 'on') writeStorage(SECRET_KEY, secret)
       setPhase({ kind: 'done', status })
     } catch (error) {
       const name = error instanceof Error ? error.name : ''
@@ -68,7 +79,7 @@ export function WakePage({
   }
 
   const message = describe(phase)
-  const hubOn = phase.kind === 'done' && phase.status === 'on'
+  const hubOn = phase.kind === 'done' && (phase.status === 'on' || phase.status === 'already-on')
   const { reachable, gaveUp } = useHubReachable(hubOn, { fetcher, intervalMs: pollMs })
   const working = phase.kind === 'working'
 
@@ -135,7 +146,11 @@ export function WakePage({
           <p
             role={phase.kind === 'error' ? 'alert' : 'status'}
             className={`text-center text-sm ${
-              phase.kind === 'done' && phase.status === 'on' ? 'text-success' : 'text-danger'
+              phase.kind === 'done' && phase.status === 'on'
+                ? 'text-success'
+                : phase.kind === 'done' && phase.status === 'already-on'
+                  ? 'text-muted'
+                  : 'text-danger'
             }`}
           >
             {message}
