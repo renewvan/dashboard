@@ -3,7 +3,9 @@ import {
   AlertDialog,
   Button,
   Card,
+  Label,
   Spinner,
+  Switch,
   ToggleButton,
   ToggleButtonGroup,
   toast,
@@ -24,6 +26,7 @@ import {
   SETPOINT_RANGE,
   canChangeSettings,
   modeSwitchBlock,
+  type HeaterTimer,
   canStart,
   canStop,
   hasError,
@@ -38,8 +41,10 @@ import {
 import type { Heater, HeaterMode } from '@/types'
 import { useIsMobile } from '@/hooks/use-media-query'
 import { DialSlider } from './DialSlider'
+import { HeaterReadings } from './HeaterReadings'
 import { Carousel } from '../start/Carousel'
 import { RunTime } from './RunTime'
+import { TimerHeader, TimerPicker } from './TimerPicker'
 import { TimerSelect } from './TimerSelect'
 /**
  * A command that has not changed its retained field in this long is reported as failed. Longer than
@@ -65,6 +70,8 @@ export interface HeaterPageProps {
   onSetMode: (id: string, mode: HeaterMode) => void
   onSetSetpoint: (id: string, celsius: number) => void
   onSetPowerLevel: (id: string, level: number) => void
+  /** Turns the Driver's `commands_enabled` on or off: the switch in the dial card's header. */
+  onSetCommandsEnabled: (id: string, enabled: boolean) => void
   /**
    * Dev only (the local heater): every operating mode can be picked, because the page then owns
    * the mode. Absent on a real heater, where only Power and Temperature are commandable.
@@ -73,14 +80,10 @@ export interface HeaterPageProps {
     mode: OperatingMode
     onChange: (mode: OperatingMode, sensor: HeaterSensor) => void
     /**
-     * The Venus-style timer. The hub and Driver have no timer field, so it only works on the local
-     * heater, where it stops the heater at zero; on a real heater the dropdown is disabled.
+     * The Autoterm-style timer (On in starts the heater, Off in stops it). The hub and Driver have no
+     * timer field, so it only works on the local heater; on a real heater the pickers are disabled.
      */
-    timer?: {
-      minutes: number
-      endsAt: number | undefined
-      onChange: (minutes: number) => void
-    }
+    timer?: HeaterTimer
   }
 }
 
@@ -176,28 +179,43 @@ function useCommands(heater: Heater, frozen: boolean) {
   return { send, stateOf }
 }
 
-function fmt(value: number | undefined, digits: number, unit: string): string {
-  return value === undefined ? '—' : `${value.toFixed(digits)} ${unit}`
-}
-
-function Readout({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="text-muted text-xs">{label}</dt>
-      <dd className="truncate font-semibold tabular-nums">{value}</dd>
-    </div>
-  )
-}
-
 /** The heater's name and what it is doing, as one row. */
-function HeaterTitle({ label, status }: { label: string; status: string | undefined }) {
+function HeaterTitle({
+  label,
+  status,
+  commands,
+}: {
+  label: string
+  status: string | undefined
+  /** When given, the status is replaced by the controls switch. */
+  commands?: { on: boolean; disabled: boolean; onChange: (on: boolean) => void }
+}) {
   return (
     <div className="flex w-full min-w-0 items-center justify-between gap-2">
       <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
         <HeaterIcon aria-hidden="true" className="text-muted size-4 shrink-0" />
         <span className="truncate">{label}</span>
       </h2>
-      <span className="text-sm font-semibold">{status}</span>
+      {commands ? (
+        <div className="flex items-center gap-2">
+          {/* The dial shows the phase; only "Unknown" (not reporting) is worth keeping up here. */}
+          {commands.disabled && <span className="text-sm font-semibold">{status}</span>}
+          <Switch
+            isSelected={commands.on}
+            isDisabled={commands.disabled}
+            onChange={commands.onChange}
+          >
+            <Switch.Content>
+              <Label className="sr-only">{`${label} controls`}</Label>
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+            </Switch.Content>
+          </Switch>
+        </div>
+      ) : (
+        <span className="text-sm font-semibold">{status}</span>
+      )}
     </div>
   )
 }
@@ -214,9 +232,9 @@ const CARD_CLASS = 'min-h-0 gap-0! overflow-hidden p-0!'
 /** Both cards' header row: one place for its padding, in line with the content's side padding. */
 const HEADER_CLASS = 'flex-row! items-center justify-between gap-2 px-4 py-3 max-md:py-2.5'
 /** On a phone Start/Stop lives in the dial card, so this card ends with its readings and notes: more room above and below. */
-const CONTENT_CLASS = 'min-h-0 flex-1 gap-4 overflow-y-auto px-4 pt-2 pb-3 max-md:pt-3 max-md:pb-5'
+const CONTENT_CLASS = 'min-h-0 flex-1 gap-4 px-4 pb-3 max-md:pt-3 max-md:pb-5'
 /** The dial card is tighter than the status card: the dial gets what the padding gives back. */
-const DIAL_CONTENT_CLASS = 'min-h-0 flex-1 gap-2 overflow-y-auto p-3 pt-2 max-md:px-4'
+const DIAL_CONTENT_CLASS = 'min-h-0 flex-1 gap-2 overflow-y-auto p-3 pt-0 max-md:px-4'
 
 /**
  * One heater as two cards: the dial that sets what it should do (left) and what it is doing
@@ -232,6 +250,7 @@ export function HeaterCard({
   onSetMode,
   onSetSetpoint,
   onSetPowerLevel,
+  onSetCommandsEnabled,
   localModes,
 }: CardProps) {
   const label = heater.name ?? id
@@ -295,8 +314,21 @@ export function HeaterCard({
 
   // Start/Stop sits under the mode buttons on a phone, and at the foot of the status card on the kiosk.
   const line = statusLine(heater, current)
+  // One info line, always right above Start/Stop; the reason the controls are off outranks the rest.
+  const infoText =
+    !reporting && !frozen
+      ? 'No recent reading from the heater.'
+      : reporting && !commandsOn
+        ? 'Commands are turned off so this page is read-only.'
+        : line
   const startStop = (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1">
+      {infoText !== undefined && (
+        <p className="text-muted flex items-center gap-2 pb-1 text-sm">
+          <Info aria-hidden="true" className="size-4 shrink-0" />
+          {infoText}
+        </p>
+      )}
       <div className="flex items-center gap-3">
         {canStop(heater) ? (
           <Button
@@ -400,54 +432,34 @@ export function HeaterCard({
         </p>
       )}
 
-      <dl aria-label={`${label} readings`} className="grid grid-cols-2 gap-x-4 gap-y-2">
-        {/* External is the probe; "—" when none is fitted (the 0x7F sentinel). The heater's own
-            internal sensor is a different reading, shown separately. */}
-        <Readout
-          label="External"
-          value={reporting ? fmt(heater.external_temperature_c, 1, '°C') : '—'}
-        />
-        <Readout
-          label="Internal"
-          value={reporting ? fmt(heater.internal_temperature_c, 1, '°C') : '—'}
-        />
-        <Readout
-          label="Heater"
-          value={reporting ? fmt(heater.heater_temperature_c, 0, '°C') : '—'}
-        />
-        <Readout label="Voltage" value={reporting ? fmt(heater.voltage_v, 1, 'V') : '—'} />
-        <Readout label="Fan" value={reporting ? fmt(heater.fan_rpm, 0, 'rpm') : '—'} />
-        <Readout label="Fuel pump" value={reporting ? fmt(heater.fuel_pump_hz, 1, 'Hz') : '—'} />
-        {/* The clock the Start button starts, as on Venus OS, and the timer that ends it. */}
-        <RunTime heater={heater} reporting={reporting} />
-        <TimerSelect
-          timer={localModes?.timer}
-          disabled={!controls}
-          running={canStop(heater) && heater.phase !== 'shutting_down'}
-        />
-      </dl>
-
-      {/* Venus OS's status line. Only where Start/Stop is not beside the readings: a phone and the Start widget. */}
-      {(isMobile || variant === 'widget') && line !== undefined && (
-        <p className="text-muted flex items-center gap-2 text-sm">
-          <Info aria-hidden="true" className="size-4 shrink-0" />
-          {line}
-        </p>
-      )}
-
-      {!reporting && !frozen && (
-        <p className="text-muted flex items-center gap-2 text-xs">
-          <Info aria-hidden="true" className="size-4 shrink-0" />
-          No recent reading from the heater.
-        </p>
-      )}
-      {reporting && !commandsOn && (
-        <p className="text-muted flex items-center gap-2 text-xs">
-          <Info aria-hidden="true" className="size-4 shrink-0" />
-          Commands are turned off so this page is read-only.
-        </p>
+      {/* The Start widget carries every reading and the timer dropdown; the page lists the readings
+          as plain content and sets the timer with the pickers in the status card. */}
+      {variant === 'widget' && (
+        <dl aria-label={`${label} readings`} className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <HeaterReadings heater={heater} reporting={reporting} />
+          {/* The clock the Start button starts, as on Venus OS, and the timer that ends it. */}
+          <RunTime heater={heater} reporting={reporting} />
+          <TimerSelect
+            timer={localModes?.timer}
+            disabled={!controls}
+            running={canStop(heater) && heater.phase !== 'shutting_down'}
+          />
+        </dl>
       )}
     </>
+  )
+
+  // The page's sensor readings, as plain content (Settings › Heater keeps a copy).
+  const readoutsList = (
+    <dl aria-label={`${label} readings`} className="grid grid-cols-2 gap-x-4 gap-y-2">
+      <HeaterReadings heater={heater} reporting={reporting} />
+    </dl>
+  )
+
+  const timerHeader = (
+    <Card.Header className={`${HEADER_CLASS} mb-0 pb-2!`}>
+      <TimerHeader timer={localModes?.timer} disabled={!controls} />
+    </Card.Header>
   )
 
   const dialogs = (
@@ -584,20 +596,24 @@ export function HeaterCard({
         className={CARD_CLASS}
         style={{ '--tone': tone, '--tone-fg': toneFg } as CSSProperties}
       >
-        {/* No title row: on the 800x480 kiosk the dial is only ever used with the bottom bar up, so
-            every pixel goes to it. The heater's name is the status card's title. */}
-        {/* The cards stack on a phone, so each gets a header there: the dial card leads with the
-            heater's name and status, the readings card is titled for what it holds. */}
-        {isMobile && (
-          <Card.Header className={HEADER_CLASS}>
-            <HeaterTitle label={label} status={reporting ? phase : 'Unknown'} />
-          </Card.Header>
-        )}
+        {/* The dial card leads with the heater's name and status, on the kiosk as on a phone. The
+            readings card is titled only on a phone, where the cards stack. */}
+        <Card.Header className={HEADER_CLASS}>
+          <HeaterTitle
+            label={label}
+            status={reporting ? phase : 'Unknown'}
+            commands={{
+              on: commandsOn,
+              // Frozen or not reporting: nothing would answer the change.
+              disabled: frozen || !reporting,
+              onChange: (on) => onSetCommandsEnabled(id, on),
+            }}
+          />
+        </Card.Header>
         <Card.Content className={DIAL_CONTENT_CLASS}>
-          {!isMobile && <h2 className="sr-only">{label}</h2>}
           {dialSlider}
           {/* Bottom-anchored, on the same line as the status card's Start/Stop. */}
-          <div className="mt-auto flex flex-col gap-1.5">
+          <div className="mt-auto flex flex-col gap-3">
             {modeButtons}
             {isMobile && startStop}
           </div>
@@ -605,17 +621,18 @@ export function HeaterCard({
       </Card>
 
       <Card aria-label={`${label} status`} className={CARD_CLASS}>
-        <Card.Header className={HEADER_CLASS}>
-          {isMobile ? (
-            <h2 className="text-sm font-semibold">Readings</h2>
-          ) : (
-            <HeaterTitle label={label} status={reporting ? phase : 'Unknown'} />
-          )}
-        </Card.Header>
+        {timerHeader}
         <Card.Content className={CONTENT_CLASS}>
-          {readings}
+          {/* Only this part scrolls (the readings can outgrow a short card); Start/Stop below stays put. */}
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+            <TimerPicker timer={localModes?.timer} disabled={!controls} />
 
-          {!isMobile && <div className="mt-auto">{startStop}</div>}
+            {readings}
+
+            {readoutsList}
+          </div>
+
+          {!isMobile && <div className="shrink-0">{startStop}</div>}
         </Card.Content>
       </Card>
 
