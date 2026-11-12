@@ -163,7 +163,7 @@ export function TimerPicker({
     <div
       role="group"
       aria-label="Timer"
-      className="grid shrink-0 grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-2"
+      className="mb-1 grid shrink-0 grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-2"
     >
       <Field
         label="Timer type"
