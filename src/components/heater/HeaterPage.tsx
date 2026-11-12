@@ -45,7 +45,6 @@ import { HeaterReadings } from './HeaterReadings'
 import { Carousel } from '../start/Carousel'
 import { RunTime } from './RunTime'
 import { TimerHeader, TimerPicker } from './TimerPicker'
-import { TimerSelect } from './TimerSelect'
 /**
  * A command that has not changed its retained field in this long is reported as failed. Longer than
  * the relay's 4 s: a settings write is only confirmed by the Driver's next settings read (hub ADR 0021).
@@ -327,14 +326,19 @@ export function HeaterCard({
       : reporting && !commandsOn
         ? 'Read-only! - Commands are turned off.'
         : line
+  const infoLine =
+    infoText !== undefined ? (
+      <p className="text-muted flex items-center gap-2 pb-1 text-sm">
+        <Info aria-hidden="true" className="size-4 shrink-0" />
+        {infoText}
+      </p>
+    ) : null
+  // On the phone page and the widget the info line leads the mode buttons; on the kiosk it sits
+  // right above Start/Stop.
+  const infoAboveModes = isMobile || variant === 'widget'
   const startStop = (
     <div className="flex flex-col gap-1">
-      {infoText !== undefined && (
-        <p className="text-muted flex items-center gap-2 pb-1 text-sm">
-          <Info aria-hidden="true" className="size-4 shrink-0" />
-          {infoText}
-        </p>
-      )}
+      {!infoAboveModes && infoLine}
       <div className="flex items-center gap-3">
         {canStop(heater) ? (
           <Button
@@ -442,21 +446,6 @@ export function HeaterCard({
           Heater fault, error {heater.error_code}
         </p>
       )}
-
-      {/* The Start widget carries every reading and the timer dropdown; the page lists the readings
-          as plain content and sets the timer with the pickers in the status card. */}
-      {variant === 'widget' && (
-        <dl aria-label={`${label} readings`} className="grid grid-cols-2 gap-x-4 gap-y-2">
-          <HeaterReadings heater={heater} reporting={reporting} />
-          {/* The clock the Start button starts, as on Venus OS, and the timer that ends it. */}
-          <RunTime heater={heater} reporting={reporting} />
-          <TimerSelect
-            timer={localModes?.timer}
-            disabled={!controls}
-            running={canStop(heater) && heater.phase !== 'shutting_down'}
-          />
-        </dl>
-      )}
     </>
   )
 
@@ -464,6 +453,8 @@ export function HeaterCard({
   const readoutsList = (
     <dl aria-label={`${label} readings`} className="grid grid-cols-2 gap-x-4 gap-y-2">
       <HeaterReadings heater={heater} reporting={reporting} />
+      {/* The clock the Start button starts, as on Venus OS: only the Start widget shows it. */}
+      {variant === 'widget' && <RunTime heater={heater} reporting={reporting} />}
     </dl>
   )
 
@@ -596,7 +587,15 @@ export function HeaterCard({
           style={{ '--tone': tone, '--tone-fg': toneFg } as CSSProperties}
         >
           <Card.Header className={HEADER_CLASS}>
-            <HeaterTitle label={label} status={reporting ? phase : 'Unknown'} />
+            <HeaterTitle
+              label={label}
+              status={reporting ? phase : 'Unknown'}
+              commands={{
+                on: commandsOn,
+                disabled: frozen || !reporting,
+                onChange: (on) => onSetCommandsEnabled(id, on),
+              }}
+            />
           </Card.Header>
           <Card.Content className="px-0 pb-5">
             <Carousel
@@ -608,6 +607,7 @@ export function HeaterCard({
                   content: (
                     <div className="flex w-full flex-col gap-2 px-4 pb-4">
                       {dialSlider}
+                      {infoLine}
                       {modeButtons}
                       {startStop}
                     </div>
@@ -617,8 +617,13 @@ export function HeaterCard({
                   id: 'readings',
                   label: 'Readings',
                   content: (
-                    <div className="flex w-full flex-col gap-4 self-start px-4 pt-3 pb-4">
-                      {readings}
+                    <div className="flex w-full flex-col gap-3 self-start pb-4">
+                      {timerHeader}
+                      <div className="flex flex-col gap-3 px-4">
+                        <TimerPicker timer={localModes?.timer} disabled={!controls} />
+                        {readings}
+                        {readoutsList}
+                      </div>
                     </div>
                   ),
                 },
@@ -656,6 +661,7 @@ export function HeaterCard({
           {dialSlider}
           {/* Bottom-anchored, on the same line as the status card's Start/Stop. */}
           <div className="mt-auto flex flex-col gap-3">
+            {infoAboveModes && infoLine}
             {modeButtons}
             {isMobile && startStop}
           </div>
@@ -665,12 +671,10 @@ export function HeaterCard({
       <Card aria-label={`${label} status`} className={CARD_CLASS}>
         {timerHeader}
         <Card.Content className={CONTENT_CLASS}>
+          <TimerPicker timer={localModes?.timer} disabled={!controls} />
           {/* Only this part scrolls (the readings can outgrow a short card); Start/Stop below stays put. */}
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-            <TimerPicker timer={localModes?.timer} disabled={!controls} />
-
             {readings}
-
             {readoutsList}
           </div>
 
