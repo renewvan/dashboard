@@ -120,7 +120,7 @@ export function DialSlider({
           has no `min-h-0`, so a card too short for it scrolls instead of drawing the controls over
           the dial. */}
       <div
-        className="min-h-44 w-full min-w-0 flex-1 max-md:min-h-56"
+        className="min-h-36 w-full min-w-0 flex-1 max-md:min-h-56"
         style={{ containerType: 'size' }}
       >
         {/* The top 5% of the square is empty (the arc starts 5% down), so it is pulled up out of the
@@ -130,12 +130,14 @@ export function DialSlider({
         <div
           // Below md the card has its natural height (the page scrolls), so `cqh` is not a real
           // measure there and the dial is sized by width alone.
-          className="relative mx-auto [--s:min(100cqw,18rem)] md:[--s:max(15.1rem,min(100cqw,24rem,100cqh/0.73))]"
+          className="relative mx-auto [--s:min(100cqw,18rem)] md:[--s:max(13.5rem,min(100cqw,20rem,100cqh/0.73))]"
           style={
             {
               width: 'var(--s)',
               height: 'var(--s)',
-              marginTop: 'calc(var(--s) * -0.02)',
+              // With the bottom bar up (its inset is ~57px, else 0) the whole dial rides ~14px higher,
+              // which clears the −/+ row from the mode buttons.
+              marginTop: 'calc(var(--s) * -0.02 - var(--navbar-inset-bottom) * 0.1)',
               marginBottom: 'calc(var(--s) * -0.22)',
             } as CSSProperties
           }
@@ -237,7 +239,7 @@ export function DialSlider({
           </div>
         </div>
       </div>
-      <div className="relative z-10 mb-4 flex items-center gap-5">
+      <div className="relative z-10 mb-3 flex items-center gap-3">
         <Button
           isIconOnly
           variant="outline"

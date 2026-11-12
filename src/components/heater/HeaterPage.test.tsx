@@ -150,12 +150,13 @@ describe('HeaterPage', () => {
     expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled()
   })
 
-  it('puts the title and status in the status card on the kiosk', () => {
+  it('puts the title and status in the dial card on the kiosk', () => {
     setup({ cabin: RUNNING })
-    const status = screen.getByLabelText('Cabin heater status')
-    expect(within(status).getByRole('heading', { name: 'Cabin heater' })).toBeInTheDocument()
     const dial = screen.getByLabelText('Cabin heater setting')
-    expect(within(dial).getByRole('heading', { name: 'Cabin heater' })).toHaveClass('sr-only')
+    expect(within(dial).getByRole('heading', { name: 'Cabin heater' })).toBeInTheDocument()
+    expect(dial).toHaveTextContent('Running')
+    const status = screen.getByLabelText('Cabin heater status')
+    expect(within(status).queryByRole('heading', { name: 'Cabin heater' })).not.toBeInTheDocument()
   })
 
   it('leads the first card with the title and status, and titles the readings card, on a phone', () => {

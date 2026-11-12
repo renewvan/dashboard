@@ -216,7 +216,7 @@ const HEADER_CLASS = 'flex-row! items-center justify-between gap-2 px-4 py-3 max
 /** On a phone Start/Stop lives in the dial card, so this card ends with its readings and notes: more room above and below. */
 const CONTENT_CLASS = 'min-h-0 flex-1 gap-4 overflow-y-auto px-4 pt-2 pb-3 max-md:pt-3 max-md:pb-5'
 /** The dial card is tighter than the status card: the dial gets what the padding gives back. */
-const DIAL_CONTENT_CLASS = 'min-h-0 flex-1 gap-2 overflow-y-auto p-3 pt-2 max-md:px-4'
+const DIAL_CONTENT_CLASS = 'min-h-0 flex-1 gap-2 overflow-y-auto p-3 pt-0 max-md:px-4'
 
 /**
  * One heater as two cards: the dial that sets what it should do (left) and what it is doing
@@ -373,7 +373,7 @@ export function HeaterCard({
             id={key}
             aria-label={modeLabel}
             isDisabled={!supported && !localModes}
-            className="min-h-11 flex-1 data-[selected=true]:bg-[var(--tone)] data-[selected=true]:text-[var(--tone-fg)]"
+            className="min-h-11 min-w-0 flex-1 basis-0 data-[selected=true]:bg-[var(--tone)] data-[selected=true]:text-[var(--tone-fg)]"
           >
             {({ isSelected }) => (
               <>
@@ -584,17 +584,12 @@ export function HeaterCard({
         className={CARD_CLASS}
         style={{ '--tone': tone, '--tone-fg': toneFg } as CSSProperties}
       >
-        {/* No title row: on the 800x480 kiosk the dial is only ever used with the bottom bar up, so
-            every pixel goes to it. The heater's name is the status card's title. */}
-        {/* The cards stack on a phone, so each gets a header there: the dial card leads with the
-            heater's name and status, the readings card is titled for what it holds. */}
-        {isMobile && (
-          <Card.Header className={HEADER_CLASS}>
-            <HeaterTitle label={label} status={reporting ? phase : 'Unknown'} />
-          </Card.Header>
-        )}
+        {/* The dial card leads with the heater's name and status, on the kiosk as on a phone. The
+            readings card is titled only on a phone, where the cards stack. */}
+        <Card.Header className={HEADER_CLASS}>
+          <HeaterTitle label={label} status={reporting ? phase : 'Unknown'} />
+        </Card.Header>
         <Card.Content className={DIAL_CONTENT_CLASS}>
-          {!isMobile && <h2 className="sr-only">{label}</h2>}
           {dialSlider}
           {/* Bottom-anchored, on the same line as the status card's Start/Stop. */}
           <div className="mt-auto flex flex-col gap-1.5">
@@ -605,14 +600,12 @@ export function HeaterCard({
       </Card>
 
       <Card aria-label={`${label} status`} className={CARD_CLASS}>
-        <Card.Header className={HEADER_CLASS}>
-          {isMobile ? (
+        {isMobile && (
+          <Card.Header className={HEADER_CLASS}>
             <h2 className="text-sm font-semibold">Readings</h2>
-          ) : (
-            <HeaterTitle label={label} status={reporting ? phase : 'Unknown'} />
-          )}
-        </Card.Header>
-        <Card.Content className={CONTENT_CLASS}>
+          </Card.Header>
+        )}
+        <Card.Content className={`${CONTENT_CLASS} ${isMobile ? '' : 'pt-3'}`}>
           {readings}
 
           {!isMobile && <div className="mt-auto">{startStop}</div>}
