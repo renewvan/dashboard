@@ -5,6 +5,7 @@ export const PHASE_LABELS: Record<HeaterPhase, string> = {
   starting: 'Starting',
   warming_up: 'Warming up',
   running: 'Running',
+  standby: 'Standby',
   shutting_down: 'Shutting down',
 }
 
@@ -23,9 +24,10 @@ export const HEATER_SENSORS: readonly HeaterSensor[] = [
 
 /**
  * What the heater does, as the Autoterm Comfort Control panel names it (manual §3.3-3.4). The hub's
- * `mode` is only the first two, with the temperature sensor folded in. Ventilation is a fan-only
- * start (`ventilating/set`), not a `mode`. Thermostat and Heat + ventilation have no hub field yet,
- * so they are listed to show the full set but cannot be commanded.
+ * `mode` is only Power or Temperature, with the temperature sensor folded in. Thermostat is a
+ * temperature mode with the hub's `thermostat` on (the burner pauses above the setpoint, phase
+ * `standby`; bench-verified 2026-11-13). Ventilation is a fan-only start (`ventilating/set`), not a
+ * `mode`. Heat + ventilation has no hub field, so it is listed but cannot be commanded.
  */
 export type OperatingMode =
   | 'power'
@@ -40,16 +42,20 @@ export const OPERATING_MODES: readonly {
 }[] = [
   { key: 'power', label: 'Power', supported: true },
   { key: 'temperature', label: 'Temperature', supported: true },
-  { key: 'thermostat', label: 'Thermostat', supported: false },
+  { key: 'thermostat', label: 'Thermostat', supported: true },
   { key: 'heat_ventilation', label: 'Heat + ventilation', supported: false },
   { key: 'ventilation', label: 'Ventilation', supported: true },
 ]
 
-/** The operating mode the heater reports: fan-only wins, else Power or Temperature from `mode`. */
+/**
+ * The operating mode the heater reports: fan-only wins, else Power, else Thermostat or Temperature
+ * from `mode` and `thermostat`.
+ */
 export function operatingMode(heater: Heater): OperatingMode | undefined {
   if (heater.ventilating === true) return 'ventilation'
   if (heater.mode === undefined) return undefined
-  return heater.mode === 'power' ? 'power' : 'temperature'
+  if (heater.mode === 'power') return 'power'
+  return heater.thermostat === true ? 'thermostat' : 'temperature'
 }
 
 /**
@@ -75,9 +81,9 @@ export function modeSwitchBlock(
   return undefined
 }
 
-/** Whether the temperature sensor cannot be changed: Power, Thermostat and Ventilation read none (manual §4.3). */
+/** Whether the temperature sensor cannot be changed: Power and Ventilation read none (manual §4.3). */
 export function sensorLocked(mode: OperatingMode | undefined): boolean {
-  return mode === 'power' || mode === 'thermostat' || mode === 'ventilation'
+  return mode === 'power' || mode === 'ventilation'
 }
 
 /** The sensor in use, or nothing in Power mode where no sensor is read. */
@@ -117,7 +123,7 @@ export const POWER_RANGE = { min: 1, max: 9 } as const
 const MODE_DESCRIPTIONS: Record<OperatingMode, string> = {
   temperature: 'Maintain a target room temperature.',
   power: 'Run the heater at a fixed power level.',
-  thermostat: 'Keep the room within set temperature limits.',
+  thermostat: 'Heat to the target, then pause the burner until the room cools.',
   heat_ventilation: 'Blend heating with ventilation support.',
   ventilation: 'Circulate air without active heating.',
 }
@@ -139,6 +145,8 @@ export function statusLine(heater: Heater, mode: OperatingMode | undefined): str
       return 'Warming up...'
     case 'shutting_down':
       return 'Cooling down before stopping...'
+    case 'standby':
+      return `Paused at ${degrees(heater.setpoint_c)} · restarts when the room cools · room is ${room}`
     case 'running':
       if (mode === 'ventilation') return `Ventilating · room is ${room}`
       if (mode === 'power') {

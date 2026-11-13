@@ -373,7 +373,13 @@ export interface Relay {
   name?: string
 }
 
-export type HeaterPhase = 'off' | 'starting' | 'warming_up' | 'running' | 'shutting_down'
+export type HeaterPhase =
+  | 'off'
+  | 'starting'
+  | 'warming_up'
+  | 'running'
+  | 'standby'
+  | 'shutting_down'
 export type HeaterMode = 'heater_temperature' | 'external_temperature' | 'power'
 
 /**
@@ -401,6 +407,8 @@ export interface Heater {
   fan_rpm?: number
   fuel_pump_hz?: number
   ventilating?: boolean
+  /** Thermostat on: in a temperature mode the burner pauses (phase standby) above the setpoint. */
+  thermostat?: boolean
   commands_enabled?: boolean
 }
 

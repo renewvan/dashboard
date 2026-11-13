@@ -69,6 +69,8 @@ export interface HeaterPageProps {
   onSetMode: (id: string, mode: HeaterMode) => void
   /** Ventilation is not a `mode` value: `true` starts fan-only from off. */
   onSetVentilating: (id: string, on: boolean) => void
+  /** Thermostat on or off: a temperature mode that pauses the burner above the setpoint. */
+  onSetThermostat: (id: string, on: boolean) => void
   onSetSetpoint: (id: string, celsius: number) => void
   onSetPowerLevel: (id: string, level: number) => void
   /** Turns the Driver's `commands_enabled` on or off: the switch in the dial card's header. */
@@ -112,7 +114,8 @@ function observed(heater: Heater, field: Field): unknown {
     case 'run':
       return heater.phase
     case 'mode':
-      return heater.mode
+      // Temperature and Thermostat share a `mode`: the pair is what a mode change moves.
+      return `${heater.mode}/${heater.thermostat}`
     case 'setpoint':
       return heater.setpoint_c
     case 'power':
@@ -250,6 +253,7 @@ export function HeaterCard({
   onSetRunning,
   onSetMode,
   onSetVentilating,
+  onSetThermostat,
   onSetSetpoint,
   onSetPowerLevel,
   onSetCommandsEnabled,
@@ -290,9 +294,22 @@ export function HeaterCard({
   const applyMode = (next: OperatingMode) => {
     if (localModes) return localModes.onChange(next, sensor)
     setVentilationChosen(next === 'ventilation')
-    // The hub's `mode` is Power or a sensor, so Temperature resumes the last sensor.
-    if (next === 'power') send('mode', () => onSetMode(id, 'power'))
-    if (next === 'temperature') send('mode', () => onSetMode(id, sensor))
+    // The hub's `mode` is Power or a sensor, so Temperature and Thermostat resume the last sensor.
+    // Thermostat is that sensor mode with `thermostat` on; leaving it for any mode turns it off.
+    const fromPower = heater.mode === 'power' || heater.mode === undefined
+    if (next === 'power') {
+      send('mode', () => {
+        onSetMode(id, 'power')
+        if (heater.thermostat === true) onSetThermostat(id, false)
+      })
+    }
+    if (next === 'temperature' || next === 'thermostat') {
+      const on = next === 'thermostat'
+      send('mode', () => {
+        if (fromPower) onSetMode(id, sensor)
+        if ((heater.thermostat === true) !== on) onSetThermostat(id, on)
+      })
+    }
     // Ventilation changes no `mode` field: Start sends it (see the start confirmation).
   }
   // The stop the prompt asked for went through: now reach the mode it was for.
