@@ -23,9 +23,9 @@ export const HEATER_SENSORS: readonly HeaterSensor[] = [
 
 /**
  * What the heater does, as the Autoterm Comfort Control panel names it (manual §3.3-3.4). The hub's
- * `mode` is only the first two, with the temperature sensor folded in. Ventilation (a fan-only
- * frame the Driver refuses until verified on hardware) and Heat + ventilation (no hub field) are
- * listed so the page shows the full set, but cannot be commanded yet.
+ * `mode` is only the first two, with the temperature sensor folded in. Ventilation is a fan-only
+ * start (`ventilating/set`), not a `mode`. Thermostat and Heat + ventilation have no hub field yet,
+ * so they are listed to show the full set but cannot be commanded.
  */
 export type OperatingMode =
   | 'power'
