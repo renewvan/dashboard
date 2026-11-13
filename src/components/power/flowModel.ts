@@ -11,6 +11,7 @@ import { bmsAlert, type BmsAlert } from '@/lib/bmsAlert'
 import { chargerWatts } from '@/lib/charging'
 import { instanceKey } from '@/lib/instances'
 import { primaryBattery } from '@/lib/primaryBattery'
+import { starterBattery, type StarterBattery } from '@/lib/starterBattery'
 import { batteryTimeToGoS } from '@/lib/time-to-go'
 import { firstSolar } from '@/components/widgets/solar/solarView'
 import {
@@ -87,6 +88,24 @@ export interface FlowInput {
   dcLoadsW?: number
   /** The `instanceKey` of the device behind each source, so a node can open its device. */
   instances?: Partial<Record<SourceId | 'battery', string>>
+  /** The starter battery, shown under the Alternator source (`lib/starterBattery`). */
+  starter?: StarterBattery
+}
+
+/**
+ * The Alternator source's second line: what the alternator charger is doing to the starter
+ * battery, and that battery's voltage when the bus reports it.
+ */
+function alternatorSub(
+  alternator: Charger | undefined,
+  starter: StarterBattery | undefined,
+): string | undefined {
+  const volts = starter && `${starter.voltage.toFixed(2)} V`
+  if (alternator?.charge_state === 'emergency_charge') {
+    return volts ? `Charging starter · ${volts}` : 'Charging starter battery'
+  }
+  if (!volts) return undefined
+  return starter.low ? `Starter low · ${volts}` : `Starter ${volts}`
 }
 
 /** Below this the link is drawn idle: shunts jitter around zero and would flicker the particles. */
@@ -152,6 +171,7 @@ export function buildFlow({
   inverter,
   dcLoadsW,
   instances,
+  starter,
 }: FlowInput): PowerSnapshot {
   const b = battery && isCompleteBattery(battery) ? battery : undefined
   const solarW = solar ? Math.max(0, solar.power_w) : undefined
@@ -227,8 +247,7 @@ export function buildFlow({
         watts: altW === undefined ? undefined : Math.round(altW),
         present: alternator !== undefined,
         instance: instances?.alternator,
-        sub:
-          alternator?.charge_state === 'emergency_charge' ? 'Charging starter battery' : undefined,
+        sub: alternatorSub(alternator, starter),
       },
       shore: {
         id: 'shore',
@@ -305,6 +324,7 @@ export function flowFromBus(
     solar: firstSolar(solar),
     alternator: alternatorId === undefined ? undefined : (chargers[alternatorId] as Charger),
     shore: shoreId === undefined ? undefined : (chargers[shoreId] as Charger),
+    starter: starterBattery(batteries, chargers),
     instances: {
       battery: primary === undefined ? undefined : instanceKey('battery', primary.id),
       solar: solarId === undefined ? undefined : instanceKey('solar', solarId),

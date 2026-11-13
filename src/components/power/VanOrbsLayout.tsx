@@ -123,6 +123,7 @@ function Orb({
   shown,
   peakW,
   history,
+  note,
   compact,
   onPress,
 }: {
@@ -136,6 +137,8 @@ function Orb({
   peakW: number
   /** Drawn in the label's place, at the foot of the orb (the Solar orb's days of harvest). */
   history?: ReactNode
+  /** A short line under the reading (the Alternator orb's starter battery). */
+  note?: string
   /** Phone card: the text is raised, as the canvas is drawn at about a third of its size. */
   compact: boolean
   /** Opens the device behind the orb; absent, the orb is a readout. */
@@ -195,6 +198,11 @@ function Orb({
             unit={p.unit}
           />
           {history && <div className="mt-3 h-9 w-36">{history}</div>}
+          {note && (
+            <div className={`text-muted mt-2 text-center ${compact ? 'text-3xl' : 'text-lg'}`}>
+              {note}
+            </div>
+          )}
         </SourceTarget>
       </foreignObject>
       {/* The label sits outside the ring, above it, or below it for the lower orb of a stacked
@@ -282,6 +290,7 @@ export function VanOrbsLayout({
               history={
                 id === 'solar' && solarHistory ? <SolarHistory view={solarHistory} /> : undefined
               }
+              note={id === 'alternator' ? flow.nodes.alternator.sub : undefined}
               compact={compact}
               onPress={sourceOpener(flow, id, onOpenInstance)}
             />

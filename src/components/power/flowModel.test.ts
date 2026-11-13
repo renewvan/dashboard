@@ -307,3 +307,57 @@ describe('flowFromBus device keys', () => {
     expect(flow.nodes.shore.instance).toBeUndefined()
   })
 })
+
+describe('the starter battery on the alternator source', () => {
+  const orion: Charger = { voltage_v: 13.0, power_w: 0, source: 'alternator', charge_state: 'off' }
+
+  it('shows its voltage under the alternator', () => {
+    const flow = buildFlow({
+      battery: battery(80, -50),
+      solar: undefined,
+      alternator: orion,
+      shore: undefined,
+      starter: { voltage: 12.61, low: false, source: 'charger' },
+    })
+
+    expect(flow.nodes.alternator.sub).toBe('Starter 12.61 V')
+  })
+
+  it('says it is low when the driver raised the alarm', () => {
+    const flow = buildFlow({
+      battery: battery(80, -50),
+      solar: undefined,
+      alternator: orion,
+      shore: undefined,
+      starter: { voltage: 12.31, low: true, source: 'charger' },
+    })
+
+    expect(flow.nodes.alternator.sub).toBe('Starter low · 12.31 V')
+  })
+
+  it('adds the voltage to an emergency charge', () => {
+    const flow = buildFlow({
+      battery: battery(93, -343),
+      solar: undefined,
+      alternator: { ...orion, power_w: -238, charge_state: 'emergency_charge' },
+      shore: undefined,
+      starter: { voltage: 14.21, low: false, source: 'charger' },
+    })
+
+    expect(flow.nodes.alternator.sub).toBe('Charging starter · 14.21 V')
+  })
+
+  it('reads it off the bus: the shunt aux input first, else the alternator charger input', () => {
+    const house = {
+      ...battery(80, -50),
+      starter_voltage_v: 12.55,
+      starter_voltage_alarm: 'ok' as const,
+    }
+    const alternator = { ...orion, input_voltage_v: 12.4, input_voltage_alarm: 'low' as const }
+
+    expect(flowFromBus({ house }, {}, { alternator }).nodes.alternator.sub).toBe('Starter 12.55 V')
+    expect(flowFromBus({ house: battery(80, -50) }, {}, { alternator }).nodes.alternator.sub).toBe(
+      'Starter low · 12.40 V',
+    )
+  })
+})
