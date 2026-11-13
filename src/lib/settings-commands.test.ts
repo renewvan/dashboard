@@ -83,6 +83,14 @@ describe('settingsCommands', () => {
     expect(publish).toHaveBeenCalledWith('renewvan/heater/air2d/ventilating/set', 'true')
   })
 
+  it('publishes heater thermostat as a bare JSON boolean on thermostat/set', () => {
+    const { publish, commands } = setup()
+
+    commands.setHeaterThermostat('air2d', false)
+
+    expect(publish).toHaveBeenCalledWith('renewvan/heater/air2d/thermostat/set', 'false')
+  })
+
   it("publishes a relay name as a quoted JSON string on that relay's name/set topic", () => {
     const { publish, commands } = setup()
 
