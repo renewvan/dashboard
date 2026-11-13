@@ -20,6 +20,10 @@ describe('operating mode', () => {
     expect(operatingMode({ mode: 'power' })).toBe('power')
     expect(operatingMode({ mode: 'heater_temperature' })).toBe('temperature')
     expect(operatingMode({ mode: 'external_temperature' })).toBe('temperature')
+    expect(operatingMode({ mode: 'heater_temperature', thermostat: false })).toBe('temperature')
+    expect(operatingMode({ mode: 'heater_temperature', thermostat: true })).toBe('thermostat')
+    // Thermostat means nothing in Power mode.
+    expect(operatingMode({ mode: 'power', thermostat: true })).toBe('power')
     expect(operatingMode({})).toBeUndefined()
   })
 
@@ -33,7 +37,7 @@ describe('operating mode', () => {
     expect(heaterSensor({})).toBeUndefined()
   })
 
-  it('offers the five Comfort Control modes, three of them commandable today', () => {
+  it('offers the five Comfort Control modes, four of them commandable today', () => {
     expect(OPERATING_MODES.map((m) => m.key)).toEqual([
       'power',
       'temperature',
@@ -44,6 +48,7 @@ describe('operating mode', () => {
     expect(OPERATING_MODES.filter((m) => m.supported).map((m) => m.key)).toEqual([
       'power',
       'temperature',
+      'thermostat',
       'ventilation',
     ])
   })
@@ -73,7 +78,7 @@ describe('mode switch rules', () => {
 
   it('locks the sensor in the modes that read none', () => {
     expect(sensorLocked('power')).toBe(true)
-    expect(sensorLocked('thermostat')).toBe(true)
+    expect(sensorLocked('thermostat')).toBe(false)
     expect(sensorLocked('ventilation')).toBe(true)
     expect(sensorLocked('temperature')).toBe(false)
     expect(sensorLocked('heat_ventilation')).toBe(false)
@@ -92,6 +97,9 @@ describe('status line', () => {
 
   it('reads the transitions', () => {
     expect(statusLine({ phase: 'starting' }, 'power')).toBe('Starting heater...')
+    expect(
+      statusLine({ phase: 'standby', setpoint_c: 18, internal_temperature_c: 20 }, 'thermostat'),
+    ).toBe('Paused at 18°C · restarts when the room cools · room is 20°C')
     expect(statusLine({ phase: 'warming_up' }, 'power')).toBe('Warming up...')
     expect(statusLine({ phase: 'shutting_down' }, 'power')).toBe('Cooling down before stopping...')
   })

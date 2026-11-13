@@ -12,6 +12,7 @@ const handlers = {
   onSetMode: vi.fn(),
   onSetSetpoint: vi.fn(),
   onSetVentilating: vi.fn(),
+  onSetThermostat: vi.fn(),
   onSetPowerLevel: vi.fn(),
   onSetCommandsEnabled: vi.fn(),
 }
@@ -408,9 +409,10 @@ describe('HeaterPage', () => {
     expect(handlers.onSetMode).toHaveBeenCalledWith('cabin', 'external_temperature')
   })
 
-  it('can command Ventilation but not Heat + ventilation yet', () => {
+  it('can command Ventilation and Thermostat but not Heat + ventilation yet', () => {
     setup({ cabin: RUNNING })
     expect(screen.getByRole('radio', { name: 'Ventilation' })).toBeEnabled()
+    expect(screen.getByRole('radio', { name: 'Thermostat' })).toBeEnabled()
     expect(screen.getByRole('radio', { name: 'Heat + ventilation' })).toBeDisabled()
   })
 
@@ -456,9 +458,64 @@ describe('HeaterPage', () => {
     expect(screen.getByRole('radio', { name: 'Ventilation' })).toBeChecked()
   })
 
-  it('lists Thermostat too, disabled on a real heater', () => {
-    setup({ cabin: RUNNING })
-    expect(screen.getByRole('radio', { name: 'Thermostat' })).toBeDisabled()
+  it('shows a temperature mode with thermostat on as Thermostat', () => {
+    setup({ cabin: { ...RUNNING, thermostat: true } })
+    expect(screen.getByRole('radio', { name: 'Thermostat' })).toBeChecked()
+  })
+
+  it('turns Thermostat on from Temperature without touching the sensor', async () => {
+    const { user } = setup({ cabin: { ...RUNNING, thermostat: false } })
+    await user.click(screen.getByRole('radio', { name: 'Thermostat' }))
+    expect(handlers.onSetThermostat).toHaveBeenCalledWith('cabin', true)
+    expect(handlers.onSetMode).not.toHaveBeenCalled()
+  })
+
+  it('goes from Power to Thermostat with the last sensor and thermostat on', async () => {
+    const { user } = setup({ cabin: { ...RUNNING, mode: 'power' } })
+    await user.click(screen.getByRole('radio', { name: 'Thermostat' }))
+    expect(handlers.onSetMode).toHaveBeenCalledWith('cabin', 'heater_temperature')
+    expect(handlers.onSetThermostat).toHaveBeenCalledWith('cabin', true)
+  })
+
+  it('turns Thermostat off when leaving it for Temperature or Power', async () => {
+    const { user } = setup({ cabin: { ...RUNNING, thermostat: true } })
+    await user.click(screen.getByRole('radio', { name: 'Temperature' }))
+    expect(handlers.onSetThermostat).toHaveBeenCalledWith('cabin', false)
+    expect(handlers.onSetMode).not.toHaveBeenCalled()
+    cleanup()
+    handlers.onSetThermostat.mockClear()
+    const second = setup({ cabin: { ...RUNNING, thermostat: true } })
+    await second.user.click(screen.getByRole('radio', { name: 'Power' }))
+    expect(handlers.onSetMode).toHaveBeenCalledWith('cabin', 'power')
+    expect(handlers.onSetThermostat).toHaveBeenCalledWith('cabin', false)
+  })
+
+  it('confirms a Thermostat switch by the thermostat field, with no failure toast', async () => {
+    const danger = vi.spyOn(toast, 'danger').mockImplementation(() => '')
+    const { user, rerender } = setup({ cabin: { ...RUNNING, thermostat: false } })
+    await user.click(screen.getByRole('radio', { name: 'Thermostat' }))
+    rerender({ cabin: { ...RUNNING, thermostat: true } })
+    act(() => {
+      vi.advanceTimersByTime(GIVE_UP_MS + 1000)
+    })
+    expect(danger).not.toHaveBeenCalled()
+    expect(screen.getByRole('radio', { name: 'Thermostat' })).toBeChecked()
+    danger.mockRestore()
+  })
+
+  it('shows the Thermostat pause as Standby with Stop available and settings open', () => {
+    const STANDBY: Heater = {
+      ...RUNNING,
+      phase: 'standby',
+      status_code: '3.5',
+      thermostat: true,
+      fuel_pump_hz: 0,
+    }
+    setup({ cabin: STANDBY })
+    expect(screen.getAllByText('Standby').length).toBeGreaterThan(0)
+    expect(screen.getByText(/restarts when the room cools/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+    expect(screen.getByRole('radio', { name: 'Thermostat' })).toBeChecked()
   })
 
   it('lets the local heater pick every mode', async () => {

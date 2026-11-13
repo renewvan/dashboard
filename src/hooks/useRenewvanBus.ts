@@ -385,6 +385,7 @@ const HEATER_PROPERTIES: ReadonlySet<string> = new Set([
   'fan_rpm',
   'fuel_pump_hz',
   'ventilating',
+  'thermostat',
   'commands_enabled',
 ])
 

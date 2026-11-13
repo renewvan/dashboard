@@ -28,7 +28,7 @@ and Venus OS's `dbus-autoterm`:
 | ------------------ | ---------------- | ---------------------------------------------------------------------------- |
 | Power              | works            | Hub `mode` `power`. The dial sets the power level, 1-9.                      |
 | Temperature        | works            | Hub `mode` `heater_temperature` or `external_temperature`; the dial sets °C. |
-| Thermostat         | disabled         | No hub field. Venus's `wait_mode` byte is the candidate, unverified.         |
+| Thermostat         | works            | Hub `mode` sensor plus `thermostat` true (`thermostat/set`); the dial sets °C. Above the setpoint the burner pauses (phase `standby`) and re-ignites by itself. Bench-verified 2026-11-13. |
 | Heat + ventilation | disabled         | No hub field.                                                                |
 | Ventilation        | enabled          | Selected with the heater off, then started by Start, which publishes `ventilating/set` (an action, not a `mode`). The `0x23` frame is not yet bench-verified on a real heater. |
 
@@ -48,10 +48,10 @@ level (ventilation is set by a level and a duration, not a temperature).
   does; **Stop heater** sends the stop and the page switches once the heater reports Off (to Ventilation:
   selected, not started). Cancel sends
   nothing. Switching between heating modes while running asks nothing.
-- **The sensor cannot be changed in Power or Thermostat mode** (§4.3), and Ventilation reads none, so the
-  sensor dropdown is disabled in all three.
+- **The sensor cannot be changed in Power mode** (§4.3), and Ventilation reads none, so the sensor
+  dropdown is disabled in both. Thermostat here is a temperature mode, so its sensor can be changed.
 - **Settings are refused while the heater shuts down** (hub ADR 0021): the mode buttons, dial and dropdown
-  are disabled then.
+  are disabled then. They stay open in `standby` (the Thermostat pause), where Stop is offered too.
 
 ### Not enforced
 
@@ -105,7 +105,5 @@ every control is disabled.
 ## Still to do
 
 - Bench-check Ventilation on a real heater (the `0x23` frame and status `3.35`).
-- Thermostat and Heat + ventilation need their settings bytes captured from the panel (`driver-autoterm`
-  logs `Heater settings changed`), then a field in the hub schema and the commands in `driver-autoterm`,
-  before their buttons are enabled.
+- Heat + ventilation: no byte found on the bench (2026-11-13); its button stays disabled.
 - What `runtime_s` reports at start and shutdown.
