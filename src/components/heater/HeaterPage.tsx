@@ -260,7 +260,6 @@ export function HeaterCard({
   const { send, stateOf } = useCommands(heater, frozen || !reporting)
   const isMobile = useIsMobile()
   const [confirmingStart, setConfirmingStart] = useState(false)
-  const [confirmingVentilation, setConfirmingVentilation] = useState(false)
   // A mode the heater cannot switch to while it runs: asked about, then reached after a stop.
   const [switchTarget, setSwitchTarget] = useState<OperatingMode | null>(null)
   const afterStop = useRef<OperatingMode | null>(null)
@@ -270,7 +269,16 @@ export function HeaterCard({
   const settingsOk = controls && canChangeSettings(heater)
   const run = stateOf('run')
   const mode = stateOf('mode')
-  const current = localModes?.mode ?? operatingMode(heater)
+  // Ventilation is chosen first and started by Start: the hub has no `mode` for it, so the choice
+  // is held here until then (it only stands while the heater is off).
+  const [ventilationChosen, setVentilationChosen] = useState(false)
+  const armed = ventilationChosen && heater.phase === 'off'
+  // Once the heater leaves off (started from here, the panel or anywhere else) the choice is spent,
+  // so a later Start never runs the fan on a choice made before that run.
+  useEffect(() => {
+    if (heater.phase !== 'off') setVentilationChosen(false)
+  }, [heater.phase])
+  const current = localModes?.mode ?? (armed ? 'ventilation' : operatingMode(heater))
   // The sensor a switch back to Temperature resumes: the one in use, else the last one seen.
   const [lastSensor, setLastSensor] = useState<HeaterSensor>('heater_temperature')
   const inUse = heaterSensor(heater)
@@ -281,11 +289,11 @@ export function HeaterCard({
   const modesOk = controls && heater.phase !== 'shutting_down'
   const applyMode = (next: OperatingMode) => {
     if (localModes) return localModes.onChange(next, sensor)
+    setVentilationChosen(next === 'ventilation')
     // The hub's `mode` is Power or a sensor, so Temperature resumes the last sensor.
     if (next === 'power') send('mode', () => onSetMode(id, 'power'))
     if (next === 'temperature') send('mode', () => onSetMode(id, sensor))
-    // Confirmed by the phase leaving `off`, like a start: ventilation changes no `mode` field.
-    if (next === 'ventilation') send('run', () => onSetVentilating(id, true))
+    // Ventilation changes no `mode` field: Start sends it (see the start confirmation).
   }
   // The stop the prompt asked for went through: now reach the mode it was for.
   const runFailed = run?.failed === true
@@ -404,11 +412,6 @@ export function HeaterCard({
           setSwitchTarget(next)
           return
         }
-        // Starting the fan is an action, so it is confirmed like a start.
-        if (next === 'ventilation' && !localModes) {
-          setConfirmingVentilation(true)
-          return
-        }
         applyMode(next)
       }}
     >
@@ -476,50 +479,25 @@ export function HeaterCard({
               {({ close }) => (
                 <>
                   <AlertDialog.Header>
-                    <AlertDialog.Heading>Start {label}?</AlertDialog.Heading>
+                    <AlertDialog.Heading>
+                      {armed ? `Start ventilation on ${label}?` : `Start ${label}?`}
+                    </AlertDialog.Heading>
                   </AlertDialog.Header>
+                  {armed && <AlertDialog.Body>The fan runs and nothing burns.</AlertDialog.Body>}
                   <AlertDialog.Footer>
                     <Button variant="tertiary" onPress={close}>
                       Cancel
                     </Button>
                     <Button
                       onPress={() => {
-                        send('run', () => onSetRunning(id, true))
+                        if (armed) {
+                          setVentilationChosen(false)
+                          send('run', () => onSetVentilating(id, true))
+                        } else send('run', () => onSetRunning(id, true))
                         close()
                       }}
                     >
-                      Start
-                    </Button>
-                  </AlertDialog.Footer>
-                </>
-              )}
-            </AlertDialog.Dialog>
-          </AlertDialog.Container>
-        </AlertDialog.Backdrop>
-      </AlertDialog>
-
-      <AlertDialog isOpen={confirmingVentilation} onOpenChange={setConfirmingVentilation}>
-        <AlertDialog.Trigger aria-hidden="true" className="hidden" />
-        <AlertDialog.Backdrop isKeyboardDismissDisabled={false}>
-          <AlertDialog.Container>
-            <AlertDialog.Dialog>
-              {({ close }) => (
-                <>
-                  <AlertDialog.Header>
-                    <AlertDialog.Heading>Start ventilation on {label}?</AlertDialog.Heading>
-                  </AlertDialog.Header>
-                  <AlertDialog.Body>The fan runs and nothing burns.</AlertDialog.Body>
-                  <AlertDialog.Footer>
-                    <Button variant="tertiary" onPress={close}>
-                      Cancel
-                    </Button>
-                    <Button
-                      onPress={() => {
-                        applyMode('ventilation')
-                        close()
-                      }}
-                    >
-                      Start ventilation
+                      {armed ? 'Start ventilation' : 'Start'}
                     </Button>
                   </AlertDialog.Footer>
                 </>

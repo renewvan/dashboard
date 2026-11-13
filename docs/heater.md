@@ -30,10 +30,14 @@ and Venus OS's `dbus-autoterm`:
 | Temperature        | works            | Hub `mode` `heater_temperature` or `external_temperature`; the dial sets °C. |
 | Thermostat         | disabled         | No hub field. Venus's `wait_mode` byte is the candidate, unverified.         |
 | Heat + ventilation | disabled         | No hub field.                                                                |
-| Ventilation        | enabled          | Publishes `ventilating/set` (an action, not a `mode`), after a confirmation. The `0x23` frame is not yet bench-verified on a real heater. |
+| Ventilation        | enabled          | Selected with the heater off, then started by Start, which publishes `ventilating/set` (an action, not a `mode`). The `0x23` frame is not yet bench-verified on a real heater. |
 
 The hub's `mode` only carries Power and the two Temperature sensors, so Temperature resumes the sensor
-last in use. A heater that reports `ventilating` shows Ventilation selected, and its dial shows the power
+last in use. Ventilation has no `mode` value either, so the page holds the choice itself, as the Comfort
+Control panel does: picking Ventilation sends nothing, and Start then asks "Start ventilation on …?" and
+publishes `ventilating/set` `true` instead of `set` `true`. The choice is only on that screen (not shared
+with another dashboard, lost on reload), and is dropped by picking another mode, by Start, and whenever the
+heater leaves Off for any reason, so a later Start never runs the fan on a stale choice. A heater that reports `ventilating` shows Ventilation selected, and its dial shows the power
 level (ventilation is set by a level and a duration, not a temperature).
 
 ### Rules from the manual
@@ -41,7 +45,8 @@ level (ventilation is set by a level and a duration, not a temperature).
 - **Ventilation and the heating modes exclude each other while the heater runs** (§3.3, §3.4: "It is
   impossible to switch to ventilation mode while heater is operating in one of the heating modes", and the
   reverse). Tapping the other family while the heater is on opens a "Stop the heater first?" prompt, as Venus
-  does; **Stop heater** sends the stop and the page switches once the heater reports Off. Cancel sends
+  does; **Stop heater** sends the stop and the page switches once the heater reports Off (to Ventilation:
+  selected, not started). Cancel sends
   nothing. Switching between heating modes while running asks nothing.
 - **The sensor cannot be changed in Power or Thermostat mode** (§4.3), and Ventilation reads none, so the
   sensor dropdown is disabled in all three.
@@ -99,6 +104,8 @@ every control is disabled.
 
 ## Still to do
 
-Thermostat, Heat + ventilation and Ventilation need an operating-mode field in the hub schema and the same
-commands in `driver-autoterm`, then a bench check on the heater (the ventilation frame, `wait_mode`, and what
-`runtime_s` reports at start and shutdown) before the buttons are enabled.
+- Bench-check Ventilation on a real heater (the `0x23` frame and status `3.35`).
+- Thermostat and Heat + ventilation need their settings bytes captured from the panel (`driver-autoterm`
+  logs `Heater settings changed`), then a field in the hub schema and the commands in `driver-autoterm`,
+  before their buttons are enabled.
+- What `runtime_s` reports at start and shutdown.
