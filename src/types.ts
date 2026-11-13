@@ -184,6 +184,13 @@ export type SolarChargeState =
   | 'unknown'
 
 /**
+ * A non-solar charger's charge stage (`charger.schema.json`): the solar stages plus
+ * `emergency_charge`, an Orion XS (firmware >= 1.15) running backwards to charge the starter battery
+ * from the house battery, with negative `current_a` and `power_w`.
+ */
+export type ChargerChargeState = SolarChargeState | 'emergency_charge'
+
+/**
  * Solar charge controller per hub/schema/solar.schema.json, one record per controller. Only
  * `power_w` and `battery_voltage_v` are required of every source; cheap controllers omit the rest,
  * so a consumer must tolerate their absence. There is no array nameplate on the wire.
@@ -235,7 +242,7 @@ export interface Charger {
   power_w?: number
   input_voltage_v?: number
   source?: ChargerSource
-  charge_state?: SolarChargeState
+  charge_state?: ChargerChargeState
 }
 
 /** Same partial-accumulation caveat as {@link isCompleteTank}: only the required `voltage_v`. */

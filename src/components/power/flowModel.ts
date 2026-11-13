@@ -155,8 +155,13 @@ export function buildFlow({
 }: FlowInput): PowerSnapshot {
   const b = battery && isCompleteBattery(battery) ? battery : undefined
   const solarW = solar ? Math.max(0, solar.power_w) : undefined
+  // Signed: an Orion XS emergency charge draws from the house battery, so its watts are negative.
+  // The balance below keeps the sign (what the starter battery takes is not a load); the edges
+  // into the battery take only the forward part, as an edge never carries negative watts.
   const altW = alternator ? (chargerWatts(alternator) ?? 0) : undefined
   const shoreW = shore ? (chargerWatts(shore) ?? 0) : undefined
+  const altInW = Math.max(0, altW ?? 0)
+  const shoreInW = Math.max(0, shoreW ?? 0)
   const batteryW = b?.power_w
 
   const inW = (solarW ?? 0) + (altW ?? 0) + (shoreW ?? 0)
@@ -174,7 +179,7 @@ export function buildFlow({
     dcOutW = Math.max(0, dcLoadsW ?? 0)
     acLoadsW = Math.max(0, inverter.acOutW)
     // Shore feeds the inverter/charger's AC input, not the battery directly.
-    const acInW = shoreW ?? 0
+    const acInW = shoreInW
     // AC loads are served by shore first; the rest is inverted from the battery.
     const invertedW = Math.max(0, acLoadsW - acInW)
     // Shore left over after the AC loads charges the battery through the charger.
@@ -182,7 +187,7 @@ export function buildFlow({
     inverterW = acLoadsW
     edges.push(
       { from: 'solar', to: 'battery', watts: solarW ?? 0 },
-      { from: 'alternator', to: 'battery', watts: altW ?? 0 },
+      { from: 'alternator', to: 'battery', watts: altInW },
       { from: 'shore', to: 'inverter', watts: acInW },
       { from: 'inverter', to: 'battery', watts: chargeFromAcW },
       { from: 'battery', to: 'inverter', watts: invertedW },
@@ -192,8 +197,8 @@ export function buildFlow({
   } else {
     edges.push(
       { from: 'solar', to: 'battery', watts: solarW ?? 0 },
-      { from: 'alternator', to: 'battery', watts: altW ?? 0 },
-      { from: 'shore', to: 'battery', watts: shoreW ?? 0 },
+      { from: 'alternator', to: 'battery', watts: altInW },
+      { from: 'shore', to: 'battery', watts: shoreInW },
       { from: 'battery', to: 'loads', watts: loadsW ?? 0 },
     )
   }
@@ -222,6 +227,8 @@ export function buildFlow({
         watts: altW === undefined ? undefined : Math.round(altW),
         present: alternator !== undefined,
         instance: instances?.alternator,
+        sub:
+          alternator?.charge_state === 'emergency_charge' ? 'Charging starter battery' : undefined,
       },
       shore: {
         id: 'shore',

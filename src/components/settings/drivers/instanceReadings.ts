@@ -1,7 +1,7 @@
-import type { SolarChargeState } from '@/types'
+import type { ChargerChargeState } from '@/types'
 
 /** A controller's charge stage as a label: `external_control` reads `External control`. */
-export function chargeStateLabel(state: SolarChargeState): string {
+export function chargeStateLabel(state: ChargerChargeState): string {
   const words = state.replace('_', ' ')
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
