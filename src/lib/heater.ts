@@ -27,24 +27,15 @@ export const HEATER_SENSORS: readonly HeaterSensor[] = [
  * `mode` is only Power or Temperature, with the temperature sensor folded in. Thermostat is a
  * temperature mode with the hub's `thermostat` on (the burner pauses above the setpoint, phase
  * `standby`; bench-verified 2026-11-13). Ventilation is a fan-only start (`ventilating/set`), not a
- * `mode`. Heat + ventilation has no hub field, so it is listed but cannot be commanded.
+ * `mode`. The panel's Heat + ventilation is not offered: no heater byte for it was found
+ * (driver-autoterm README, bench 2026-11-13).
  */
-export type OperatingMode =
-  | 'power'
-  | 'temperature'
-  | 'ventilation'
-  | 'heat_ventilation'
-  | 'thermostat'
-export const OPERATING_MODES: readonly {
-  key: OperatingMode
-  label: string
-  supported: boolean
-}[] = [
-  { key: 'power', label: 'Power', supported: true },
-  { key: 'temperature', label: 'Temperature', supported: true },
-  { key: 'thermostat', label: 'Thermostat', supported: true },
-  { key: 'heat_ventilation', label: 'Heat + ventilation', supported: false },
-  { key: 'ventilation', label: 'Ventilation', supported: true },
+export type OperatingMode = 'power' | 'temperature' | 'ventilation' | 'thermostat'
+export const OPERATING_MODES: readonly { key: OperatingMode; label: string }[] = [
+  { key: 'power', label: 'Power' },
+  { key: 'temperature', label: 'Temperature' },
+  { key: 'thermostat', label: 'Thermostat' },
+  { key: 'ventilation', label: 'Ventilation' },
 ]
 
 /**
@@ -121,11 +112,10 @@ export const SETPOINT_RANGE = { min: 1, max: 30 } as const
 export const POWER_RANGE = { min: 1, max: 9 } as const
 
 const MODE_DESCRIPTIONS: Record<OperatingMode, string> = {
-  temperature: 'Maintain a target room temperature.',
-  power: 'Run the heater at a fixed power level.',
-  thermostat: 'Heat to the target, then pause the burner until the room cools.',
-  heat_ventilation: 'Blend heating with ventilation support.',
-  ventilation: 'Circulate air without active heating.',
+  temperature: 'Maintains the target temperature by turning the flame down.',
+  power: 'Runs at a fixed power level.',
+  thermostat: 'Heats around the target temperature, then switches off until it cools.',
+  ventilation: 'Blows air without heating.',
 }
 
 /**
@@ -155,6 +145,27 @@ export function statusLine(heater: Heater, mode: OperatingMode | undefined): str
       return `Heating to ${degrees(heater.setpoint_c)} · room is ${room}`
     default:
       return mode === undefined ? undefined : MODE_DESCRIPTIONS[mode]
+  }
+}
+
+/**
+ * What Start will run, for its confirm dialog: the mode and the one setting it reads, as the heater
+ * reported them (a start uses the reported settings, hub ADR 0021). "--" for a value not reported.
+ */
+export function startSummary(heater: Heater, mode: OperatingMode | undefined): string | undefined {
+  const value = (v: number | undefined, unit = '') => (v === undefined ? '--' : `${v}${unit}`)
+  const target = `target ${value(heater.setpoint_c, '°C')}`
+  switch (mode) {
+    case 'temperature':
+      return `Temperature mode · ${target}`
+    case 'thermostat':
+      return `Thermostat mode · ${target} · switches off until it cools`
+    case 'power':
+      return `Power mode · level ${value(heater.power_level)}`
+    case 'ventilation':
+      return `Ventilation · fan level ${value(heater.power_level)} · nothing burns`
+    default:
+      return undefined
   }
 }
 

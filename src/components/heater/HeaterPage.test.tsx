@@ -268,8 +268,10 @@ describe('HeaterPage', () => {
   it('says, right above Start/Stop, what the mode does and what the heater is doing, as Venus OS does', () => {
     setup({ cabin: RUNNING }, {}, 400)
     const info = screen.getByText('Heating to 21°C · room is 19°C')
-    // The line shares its wrapper with the Stop button, and comes first.
-    expect(info.parentElement).toContainElement(screen.getByRole('button', { name: 'Stop' }))
+    // The line (its text in a one-line span) shares its wrapper with the Stop button, and comes first.
+    expect(info.closest('p')?.parentElement).toContainElement(
+      screen.getByRole('button', { name: 'Stop' }),
+    )
     expect(info.compareDocumentPosition(screen.getByRole('button', { name: 'Stop' }))).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     )
@@ -278,7 +280,9 @@ describe('HeaterPage', () => {
     expect(screen.getByText('Running at power level 4 · room is 19°C')).toBeInTheDocument()
     cleanup()
     setup({ cabin: OFF }, {}, 400)
-    expect(screen.getByText('Maintain a target room temperature.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Maintains the target temperature by turning the flame down.'),
+    ).toBeInTheDocument()
     cleanup()
     // The kiosk's status card says it too.
     setup({ cabin: RUNNING })
@@ -288,7 +292,9 @@ describe('HeaterPage', () => {
   it('shows just one info line: the commands-off notice outranks the mode text', () => {
     setup({ cabin: { ...OFF, commands_enabled: false } })
     expect(screen.getByText('Read-only! - Commands are turned off.')).toBeVisible()
-    expect(screen.queryByText('Maintain a target room temperature.')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Maintains the target temperature by turning the flame down.'),
+    ).not.toBeInTheDocument()
   })
 
   it('reads Unknown when the driver cleared the live fields', () => {
@@ -308,6 +314,7 @@ describe('HeaterPage', () => {
     const { user, rerender } = setup({ cabin: OFF })
     await user.click(screen.getByRole('button', { name: 'Start' }))
     const dialog = await screen.findByRole('alertdialog')
+    expect(dialog).toHaveTextContent('Temperature mode · target 21°C')
     expect(handlers.onSetRunning).not.toHaveBeenCalled()
     await user.click(within(dialog).getByRole('button', { name: 'Start' }))
     expect(handlers.onSetRunning).toHaveBeenCalledWith('cabin', true)
@@ -409,11 +416,11 @@ describe('HeaterPage', () => {
     expect(handlers.onSetMode).toHaveBeenCalledWith('cabin', 'external_temperature')
   })
 
-  it('can command Ventilation and Thermostat but not Heat + ventilation yet', () => {
+  it('can command Ventilation and Thermostat, and offers no Heat + ventilation', () => {
     setup({ cabin: RUNNING })
     expect(screen.getByRole('radio', { name: 'Ventilation' })).toBeEnabled()
     expect(screen.getByRole('radio', { name: 'Thermostat' })).toBeEnabled()
-    expect(screen.getByRole('radio', { name: 'Heat + ventilation' })).toBeDisabled()
+    expect(screen.queryByRole('radio', { name: 'Heat + ventilation' })).not.toBeInTheDocument()
   })
 
   it('selects ventilation from off without starting, and Start then runs it on its own topic', async () => {

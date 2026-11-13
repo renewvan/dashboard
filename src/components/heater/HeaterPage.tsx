@@ -12,11 +12,11 @@ import {
 } from '@heroui/react'
 import {
   Fan,
-  Gauge,
+  Flame,
   Heater as HeaterIcon,
   Info,
-  Thermometer,
-  ThermometerSun,
+  SunSnow,
+  ThermometerSnowflake,
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react'
@@ -34,6 +34,7 @@ import {
   isReporting,
   operatingMode,
   phaseLabel,
+  startSummary,
   statusLine,
   type HeaterSensor,
   type OperatingMode,
@@ -101,11 +102,10 @@ interface Pending {
 }
 
 const OPERATING_MODE_ICONS: Record<OperatingMode, LucideIcon> = {
-  power: Gauge,
-  temperature: Thermometer,
+  power: Flame,
+  temperature: ThermometerSnowflake,
   ventilation: Fan,
-  heat_ventilation: HeaterIcon,
-  thermostat: ThermometerSun,
+  thermostat: SunSnow,
 }
 
 /** The retained value that confirms each command. A start or stop is confirmed by the phase moving. */
@@ -344,6 +344,8 @@ export function HeaterCard({
 
   // Start/Stop sits under the mode buttons on a phone, and at the foot of the status card on the kiosk.
   const line = statusLine(heater, current)
+  // The Start dialog's body: the mode and target the start will use.
+  const startDetails = startSummary(heater, current)
   // One info line, always right above Start/Stop; the reason the controls are off outranks the rest.
   const infoText =
     !reporting && !frozen
@@ -353,9 +355,11 @@ export function HeaterCard({
         : line
   const infoLine =
     infoText !== undefined ? (
-      <p className="text-muted flex items-center gap-2 pb-1 text-sm">
-        <Info aria-hidden="true" className="size-4 shrink-0" />
-        {infoText}
+      // At most two lines (touch screens have no hover to reveal a cut text). The readings above
+      // keep their full height, so a second line pushes Start/Stop down instead of covering them.
+      <p className="text-muted flex min-w-0 items-center gap-2 pb-1 text-xs">
+        <Info aria-hidden="true" className="size-3.5 shrink-0" />
+        <span className="line-clamp-2 min-w-0">{infoText}</span>
       </p>
     ) : null
   // On the phone page and the widget the info line leads the mode buttons; on the kiosk it sits
@@ -432,14 +436,13 @@ export function HeaterCard({
         applyMode(next)
       }}
     >
-      {OPERATING_MODES.map(({ key, label: modeLabel, supported }) => {
+      {OPERATING_MODES.map(({ key, label: modeLabel }) => {
         const ModeIcon = OPERATING_MODE_ICONS[key]
         return (
           <ToggleButton
             key={key}
             id={key}
             aria-label={modeLabel}
-            isDisabled={!supported && !localModes}
             className="min-h-11 flex-1 data-[selected=true]:bg-[var(--tone)] data-[selected=true]:text-[var(--tone-fg)]"
           >
             {({ isSelected }) => (
@@ -479,7 +482,7 @@ export function HeaterCard({
   )
 
   const timerHeader = (
-    <Card.Header className={`${HEADER_CLASS} mb-0 pb-2!`}>
+    <Card.Header className={`${HEADER_CLASS} mb-0 pb-0.5!`}>
       <TimerHeader timer={localModes?.timer} disabled={!controls} />
     </Card.Header>
   )
@@ -500,7 +503,9 @@ export function HeaterCard({
                       {armed ? `Start ventilation on ${label}?` : `Start ${label}?`}
                     </AlertDialog.Heading>
                   </AlertDialog.Header>
-                  {armed && <AlertDialog.Body>The fan runs and nothing burns.</AlertDialog.Body>}
+                  {startDetails !== undefined && (
+                    <AlertDialog.Body>{startDetails}</AlertDialog.Body>
+                  )}
                   <AlertDialog.Footer>
                     <Button variant="tertiary" onPress={close}>
                       Cancel
@@ -667,8 +672,9 @@ export function HeaterCard({
         {timerHeader}
         <Card.Content className={CONTENT_CLASS}>
           <TimerPicker timer={localModes?.timer} disabled={!controls} />
-          {/* Only this part scrolls (the readings can outgrow a short card); Start/Stop below stays put. */}
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+          {/* The readings at their full height: nothing scrolls, and the one-line info line above
+              Start/Stop leaves them room. */}
+          <div className="flex flex-1 flex-col gap-3">
             {readings}
             {readoutsList}
           </div>

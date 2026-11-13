@@ -11,9 +11,29 @@ import {
   operatingMode,
   phaseLabel,
   sensorLocked,
+  startSummary,
   statusLine,
   stepWithin,
 } from './heater'
+
+describe('start summary', () => {
+  const heater = { setpoint_c: 21, power_level: 4 } as const
+
+  it('names the mode and the one setting the start reads', () => {
+    expect(startSummary(heater, 'temperature')).toBe('Temperature mode · target 21°C')
+    expect(startSummary(heater, 'thermostat')).toBe(
+      'Thermostat mode · target 21°C · switches off until it cools',
+    )
+    expect(startSummary(heater, 'power')).toBe('Power mode · level 4')
+    expect(startSummary(heater, 'ventilation')).toBe('Ventilation · fan level 4 · nothing burns')
+  })
+
+  it('shows -- for a setting the heater has not reported, and nothing without a mode', () => {
+    expect(startSummary({}, 'temperature')).toBe('Temperature mode · target --')
+    expect(startSummary({}, 'power')).toBe('Power mode · level --')
+    expect(startSummary(heater, undefined)).toBeUndefined()
+  })
+})
 
 describe('operating mode', () => {
   it('reads fixed power as Power and either sensor as Temperature', () => {
@@ -37,15 +57,8 @@ describe('operating mode', () => {
     expect(heaterSensor({})).toBeUndefined()
   })
 
-  it('offers the five Comfort Control modes, four of them commandable today', () => {
+  it('offers the four modes the heater can be commanded into, not Heat + ventilation', () => {
     expect(OPERATING_MODES.map((m) => m.key)).toEqual([
-      'power',
-      'temperature',
-      'thermostat',
-      'heat_ventilation',
-      'ventilation',
-    ])
-    expect(OPERATING_MODES.filter((m) => m.supported).map((m) => m.key)).toEqual([
       'power',
       'temperature',
       'thermostat',
@@ -67,7 +80,7 @@ describe('mode switch rules', () => {
 
   it('allows switching between heating modes while on', () => {
     expect(modeSwitchBlock(running, 'temperature', 'power')).toBeUndefined()
-    expect(modeSwitchBlock(running, 'power', 'heat_ventilation')).toBeUndefined()
+    expect(modeSwitchBlock(running, 'power', 'thermostat')).toBeUndefined()
   })
 
   it('allows every switch with the heater off, and a re-select', () => {
@@ -81,17 +94,16 @@ describe('mode switch rules', () => {
     expect(sensorLocked('thermostat')).toBe(false)
     expect(sensorLocked('ventilation')).toBe(true)
     expect(sensorLocked('temperature')).toBe(false)
-    expect(sensorLocked('heat_ventilation')).toBe(false)
   })
 })
 
 describe('status line', () => {
   it('describes the selected mode while the heater is off', () => {
     expect(statusLine({ phase: 'off', error_code: 0 }, 'temperature')).toBe(
-      'Maintain a target room temperature.',
+      'Maintains the target temperature by turning the flame down.',
     )
     expect(statusLine({ phase: 'off', error_code: 0 }, 'power')).toBe(
-      'Run the heater at a fixed power level.',
+      'Runs at a fixed power level.',
     )
   })
 
