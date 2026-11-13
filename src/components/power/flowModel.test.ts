@@ -124,6 +124,65 @@ describe('buildFlow without an inverter', () => {
   })
 })
 
+describe('buildFlow during an Orion XS emergency charge', () => {
+  // Captured on the van: the Orion charges the starter battery from the house battery.
+  const reversed: Charger = {
+    voltage_v: 12.93,
+    current_a: -18.4,
+    power_w: -238,
+    input_voltage_v: 14.41,
+    source: 'alternator',
+    charge_state: 'emergency_charge',
+  }
+
+  it('says the alternator charger is charging the starter battery, with its signed watts', () => {
+    const flow = buildFlow({
+      battery: battery(93, -343),
+      solar: solar(0),
+      alternator: reversed,
+      shore: undefined,
+    })
+
+    expect(flow.nodes.alternator.watts).toBe(-238)
+    expect(flow.nodes.alternator.sub).toBe('Charging starter battery')
+  })
+
+  it('draws no flow into the house battery and keeps every edge non-negative', () => {
+    const flow = buildFlow({
+      battery: battery(93, -343),
+      solar: solar(0),
+      alternator: reversed,
+      shore: undefined,
+    })
+
+    expect(edge(flow.edges, 'alternator', 'battery')).toBe(0)
+    expect(flow.edges.every((e) => e.watts >= 0)).toBe(true)
+    expect(inputWatts(flow)).toBe(0)
+  })
+
+  it('leaves the starter battery out of the loads: they are the battery draw less its share', () => {
+    const flow = buildFlow({
+      battery: battery(93, -343),
+      solar: solar(0),
+      alternator: reversed,
+      shore: undefined,
+    })
+
+    expect(flow.nodes.loads.watts).toBe(105)
+  })
+
+  it('has no subtitle while the alternator charges forwards', () => {
+    const flow = buildFlow({
+      battery: battery(80, 200),
+      solar: solar(0),
+      alternator: charger('alternator', 250),
+      shore: undefined,
+    })
+
+    expect(flow.nodes.alternator.sub).toBeUndefined()
+  })
+})
+
 describe('buildFlow with an inverter', () => {
   it('splits the load: AC through the inverter, DC straight off the battery, and the battery balances', () => {
     // solar 1850 - inverted AC 900 - DC 250 = +700 W into the battery.

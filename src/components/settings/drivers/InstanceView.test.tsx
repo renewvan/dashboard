@@ -104,6 +104,35 @@ describe('Settings device page', () => {
     expect(screen.getByText(/has not published its history yet/)).toBeInTheDocument()
   })
 
+  it('names an Orion XS emergency charge and shows its negative output as it is', () => {
+    open('/?page=settings&view=instance&instance=charger:orion', {
+      chargers: {
+        orion: {
+          driver: 'venus',
+          voltage_v: 12.93,
+          current_a: -18.4,
+          power_w: -238,
+          input_voltage_v: 14.41,
+          source: 'alternator',
+          charge_state: 'emergency_charge',
+        },
+      },
+    })
+
+    const readings = screen.getByLabelText('Venus · orion readings')
+    const shown = Object.fromEntries(
+      within(readings)
+        .getAllByRole('term')
+        .map((term) => [term.textContent, term.nextElementSibling?.textContent]),
+    )
+    expect(shown).toMatchObject({
+      State: 'Emergency charge',
+      Current: '-18.4A',
+      Power: '-238W',
+      Input: '14.41V',
+    })
+  })
+
   it('has no History row for a charger, and a history link to one lands on its page', () => {
     open('/?page=settings&view=instance-history&instance=charger:ip22')
 

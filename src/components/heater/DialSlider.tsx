@@ -62,6 +62,7 @@ export function DialSlider({
   onCommit,
 }: DialSliderProps) {
   const [drag, setDrag] = useState<number | null>(null)
+  const [keyboard, setKeyboard] = useState(false)
   const svg = useRef<SVGSVGElement>(null)
   const off = disabled || busy || value === undefined
   const shown = drag ?? value
@@ -160,9 +161,17 @@ export function DialSlider({
             aria-valuenow={shown}
             aria-valuetext={shown === undefined ? 'Unknown' : `${shown}${unit}`}
             aria-disabled={off}
-            className={`relative w-full touch-none select-none ${off ? '' : 'cursor-pointer'}`}
-            onKeyDown={onKeyDown}
+            // The browser's focus rectangle around the whole square is ugly (a long touch makes
+            // it appear as a white box), so it is replaced by a ring on the knob, shown only
+            // after a key press.
+            className={`relative w-full touch-none outline-none select-none [-webkit-tap-highlight-color:transparent] ${off ? '' : 'cursor-pointer'}`}
+            onKeyDown={(event) => {
+              setKeyboard(true)
+              onKeyDown(event)
+            }}
+            onBlur={() => setKeyboard(false)}
             onPointerDown={(event) => {
+              setKeyboard(false)
               if (off) return
               event.currentTarget.setPointerCapture?.(event.pointerId)
               setDrag(valueAt(event))
@@ -208,6 +217,8 @@ export function DialSlider({
                 cy={knobY}
                 r={STROKE / 2 + 1}
                 fill="#fff"
+                stroke={keyboard ? tone : undefined}
+                strokeWidth={keyboard ? 3 : undefined}
                 style={{ filter: 'drop-shadow(0 1px 3px rgb(0 0 0 / 0.5))' }}
               />
             )}
