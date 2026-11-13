@@ -114,6 +114,10 @@ export interface Battery {
   capacity_ah?: number
   remaining_ah?: number
   time_since_full_charge_s?: number
+  /** The van's starter battery, measured on the monitor's aux input (SmartShunt `VS`). */
+  starter_voltage_v?: number
+  /** The driver's starter-battery alarm on `starter_voltage_v` (hub battery schema). */
+  starter_voltage_alarm?: StarterAlarm
   charge_state?: ChargeState
   // BMS data (hub ADR 0022): every property is optional and may be absent.
   /** Per-cell volts, index i is cell i+1; `null` is a cell that could not be read (4 to 32). */
@@ -191,6 +195,13 @@ export type SolarChargeState =
 export type ChargerChargeState = SolarChargeState | 'emergency_charge'
 
 /**
+ * The starter-battery alarm a driver publishes next to the voltage it watches: `low` once that
+ * voltage has stayed below the driver's threshold for its hold time. Decided by the driver, never
+ * by the dashboard (hub charger/battery schemas).
+ */
+export type StarterAlarm = 'ok' | 'low'
+
+/**
  * Solar charge controller per hub/schema/solar.schema.json, one record per controller. Only
  * `power_w` and `battery_voltage_v` are required of every source; cheap controllers omit the rest,
  * so a consumer must tolerate their absence. There is no array nameplate on the wire.
@@ -241,6 +252,8 @@ export interface Charger {
   current_a?: number
   power_w?: number
   input_voltage_v?: number
+  /** Alternator chargers: the driver's starter-battery alarm on `input_voltage_v` (hub charger schema). */
+  input_voltage_alarm?: StarterAlarm
   source?: ChargerSource
   charge_state?: ChargerChargeState
 }

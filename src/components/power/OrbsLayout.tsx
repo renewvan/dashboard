@@ -362,7 +362,9 @@ function Orb({
         textAnchor={side === 'left' ? 'end' : side === 'right' ? 'start' : 'middle'}
         className="fill-[var(--muted)] text-[44px]"
       >
-        {node.sub && node.id === 'inverter' ? `${node.label}: ${node.sub}` : node.label}
+        {node.sub && (node.id === 'inverter' || node.id === 'alternator')
+          ? `${node.label}: ${node.sub}`
+          : node.label}
       </text>
     </g>
   )

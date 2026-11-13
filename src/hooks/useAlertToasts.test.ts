@@ -435,3 +435,79 @@ describe('useAlertToasts', () => {
     })
   })
 })
+
+describe('useAlertToasts starter battery', () => {
+  it('raises a warning while the driver reports the starter battery low, and clears it after', () => {
+    const { warning, close } = spyToasts({ warning: 's1' })
+
+    const { rerender } = renderHook(
+      ({ starterLow }) =>
+        useAlertToasts({
+          tanks: {},
+          status: 'connected',
+          tailscale: null,
+          enabled: true,
+          starterLow,
+        }),
+      { initialProps: { starterLow: true } },
+    )
+
+    expect(warning).toHaveBeenCalledWith(
+      'Starter battery low',
+      expect.objectContaining({
+        description: 'Drive the van, or run an emergency charge from VictronConnect.',
+        timeout: 0,
+      }),
+    )
+
+    rerender({ starterLow: false })
+
+    expect(close).toHaveBeenCalledWith('s1')
+  })
+
+  it('records it in the alert history under its own key', () => {
+    spyToasts()
+    const append = vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('h1')
+
+    renderHook(() =>
+      useAlertToasts({
+        tanks: {},
+        status: 'connected',
+        tailscale: null,
+        enabled: true,
+        starterLow: true,
+      }),
+    )
+
+    expect(append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: 'starter-battery',
+        type: 'warning',
+        title: 'Starter battery low',
+      }),
+    )
+  })
+
+  it('parks the real van alert while the demo van is on screen, like a tank alarm', () => {
+    const { warning } = spyToasts()
+    vi.spyOn(alertHistory, 'appendAlertHistoryEntry').mockReturnValue('h1')
+    const resolve = vi.spyOn(alertHistory, 'resolveAlertHistoryEntry')
+
+    const { rerender } = renderHook(
+      ({ demo, starterLow }) =>
+        useAlertToasts({
+          tanks: {},
+          status: 'connected',
+          tailscale: null,
+          enabled: true,
+          demo,
+          starterLow,
+        }),
+      { initialProps: { demo: false, starterLow: true } },
+    )
+    rerender({ demo: true, starterLow: false })
+
+    expect(resolve).not.toHaveBeenCalled()
+    expect(warning).toHaveBeenCalledTimes(1)
+  })
+})

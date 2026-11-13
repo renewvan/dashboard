@@ -63,7 +63,14 @@ interface AlertToastArgs {
    * alert UI can be developed against it, but are never written to the persistent history: a fake
    * "Grey water tank alarm" must not outlive the demo on the Alerts page. */
   demo?: boolean
+  /** The starter battery is low per its driver's own alarm (`lib/starterBattery`): published
+   * state, like a tank's `alarm_state`, never a threshold applied here. */
+  starterLow?: boolean
 }
+
+const STARTER_KEY = 'starter-battery'
+/** Alerts about the van on screen (real or demo), parked while the other van is shown. */
+const isVanAlert = (key: string) => key.startsWith('tank:') || key === STARTER_KEY
 
 export function useAlertToasts({
   tanks,
@@ -71,6 +78,7 @@ export function useAlertToasts({
   tailscale,
   enabled,
   demo = false,
+  starterLow = false,
 }: AlertToastArgs): void {
   const activeToasts = useRef(new Map<string, ActiveAlert>())
   const programmaticCloses = useRef(new Set<string>())
@@ -84,7 +92,8 @@ export function useAlertToasts({
     const active = activeToasts.current
     const desired = new Map<string, AlertContent>()
 
-    // Switching demo mode swaps the van under this hook. Tank alerts belong to whichever van is on
+    // Switching demo mode swaps the van under this hook. Van alerts (`isVanAlert`: tanks and the
+    // starter battery; "tank" below stands for both) belong to whichever van is on
     // screen, so on a switch they are taken out of play and their toasts closed WITHOUT touching
     // history: letting the diff below treat them as "cleared" would resolve a real alarm just
     // because someone looked at the demo.
@@ -97,7 +106,7 @@ export function useAlertToasts({
     if (lastDemo.current !== demo) {
       lastDemo.current = demo
       for (const [key, alert] of active) {
-        if (!key.startsWith('tank:')) continue
+        if (!isVanAlert(key)) continue
         if (alert.toastId !== null) {
           programmaticCloses.current.add(alert.toastId)
           toast.close(alert.toastId)
@@ -117,6 +126,14 @@ export function useAlertToasts({
         type: 'error',
         title: `${FLUID_LABELS[tank.fluid_type]} tank alarm`,
         description: 'Level requires attention.',
+      })
+    }
+
+    if (starterLow) {
+      desired.set(STARTER_KEY, {
+        type: 'warning',
+        title: 'Starter battery low',
+        description: 'Drive the van, or run an emergency charge from VictronConnect.',
       })
     }
 
@@ -182,5 +199,5 @@ export function useAlertToasts({
         if (enabled) showToast(key, alert)
       }
     }
-  }, [tanks, status, tailscale, enabled, demo])
+  }, [tanks, status, tailscale, enabled, demo, starterLow])
 }

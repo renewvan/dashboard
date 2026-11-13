@@ -56,6 +56,7 @@ import { buildSettings } from '@/components/settings/buildSettings'
 import { useUrlPage } from '@/hooks/useUrlPage'
 import { useHubAddress } from '@/hooks/useHubAddress'
 import { useBrokerLink } from '@/hooks/useBrokerLink'
+import { starterBattery } from '@/lib/starterBattery'
 import { ShellHeaderContext } from '@/components/settings/ShellHeaderContext'
 
 // MapLibre is most of the bundle and only the Map page uses it, so that page loads on first visit
@@ -142,7 +143,14 @@ function App() {
   // neither the hub nor Demo mode (Demo's heater is read-only, hub ADR 0021).
   const localHeaterOn = devFlagOn('heater-dev')
   const localHeater = useLocalHeater(localHeaterOn)
-  useAlertToasts({ tanks: state.tanks, status, tailscale, enabled: alertsEnabled, demo: demoMode })
+  useAlertToasts({
+    tanks: state.tanks,
+    status,
+    tailscale,
+    enabled: alertsEnabled,
+    demo: demoMode,
+    starterLow: starterBattery(state.batteries, state.chargers)?.low ?? false,
+  })
   const [activePage, setActivePage] = useUrlPage(PAGE_IDS, 'start')
   // A view (and the tank it shows) belongs to the Settings page: any other page change leaves
   // both behind (one entry).

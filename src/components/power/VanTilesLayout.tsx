@@ -158,6 +158,12 @@ export function VanTilesLayout({
                     unit={p.unit}
                     sizeClass={['text-5xl', 'text-xl']}
                   />
+                  {/* The starter battery under the alternator (flowModel's `alternatorSub`). */}
+                  {id === 'alternator' && n.sub ? (
+                    <div className={`text-muted mt-2 ${compact ? 'text-3xl' : 'text-base'}`}>
+                      {n.sub}
+                    </div>
+                  ) : null}
                   {isSolar && solarHistory ? (
                     <div className="mt-6 h-14 min-h-0">
                       <SolarHistory view={solarHistory} />
